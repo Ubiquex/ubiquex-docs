@@ -7,19 +7,90 @@ description: "Write an accepted drift_adopt proposal's recorded reality back int
 ubx writeback <proposal-id> [flags]
 ```
 
-Takes an already-*accepted* `drift_adopt` [proposal](/concepts/proposal) and
-corrects your existing `.tf` source to match what it recorded — narrowly. It
-only ever overwrites a literal attribute value (or inserts a new key into an
-existing literal map, like a new tag), and only when it can locate the
+Takes an already-*accepted* `drift_adopt` [proposal](/concepts/proposal) —
+never a `change` or anything still in draft, since write-back records
+reality into existing source rather than proposing new infrastructure — and
+corrects your existing `.tf` source to match what it recorded, narrowly. It
+only ever overwrites a literal attribute value, or inserts a new key into an
+existing literal map (like a new tag), and only when it can locate the
 resource block unambiguously. Anything it can't safely change — an attribute
-whose current value is an expression, not a literal — is declined and reported,
-never guessed at. By default it prints a diff; `--write` actually modifies the
-file. Neither ever commits or pushes.
+whose current value is an expression, not a literal — is declined and
+reported, never guessed at. Every declined attribute is printed, not silently
+dropped. By default it prints a diff; `--write` actually modifies the file.
+Neither ever commits or pushes.
 
-<Note>
-  Full flag reference and verified examples land in a follow-up documentation
-  session. In the meantime, `ubx writeback --help` is authoritative.
-</Note>
+## Flags
+
+| Flag | Description |
+| --- | --- |
+| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `--tf-dir string` | directory containing the `.tf` files to write back into (default `.`) |
+| `--write` | actually write the modified file to disk instead of printing a diff (never commits or pushes) |
+| `-h`, `--help` | help for writeback |
+
+## Example: previewing a diff (default)
+
+Given `tf/widget.tf`:
+
+```hcl
+resource "fake_widget" "api-cache" {
+  tags = {
+    env = "prod"
+  }
+}
+```
+
+```text
+$ ubx writeback 88025d141d7574f4ae3a229a6e4510081ecde8051f759b430608daf5800da1e4 \
+    --ledger-dir . --tf-dir tf
+payments.fake_widget.api-cache (tf/widget.tf):
+  applied: tags.env
+--- tf/widget.tf (before)
++++ tf/widget.tf (after)
+@@ -1,5 +1,5 @@
+ resource "fake_widget" "api-cache" {
+   tags = {
+-    env = "prod"
++    env = "staging"
+   }
+ }
+```
+
+## Example: writing the change to disk
+
+```text
+$ ubx writeback 88025d141d7574f4ae3a229a6e4510081ecde8051f759b430608daf5800da1e4 \
+    --ledger-dir . --tf-dir tf --write
+payments.fake_widget.api-cache (tf/widget.tf):
+  applied: tags.env
+  wrote tf/widget.tf
+```
+
+## Example: a declined attribute
+
+If the current `.tf` source expresses the attribute as anything other than a
+literal — a variable reference, a function call, an interpolation — the
+edit is declined and reported instead of guessed at:
+
+```hcl
+resource "fake_widget" "api-cache" {
+  tags = {
+    env = var.environment
+  }
+}
+```
+
+```text
+$ ubx writeback e85511a8871190a36c4983c6f6b47ebd17a376f9862e60e1fbc01ac65cf415b1 \
+    --ledger-dir . --tf-dir tf2
+payments.fake_widget.api-cache (tf2/widget.tf):
+  declined: tags.env -- current value is not a literal: Variables not allowed (current value: var.environment)
+```
+
+Nothing is written for a declined attribute — the file (or that part of it)
+is left exactly as it was, and the decline reason is the whole point: it's
+telling you this attribute needs a human to resolve, not that `writeback`
+failed.
 
 ## Related
 

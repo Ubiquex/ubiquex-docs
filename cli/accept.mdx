@@ -1,6 +1,6 @@
 ---
 title: "ubx accept"
-description: "Accept a proposal -- locally, or derived from a merged GitHub pull request -- and append it to the ledger"
+description: "Accept a proposal -- locally, with optional freshness reverification, or derived from a merged GitHub pull request -- and append it to the ledger"
 ---
 
 ```text
@@ -8,23 +8,102 @@ ubx accept [proposal.json] [flags]
 ubx accept --from-merge <sha> --proposal-file <path> --github-repo <owner/name> [flags]
 ```
 
-Signs a [proposal](/concepts/proposal) and appends it to the [ledger](/concepts/ledger),
-using one of two acceptance tiers:
+Signs a [proposal](/concepts/proposal) and appends it to the
+[ledger](/concepts/ledger), using one of two acceptance tiers.
 
-- **Local** — `ubx accept proposal.json` signs a file on disk, recording your OS
-  username and the current time.
-- **PR-merge** — `ubx accept --from-merge` derives acceptance from a merged
-  GitHub pull request: it verifies the merge commit exists, that the proposal
-  file at that commit hashes to the trailer claimed in the PR body, and records
-  every reviewer whose most recent review was an approval.
+## Flags
 
-<Note>
-  Full flag reference and verified examples land in a follow-up documentation
-  session. In the meantime, `ubx accept --help` is authoritative.
-</Note>
+| Flag | Description |
+| --- | --- |
+| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `--reverify-with string` | path to a provider binary: re-read the resource live and refuse to accept if it no longer matches the proposal's recorded observation (stale). Mutually exclusive with `--reverify-source` |
+| `--reverify-source string` | provider source address to acquire for reverification, e.g. `hashicorp/aws` (mutually exclusive with `--reverify-with`; requires `--reverify-provider-version`) |
+| `--reverify-provider-version string` | explicit provider version to acquire for reverification (required with `--reverify-source`) |
+| `--resource-type string` | resource type to re-read (required with `--reverify-with`/`--reverify-source`) |
+| `--resource-name string` | resource name to re-read (required with `--reverify-with`/`--reverify-source`) |
+| `--provider-config string` | JSON object configuring the provider, used with `--reverify-with`/`--reverify-source` (default `{}`) |
+| `--timeout duration` | timeout for the reverify provider round trip (default `1m0s`) |
+| `--from-merge string` | derive `pr_merge` acceptance from a merge commit SHA instead of accepting a local file |
+| `--repo-dir string` | local git working tree to verify `--from-merge`'s commit history against (default `.`) |
+| `--proposal-file string` | path, within the repo, to the proposal file the merge commit carries (required with `--from-merge`) |
+| `--github-repo string` | owner/name of the GitHub repository (required with `--from-merge`) |
+| `-h`, `--help` | help for accept |
+
+## Local acceptance
+
+`ubx accept proposal.json` signs a file on disk, recording your OS username
+and the current time as `local` acceptance.
+
+```text
+$ ubx accept adopt.json --ledger-dir .
+accepted 16223f8b731dcc40bafb9b0ad8337e9153c82257087eba8b2a17b20503171ca1 (stack payments)
+```
+
+### Reverifying freshness before accepting
+
+A proposal captures live state at the moment `ubx scan` ran. If real time
+passes between generating a proposal and accepting it, reality may have moved
+on again. `--reverify-with` (or `--reverify-source` for registry acquisition)
+re-reads the resource — using the exact lookup key already recorded in the
+proposal's `resolution.inputs`, not a new `--lookup` you supply — and refuses
+to accept if the fresh read no longer matches what the proposal recorded.
+
+Passes when nothing changed since the scan:
+
+```text
+$ ubx accept adopt.json --ledger-dir . \
+    --reverify-with ./terraform-provider-aws \
+    --resource-type fake_widget --resource-name api-cache2
+accepted 58e572309efe8dcbff5c2b98f112bdca2511acdee16c3e9c35081bbd2d3790bf (stack payments)
+```
+
+Blocked when the resource changed out from under the proposal:
+
+```text
+$ ubx accept adopt.json --ledger-dir . \
+    --reverify-with ./terraform-provider-aws \
+    --resource-type fake_widget --resource-name api-cache3
+Error: accept: stale observation: reality changed since this proposal was generated: payments.fake_widget.api-cache3 recorded b5afdb3fb4bf5480300afee266988d93afe18054575db5a32ef4975b71d91334, now 028056c53f2b3ed9b25280b101479c28d7cf8f57ffe517e3556e13a0db596ff4
+```
+
+A blocked reverification never touches the ledger — nothing is written.
+
+## PR-merge acceptance
+
+`ubx accept --from-merge` derives acceptance from a merged GitHub pull
+request instead of trusting a local file directly. It:
+
+1. Confirms the merge commit SHA exists in `--repo-dir`'s git history.
+2. Reads `--proposal-file` at that exact commit and hashes it, checking that
+   hash against the `ubx-proposal: <hash>` trailer in the merged PR's body
+   (the trailer [`ubx propose`](/cli/propose) computes, or that
+   `ubx scan --surface-as pr` writes automatically).
+3. Records every reviewer whose most recent review on that PR was an
+   approval — a later `CHANGES_REQUESTED`, or a re-review after approving,
+   supersedes an earlier approval from the same person.
+
+Zero approvers is a normal, unblocked outcome — this tier's guarantee is that
+the *acceptance record* is checkable against git/GitHub history, not that a
+review policy was satisfied. Enforcing "N approvals required" is a decision
+to make in your own repo's branch protection, not something `ubx accept`
+itself gates on.
+
+```text
+$ ubx accept --from-merge 1f4a193321c803340fcc3ae1d7bc387c74922763 \
+    --repo-dir . \
+    --proposal-file proposals/pending.json \
+    --github-repo acme/infra \
+    --ledger-dir .
+accepted 3ac4ad60be63780420495d6f6dc16e06c206ad5960fa0a664facce27e73ec6ae (stack payments) via PR #42, 1 approver(s)
+```
+
+`ubx accept --from-merge` reads a `GITHUB_TOKEN` environment variable for API
+access; an empty token still works against public repos, at a much lower
+rate limit.
 
 ## Related
 
 - [Proposal](/concepts/proposal) — the acceptance model
 - [`ubx propose`](/cli/propose) — computing the hash a PR-merge trailer needs
+- [`ubx scan`](/cli/scan) — `--surface-as pr` opens the exact kind of PR this accepts from
 - [`ubx why`](/cli/why) — `--verify-acceptance`, for re-checking a PR-merge acceptance later

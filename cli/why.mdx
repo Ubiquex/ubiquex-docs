@@ -8,15 +8,81 @@ ubx why <proposal-id> [flags]
 ubx why <stack>.<type>.<name> [flags]
 ```
 
-Explains either one accepted [proposal](/concepts/proposal) (by its full hash),
-or a resource's entire recorded history (by its `<stack>.<type>.<name>`
-address) — newest first. Can also re-verify a PR-merge acceptance against
-current git history and the GitHub API with `--verify-acceptance`.
+Explains either one accepted [proposal](/concepts/proposal) (by its full
+64-character hex hash), or a resource's entire recorded history (by its
+`<stack>.<type>.<name>` address) — newest first. Which form runs is decided
+purely by whether the argument matches the 64-hex-char shape; anything else
+is tried as a resource address.
 
-<Note>
-  Full flag reference and verified examples land in a follow-up documentation
-  session. In the meantime, `ubx why --help` is authoritative.
-</Note>
+## Flags
+
+| Flag | Description |
+| --- | --- |
+| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `--verify-acceptance` | re-derive a `pr_merge` proposal's acceptance against git history + the GitHub API and report whether it still checks out |
+| `--repo-dir string` | local git working tree to verify `--verify-acceptance`'s merge commit against (default `.`) |
+| `--github-repo string` | owner/name of the GitHub repository, for `--verify-acceptance`'s reviewer re-check (the git-history re-check runs without it) |
+| `-h`, `--help` | help for why |
+
+## Looking up one proposal by ID
+
+```text
+$ ubx why 88025d141d7574f4ae3a229a6e4510081ecde8051f759b430608daf5800da1e4 --ledger-dir .
+proposal 88025d141d7574f4ae3a229a6e4510081ecde8051f759b430608daf5800da1e4 (drift_adopt)
+stack:  payments
+status: accepted
+intent: record drift on payments.fake_widget.api-cache observed outside the ledger
+accepted by [roozbeh] via local at 2026-07-11T16:08:22Z
+blast radius: +0 ~0 -0
+```
+
+## Looking up a resource's full history
+
+```text
+$ ubx why payments.fake_widget.api-cache --ledger-dir .
+payments.fake_widget.api-cache: 2 proposal(s), newest first
+- drift_adopt 88025d141d75… (2026-07-11T16:07:50Z): record drift on payments.fake_widget.api-cache observed outside the ledger
+- adoption 16223f8b731d… (2026-07-11T16:07:41Z): adopt existing payments.fake_widget.api-cache into the ledger (discovered by scan)
+```
+
+The truncated IDs in this compact chain view are a display-only
+abbreviation — pass the full ID (from a raw ledger file, or `ubx why`'s own
+single-proposal view) to look one up directly; the truncated form is never
+accepted as a lookup argument itself.
+
+## Re-verifying a PR-merge acceptance
+
+`--verify-acceptance` re-checks a `pr_merge` acceptance against current git
+history and, if `--github-repo` is given, the GitHub API's current reviewer
+state:
+
+```text
+$ ubx why 3ac4ad60be63780420495d6f6dc16e06c206ad5960fa0a664facce27e73ec6ae \
+    --ledger-dir . \
+    --verify-acceptance --repo-dir . --github-repo acme/infra
+proposal 3ac4ad60be63780420495d6f6dc16e06c206ad5960fa0a664facce27e73ec6ae (change)
+stack:  payments
+status: accepted
+intent: postgres for payments
+  source: dialogue d-1 (content_hash=)
+accepted by [roozbeh] via pr_merge at 2026-07-11T16:10:34Z
+blast radius: +1 ~0 -0
+--- verify-acceptance ---
+git: merge commit 1f4a193321c803340fcc3ae1d7bc387c74922763 exists in .
+git: proposals/pending.json at that commit still hashes to 3ac4ad60be63780420495d6f6dc16e06c206ad5960fa0a664facce27e73ec6ae
+github API: PR #42's approvers are unchanged ([roozbeh])
+```
+
+Two independent checks run: whether the merge commit and proposal-file hash
+still check out against git history (a hard failure if not — a commit
+rewritten out of history, or a file whose content no longer matches, is a
+serious finding), and whether the PR's current approvers still match what
+was recorded (reported as a `MISMATCH`, but never a hard failure — the
+ledger correctly recorded what was true at acceptance time; a reviewer later
+withdrawing their approval is exactly what this check exists to surface, not
+evidence the ledger entry itself is wrong). Running it against a `local`
+acceptance, or a proposal with no acceptance at all, reports "nothing to
+re-verify" rather than erroring.
 
 ## Related
 

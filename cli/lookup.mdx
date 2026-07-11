@@ -1,0 +1,54 @@
+---
+title: "Resource lookup conventions"
+description: "What --lookup needs to actually find a resource, per AWS type"
+---
+
+[`ubx scan`](/cli/scan)'s `--lookup` flag is a JSON object identifying the
+resource to the provider — most examples in these docs show
+`{"id": "..."}`, and for most types that's genuinely enough. A handful of
+common types need more than `id` alone, or use a different field as `id`
+entirely, and get this wrong silently: the provider's `ReadResource` call
+succeeds but reads back a resource that doesn't match what you meant, or
+reads back `null` for the field you assumed was set. This page exists so
+that's not a surprise.
+
+## Types with a confirmed non-default lookup shape
+
+These seven types have been verified against the real AWS provider (not
+just a test fixture) as part of `ubiquex-cli`'s internal conformance suite —
+their lookup requirement below is empirically confirmed, not assumed from
+the schema:
+
+| Type | Required `--lookup` shape | Why |
+| --- | --- | --- |
+| `aws_s3_bucket` | `{"id": "<name>", "bucket": "<name>"}` | `id` and `bucket` are both the bucket name. Sending only `bucket` reads back `null`. |
+| `aws_iam_role` | `{"id": "<role-name>", "name": "<role-name>"}` | `id` and `name` are both the role name (not the ARN). `name` alone reads back `null`. |
+| `aws_iam_user` | `{"id": "<user-name>", "name": "<user-name>"}` | Same shape as `aws_iam_role`: `id`/`name` are both the user name; `name` alone reads back `null`. |
+| `aws_iam_policy` | `{"id": "<policy-arn>"}` | `id` **is** the ARN (unlike role/user, which use the name) — no separate `name` or `arn` key needed. |
+| `aws_sqs_queue` | `{"id": "<queue-url>"}` | `id` **is** the queue URL, not the ARN (though `arn` is also surfaced by the schema). |
+| `aws_sns_topic` | `{"id": "<topic-arn>"}` | `id` **is** the topic ARN, same pattern as `aws_iam_policy`. |
+| `aws_vpc` | `{"id": "<vpc-id>"}` | Standard — `id` is the `vpc-*` id, and that's all the lookup needs. Listed here because it's a type people reach for immediately, and it turns out to need nothing special. |
+
+## Every other type
+
+Every other AWS type `ubx` has been tested against — roughly forty more,
+covering compute, network, storage, database, DNS, messaging, and
+observability — defaults to `{"id": "<the resource's id>"}` and nothing
+more, matching the schema each type's provider itself declares.
+
+<Note>
+  That default is verified against each type's real `GetProviderSchema`
+  response (free, no credentials or API round trip needed), and against a
+  fixture that proves ubx's own scan/diff pipeline handles that type's
+  attribute shape correctly. It is **not** independently verified against a
+  real provider's live `ReadResource` call the way the seven types above
+  are — those seven were specifically flagged because a live call is the
+  only way something like "`bucket` alone reads back null" would ever
+  surface. If `--lookup '{"id": "..."}'` reads back an unexpected or empty
+  result for a type not listed above, that's the first thing to suspect.
+</Note>
+
+## Related
+
+- [`ubx scan`](/cli/scan) — where `--lookup` is used
+- [Drift](/concepts/drift) — what a mismatched lookup would show up as

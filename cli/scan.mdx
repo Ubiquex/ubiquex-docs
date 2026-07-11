@@ -4,24 +4,157 @@ description: "Compare one resource's live state against the ledger and generate 
 ---
 
 ```text
-ubx scan [flags]
+ubx scan --stack <name> --type <type> --name <name> (--provider <path> | --source <src> --provider-version <v>) [flags]
 ```
 
-Reads one resource's live state (via a Terraform provider binary, speaking the
-provider protocol directly) and compares it against the [ledger](/concepts/ledger).
-If the resource is new, or its state has [drifted](/concepts/drift) from what's
-recorded, `ubx scan` generates and prints a proposal. On a best-effort basis, it
-also attempts [CloudTrail attribution](/concepts/attribution) for drift, and can
-optionally surface drift as a GitHub issue or pull request.
+Reads one resource's live state — via a Terraform provider binary, speaking
+the provider protocol directly — and compares it against the
+[ledger](/concepts/ledger). Exactly one of three outcomes follows: `new`
+(never seen this address before), `drifted` (the ledger has a record, but
+live state no longer matches it), or `no drift` (matches; nothing happens).
+See [Drift](/concepts/drift) for what each outcome means and what kind of
+proposal it generates.
 
-<Note>
-  Full flag reference and verified examples land in a follow-up documentation
-  session. In the meantime, `ubx scan --help` is authoritative.
-</Note>
+On drift, `ubx scan` also attempts [CloudTrail attribution](/concepts/attribution)
+by default, and can optionally surface the drift as a GitHub issue or pull
+request instead of just printing the proposal.
+
+## Flags
+
+| Flag | Description |
+| --- | --- |
+| `--stack string` | stack name the resource belongs to (**required**) |
+| `--type string` | resource type, e.g. `aws_s3_bucket` (**required**) |
+| `--name string` | resource name within the stack (**required**) |
+| `--lookup string` | JSON object identifying the resource to the provider, e.g. `{"id":"..."}` (default `{}`) — see [Resource lookup conventions](/cli/lookup), most types need more than just `id` |
+| `--provider string` | path to the provider binary (mutually exclusive with `--source`) |
+| `--source string` | provider source address, e.g. `hashicorp/aws` (mutually exclusive with `--provider`; requires `--provider-version`) |
+| `--provider-version string` | explicit provider version to acquire, e.g. `6.54.0` (required with `--source`; no "latest" resolution) |
+| `--provider-config string` | JSON object configuring the provider, e.g. `{"region":"us-east-1"}` (default `{}`) |
+| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `--out string` | write the generated proposal here instead of stdout |
+| `--timeout duration` | overall timeout for the scan (default `1m0s`) |
+| `--no-attribution` | skip CloudTrail attribution for drift proposals |
+| `--surface-as string` | on drift, open a GitHub `"issue"` or `"pr"` with a receipt instead of just printing the proposal (requires `--github-repo`) |
+| `--github-repo string` | owner/name of the GitHub repository to surface drift in (required with `--surface-as`) |
+| `--tf-dir string` | directory of `.tf` files to compute a best-effort write-back preview diff from, for the receipt (optional) |
+| `-h`, `--help` | help for scan |
+
+`--provider` is the direct "point at a binary on disk" workflow. `--source`
++ `--provider-version` instead acquires the provider from a registry (UBI-8)
+— version pins only, no `"latest"` resolution.
+
+## Examples
+
+### A never-before-seen resource ("new")
+
+```text
+$ ubx scan --provider ./terraform-provider-aws \
+    --stack payments --type fake_widget --name api-cache \
+    --lookup '{"name":"api-cache","tags":{"env":"prod"}}' \
+    --ledger-dir . --out adopt.json --no-attribution
+new: payments.fake_widget.api-cache (5c04c1c9c937a742ad32c319ffe75c550c344ed51bbee6d95dd14a12186daa4d) -- generated a "adoption" proposal
+```
+
+### A resource that has drifted from the ledger
+
+```text
+$ ubx scan --provider ./terraform-provider-aws \
+    --stack payments --type fake_widget --name api-cache \
+    --lookup '{"name":"api-cache","tags":{"env":"staging"}}' \
+    --ledger-dir . --no-attribution
+drifted: payments.fake_widget.api-cache (41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589) -- generated a "drift_adopt" proposal
+{
+  "schema_version": 1,
+  "stack": "payments",
+  "parent": "16223f8b731dcc40bafb9b0ad8337e9153c82257087eba8b2a17b20503171ca1",
+  "kind": "drift_adopt",
+  "intent": {
+    "summary": "record drift on payments.fake_widget.api-cache observed outside the ledger"
+  },
+  "delta": {
+    "modifies": [
+      {
+        "target": {"stack": "payments", "type": "fake_widget", "name": "api-cache"},
+        "before": {"tags.env": "prod"},
+        "after": {"tags.env": "staging"}
+      }
+    ]
+  },
+  "resolution": {
+    "resolved_at": "2026-07-11T16:07:50Z",
+    "inputs": [
+      {
+        "kind": "live_state",
+        "resource": "payments.fake_widget.api-cache",
+        "observed_hash": "41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589",
+        "lookup": {"name": "api-cache", "tags": {"env": "staging"}}
+      }
+    ]
+  },
+  "cost_delta": {"monthly_usd": 0},
+  "blast_radius": {"creates": 0, "modifies": 0, "destroys": 0},
+  "status": "draft"
+}
+```
+
+### After accepting that drift, scanning again matches ("no drift")
+
+```text
+$ ubx scan --provider ./terraform-provider-aws \
+    --stack payments --type fake_widget --name api-cache \
+    --lookup '{"name":"api-cache","tags":{"env":"staging"}}' \
+    --ledger-dir . --no-attribution
+no drift: payments.fake_widget.api-cache matches the ledger (observed_hash 41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589)
+```
+
+### Surfacing drift as a GitHub issue
+
+```text
+$ ubx scan --provider ./terraform-provider-aws \
+    --stack payments --type fake_widget --name widget-surface \
+    --lookup '{"name":"widget-surface","tags":{"env":"staging"}}' \
+    --ledger-dir . --no-attribution \
+    --surface-as issue --github-repo acme/infra --tf-dir ./tf
+opened issue https://github.com/acme/infra/issues/5
+drifted: payments.fake_widget.widget-surface (73628692262376ab6636f0dd549624a103d7378b070654dd3c6812edcd3459ed) -- generated a "drift_adopt" proposal
+```
+
+The issue body carries the full receipt: intent, kind, stack, blast radius,
+a `.tf` write-back preview diff (when `--tf-dir` is given), and the full
+proposal JSON in a collapsed `<details>` block. An issue needs only
+issue-write permission on the token, since nothing is committed.
+
+### Surfacing drift as a pull request instead
+
+```text
+$ ubx scan --provider ./terraform-provider-aws \
+    --stack payments --type fake_widget --name widget-pr \
+    --lookup '{"name":"widget-pr","tags":{"env":"staging"}}' \
+    --ledger-dir . --no-attribution \
+    --surface-as pr --github-repo acme/infra --tf-dir ./tf
+opened pull request https://github.com/acme/infra/pull/11
+drifted: payments.fake_widget.widget-pr (5db59844c8f38c80151103deae8a9ce43291b69783169079fadc8f49d7135850) -- generated a "drift_adopt" proposal
+```
+
+`pr` mode commits the proposal file to a new `ubx-drift/<stack>-<type>-<name>`
+branch and opens a PR whose body starts with a `ubx-proposal: <hash>`
+trailer — the same trailer `ubx propose` prints, ready for
+`ubx accept --from-merge` once the PR is reviewed and merged. Because it
+commits and opens a PR, this mode needs contents write and pull-request write
+permission on the token, not just issue-write — that's the real
+security-relevant choice between the two modes, not a stylistic one: pick
+`issue` if you only want a heads-up with no write access to the repo's
+contents, `pr` if you want the drift to be mergeable straight into the
+acceptance flow.
+
+`--surface-as` only fires on a `drifted` outcome — a `new` scan never
+surfaces anything, since there's no drift to report.
 
 ## Related
 
-- [Drift](/concepts/drift)
-- [Attribution](/concepts/attribution)
-- [`ubx accept`](/cli/accept)
-- [`ubx writeback`](/cli/writeback)
+- [Drift](/concepts/drift) — the three outcomes and what they generate
+- [Attribution](/concepts/attribution) — what CloudTrail attribution adds to a drift proposal
+- [Resource lookup conventions](/cli/lookup) — what `--lookup` needs per type
+- [`ubx accept`](/cli/accept) — accepting the generated proposal, including PR-merge acceptance
+- [`ubx writeback`](/cli/writeback) — the `--tf-dir` preview in a drift receipt, applied for real

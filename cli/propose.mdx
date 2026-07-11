@@ -7,16 +7,50 @@ description: "Compute a draft proposal's canonical hash for a PR body's ubx-prop
 ubx propose <proposal.json> [flags]
 ```
 
-Computes a draft proposal's canonical hash and prints it as a
-`ubx-proposal: <hash>` line, without touching the ledger. This is the first
-step of PR-merge acceptance: put that line in the body of the pull request
-carrying the proposal file, so `ubx accept --from-merge` has a claimed hash to
-verify against once the PR is merged.
+Computes a draft [proposal](/concepts/proposal)'s canonical hash and prints it
+as a `ubx-proposal: <hash>` line. This never touches a ledger — it's a pure
+function of the file's own content, the same hash `ubx accept` computes
+internally. It's the first step of [PR-merge acceptance](/cli/accept): put
+that line in the body of the pull request carrying the proposal file, so
+`ubx accept --from-merge` has a claimed hash to verify against once the PR is
+merged.
 
-<Note>
-  Full flag reference and verified examples land in a follow-up documentation
-  session. In the meantime, `ubx propose --help` is authoritative.
-</Note>
+The file must be a genuine draft — `propose` refuses a proposal that already
+has an `id` or `acceptance` set.
+
+## Flags
+
+| Flag | Description |
+| --- | --- |
+| `-h`, `--help` | help for propose |
+
+## Example
+
+Given `draft.json`:
+
+```json
+{
+  "schema_version": 1,
+  "stack": "payments",
+  "parent": "",
+  "kind": "change",
+  "intent": {"summary": "postgres for payments", "sources": [{"kind": "dialogue", "ref": "d-1"}]},
+  "delta": {"creates": [{"stack": "payments", "type": "aws_db_instance", "name": "payments-db"}]},
+  "resolution": {"resolved_at": "2026-07-11T00:00:00Z"},
+  "cost_delta": {"monthly_usd": 59},
+  "blast_radius": {"creates": 1, "modifies": 0, "destroys": 0},
+  "status": "draft"
+}
+```
+
+```text
+$ ubx propose draft.json
+ubx-proposal: 3ac4ad60be63780420495d6f6dc16e06c206ad5960fa0a664facce27e73ec6ae
+```
+
+That line goes in the PR body. Once the PR merges, `ubx accept --from-merge`
+re-hashes the same file at the merge commit and checks it against this
+trailer.
 
 ## Related
 
