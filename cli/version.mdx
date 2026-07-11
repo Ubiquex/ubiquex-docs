@@ -7,7 +7,8 @@ description: "Print the ubx version"
 ubx version [flags]
 ```
 
-Prints the `ubx` binary's version string to stdout, and nothing else.
+Prints the `ubx` binary's version string to stdout, and nothing else:
+`<version>+<commit>` if a commit is known, or bare `<version>` if not.
 
 ## Flags
 
@@ -15,17 +16,31 @@ Prints the `ubx` binary's version string to stdout, and nothing else.
 | --- | --- |
 | `-h`, `--help` | help for version |
 
-## Example
+## Examples
+
+A binary built from a released tag (via the project's `goreleaser` config,
+which injects both the tag and the short commit at build time):
 
 ```text
 $ ubx version
-dev
+0.1.0+99236a7
+```
+
+A plain `go build ./cmd/ubx` with no `-ldflags`, run inside a git checkout:
+
+```text
+$ ubx version
+dev+99236a7
 ```
 
 <Note>
-  A binary built without `-ldflags "-X github.com/ubiquex/ubiquex-cli/cli.Version=..."`
-  always prints `dev` — that's what every build from source produces today,
-  since there's no release process yet (see [Installation](/getting-started/installation)).
+  The commit suffix comes from one of two places: `-ldflags
+  "-X github.com/ubiquex/ubiquex-cli/cli.Commit=..."` if the binary was built
+  with it (every release build is), or otherwise Go's own automatic VCS build
+  stamping — present for any `go build` run inside a git checkout, absent for
+  a binary built outside one (e.g. `go install` from a module cache with VCS
+  stamping disabled), in which case `ubx version` prints bare `dev` with no
+  commit at all.
 </Note>
 
 ## Related
