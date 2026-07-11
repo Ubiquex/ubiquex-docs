@@ -1,5 +1,29 @@
 # STATE — ubiquex-docs
 
+## Release cut v0.1.0 (2026-07-11)
+
+ubiquex-cli's release infrastructure (goreleaser + a tag-triggered GitHub
+Actions workflow) landed this session — see that repo's STATE.md for the
+mechanics. On this side:
+
+- `getting-started/installation.mdx` replaced the source-only placeholder
+  with real instructions: `gh release download` (the repo is currently
+  private, so plain `curl` won't authenticate), checksum verification
+  against the published `checksums.txt`, `chmod`, and `PATH` setup. Labeled
+  honestly as pre-alpha — a release existing doesn't mean API/schema
+  stability. Build-from-source is kept as an explicit alternative.
+- `cli/version.mdx` updated for the new `<version>+<commit>` output format
+  (previously always bare `dev`) — both real examples (a release-tag build,
+  a plain local `go build`) verified against the actual binary this
+  session, along with the two different sources of the commit suffix
+  (ldflags vs. Go's own VCS build stamping).
+- Note: these pages reference `v0.1.0` as already published to GitHub
+  Releases. As of this commit, the tag has *not* been pushed yet — that's
+  Roozbeh's manual act, after reviewing this session's goreleaser
+  dry-run output. The docs describe the release process that will exist
+  once he does, not a claim that it exists yet at commit time.
+- `mint validate`, `mint dev`, and `mint broken-links` all pass clean.
+
 ## UBI-13: closed out (2026-07-11)
 
 Three sessions, scaffold through full reference:
