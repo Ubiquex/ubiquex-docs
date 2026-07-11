@@ -151,6 +151,57 @@ acceptance flow.
 `--surface-as` only fires on a `drifted` outcome — a `new` scan never
 surfaces anything, since there's no drift to report.
 
+### Acquiring a provider by `--source`/`--provider-version` instead of `--provider`
+
+`--source`/`--provider-version` acquires the provider binary instead of
+pointing at one already on disk, in this order: `UBX_PROVIDER_MIRROR` (a
+local directory you populate yourself — a hit is used as-is, unverified,
+since a local file is trusted differently than a network download), then
+ubx's own verified-binary cache (`~/.ubx/providers/...`), then — only if
+both miss — a live registry round trip that downloads the provider archive
+and its detached signature and verifies both before ever running it.
+
+```text
+$ export UBX_PROVIDER_MIRROR=/tmp/ubx-mirror
+$ ubx scan --source acme/widget --provider-version 6.54.0 \
+    --stack payments --type fake_widget --name registry-widget \
+    --lookup '{"name":"registry-widget","tags":{"env":"prod"}}' \
+    --ledger-dir . --out adopt.json
+new: payments.fake_widget.registry-widget (d4691981cdd944e56500f3c323e2f57545fdb84a1991ab786d0d506ea3e50b70) -- generated a "adoption" proposal
+```
+
+Resolved this way, the generated proposal's `resolution.inputs` entry also
+carries a `provider_checksum` — the SHA-256 of the exact binary that
+produced the observation — which a `--provider`-only scan never has, since
+nothing was verified to attribute a checksum to:
+
+```json
+{
+  "resolution": {
+    "inputs": [
+      {
+        "kind": "live_state",
+        "resource": "payments.fake_widget.registry-widget",
+        "observed_hash": "d4691981cdd944e56500f3c323e2f57545fdb84a1991ab786d0d506ea3e50b70",
+        "lookup": {"name": "registry-widget", "tags": {"env": "prod"}},
+        "provider_checksum": "sha256:dbf9e315000f0bc2cb02eed73d41790a973933addff65b7a1b0faca0b10d8179"
+      }
+    ]
+  }
+}
+```
+
+<Note>
+  This example resolves through `UBX_PROVIDER_MIRROR`, not a live registry
+  download — the mirror is a real, first-class resolution path (not a
+  test-only shortcut), and it's the one reproducible without live registry
+  credentials and network access. The live-registry path (query, download,
+  verify a detached signature against a registry-served signing key, verify
+  the archive checksum, extract) runs identically whether or not a mirror
+  is configured — it's simply skipped here because the mirror already
+  satisfied the request.
+</Note>
+
 ## Related
 
 - [Drift](/concepts/drift) — the three outcomes and what they generate
