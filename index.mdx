@@ -1,0 +1,58 @@
+---
+title: "Introduction"
+description: "ubx records infrastructure change as a signed, append-only ledger of proposals"
+---
+
+`ubx` is a command-line tool for infrastructure change management. It reads your
+cloud resources directly — no Terraform, OpenTofu, or Pulumi engine involved — compares
+what it finds against a **ledger** of accepted **proposals**, and records any difference
+as a new proposal for a human to accept.
+
+The current release focuses on one thing: detecting when AWS infrastructure has
+drifted from what your team last recorded, attributing that drift to who changed it,
+and giving you a signed record of the decision you made about it.
+
+## The core loop
+
+1. **`ubx scan`** reads one resource's live state and compares it to the ledger. If the
+   resource has never been seen before, or its state no longer matches what was last
+   recorded, `ubx scan` generates a proposal describing the difference.
+2. **`ubx accept`** signs a proposal and appends it to the ledger — either locally
+   (`ubx accept proposal.json`) or derived from a merged GitHub pull request
+   (`ubx accept --from-merge`).
+3. **`ubx why`** explains any accepted proposal, or a resource's entire recorded
+   history, including who or what caused a drift when that can be determined.
+
+<CardGroup cols={2}>
+  <Card title="Proposal" href="/concepts/proposal">
+    The unit of change: a typed, hashed record of what happened and why.
+  </Card>
+  <Card title="Ledger" href="/concepts/ledger">
+    The append-only, per-stack chain of accepted proposals.
+  </Card>
+  <Card title="Drift" href="/concepts/drift">
+    What it means when reality no longer matches the ledger.
+  </Card>
+  <Card title="Attribution" href="/concepts/attribution">
+    How ubx identifies who caused a drift, via CloudTrail.
+  </Card>
+</CardGroup>
+
+## What ubx does today
+
+- Reads AWS resources by speaking the Terraform provider protocol directly to
+  provider binaries — no `.tfstate` file exists anywhere.
+- Detects drift and generates proposals recording exactly what changed.
+- Attributes drift to a CloudTrail event and actor, on a best-effort basis.
+- Accepts proposals locally, or derives acceptance from a merged, reviewed GitHub
+  pull request.
+- Writes an accepted drift record back into your existing `.tf` source files, for
+  the literal attribute values it can safely correct.
+- Can open a GitHub issue or pull request when it detects drift, so a team member
+  can review and accept it.
+
+<Note>
+  ubx is under active development. This documentation describes what is shipped in
+  the current build, not what's planned — see [Installation](/getting-started/installation)
+  for how to get it.
+</Note>

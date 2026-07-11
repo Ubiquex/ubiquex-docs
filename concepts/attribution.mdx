@@ -1,0 +1,72 @@
+---
+title: "Attribution"
+description: "Identifying who caused a drift, via AWS CloudTrail"
+---
+
+When `ubx scan` detects [drift](/concepts/drift), it makes a best-effort attempt
+to identify who caused it, by searching AWS CloudTrail for the management event
+responsible. This happens automatically — no extra flag needed — and never
+blocks the drift from being recorded, even when attribution fails outright.
+
+## What gets recorded
+
+Every `drift_adopt` proposal's `intent.sources` gains one of two kinds of entry:
+
+- **`cloudtrail`** — a matched CloudTrail event: the actor's IAM ARN, the event
+  name, when it happened, and the source IP it came from.
+- **`cloudtrail_unattributed`** — attribution was attempted and failed, with a
+  `reason`. This is recorded as evidence in its own right, not silently omitted.
+
+### A matched event
+
+```bash
+ubx why acad3e426d36fb90df66f319a56e11ae8723fd6380caf9ee0b897335c4480e3d --ledger-dir .
+```
+
+```text
+proposal acad3e426d36fb90df66f319a56e11ae8723fd6380caf9ee0b897335c4480e3d (drift_adopt)
+stack:  payments
+status: accepted
+intent: record drift on payments.aws_s3_bucket.payments-artifacts observed outside the ledger
+  source: cloudtrail -- arn:aws:iam::123456789012:user/alice PutBucketTagging at 2026-07-11T14:02:17Z from 203.0.113.42
+    event 9910b32a-2f22-44b9-8d18-88cd3b95841a (content_hash=sha256:1b7c9a2e4f6d8c0a3b5e7f9012345678deadbeefcafebabe0123456789abcde)
+accepted by [roozbeh] via local at 2026-07-11T15:43:25Z
+blast radius: +0 ~0 -0
+```
+
+### An unattributed drift
+
+```text
+  source: cloudtrail_unattributed -- too recent for CloudTrail to have delivered a matching event yet
+```
+
+## Why attribution can fail
+
+`reason` is one of three values:
+
+| Reason | Meaning |
+| --- | --- |
+| `no_matching_event` | The search ran successfully, over a wide enough window to rule out delivery delay, but no event matched this resource. |
+| `delivery_window` | The search window is narrower than CloudTrail's typical event-delivery latency (up to ~15 minutes) — a real event may simply not have propagated yet. |
+| `not_logged` | The CloudTrail search itself couldn't run — no credentials, no access, or CloudTrail isn't reachable. |
+
+## Scope
+
+Attribution searches AWS CloudTrail **management events** only, over
+`LookupEvents` — the same events CloudTrail's default ~90-day event history
+already retains, no trail configuration required. It does not use CloudTrail
+Lake, and it does not look at data events (S3 object-level access, for example).
+
+The search window is always `[the resource's last recorded observation, now]` —
+read back from the ledger itself, never an arbitrary lookback.
+
+## Turning it off
+
+Pass `--no-attribution` to `ubx scan` to skip the CloudTrail search entirely for
+that invocation.
+
+## Related
+
+- [Drift](/concepts/drift) — what triggers an attribution attempt
+- [Why](/concepts/why) — where attribution shows up
+- [`ubx scan`](/cli/scan) — the `--no-attribution` flag

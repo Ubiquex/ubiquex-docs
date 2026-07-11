@@ -1,0 +1,105 @@
+---
+title: "Drift"
+description: "What it means when reality no longer matches the ledger"
+---
+
+Drift is what `ubx scan` exists to find: a resource's live state no longer
+matches what the [ledger](/concepts/ledger) last recorded for it. ubx never
+auto-corrects drift — it records what it found as a proposal, for a human to
+review and accept.
+
+## The three outcomes of a scan
+
+Every `ubx scan` invocation reads one resource and compares its observed state
+against the ledger, producing one of three outcomes:
+
+- **New** — the ledger has never recorded this address before. ubx generates an
+  `adoption` proposal: a full snapshot of what it found, with an all-zero blast
+  radius (adopting a resource just records it, it doesn't propose changing
+  anything).
+- **Drifted** — the ledger has recorded this address before, and the live state
+  no longer matches. ubx generates a `drift_adopt` proposal: a before/after diff
+  of exactly the attributes that changed.
+- **Unchanged** — the live state matches what's already recorded. Nothing is
+  generated.
+
+## A worked example
+
+Adopting a resource ubx has never seen:
+
+```bash
+ubx scan --provider ./terraform-provider-aws \
+  --stack payments --type fake_widget --name api-cache \
+  --lookup '{"name":"api-cache","tags":{"env":"prod"}}' \
+  --ledger-dir . --out adopt.json
+```
+
+```text
+new: payments.fake_widget.api-cache (5c04c1c9c937a742ad32c319ffe75c550c344ed51bbee6d95dd14a12186daa4d) -- generated a "adoption" proposal
+```
+
+```bash
+ubx accept adopt.json --ledger-dir .
+```
+
+Later, something changes the resource outside of ubx — someone edits a tag in
+the console. Scanning again with the same lookup surfaces the drift:
+
+```bash
+ubx scan --provider ./terraform-provider-aws \
+  --stack payments --type fake_widget --name api-cache \
+  --lookup '{"name":"api-cache","tags":{"env":"staging"}}' \
+  --ledger-dir . --out drift.json
+```
+
+```text
+drifted: payments.fake_widget.api-cache (41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589) -- generated a "drift_adopt" proposal
+```
+
+`drift.json`'s `delta.modifies` holds exactly the attributes that changed —
+nothing else:
+
+```json
+{
+  "delta": {
+    "modifies": [
+      {
+        "target": { "stack": "payments", "type": "fake_widget", "name": "api-cache" },
+        "before": { "tags.env": "prod" },
+        "after": { "tags.env": "staging" }
+      }
+    ]
+  }
+}
+```
+
+Accepting it and scanning a third time (same lookup) now reports no drift:
+
+```bash
+ubx accept drift.json --ledger-dir .
+ubx scan --provider ./terraform-provider-aws \
+  --stack payments --type fake_widget --name api-cache \
+  --lookup '{"name":"api-cache","tags":{"env":"staging"}}' \
+  --ledger-dir .
+```
+
+```text
+no drift: payments.fake_widget.api-cache matches the ledger (observed_hash 41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589)
+```
+
+## After a drift is accepted
+
+Two things you can do once a `drift_adopt` proposal is accepted:
+
+- **`ubx writeback`** can correct your own `.tf` source to match the accepted
+  drift, for the specific literal attribute values it can safely edit — see the
+  [CLI reference](/cli/writeback) for exactly what it will and won't touch.
+- **`ubx scan --surface-as issue|pr`** can open a GitHub issue or pull request
+  carrying the generated proposal, instead of just printing it — see the
+  [CLI reference for `ubx scan`](/cli/scan).
+
+## Related
+
+- [Attribution](/concepts/attribution) — identifying who caused a drift
+- [Proposal](/concepts/proposal) — the `adoption`/`drift_adopt` shape
+- [Ledger](/concepts/ledger) — what "matches the ledger" is comparing against

@@ -1,0 +1,52 @@
+---
+title: "Ledger"
+description: "The append-only chain of accepted proposals"
+---
+
+The ledger is where accepted [proposals](/concepts/proposal) live. It's a plain
+directory on disk — every ubx command that reads or writes it takes a
+`--ledger-dir` flag (defaulting to the current directory).
+
+## On disk
+
+```text
+<ledger-dir>/
+  ledger/proposals/<id>.prop.json   # one file per accepted proposal
+  .ubx/ledger.lock                  # the current head: the most recently accepted id
+```
+
+Each proposal file is the full accepted proposal — hash, delta, resolution,
+acceptance, everything. `ledger.lock` holds nothing but the head hash.
+
+## It's a chain, not a set
+
+Every proposal's `parent` field is the ledger's head hash at the moment it was
+resolved. Accepting a proposal checks that `parent` still matches the current
+head before appending — if something else was accepted in the meantime, the
+proposal is stale and has to be re-resolved. This is what makes the ledger a
+chain: you can walk it backwards from the head, through `parent`, all the way
+to the first proposal (whose `parent` is empty).
+
+## Stacks are independent
+
+A resource's address is `<stack>.<type>.<name>` — for example,
+`payments.aws_db_instance.payments-db`. The `stack` is just a name you choose to
+group related resources; there's no separate command to create one. Every
+proposal belongs to exactly one stack, and `ubx why <stack>.<type>.<name>`
+resolves a resource's history within its stack.
+
+## Reconstructing what's true now
+
+The ledger never stores a resource's "current state" directly — it stores the
+sequence of proposals that got it there. To answer "what does the ledger think
+this resource looks like right now," ubx folds that sequence: start from the
+resource's `adoption` proposal's snapshot, then apply every subsequent
+`drift_adopt`'s before/after diff on top, in order. This is exactly what lets
+`ubx scan` compare live state against "the ledger" for a resource that's had
+several drifts recorded against it.
+
+## Related
+
+- [Proposal](/concepts/proposal) — what gets appended
+- [Drift](/concepts/drift) — how `ubx scan` decides something belongs in the ledger
+- [Why](/concepts/why) — reading the ledger back
