@@ -2,57 +2,65 @@
 
 ## Current slice
 
-UBI-13, Session 1: scaffold + spine. Done.
+UBI-13, Session 2: per-verb CLI reference pages. Done.
 
-- `docs.json` navigation (Getting Started / Concepts / CLI Reference groups).
-- `index.mdx` landing page.
-- `getting-started/installation.mdx` — honest placeholder: no packaged
-  releases exist yet (`ubiquex-cli` is a private repo, no tags, no
-  `.goreleaser`, no CI), so the only documented path is build-from-source.
-- `concepts/proposal.mdx`, `concepts/ledger.mdx`, `concepts/drift.mdx`,
-  `concepts/attribution.mdx`, `concepts/why.mdx` — mental model pages, drawn
-  from `ubiquex-cli/docs/architecture.md` but written for users. Every
-  example is a real transcript captured from an actual `ubx` + fake-provider
-  run this session, not fabricated. Deliberately excludes anything from
-  architecture.md that isn't shipped (IR resolver, SDK, intent/LLM provider,
-  policy engine, cross-stack refs, Nexus/SaaS, `revert`/`drift_revert` kinds
-  — the latter two are declared enum constants with zero implementing code,
-  confirmed via grep, so they're not documented as usable).
 - `cli/version.mdx`, `cli/scan.mdx`, `cli/accept.mdx`, `cli/propose.mdx`,
-  `cli/why.mdx`, `cli/writeback.mdx` — skeleton pages (synopsis + plain-
-  language description + forward links). Each explicitly notes that full
-  flag tables and verified examples are follow-up work, and that
-  `ubx <cmd> --help` is authoritative in the meantime.
-- Validated: `mint validate` passes clean; `mint dev` smoke-tested (home,
-  a concept page, a CLI page all 200, no errors/warnings in the server log).
+  `cli/why.mdx`, `cli/writeback.mdx` — full flag tables (every flag copied
+  from the actual built binary's `--help` output, not from memory or
+  plan.md) and at least one real, verified example per command:
+  - `scan`: new / drifted / unchanged outcomes, plus `--surface-as issue`
+    and `--surface-as pr`, including the issue-write vs. contents/PR-write
+    permission distinction between the two modes.
+  - `accept`: local acceptance, `--reverify-with` (both the pass-when-fresh
+    and blocked-when-stale cases), and `--from-merge` PR-merge acceptance.
+  - `why`: proposal-ID lookup, resource-address chain lookup, and
+    `--verify-acceptance`.
+  - `writeback`: default diff preview, `--write`, and a declined-attribute
+    case (a `.tf` value that's an expression, not a literal).
+  - `propose`: computing a trailer hash from a draft proposal file.
+  - `version`: honest note that a source build always prints `dev` absent
+    `-ldflags`, since no release process exists yet.
+- `cli/lookup.mdx` (new page, added to `docs.json`'s CLI Reference group):
+  the per-type resource lookup table, sourced from
+  `ubiquex-cli/conformance/registry.go`. Distinguishes the seven AWS types
+  with a lookup shape verified live against the real AWS provider
+  (`aws_s3_bucket`, `aws_iam_role`, `aws_iam_user`, `aws_iam_policy`,
+  `aws_sqs_queue`, `aws_sns_topic`, `aws_vpc`) from the ~40 remaining types
+  that default to `{"id": "..."}`, verified only against each type's
+  schema and a fixture, not against a real provider's live `ReadResource`
+  call. Deliberately excludes registry entries with no `Implemented: true`
+  (e.g. `aws_iam_group`'s adopt-path note) since those aren't backed by an
+  actual conformance test, however plausible the comment reads.
+- Every example transcript in this session's pages (proposal JSON, scan/
+  accept/why/writeback output, GitHub issue/PR body content) was captured
+  from a real, running `ubx` binary and — for `--from-merge`/
+  `--verify-acceptance`/`--surface-as`, which need a GitHub API — a
+  throwaway local HTTP server serving fixture responses on the same
+  endpoints `cli/accept_frommerge_test.go` and `cli/surface_test.go` use.
+  Nothing in these pages is hand-typed/fabricated output.
+- Validated: `mint validate`, `mint dev` (smoke-tested every new/changed
+  route), and `mint broken-links` all pass clean.
 
 ## Docs debt (ubiquex-docs)
 
 Open, for subsequent UBI-13 sessions:
 
-- Per-verb CLI reference pages need full flag tables verified against
-  `--help` output of the actual built binary, plus runnable/verified
-  examples, for all six verbs (`version`, `scan`, `accept`, `propose`,
-  `why`, `writeback`).
-- Flags not yet documented anywhere (skeleton pages punt on all of these):
-  `scan`/`accept`'s `--source`/`--provider-version` (UBI-8 acquisition),
-  `scan`'s `--no-attribution` (UBI-10), `accept`'s `--from-merge`/
-  `--repo-dir`/`--proposal-file`/`--github-repo` (UBI-11 stage 1 PR-merge
-  acceptance), `why`'s `--verify-acceptance`/`--repo-dir`/`--github-repo`
-  (UBI-11 stage 1), `writeback`'s `--tf-dir`/`--write` (UBI-11 stage 2),
-  `scan`'s `--surface-as issue|pr`/`--github-repo`/`--tf-dir` (UBI-11
-  stage 3).
-- A `guides/` section doesn't exist yet. Per prior debt note in
-  ubiquex-cli's STATE.md, the PR-merge acceptance workflow (trailer
-  convention, zero-approvers-is-normal, the whole propose→PR→merge→accept
-  flow) is a real workflow, not just flags — it probably deserves its own
-  guide page rather than being buried in `cli/accept.mdx`'s flag table.
-- The conformance-registry per-type lookup-requirement table (what the
-  user flagged as "the top support question waiting to happen") isn't
-  written yet — belongs either in `concepts/drift.mdx` or as its own
-  reference page once the per-verb pages exist to link it from.
+- A `guides/` section still doesn't exist. The PR-merge acceptance
+  workflow (trailer convention, zero-approvers-is-normal, the whole
+  propose→PR→merge→accept flow, now that `cli/accept.mdx` and
+  `cli/propose.mdx` cover the mechanics) probably still deserves a
+  dedicated walkthrough page, not just flag reference — carried forward
+  from Session 1, not yet started.
+- `--source`/`--provider-version` (registry provider acquisition, UBI-8)
+  are named in `cli/scan.mdx`/`cli/accept.mdx`'s flag tables but have no
+  worked example — every example this session used `--provider` with a
+  local binary. A registry-acquisition example needs either a real
+  registry round trip or a documented reason to skip one.
+- No page yet explains `.ubx/ledger.lock`/concurrent-access behavior in
+  CLI-reference depth (only `concepts/ledger.mdx`'s brief mention).
 
 ## Next steps
 
-Pick up per-verb reference pages against the built binary, starting
-wherever ubiquex-cli's own STATE.md docs-debt list points next.
+Pick up the `guides/` PR-merge-acceptance walkthrough, or the registry
+acquisition example gap, next — whichever ubiquex-cli's own STATE.md
+docs-debt entry prioritizes.
