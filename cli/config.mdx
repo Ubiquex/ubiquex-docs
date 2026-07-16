@@ -1,0 +1,146 @@
+---
+title: ".ubx/config"
+description: "Project defaults, so daily commands stop repeating the same five flags"
+---
+
+`.ubx/config` lets a team stop repeating `--stack`, `--source`/`--provider-version`
+(or `--provider`), `--provider-config`, `--github-repo`, and `--tf-dir` on every
+`ubx` invocation. Generate one with [`ubx init`](/cli/init), or hand-write it —
+it's a plain TOML file.
+
+## Why TOML, not YAML
+
+Both were on the table. TOML's grammar has no significant whitespace and no
+implicit type coercion — YAML's well-known `no`/`yes`, `on`/`off`, and
+bare-string-vs-boolean ambiguities have no TOML equivalent, since every
+value's type is unambiguous from its own syntax. For a file whose whole job
+is "the same defaults, every time," that determinism mattered more than
+YAML's familiarity. TOML is comment-native and already precedented for
+exactly this role in other developer tooling (`Cargo.toml`, `pyproject.toml`)
+— a file a human is expected to hand-edit, not a data interchange format.
+
+## Discovery: nearest `.ubx/config` wins
+
+`ubx` looks for `.ubx/config` starting at the current working directory and
+walking upward through parent directories, stopping at the first one it
+finds — the same convention `.git` itself uses to find a repository root.
+This is **independent of `--ledger-dir`**: your project's defaults are a
+property of where you're standing when you run `ubx`, not of wherever
+`--ledger-dir` happens to point (which can legitimately be a different path
+entirely, e.g. shared ledger storage outside the checkout). No config file
+anywhere up to the filesystem root isn't an error — every value it could
+have supplied just falls through to that flag's own ordinary default, or to
+"required and absent."
+
+## Precedence
+
+For every value config can supply, the rule is the same everywhere it
+applies: **an explicitly-passed CLI flag always wins; otherwise config fills
+the gap if it has a value; otherwise, whatever "required and absent" already
+meant for that flag applies, unchanged.** Config is a second place to find a
+value — never a new rule about which values are required.
+
+[`ubx scan --all`](/cli/scan#bulk-onboarding-all)'s own filename-derived
+stack default sits *after* config in this chain: CLI flag, then config, then
+the state file's own basename.
+
+## What it covers
+
+```toml
+# .ubx/config
+
+stack = "payments"
+github_repo = "acme/infra"
+tf_dir = "./terraform"
+
+[provider]
+# Pick ONE: a local binary path, or a registry source + explicit version.
+path = "./terraform-provider-aws"
+# source = "hashicorp/aws"
+# version = "6.54.0"
+
+[provider_config]
+region = "us-east-1"
+```
+
+| Key | Maps to | Used by |
+| --- | --- | --- |
+| `stack` | `--stack` | [`ubx scan`](/cli/scan) (single-resource mode; `--all` falls back to it after the flag, before the filename default) |
+| `provider.path` | `--provider` | [`ubx scan`](/cli/scan), [`ubx status --drift`](/cli/status) |
+| `provider.source` + `provider.version` | `--source` + `--provider-version` | [`ubx scan`](/cli/scan), [`ubx status --drift`](/cli/status) |
+| `provider_config` | `--provider-config` | anywhere a provider is configured |
+| `github_repo` | `--github-repo` | [`ubx accept --from-merge`](/cli/accept), [`ubx why --verify-acceptance`](/cli/why), [`ubx scan --surface-as`](/cli/scan) |
+| `tf_dir` | `--tf-dir` | [`ubx writeback`](/cli/writeback), [`ubx revert-plan`](/cli/revert-plan), [`ubx scan --surface-as`](/cli/scan)'s receipt preview |
+
+<Note>
+  `--ledger-dir` is deliberately not one of these. A wrong provider region
+  fails loudly on the first read; a wrong ledger directory could make a
+  command silently look at the wrong ledger entirely — more consequential
+  to get wrong by accident, and out of scope for this file on purpose.
+</Note>
+
+### `[provider]`: pick one shape
+
+`path` (a local binary) and `source`/`version` (registry acquisition) are
+mutually exclusive, exactly like the `--provider`/`--source` flags
+themselves — config never has to re-decide that rule, it's the same
+validation either way.
+
+### `[provider_config]`
+
+A freeform table — whatever keys the provider you're using actually needs
+(`region` for AWS, say). Marshaled straight to the JSON string every
+`--provider-config` flag already accepts.
+
+## Unknown keys warn, they don't fail
+
+A typo, or a field a different `ubx` version doesn't recognize, is reported
+by name and otherwise ignored — never a hard failure blocking every command
+in a project until someone fixes it:
+
+```text
+$ ubx scan --type fake_widget --name api-cache --lookup '{"name":"api-cache"}' --ledger-dir .
+warning: /path/to/.ubx/config: unknown config key "retention_days" (ignored)
+new: payments.fake_widget.api-cache (5c04c1c9c937a742ad32c319ffe75c550c344ed51bbee6d95dd14a12186daa4d) -- generated a "adoption" proposal
+```
+
+A config file that isn't valid TOML *syntax* at all is a different matter —
+that's a hard error, since there's no partial, best-effort way to read
+something that doesn't parse.
+
+<Warning>
+  Root-level keys (`stack`, `github_repo`, `tf_dir`) must come **before**
+  any `[table]` header in the file. In TOML, a bare key written after a
+  `[table]` section belongs to that table, not the document root — no
+  matter how many blank lines separate them. `ubx init` always generates
+  them in the right order; if you're hand-editing a config and one of
+  these three keys doesn't seem to be taking effect, check it isn't
+  sitting after `[provider]` or `[provider_config]` by mistake.
+</Warning>
+
+## The short daily-command form
+
+With the config above in place:
+
+```text
+$ ubx scan --type fake_widget --name api-cache --lookup '{"name":"api-cache","tags":{"env":"prod"}}' --ledger-dir .
+new: payments.fake_widget.api-cache (5c04c1c9c937a742ad32c319ffe75c550c344ed51bbee6d95dd14a12186daa4d) -- generated a "adoption" proposal
+```
+
+```text
+$ ubx accept adopt.json --ledger-dir .
+accepted a28700b248d3f30ec9d9842de89b15d29eb8d433f43f55ce19b93eaa9d18578a (stack payments)
+```
+
+```text
+$ ubx status --ledger-dir . --drift
+clean: payments.fake_widget.api-cache: adoption a28700b248d3… (accepted 2026-07-16T18:29:29Z)
+1 resource(s), 0 drifted, 0 unreadable
+```
+
+No `--stack`, no `--provider`, no `--provider-config` on any of them.
+
+## Related
+
+- [`ubx init`](/cli/init) — generates a starter `.ubx/config`
+- [`ubx scan`](/cli/scan), [`ubx status`](/cli/status), [`ubx accept`](/cli/accept), [`ubx why`](/cli/why), [`ubx writeback`](/cli/writeback), [`ubx revert-plan`](/cli/revert-plan) — every command config applies to
