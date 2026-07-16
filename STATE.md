@@ -1,5 +1,47 @@
 # STATE — ubiquex-docs
 
+## UBI-20: hardening pass reference (2026-07-16, same session as the code)
+
+Four workstreams, one ubiquex-cli session, all documented same-session:
+
+- **Exit-code contract** — new `cli/exit-codes.mdx`: the general 0/1/2
+  principle explained once, then one table per verb (`scan`, `status`,
+  `accept`, `why`, `writeback`, `revert-plan`, plus the 0/2-only
+  `version`/`init`/`propose`), a CI-gating `bash`/`case` example. Cross-
+  linked from every affected page's own body or Related list.
+  `cli/writeback.mdx` and `cli/revert-plan.mdx` each had a sentence
+  claiming a declined attribute / manual step "is not a command failure"
+  — true before this session, but now incomplete: it doesn't fail, but it
+  does exit `1`. Reworded rather than left to mislead a reader checking
+  `$?` in CI. `cli/why.mdx`'s `--verify-acceptance` section got the
+  equivalent fix (a reviewer `MISMATCH` used to be described as "never a
+  hard failure," full stop — now correctly distinguishes "not a hard tool
+  error" from "still exits 1").
+- **`--json` schemas** — a `## --json output` section added to
+  `cli/scan.mdx`, `cli/status.mdx`, `cli/why.mdx` each, every example a
+  real transcript (captured from the built binary for `scan`/`status`;
+  `why`'s `--verify-acceptance` JSON payload from the CLI test suite's own
+  fixture-driven fake GitHub server, the same "real, not fabricated"
+  standard used throughout this repo — see UBI-13's own note on that).
+- **Teaching errors** — `cli/lookup.mdx` gained a note that `ubx`'s own
+  runtime error text now names the fix directly for the three types
+  (`aws_s3_bucket`/`aws_iam_role`/`aws_iam_user`) whose mistake is a
+  missing field, cross-linked to `cli/exit-codes.mdx` for the resulting
+  exit code. The page's own table needed no correction — it already
+  described the *required* shape correctly; only the new runtime error
+  text's direction needed catching (see ubiquex-cli's STATE.md Surprises
+  for the live-verification finding that caught it before it shipped).
+- **Ledger lock** — new "Concurrent access" section on
+  `concepts/ledger.mdx`: what `.ubx/lock` protects (only `accept`, never
+  `scan`/`why`/`status`), two real transcripts (live contention timing
+  out, a stale lock detected and reported), and why `ubx` never
+  auto-removes a confirmed-stale lock. This closes the exact gap this
+  file's own "Possible future improvements" note (below, now cleared)
+  had flagged as open. Cross-linked from `cli/accept.mdx` and
+  `cli/exit-codes.mdx`'s `accept` row.
+
+`mint validate`, `mint dev`, and `mint broken-links` all pass clean.
+
 ## UBI-19: `.ubx/config` and `ubx init` reference (2026-07-16, same session as the code)
 
 New `cli/config.mdx` (full format reference: why TOML over YAML, discovery
@@ -155,13 +197,12 @@ UBI-13 entry for the full list it closed out.
 ## Possible future improvements (not debt — no user-visible change is
 waiting on these)
 
-- No page goes into `.ubx/ledger.lock`/concurrent-access behavior at
-  CLI-reference depth — only `concepts/ledger.mdx`'s brief mention exists.
-  Worth a paragraph somewhere if it ever becomes a real support question,
-  but nothing shipped this session makes it more or less true than before.
+None open. The `.ubx/lock`/concurrent-access gap noted here previously
+was closed in the UBI-20 session above (`concepts/ledger.mdx`'s new
+"Concurrent access" section).
 
 ## Next steps
 
-No open UBI-13 work. Next docs session starts from whatever new
+No open UBI-13 or UBI-20 work. Next docs session starts from whatever new
 user-visible change lands in ubiquex-cli next and gets logged as debt
 there.
