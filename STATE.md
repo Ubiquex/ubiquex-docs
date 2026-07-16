@@ -1,5 +1,37 @@
 # STATE — ubiquex-docs
 
+## UBI-18: bulk onboarding docs, and the carried UBI-16 debt cleared (2026-07-16, same session as the code)
+
+New `cli/revert-plan.mdx` — this is the carried-over UBI-16 debt (below),
+cleared: full reference, real transcripts, including a mixed
+literal/declined `--tf-dir` case. `concepts/drift.mdx` gained a "Two
+resolutions to a drift: adopt, or revert" section, since `drift_revert`
+had shipped (UBI-16) with no conceptual explanation anywhere — the other
+half of that carried debt.
+
+Discovered while updating `cli/scan.mdx` for this session's own
+`--all`/`--tfstate`/`--out-dir` flags: **`--propose` (UBI-16) was never
+added to this page at all** — it shipped entirely under the old
+docs-debt protocol, and the debt entry only ever mentioned the missing
+`revert-plan` page, not the missing flag on an already-published page.
+Added alongside `--all`'s own documentation: the flag table entry, a
+"Generating a revert proposal instead of (or alongside) adopt" example
+section, and a "Bulk onboarding (`--all`)" section covering stack
+inference, `count`/`for_each` and module-path addressing (including why a
+module path gets folded into the resource's own address, not just noted
+in prose — two different modules can declare a same-type, same-name
+resource), and the skipped-summary. New `guides/onboarding.mdx`: the full
+`--all` walkthrough, every transcript real — adopt, accept each in
+sequence, `ubx status` (ledger-only, then `--drift`, clean), plus a
+messier real-world skipped-resources example. `mint validate`, `mint
+dev`, and `mint broken-links` all pass clean.
+
+**Lesson for next time a docs-debt entry gets written**: name every file
+*and* every already-published page a change touches, not just the new
+ones — a debt entry that only lists "no reference page for X" can miss
+"page Y already exists and is now stale," which is exactly what happened
+here.
+
 ## Protocol change (2026-07-16): docs land same-session now
 
 ubiquex-cli's CLAUDE.md session protocol changed: user-visible changes now
@@ -27,13 +59,16 @@ report depends on (a confirmed finding from this session's ubiquex-cli
 work, not assumed). `mint validate`, `mint dev`, and `mint broken-links`
 all pass clean.
 
-**Still open, carried over from ubiquex-cli's own STATE.md (UBI-16, prior
+~~**Still open, carried over from ubiquex-cli's own STATE.md (UBI-16, prior
 session, predates the protocol change above)**: `ubx revert-plan` has no
 CLI reference page yet, and the "one ledger directory can span multiple
 stacks" note above was written for UBI-17 specifically — a
 `concepts/revert.mdx` (or an addition to `concepts/drift.mdx`) explaining
 `drift_revert`'s corrective-direction semantics still doesn't exist. Pick
-up next.
+up next.~~ **Cleared in the UBI-18 session above** (`cli/revert-plan.mdx`,
+`concepts/drift.mdx`'s new section) — along with a related gap that debt
+entry itself hadn't named: `cli/scan.mdx`'s own `--propose` flag, missing
+since UBI-16.
 
 ## Release cut v0.1.0 (2026-07-11)
 
@@ -89,11 +124,10 @@ the last commit.
 
 ## Docs debt (ubiquex-docs)
 
-Open, carried over from before the 2026-07-16 protocol change (see top of
-this file): `ubx revert-plan`'s CLI reference page (UBI-16), and a
-concepts-level explanation of `drift_revert`'s corrective direction. Per
-the new protocol, going forward this section should stay empty except for
-genuine exceptions — see the top entry for why.
+None open. The UBI-16 carry-over (`ubx revert-plan` reference page,
+`drift_revert` concepts explanation) was cleared in the UBI-18 session
+above. Per the new protocol (see top of this file), this section should
+stay empty except for genuine, explicitly-noted exceptions going forward.
 
 Historical: every item tracked in ubiquex-cli's STATE.md docs-debt section
 as of UBI-13's start was addressed by that milestone; see that file's own
