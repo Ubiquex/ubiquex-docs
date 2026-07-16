@@ -1,5 +1,57 @@
 # STATE — ubiquex-docs
 
+## UBI-22: Kubernetes and Helm support (2026-07-17, same session as the code)
+
+`ubiquex-cli`'s first non-cloud-provider provider, both stages:
+
+- **`getting-started/installation.mdx`** now mentions
+  `--source hashicorp/kubernetes`/`hashicorp/helm` alongside AWS/GCP, and
+  a working `kubectl` context (`~/.kube/config` +
+  `--provider-config '{"config_path":...,"config_context":...}'`) as the
+  credential mechanism for a cluster.
+- **`cli/lookup.mdx`** gained a "Kubernetes and Helm" section: five
+  live-verified `kubernetes_*` kinds all confirmed to need only
+  `{"id": "<namespace>/<name>"}` (or the bare name for cluster-scoped
+  types) — a real, live correction to the Stage-1 hermetic guess that
+  `metadata`'s own `NestingList` schema shape would require pre-populating
+  it in `--lookup`. `helm_release` is the reverse case: `id` alone is
+  NOT enough, confirmed live -- `id`+`name`+`namespace` together are
+  required.
+- **`cli/scan.mdx`** gained a "Kubernetes and Helm" section: a real
+  `kubernetes_secret_v1` adopt+rotate+drift transcript (redaction
+  confirmed end to end against a real cluster), and a real
+  `helm_release` values-drift transcript showing `metadata[0].values` is
+  the field that actually carries the signal (not the top-level
+  `values`/`chart`, which stay `null`) — with a `Warning` that neither
+  `metadata[0].values` nor `manifest` is `Sensitive`-flagged, so a
+  `set_sensitive` value can still surface there in plaintext.
+- **`cli/config.mdx`** gained a `[k8s_audit]` subsection — the one config
+  table with no CLI flag equivalent, entirely optional, degrading to
+  `audit_unattributed`/`not_configured` when absent.
+- **`concepts/attribution.mdx`**'s reason table gained `not_configured`
+  (a fourth value, `k8s_audit_logs`-specific), and a new "Kubernetes and
+  Helm: EKS audit logs" section states the `not_configured` stance
+  honestly, including a `Warning` that the EKS audit-log leg itself
+  wasn't live-verified this session (no EKS cluster was provisioned —
+  real, hourly-billed infrastructure judged out of proportion to create
+  autonomously, unlike the free/local `kind` cluster used for
+  `kubernetes_*`/`helm_release` resource-scanning verification itself).
+- **`concepts/secrets.mdx`** gained a cross-reference: `hashicorp/kubernetes`/
+  `hashicorp/helm` added to the "schemas checked directly" list,
+  `kubernetes_secret_v1` end-to-end confirmation, and `helm_release`'s
+  `set_sensitive` as the first real Set-nested sensitive value found in
+  any currently-integrated provider.
+
+Every new/changed transcript came from the actual built `ubx` binary run
+against a real, local `kind` cluster during Stage 2 (not hand-written) —
+captured once, reused across pages rather than re-run per page.
+`mint validate`/`mint broken-links` both pass clean. See `ubiquex-cli`'s
+own STATE.md for the full engineering writeup, including every empirical
+finding (the `NestingList` metadata/spec shape, the `_v1`-vs-bare-name
+duplication, the `helm_release` reversed lookup requirement, the
+Set-nested `set_sensitive` redaction confirmation, and the deliberate
+decision not to provision a real EKS cluster this session).
+
 ## UBI-23: secrets -- redaction of Sensitive attributes (2026-07-17, same session as the code)
 
 `ubiquex-cli`'s "secrets must never enter the ledger" work:
