@@ -1,0 +1,123 @@
+---
+title: "Onboarding an existing Terraform-managed account"
+description: "Adopting hundreds of resources into the ledger without scanning them one at a time"
+---
+
+If your team already manages infrastructure with Terraform, you don't have
+to adopt it into ubx's ledger one [`ubx scan`](/cli/scan) at a time.
+`ubx scan --all --tfstate <path>` reads your existing state file **once**,
+as a one-time on-ramp, and generates an `adoption` proposal for every
+resource in it. This walkthrough covers the whole flow end to end.
+
+<Note>
+  The state file is read exactly once, at onboarding. After that, ubx never
+  opens it again, never watches it, and never reconciles against it — the
+  ledger owns everything from the moment these proposals are accepted. This
+  is deliberately narrow: it doesn't make `.tfstate` an ongoing source of
+  truth (ubx still has no `.tfstate` of its own, ever), just a fast,
+  one-time way to tell it what already exists.
+</Note>
+
+## 1. Point `--all` at your state file
+
+```text
+$ ubx scan --all --tfstate prod.tfstate --provider ./terraform-provider-aws \
+    --ledger-dir . --out-dir proposals
+adopted: prod.fake_widget.api -> proposals/prod.fake_widget.api.json
+adopted: prod.fake_widget.cache -> proposals/prod.fake_widget.cache.json
+2 adopted, 0 skipped
+```
+
+No `--stack` was given, so both resources landed in stack `prod` — the
+state file's own basename (`prod.tfstate`) with its extension stripped.
+Pass `--stack` explicitly if you want something else.
+
+Each resource's state entry only had to provide its **identity** (an `id`
+attribute, or a per-type augmented shape for the handful of types that need
+one — see [Resource lookup conventions](/cli/lookup)). The proposal's
+actual recorded content — what `ubx` will show later in
+[`ubx why`](/cli/why) — comes from reading the resource live against the
+real provider, not from whatever the state file happened to have recorded.
+If a resource has drifted since the state file was last written, or was
+deleted from cloud entirely, this is where that shows up (see below).
+
+## 2. Accept every generated proposal
+
+`ubx accept` stays per-proposal and deliberate — `--all` never accepts
+anything on its own, only generates. Each file in `--out-dir` accepts
+cleanly, in the order `--all` printed them:
+
+```text
+$ for f in proposals/*.json; do ubx accept "$f" --ledger-dir .; done
+accepted 2957a9b4221ba972eac124ecc0714b413a24a2a36d577c896d10d093a77201c1 (stack prod)
+accepted b0a233279f093ed384dee81b1dceedafbbeb6355922ada3b863673a0b73ae6c0 (stack prod)
+```
+
+## 3. Confirm what landed
+
+```text
+$ ubx status --ledger-dir .
+prod.fake_widget.api: adoption 2957a9b4221b… (accepted 2026-07-16T17:52:57Z)
+prod.fake_widget.cache: adoption b0a233279f09… (accepted 2026-07-16T17:52:57Z)
+2 resource(s) (ledger-only, no live comparison)
+```
+
+And, since these were just adopted from a live read, a `--drift` check
+right afterward should be clean:
+
+```text
+$ ubx status --ledger-dir . --drift --provider ./terraform-provider-aws
+clean: prod.fake_widget.api: adoption 2957a9b4221b… (accepted 2026-07-16T17:52:57Z)
+clean: prod.fake_widget.cache: adoption b0a233279f09… (accepted 2026-07-16T17:52:57Z)
+2 resource(s), 0 drifted, 0 unreadable
+```
+
+From here, [`ubx scan`](/cli/scan) and [`ubx status --drift`](/cli/status)
+work on these resources exactly like any other — including in a CI pipeline,
+via `ubx status --drift`'s [exit-code contract](/cli/status#exit-code-the-ci-contract).
+
+## What a messier real account looks like
+
+A real Terraform history rarely onboards perfectly clean. Three things get
+skipped, with a reason, rather than aborting the rest of the batch:
+
+```text
+$ ubx scan --all --tfstate legacy.tfstate --provider ./terraform-provider-aws --ledger-dir .
+adopted: legacy.fake_widget.good
+{ ... }
+skipped: legacy.aws_ancient_thing.relic -- scan legacy.aws_ancient_thing.relic: unknown resource type: "aws_ancient_thing"
+skipped: legacy.fake_widget.no-id -- state instance has no id attribute
+1 adopted, 2 skipped
+--- skipped ---
+no identity in state: 1
+provider read failed: 1
+```
+
+- A type the provider doesn't recognize at all.
+- A resource that's been deleted from real cloud since the state file was
+  last written — reading it live returns nothing, an ordinary and expected
+  thing to find while onboarding a team's actual, messy history.
+- A state entry with no `id` attribute to build a lookup from at all.
+
+Fix what you can (a newer provider version, a state file refresh) and
+re-run `--all` — resources already accepted are recognized and skipped as
+`already known to the ledger`, so re-running is always safe.
+
+## Modules and `count`/`for_each`
+
+`--all` addresses `count`/`for_each` instances the same way Terraform
+itself does (`worker[0]`, `worker["us-east-1"]`), and folds a resource's
+module path into its own address (`network.cache` for a resource inside
+`module.network`) — never into a separate stack. Two different modules can
+each declare a same-type, same-name resource; folding the module path into
+the name is what keeps their `ubx` addresses from colliding, while `--stack`
+remains the only thing that actually changes which stack a resource lands
+in. See [`ubx scan`'s reference](/cli/scan#bulk-onboarding-all) for the
+full mechanics.
+
+## Related
+
+- [`ubx scan`](/cli/scan) — full flag reference, including `--all`
+- [`ubx status`](/cli/status) — the fleet-wide drift check to run next
+- [Resource lookup conventions](/cli/lookup) — what identifies a resource per type
+- [Drift](/concepts/drift) — what happens once these resources start drifting for real

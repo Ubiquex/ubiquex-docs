@@ -5,6 +5,7 @@ description: "Compare one resource's live state against the ledger and generate 
 
 ```text
 ubx scan --stack <name> --type <type> --name <name> (--provider <path> | --source <src> --provider-version <v>) [flags]
+ubx scan --all --tfstate <path> (--provider <path> | --source <src> --provider-version <v>) [flags]
 ```
 
 Reads one resource's live state — via a Terraform provider binary, speaking
@@ -19,25 +20,34 @@ On drift, `ubx scan` also attempts [CloudTrail attribution](/concepts/attributio
 by default, and can optionally surface the drift as a GitHub issue or pull
 request instead of just printing the proposal.
 
+`--all --tfstate <path>` is a different mode entirely: instead of one
+resource, it walks every resource in a Terraform state file and generates
+an adoption proposal for each — see [Bulk onboarding](#bulk-onboarding-all)
+below.
+
 ## Flags
 
 | Flag | Description |
 | --- | --- |
-| `--stack string` | stack name the resource belongs to (**required**) |
-| `--type string` | resource type, e.g. `aws_s3_bucket` (**required**) |
-| `--name string` | resource name within the stack (**required**) |
+| `--stack string` | stack name the resource belongs to (**required unless `--all`**, where it defaults to the state file's own basename) |
+| `--type string` | resource type, e.g. `aws_s3_bucket` (**required unless `--all`**) |
+| `--name string` | resource name within the stack (**required unless `--all`**) |
 | `--lookup string` | JSON object identifying the resource to the provider, e.g. `{"id":"..."}` (default `{}`) — see [Resource lookup conventions](/cli/lookup), most types need more than just `id` |
+| `--propose string` | on drift, which resolution(s) to generate: `adopt` (`drift_adopt`), `revert` (`drift_revert`), or `both` (default `adopt`) — no effect on a `new` resource, which always generates `adoption` |
 | `--provider string` | path to the provider binary (mutually exclusive with `--source`) |
 | `--source string` | provider source address, e.g. `hashicorp/aws` (mutually exclusive with `--provider`; requires `--provider-version`) |
 | `--provider-version string` | explicit provider version to acquire, e.g. `6.54.0` (required with `--source`; no "latest" resolution) |
 | `--provider-config string` | JSON object configuring the provider, e.g. `{"region":"us-east-1"}` (default `{}`) |
 | `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
-| `--out string` | write the generated proposal here instead of stdout |
-| `--timeout duration` | overall timeout for the scan (default `1m0s`) |
+| `--out string` | write the generated proposal here instead of stdout (single-resource mode only) |
+| `--timeout duration` | overall timeout for the scan, or the whole `--all` walk (default `1m0s`) |
 | `--no-attribution` | skip CloudTrail attribution for drift proposals |
-| `--surface-as string` | on drift, open a GitHub `"issue"` or `"pr"` with a receipt instead of just printing the proposal (requires `--github-repo`) |
+| `--surface-as string` | on drift, open a GitHub `"issue"` or `"pr"` with a receipt instead of just printing the proposal (requires `--github-repo`; not available with `--propose revert`) |
 | `--github-repo string` | owner/name of the GitHub repository to surface drift in (required with `--surface-as`) |
 | `--tf-dir string` | directory of `.tf` files to compute a best-effort write-back preview diff from, for the receipt (optional) |
+| `--all` | bulk onboarding: enumerate every resource in `--tfstate` instead of scanning a single `--type`/`--name` resource |
+| `--tfstate string` | path to a Terraform state v4 JSON file, read once as a bulk-onboarding enumeration source (required with `--all`) |
+| `--out-dir string` | write each `--all`-generated proposal to its own file in this directory, instead of printing all of them to stdout |
 | `-h`, `--help` | help for scan |
 
 `--provider` is the direct "point at a binary on disk" workflow. `--source`
@@ -107,6 +117,25 @@ $ ubx scan --provider ./terraform-provider-aws \
     --ledger-dir . --no-attribution
 no drift: payments.fake_widget.api-cache matches the ledger (observed_hash 41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589)
 ```
+
+### Generating a revert proposal instead of (or alongside) adopt
+
+`--propose revert` generates a `drift_revert` proposal instead of the default
+`drift_adopt` — the corrective direction: `before` is the observed (drifted)
+value, `after` is the value being restored to. `--propose both` generates
+both, as two alternative resolutions to the same detected drift:
+
+```text
+$ ubx scan --provider ./terraform-provider-aws \
+    --stack payments --type fake_widget --name api-cache \
+    --lookup '{"name":"api-cache","tags":{"env":"staging"}}' \
+    --ledger-dir . --no-attribution --propose revert
+drifted: payments.fake_widget.api-cache (41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589) -- generated a "drift_revert" proposal
+```
+
+See [Drift](/concepts/drift#two-resolutions-to-a-drift-adopt-or-revert) for
+the full model, and [`ubx revert-plan`](/cli/revert-plan) for what an accepted
+`drift_revert` produces.
 
 ### Surfacing drift as a GitHub issue
 
@@ -202,6 +231,81 @@ nothing was verified to attribute a checksum to:
   satisfied the request.
 </Note>
 
+## Bulk onboarding (`--all`)
+
+A team with hundreds of resources can't adopt them one `--lookup` at a
+time. `ubx scan --all --tfstate <path>` walks every managed resource in a
+Terraform state file and generates one `adoption` proposal per resource —
+reusing the exact same read-and-compare pipeline a single `ubx scan`
+invocation already runs, once per resource. See
+[Onboarding an existing Terraform-managed account](/guides/onboarding) for
+the full walkthrough; this section covers the mechanics.
+
+**The state file is read once, and never again.** It's a source of
+*identity* — how to look a resource up — not of truth: every proposal's
+recorded state still comes from a live read against the actual provider,
+never from the state file's own recorded attribute values. `ubx` doesn't
+open the file a second time, watch it, or reconcile against it later; the
+ledger owns everything from the moment these proposals are accepted.
+
+```text
+$ ubx scan --all --tfstate prod.tfstate --provider ./terraform-provider-aws \
+    --ledger-dir . --out-dir proposals
+adopted: prod.fake_widget.api -> proposals/prod.fake_widget.api.json
+adopted: prod.fake_widget.worker[0] -> proposals/prod.fake_widget.worker_0_.json
+adopted: prod.fake_widget.worker[1] -> proposals/prod.fake_widget.worker_1_.json
+adopted: prod.fake_widget.network.cache -> proposals/prod.fake_widget.network.cache.json
+4 adopted, 0 skipped
+```
+
+A few things happened here worth naming explicitly:
+
+- **Stack** defaulted to `prod` — the state file's own basename
+  (`prod.tfstate`) with its extension stripped, since no `--stack` was
+  given. Pass `--stack` to override it.
+- **`count`/`for_each` instances** (`worker[0]`, `worker[1]`) address the
+  same way Terraform itself does — folded into the resource's name, since
+  a ubx address has no separate index concept.
+- **A resource inside `module.network`** (`network.cache`) got its module
+  path folded into its name too, not just noted in the proposal's
+  `intent.summary` — two different modules can each declare a same-type,
+  same-name resource, and only the fold keeps their addresses from
+  colliding. Module paths never create a separate *stack*, though — that's
+  still a plain `--stack` decision, not automatic.
+- **Data sources were skipped entirely, silently** — nothing in state that
+  isn't `"mode": "managed"` is a resource `ubx` could ever adopt.
+
+### What gets skipped, and why
+
+A resource whose type the provider doesn't recognize, or whose state entry
+has no `id` attribute to build a lookup from, is skipped with a reason —
+never a reason to abort the rest of the batch:
+
+```text
+$ ubx scan --all --tfstate legacy.tfstate --provider ./terraform-provider-aws --ledger-dir .
+adopted: legacy.fake_widget.good
+{ ... }
+skipped: legacy.aws_ancient_thing.relic -- scan legacy.aws_ancient_thing.relic: unknown resource type: "aws_ancient_thing"
+skipped: legacy.fake_widget.no-id -- state instance has no id attribute
+1 adopted, 2 skipped
+--- skipped ---
+no identity in state: 1
+provider read failed: 1
+```
+
+Running `--all` again after some proposals are already accepted skips
+those specific resources too, reported as `already known to the ledger` —
+`--all` is safe to re-run over the same state file as you work through a
+large batch of proposal files.
+
+<Note>
+  `ubx accept` remains per-proposal and deliberate. `--all` only ever
+  *generates* proposals — bulk **acceptance** isn't part of this command,
+  on purpose: generating 300 proposals in one pass is a genuine time-saver,
+  but auto-accepting 300 of them would be a different, much bigger claim of
+  authority this trust chain doesn't make anywhere else.
+</Note>
+
 ## Related
 
 - [Drift](/concepts/drift) — the three outcomes and what they generate
@@ -210,3 +314,5 @@ nothing was verified to attribute a checksum to:
 - [`ubx accept`](/cli/accept) — accepting the generated proposal, including PR-merge acceptance
 - [`ubx writeback`](/cli/writeback) — the `--tf-dir` preview in a drift receipt, applied for real
 - [`ubx status`](/cli/status) — the same drift check, across every resource the ledger knows about, not just one address
+- [`ubx revert-plan`](/cli/revert-plan) — what an accepted `--propose revert` proposal produces
+- [Onboarding an existing Terraform-managed account](/guides/onboarding) — the full `--all` walkthrough

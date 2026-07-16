@@ -1,0 +1,81 @@
+---
+title: "ubx revert-plan"
+description: "Emit the reconciliation plan for an accepted drift_revert proposal -- never applies anything"
+---
+
+```text
+ubx revert-plan <proposal-id> [--tf-dir <dir>] [flags]
+```
+
+Takes an already-*accepted* `drift_revert` proposal and prints the
+reconciliation artifact a human (or their own tooling) needs to actually fix
+cloud: what changed, and what restoring it requires. **`ubx revert-plan`
+never writes a file and never touches cloud** — unlike [`ubx writeback`](/cli/writeback),
+it has no `--write` flag at all. Applying the correction, to `.tf` source or
+to the live resource, is the operator's own tooling to run; this command only
+ever emits.
+
+## Flags
+
+| Flag | Description |
+| --- | --- |
+| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `--tf-dir string` | directory containing `.tf` files to compute a corrective diff against (optional) — never written to |
+| `-h`, `--help` | help for revert-plan |
+
+## Example: the plan alone (no `--tf-dir`)
+
+Always produced, regardless of whether `--tf-dir` is given: one line per
+changed attribute, current (drifted) value → restore-to (ledger-truth)
+value.
+
+```text
+$ ubx revert-plan 3a0f78f5733f8aae0242e884035fb71d52b28f42128c8e28c9fe2fa25fc6a575 --ledger-dir .
+--- plan ---
+payments.fake_widget.api-cache: tags.env: "staging" -> "prod"
+
+no --tf-dir given -- apply the correction above to cloud via your own tooling; ubx never applies it
+```
+
+## Example: `--tf-dir`, a mixed literal/non-literal case
+
+Reuses the exact same [`tfwrite`](/cli/writeback) machinery `ubx writeback`
+uses — fed a modification whose *after* value is already the restore
+target, so "reverse direction" is semantic, not a different code path.
+Attributes that are plain literals in `.tf` get a real diff; anything
+expressed as a variable, function call, or interpolation is declined and
+listed in a manual-steps section instead, exactly like `ubx writeback`
+declines the same shape of attribute:
+
+```text
+$ ubx revert-plan 0f146f3d38e261dc97eea65f039040759822d72c19675abfe7b0d8f7ce79ba61 --ledger-dir . --tf-dir tf
+--- plan ---
+s.aws_instance.web: ami: "ami-new" -> "ami-old"
+s.aws_instance.web: instance_type: "t3.large" -> "t3.medium"
+
+--- .tf diff ---
+--- tf/compute.tf (before)
++++ tf/compute.tf (after)
+@@ -1,4 +1,4 @@
+ resource "aws_instance" "web" {
+-  instance_type = "t3.large"
++  instance_type = "t3.medium"
+   ami           = var.ami_id
+ }
+
+
+--- manual steps ---
+ami -- current value is not a literal: Variables not allowed (current value: var.ami_id) -- apply this correction manually
+```
+
+Nothing is written for a declined attribute — the file is left exactly as
+it was. A resource block `--tf-dir` doesn't contain at all (a `drift_revert`
+can target a resource that was only ever adopted via `ubx scan`, never
+written to `.tf`) is reported the same way, in the same manual-steps
+section, not as a command failure.
+
+## Related
+
+- [Drift](/concepts/drift) — what a `drift_revert` proposal is, and how it differs from `drift_adopt`
+- [`ubx scan`](/cli/scan) — `--propose revert`/`--propose both`, which generate the proposal this command reads
+- [`ubx writeback`](/cli/writeback) — the same underlying `.tf`-editing machinery, applied in the opposite (adopt) direction

@@ -87,13 +87,51 @@ ubx scan --provider ./terraform-provider-aws \
 no drift: payments.fake_widget.api-cache matches the ledger (observed_hash 41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589)
 ```
 
+## Two resolutions to a drift: adopt, or revert
+
+`drift_adopt` (above) records that reality's new state is now correct —
+the ledger's truth moves to match what `ubx scan` found. That's the right
+call when the change was intentional, or at least acceptable. Sometimes
+it isn't: `ubx scan --propose revert` generates a `drift_revert` proposal
+instead, which records the *opposite* decision — the ledger's existing
+truth is what should be true, and cloud needs to be corrected back to it.
+`--propose both` generates both from the same observation, as two
+alternative resolutions to the *same* detected drift; accepting one makes
+the other stale (it would need a fresh `ubx scan` to still be acceptable).
+
+A `drift_revert`'s `delta.modifies` is `drift_adopt`'s own shape with
+`before`/`after` reversed: `before` is the observed (drifted) value,
+`after` is the value being restored to. It's also the one place a
+drift/adoption kind carries a real, non-zero `blast_radius` — accepting a
+`drift_revert` is a decision to actually change cloud, not a record of
+something that already happened:
+
+```text
+$ ubx scan --provider ./terraform-provider-aws \
+  --stack payments --type fake_widget --name api-cache \
+  --lookup '{"name":"api-cache","tags":{"env":"staging"}}' \
+  --ledger-dir . --propose revert --out revert.json
+drifted: payments.fake_widget.api-cache (41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589) -- generated a "drift_revert" proposal
+```
+
+`ubx` never applies a `drift_revert` itself — see
+[`ubx revert-plan`](/cli/revert-plan) for the reconciliation artifact an
+accepted one produces, and exactly why applying it is left to your own
+tooling.
+
 ## After a drift is accepted
 
-Two things you can do once a `drift_adopt` proposal is accepted:
+What you can do next depends on which resolution you accepted:
 
-- **`ubx writeback`** can correct your own `.tf` source to match the accepted
-  drift, for the specific literal attribute values it can safely edit — see the
-  [CLI reference](/cli/writeback) for exactly what it will and won't touch.
+- **`ubx writeback`** corrects your own `.tf` source to match an accepted
+  `drift_adopt`, for the specific literal attribute values it can safely edit
+  — see the [CLI reference](/cli/writeback) for exactly what it will and
+  won't touch.
+- **`ubx revert-plan`** emits the reconciliation plan for an accepted
+  `drift_revert` — a human-readable summary always, plus a corrective `.tf`
+  diff where `--tf-dir` is given and the attribute is a literal. It never
+  applies anything to `.tf` or to cloud; see the
+  [CLI reference](/cli/revert-plan).
 - **`ubx scan --surface-as issue|pr`** can open a GitHub issue or pull request
   carrying the generated proposal, instead of just printing it — see the
   [CLI reference for `ubx scan`](/cli/scan).
@@ -101,6 +139,7 @@ Two things you can do once a `drift_adopt` proposal is accepted:
 ## Related
 
 - [Attribution](/concepts/attribution) — identifying who caused a drift
-- [Proposal](/concepts/proposal) — the `adoption`/`drift_adopt` shape
+- [Proposal](/concepts/proposal) — the `adoption`/`drift_adopt`/`drift_revert` shapes
 - [Ledger](/concepts/ledger) — what "matches the ledger" is comparing against
 - [Resource lookup conventions](/cli/lookup) — what `--lookup` needs per type, since a wrong lookup can look like "no drift" when it's actually "found the wrong thing"
+- [`ubx revert-plan`](/cli/revert-plan) — the reconciliation artifact for an accepted `drift_revert`
