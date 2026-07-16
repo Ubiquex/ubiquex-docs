@@ -66,7 +66,9 @@ $ ubx accept adopt.json --ledger-dir . \
 Error: accept: stale observation: reality changed since this proposal was generated: payments.fake_widget.api-cache3 recorded b5afdb3fb4bf5480300afee266988d93afe18054575db5a32ef4975b71d91334, now 028056c53f2b3ed9b25280b101479c28d7cf8f57ffe517e3556e13a0db596ff4
 ```
 
-A blocked reverification never touches the ledger — nothing is written.
+A blocked reverification never touches the ledger — nothing is written. It
+exits `1`, the same as a rejected `--from-merge` acceptance below — see
+[Exit codes](/cli/exit-codes).
 
 `--reverify-source`/`--reverify-provider-version` reverify by acquiring the
 provider from a registry instead of pointing at a local binary — the same
@@ -101,6 +103,14 @@ review policy was satisfied. Enforcing "N approvals required" is a decision
 to make in your own repo's branch protection, not something `ubx accept`
 itself gates on.
 
+If the trailer's hash doesn't match what `--proposal-file` actually hashes to
+at that commit, the merge commit no longer exists in `--repo-dir`'s history,
+the file is absent from that commit, no pull request is associated with the
+commit at all, or the PR body has no trailer to read — the claimed acceptance
+doesn't check out, and `ubx accept --from-merge` refuses it and exits `1` (see
+[Exit codes](/cli/exit-codes)). Nothing is ever appended to the ledger in
+these cases.
+
 ```text
 $ ubx accept --from-merge 1f4a193321c803340fcc3ae1d7bc387c74922763 \
     --repo-dir . \
@@ -123,6 +133,7 @@ rate limit.
 
 - [Proposal](/concepts/proposal) — the acceptance model
 - [`ubx propose`](/cli/propose) — computing the hash a PR-merge trailer needs
+- [Exit codes](/cli/exit-codes) — the 0/1/2 contract, including staleness and rejected pr_merge acceptances
 - [`ubx scan`](/cli/scan) — `--surface-as pr` opens the exact kind of PR this accepts from
 - [`ubx why`](/cli/why) — `--verify-acceptance`, for re-checking a PR-merge acceptance later
 - [`.ubx/config`](/cli/config) — project defaults, including `github_repo`

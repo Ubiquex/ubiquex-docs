@@ -74,15 +74,19 @@ github API: PR #42's approvers are unchanged ([roozbeh])
 ```
 
 Two independent checks run: whether the merge commit and proposal-file hash
-still check out against git history (a hard failure if not — a commit
+still check out against git history (reported clearly if not — a commit
 rewritten out of history, or a file whose content no longer matches, is a
 serious finding), and whether the PR's current approvers still match what
-was recorded (reported as a `MISMATCH`, but never a hard failure — the
-ledger correctly recorded what was true at acceptance time; a reviewer later
-withdrawing their approval is exactly what this check exists to surface, not
-evidence the ledger entry itself is wrong). Running it against a `local`
-acceptance, or a proposal with no acceptance at all, reports "nothing to
-re-verify" rather than erroring.
+was recorded (reported as a `MISMATCH` — the ledger correctly recorded what
+was true at acceptance time; a reviewer later withdrawing their approval is
+exactly what this check exists to surface, not evidence the ledger entry
+itself is wrong). Either case is always *reported*, never silently dropped —
+and both exit `1`, an actionable finding rather than success, since the
+claimed acceptance no longer checks out or a reviewer's stance has changed
+(see [Exit codes](/cli/exit-codes)). That's a different thing from a genuine
+tool error (git or the GitHub API itself failing), which exits `2`. Running
+it against a `local` acceptance, or a proposal with no acceptance at all,
+reports "nothing to re-verify" and exits `0` rather than erroring.
 
 <Note>
   `--github-repo` falls back to [`.ubx/config`](/cli/config)'s `github_repo`
@@ -95,3 +99,4 @@ re-verify" rather than erroring.
 - [Attribution](/concepts/attribution) — how CloudTrail sources render here
 - [`ubx accept`](/cli/accept) — PR-merge acceptance, what `--verify-acceptance` re-checks
 - [`.ubx/config`](/cli/config) — project defaults, including `github_repo`
+- [Exit codes](/cli/exit-codes) — the 0/1/2 contract, including `--verify-acceptance`'s findings
