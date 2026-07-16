@@ -1,5 +1,40 @@
 # STATE — ubiquex-docs
 
+## Protocol change (2026-07-16): docs land same-session now
+
+ubiquex-cli's CLAUDE.md session protocol changed: user-visible changes now
+update ubiquex-docs in the *same* session (verified against the built
+binary, `mint validate` clean, committed and pushed), not batched as a
+"docs debt" STATE.md entry for a later session — that was the prior
+convention (see UBI-13 below, which existed specifically to work through
+that backlog). A docs-debt entry is now the documented exception for when
+same-session isn't feasible, not the default path.
+
+## UBI-17: `ubx status` reference (2026-07-16, same session as the code)
+
+New `cli/status.mdx`: both modes (ledger-only vs. `--drift`) documented as
+genuinely different capabilities, not one capability with a default; every
+example transcript real, captured from the actual built binary (including
+a hand-crafted "no lookup recorded" proposal to demonstrate the
+`unreadable` classification honestly). The exit-code CI contract (0/1/2)
+gets its own table plus a worked `bash`/`case` example, since that's the
+single most operationally important fact about this command.
+`concepts/ledger.mdx`'s "Stacks are independent" section gained a
+clarification that this is conceptual, not physical — one ledger directory
+can hold several stacks' proposals interleaved in one chain, which is
+exactly what `ubx status`'s "every resource, every stack, by default"
+report depends on (a confirmed finding from this session's ubiquex-cli
+work, not assumed). `mint validate`, `mint dev`, and `mint broken-links`
+all pass clean.
+
+**Still open, carried over from ubiquex-cli's own STATE.md (UBI-16, prior
+session, predates the protocol change above)**: `ubx revert-plan` has no
+CLI reference page yet, and the "one ledger directory can span multiple
+stacks" note above was written for UBI-17 specifically — a
+`concepts/revert.mdx` (or an addition to `concepts/drift.mdx`) explaining
+`drift_revert`'s corrective-direction semantics still doesn't exist. Pick
+up next.
+
 ## Release cut v0.1.0 (2026-07-11)
 
 ubiquex-cli's release infrastructure (goreleaser + a tag-triggered GitHub
@@ -54,9 +89,15 @@ the last commit.
 
 ## Docs debt (ubiquex-docs)
 
-None open. Every item tracked in ubiquex-cli's STATE.md docs-debt section
-as of UBI-13's start is now addressed; see that file's own UBI-13 entry
-for the full list this closed out.
+Open, carried over from before the 2026-07-16 protocol change (see top of
+this file): `ubx revert-plan`'s CLI reference page (UBI-16), and a
+concepts-level explanation of `drift_revert`'s corrective direction. Per
+the new protocol, going forward this section should stay empty except for
+genuine exceptions — see the top entry for why.
+
+Historical: every item tracked in ubiquex-cli's STATE.md docs-debt section
+as of UBI-13's start was addressed by that milestone; see that file's own
+UBI-13 entry for the full list it closed out.
 
 ## Possible future improvements (not debt — no user-visible change is
 waiting on these)
