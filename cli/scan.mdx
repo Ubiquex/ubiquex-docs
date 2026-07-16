@@ -282,6 +282,85 @@ nothing was verified to attribute a checksum to:
   satisfied the request.
 </Note>
 
+## Kubernetes and Helm
+
+`ubx` scans `hashicorp/kubernetes`/`hashicorp/helm` resources the same
+way it scans any other type — see [Resource lookup conventions](/cli/lookup#kubernetes-and-helm)
+for the confirmed `--lookup` shape per type. This transcript adopts a
+real `kubernetes_secret_v1` against a real (local `kind`) cluster,
+confirming redaction (see [Secrets](/concepts/secrets)) and drift
+detection both work end to end:
+
+```bash
+ubx scan --source hashicorp/kubernetes --provider-version 2.35.1 \
+  --stack k8stest --type kubernetes_secret_v1 --name app-secret \
+  --lookup '{"id":"ubx-test/app-secret"}' \
+  --provider-config '{"config_path":"~/.kube/config","config_context":"kind-ubx-conformance"}' \
+  --ledger-dir . --out secret-adopt.json
+```
+
+```text
+new: k8stest.kubernetes_secret_v1.app-secret (f29bcb4abea8c5c82b1a6516fd37586982a680de564dab05fcc33bc3176525f0) -- generated a "adoption" proposal
+```
+
+```json
+{
+  "data": { "$redacted": { "sha256": "87bc05ef04ea757fe8e8dffe2622038c73bba034efc1074938f9c956ce226328" } },
+  "id": "ubx-test/app-secret",
+  "metadata": [
+    { "name": "app-secret", "namespace": "ubx-test", "resource_version": "732", "uid": "49e5ecc3-e6f8-47c4-831f-76f36ade0cdd", "...": "..." }
+  ],
+  "type": "Opaque"
+}
+```
+
+After accepting and rotating the real secret out of band (`kubectl patch
+secret app-secret ... --type merge -p '{"stringData":{"password":"..."}}'`),
+scanning again correctly detects drift — `before`/`after` both
+`$redacted`, at different hashes:
+
+```json
+{
+  "before": { "data": { "$redacted": { "sha256": "87bc05ef04ea757fe8e8dffe2622038c73bba034efc1074938f9c956ce226328" } } },
+  "after":  { "data": { "$redacted": { "sha256": "02e1e2bda3fbd6ab07723ed405035dee6794bf60e11fde58f1455aabf0ff669a" } } }
+}
+```
+
+<Note>
+  Every `kubernetes_*` mutation also always shows a `metadata` change
+  alongside the semantic one — any real mutation bumps the object's own
+  `resource_version`, and `metadata` diffs as a whole value (it's a
+  list-nested block, compared atomically like any array). Expected, not
+  a bug — see [Resource lookup conventions](/cli/lookup#kubernetes-and-helm)
+  for why `metadata` is list-nested at all.
+</Note>
+
+`helm_release` is a resource like any other — adopted, drift-detected,
+and diffed on its own Terraform-observed attributes, never by parsing the
+chart's rendered manifests or tracking the individual Kubernetes objects
+a release manages (that's explicitly out of scope). A real
+`helm upgrade --set replicaCount=3` shows up as `metadata[0].values`
+changing — the top-level `values`/`chart` attributes stay `null` on an
+ordinary adopt scan, since the provider never backfills them from a live
+read:
+
+```json
+{
+  "before": { "metadata": [{ "values": "{\"replicaCount\":1}", "...": "..." }] },
+  "after":  { "metadata": [{ "values": "{\"replicaCount\":3}", "...": "..." }] }
+}
+```
+
+<Warning>
+  Neither `manifest` nor `metadata[0].values`/`metadata[0].notes` are
+  `Sensitive`-flagged in the real schema — a value that started sensitive
+  (a `set_sensitive` password used at apply time, say) can still appear
+  here in plaintext if a chart template renders it into the release's
+  resolved output. Schema-driven redaction protects the input attribute
+  it's declared on; it can't follow that value everywhere it might get
+  echoed into a derived, computed field. See [Secrets](/concepts/secrets).
+</Warning>
+
 ## Bulk onboarding (`--all`)
 
 A team with hundreds of resources can't adopt them one `--lookup` at a
@@ -406,7 +485,7 @@ two entries for `--propose both`. Exit code follows the usual contract:
 - [Drift](/concepts/drift) — the three outcomes and what they generate
 - [Secrets](/concepts/secrets) — how a `Sensitive`-flagged attribute is redacted before it's ever written
 - [Attribution](/concepts/attribution) — what CloudTrail attribution adds to a drift proposal
-- [Resource lookup conventions](/cli/lookup) — what `--lookup` needs per type
+- [Resource lookup conventions](/cli/lookup) — what `--lookup` needs per type, including Kubernetes/Helm's own shapes
 - [`ubx accept`](/cli/accept) — accepting the generated proposal, including PR-merge acceptance
 - [`ubx writeback`](/cli/writeback) — the `--tf-dir` preview in a drift receipt, applied for real
 - [`ubx status`](/cli/status) — the same drift check, across every resource the ledger knows about, not just one address

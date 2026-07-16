@@ -92,6 +92,26 @@ A freeform table — whatever keys the provider you're using actually needs
 (`region` for AWS, say). Marshaled straight to the JSON string every
 `--provider-config` flag already accepts.
 
+### `[k8s_audit]`
+
+The one config table with no CLI flag equivalent — entirely optional,
+and unlike `[provider]`/`[provider_config]`, config-only:
+
+```toml
+[k8s_audit]
+cluster = "my-eks-cluster"
+region = "us-east-1"
+# log_group = "/aws/eks/my-eks-cluster/cluster"  # optional; defaults to this shape from cluster
+```
+
+Which EKS cluster's control-plane audit log to search for
+`kubernetes_*`/`helm_release` drift attribution (see
+[Attribution](/concepts/attribution#kubernetes-and-helm-eks-audit-logs)) —
+unlike AWS's region or GCP's project, there's nothing in `--provider-config`
+that implies this, so it needs its own explicit table. Absent, or
+`cluster` unset: such a drift's attribution records
+`audit_unattributed`/`not_configured`, never blocking detection.
+
 ## Unknown keys warn, they don't fail
 
 A typo, or a field a different `ubx` version doesn't recognize, is reported
@@ -144,3 +164,4 @@ No `--stack`, no `--provider`, no `--provider-config` on any of them.
 
 - [`ubx init`](/cli/init) — generates a starter `.ubx/config`
 - [`ubx scan`](/cli/scan), [`ubx status`](/cli/status), [`ubx accept`](/cli/accept), [`ubx why`](/cli/why), [`ubx writeback`](/cli/writeback), [`ubx revert-plan`](/cli/revert-plan) — every command config applies to
+- [Attribution](/concepts/attribution#kubernetes-and-helm-eks-audit-logs) — what `[k8s_audit]` configures

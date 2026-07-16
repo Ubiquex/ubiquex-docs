@@ -92,6 +92,66 @@ Every other tracked GCP type defaults to `{"id": "<the resource's id>"}`,
 same as AWS's own default — not yet independently verified against a real
 account the way the five above are.
 
+## Kubernetes and Helm
+
+`ubx` also speaks to `hashicorp/kubernetes` and `hashicorp/helm` the same
+way it speaks to any other provider — same `--source`/`--provider`
+acquisition. Both negotiate tfplugin protocol v5, same as
+`hashicorp/aws`/`hashicorp/google`.
+
+<Note>
+  Every `kubernetes_*` resource type models its `metadata` (and, for
+  workload types, `spec`) block as a **list of one item**, not a bare
+  object — a real Terraform SDKv2 convention, confirmed directly against
+  the real `hashicorp/kubernetes` 2.35.1 schema. This might suggest
+  `--lookup` needs to be shaped `{"metadata": [{"name": "...",
+  "namespace": "..."}]}` — it does not. See the table below: `id` alone
+  is genuinely sufficient, confirmed live against a real cluster, not
+  assumed from the schema shape.
+</Note>
+
+| Type | Required `--lookup` shape | Why |
+| --- | --- | --- |
+| `kubernetes_config_map_v1` | `{"id": "<namespace>/<name>"}` | `id` alone is sufficient — the provider parses namespace/name out of it internally. |
+| `kubernetes_secret_v1` | `{"id": "<namespace>/<name>"}` | Same shape as `kubernetes_config_map_v1`. `data`/`binary_data` are redacted (see [Secrets](/concepts/secrets)) regardless of how it's looked up. |
+| `kubernetes_deployment_v1` | `{"id": "<namespace>/<name>"}` | Same shape, confirmed on a workload type (`spec` is also list-nested, same as `metadata`). |
+| `kubernetes_service_v1` | `{"id": "<namespace>/<name>"}` | Same shape. |
+| `kubernetes_namespace_v1` | `{"id": "<name>"}` | Cluster-scoped — no namespace prefix at all, unlike every namespaced type above. |
+
+Every other `kubernetes_*` type in `ubx`'s conformance registry defaults
+to the same `{"id": "<namespace>/<name>"}` shape (or `{"id": "<name>"}`
+for the other cluster-scoped RBAC types — `kubernetes_cluster_role_v1`,
+`kubernetes_cluster_role_binding_v1`) — not yet independently verified
+against a real cluster the way the five above are.
+
+`helm_release` is the opposite case: it has no list-nested blocks at all
+(a flatter, AWS/GCP-shaped identity), but `id` alone is **not** enough —
+confirmed live, the required shape is all three together:
+
+| Type | Required `--lookup` shape | Why |
+| --- | --- | --- |
+| `helm_release` | `{"id": "<release-name>", "name": "<release-name>", "namespace": "<namespace>"}` | `id` alone (or `name`/`namespace` alone) doesn't read the release back — all three are needed together. |
+
+```bash
+ubx scan --source hashicorp/kubernetes --provider-version 2.35.1 \
+  --stack platform --type kubernetes_secret_v1 --name app-secret \
+  --lookup '{"id":"ubx-test/app-secret"}' \
+  --provider-config '{"config_path":"~/.kube/config","config_context":"my-cluster"}' \
+  --ledger-dir .
+```
+
+`hashicorp/helm`'s own provider config nests its Kubernetes connection
+inside a list-wrapped `kubernetes` block too (the same NestingList
+convention as `metadata` above, confirmed against the real schema):
+
+```bash
+ubx scan --source hashicorp/helm --provider-version 2.17.0 \
+  --stack platform --type helm_release --name myrelease \
+  --lookup '{"id":"myrelease","name":"myrelease","namespace":"ubx-test"}' \
+  --provider-config '{"kubernetes":[{"config_path":"~/.kube/config","config_context":"my-cluster"}]}' \
+  --ledger-dir .
+```
+
 ## `--lookup` never needs, and never redacts, secret material
 
 Every type this project has checked against a real provider schema (see
@@ -106,5 +166,7 @@ resource type ever requires secret material there in the first place.
 
 ## Related
 
-- [`ubx scan`](/cli/scan) — where `--lookup` is used
+- [`ubx scan`](/cli/scan) — where `--lookup` is used, including Kubernetes/Helm transcripts
 - [Drift](/concepts/drift) — what a mismatched lookup would show up as
+- [Attribution](/concepts/attribution#kubernetes-and-helm-eks-audit-logs) — the EKS audit-log backend for Kubernetes/Helm drift
+- [Secrets](/concepts/secrets) — how `kubernetes_secret_v1`/`helm_release`'s sensitive attributes get redacted

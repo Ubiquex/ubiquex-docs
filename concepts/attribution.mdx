@@ -46,13 +46,16 @@ blast radius: +0 ~0 -0
 
 ## Why attribution can fail
 
-`reason` is one of three values:
+`reason` is one of four values (the same four regardless of which backend
+attempted the search — `cloudtrail_unattributed`/`audit_unattributed`
+both use them):
 
 | Reason | Meaning |
 | --- | --- |
 | `no_matching_event` | The search ran successfully, over a wide enough window to rule out delivery delay, but no event matched this resource. |
-| `delivery_window` | The search window is narrower than CloudTrail's typical event-delivery latency (up to ~15 minutes) — a real event may simply not have propagated yet. |
-| `not_logged` | The CloudTrail search itself couldn't run — no credentials, no access, or CloudTrail isn't reachable. |
+| `delivery_window` | The search window is narrower than the backend's own typical event-delivery latency (up to ~15 minutes for CloudTrail) — a real event may simply not have propagated yet. |
+| `not_logged` | The search itself couldn't run — no credentials, no access, or the backend isn't reachable. |
+| `not_configured` | The backend itself needs operator configuration `ubx` has no way to derive on its own, and that configuration is absent — today, only `k8s_audit_logs` (see [Kubernetes and Helm](#kubernetes-and-helm-eks-audit-logs) below); AWS's region and GCP's project are always derivable, so `cloudtrail`/`gcp_audit` never produce this reason. |
 
 ## Scope
 
@@ -141,8 +144,68 @@ followed): one Pub/Sub mutation became queryable in about 18 seconds — much
 faster than CloudTrail, and with no published latency ceiling the way
 CloudTrail has a documented ~15-minute one.
 
+## Kubernetes and Helm: EKS audit logs
+
+Scanning a `kubernetes_*`/`helm_release` resource picks a third
+backend automatically — `k8saudit`, against the EKS control plane's own
+**audit** log stream (Kubernetes' `audit.k8s.io/v1` event schema:
+`objectRef`, `user`, `sourceIPs`, `verb`, timestamps), delivered to
+CloudWatch Logs. This is a different signal from CloudTrail entirely —
+CloudTrail sees AWS API calls like `CreateCluster`; it has no visibility
+into `kubectl apply`.
+
+<Note>
+  Dispatch is by which provider *scanned* the resource
+  (`--source hashicorp/kubernetes`/`hashicorp/helm`), not by which cloud
+  hosts it — an EKS cluster's own drift (scanned via
+  `--source hashicorp/aws`, an `aws_eks_cluster` resource) stays exactly
+  as CloudTrail-attributable as any other AWS resource.
+</Note>
+
+**Unlike AWS/GCP, this backend requires explicit, optional configuration**
+— there's nothing in `--provider-config` that implies "which EKS cluster,
+which CloudWatch log group" the way a region or project does. A new
+`.ubx/config` table:
+
+```toml
+[k8s_audit]
+cluster = "my-eks-cluster"
+region = "us-east-1"
+# log_group is optional -- defaults to /aws/eks/<cluster>/cluster
+```
+
+Left unconfigured, a `kubernetes_*`/`helm_release` drift's attribution
+records `audit_unattributed`/`not_configured` — recorded as evidence in
+its own right, same as every other unattributed reason, and never
+blocking the drift from being detected or accepted:
+
+```text
+  source: audit_unattributed -- ...
+```
+
+<Warning>
+  The EKS audit-log leg wasn't live-verified against a real EKS cluster
+  this session — provisioning one is real, hourly-billed cloud
+  infrastructure, judged out of proportion to attempt without checking in
+  first, unlike the free/local `kind` cluster used to verify
+  `kubernetes_*`/`helm_release` resource scanning itself (see
+  [Resource lookup conventions](/cli/lookup#kubernetes-and-helm)).
+  `k8saudit`'s correlation logic was checked as far as a local cluster
+  allows: a `kubernetes_*` resource's own `id` attribute is confirmed to
+  be `<namespace>/<name>`, exactly one of the candidate identity shapes
+  `k8saudit` builds from a real Kubernetes audit event's `objectRef` — so
+  the matching mechanism is believed sound, not confirmed end-to-end
+  against a real EKS audit event the way CloudTrail's and GCP's own
+  attribution were each confirmed against a real match. `DeliveryLag`
+  ships as a documented, conservative placeholder (5 minutes), not a
+  measured figure. See [`ubiquex-cli`'s own STATE.md](https://github.com/Ubiquex/ubiquex-cli)
+  for the full writeup.
+</Warning>
+
 ## Related
 
 - [Drift](/concepts/drift) — what triggers an attribution attempt
 - [Why](/concepts/why) — where attribution shows up
 - [`ubx scan`](/cli/scan) — the `--no-attribution` flag
+- [`.ubx/config`](/cli/config#k8s_audit) — the `[k8s_audit]` table
+- [Resource lookup conventions](/cli/lookup#kubernetes-and-helm) — Kubernetes/Helm `--lookup` shapes
