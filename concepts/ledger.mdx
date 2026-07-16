@@ -13,10 +13,14 @@ directory on disk — every ubx command that reads or writes it takes a
 <ledger-dir>/
   ledger/proposals/<id>.prop.json   # one file per accepted proposal
   .ubx/ledger.lock                  # the current head: the most recently accepted id
+  .ubx/lock                         # concurrency lock -- see "Concurrent access" below
 ```
 
 Each proposal file is the full accepted proposal — hash, delta, resolution,
 acceptance, everything. `ledger.lock` holds nothing but the head hash.
+`.ubx/lock` is a different file with a different job (concurrency, not the
+head pointer) — see below — and [`.ubx/config`](/cli/config) is a third,
+also unrelated file in the same directory.
 
 ## It's a chain, not a set
 
@@ -45,6 +49,42 @@ deployment choice either way works correctly; [`ubx status`](/cli/status)'s
 "every resource, every stack, by default" report depends on the shared-directory
 shape being sound, and it is.
 
+## Concurrent access
+
+`.ubx/lock` makes it safe for a person and CI to both be working against
+the same ledger directory at once. It's acquired only around the
+ledger-mutating step of [`ubx accept`](/cli/accept) (both the local and
+`--from-merge` tiers) — [`ubx scan`](/cli/scan), [`ubx why`](/cli/why), and
+[`ubx status`](/cli/status) never write to the ledger, so they never
+acquire it and are never blocked by it, no matter how long an accept
+elsewhere is holding it.
+
+If another process is genuinely still running and holding the lock, a
+blocked `ubx accept` waits briefly and then fails clearly, naming the file
+and the holder's process id:
+
+```text
+$ ubx accept proposal.json --ledger-dir .
+Error: accept: append: ledger is locked by another process: .ubx/lock (held by pid 29771)
+```
+
+If the lock file names a process that's no longer running — killed, or
+crashed before it could clean up after itself — that's detected
+immediately (no need to wait out the contention window for a holder that
+isn't there) and reported with explicit recovery guidance instead of being
+silently broken or blocking forever:
+
+```text
+$ ubx accept proposal.json --ledger-dir .
+Error: accept: append: stale ledger lock: holder is no longer running: .ubx/lock names pid 99999999, which is not running -- remove .ubx/lock to recover (confirm no ubx process actually holds it first)
+```
+
+`ubx` never removes `.ubx/lock` on your behalf even once it's confirmed
+stale — deleting a lock file is a deliberate operator action (`rm
+.ubx/lock`), not something a command that just failed to acquire it
+should do for you. Either failure exits `2` (a genuine error, not an
+actionable finding) — see [Exit codes](/cli/exit-codes).
+
 ## Reconstructing what's true now
 
 The ledger never stores a resource's "current state" directly — it stores the
@@ -61,3 +101,4 @@ several drifts recorded against it.
 - [Drift](/concepts/drift) — how `ubx scan` decides something belongs in the ledger
 - [Why](/concepts/why) — reading the ledger back
 - [`ubx status`](/cli/status) — every resource the ledger has ever recorded, across every stack, in one report
+- [Exit codes](/cli/exit-codes) — the 0/1/2 contract, including a locked or stale-locked accept
