@@ -1,0 +1,127 @@
+---
+title: "ubx status"
+description: "Report every resource the ledger knows about, optionally comparing against live state"
+---
+
+```text
+ubx status [--drift] [--stack <name>] [flags]
+```
+
+Walks every resource the [ledger](/concepts/ledger) has ever recorded — every
+stack by default, or one via `--stack` — and reports each one's address and
+latest recorded state. This is a fleet-wide report, not a single-address
+check: where [`ubx scan`](/cli/scan) answers "has *this* resource drifted?",
+`ubx status` answers "what does the ledger know about, and (optionally) which
+of it has drifted?" across everything at once.
+
+Ledger-only and `--drift` are genuinely two different capabilities, not one
+capability with a default:
+
+- **Ledger-only** (no `--drift`): reads only the ledger itself. No provider is
+  launched, no cloud credentials are needed. Fast, and safe to run anywhere
+  the ledger directory is readable.
+- **`--drift`**: additionally launches one provider (resolved exactly like
+  `ubx scan`'s own `--provider`/`--source`+`--provider-version`) and, for
+  every resource, re-reads its live state using that resource's own recorded
+  [lookup key](/cli/lookup) — nothing needs to be re-supplied, since it was
+  already persisted in the ledger for exactly this reason. Classifies each
+  resource as `clean`, `drifted`, or `unreadable`.
+
+## Flags
+
+| Flag | Description |
+| --- | --- |
+| `--stack string` | restrict the report to one stack (default: every stack the ledger holds) |
+| `--drift` | also compare each resource against live state (requires `--provider`, or `--source`+`--provider-version`) |
+| `--provider string` | path to the provider binary (mutually exclusive with `--source`; only used with `--drift`) |
+| `--source string` | provider source address, e.g. `hashicorp/aws` (mutually exclusive with `--provider`; requires `--provider-version`; only used with `--drift`) |
+| `--provider-version string` | explicit provider version to acquire (required with `--source`; only used with `--drift`) |
+| `--provider-config string` | JSON object configuring the provider, e.g. `{"region":"us-east-1"}` (only used with `--drift`) (default `{}`) |
+| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `--timeout duration` | overall timeout for the fleet walk (only used with `--drift`) (default `1m0s`) |
+| `-h`, `--help` | help for status |
+
+## Examples
+
+### Ledger-only
+
+```text
+$ ubx status --ledger-dir .
+network.fake_widget.main-vpc: adoption 7d8d5792e06c… (accepted 2026-07-16T16:54:45Z)
+payments.fake_widget.api-cache: adoption bdbb0b5098bf… (accepted 2026-07-16T16:54:45Z)
+2 resource(s) (ledger-only, no live comparison)
+```
+
+No provider was launched for this — the report comes entirely from the
+ledger's own accepted history. `--stack` filters it:
+
+```text
+$ ubx status --ledger-dir . --stack payments
+payments.fake_widget.api-cache: adoption bdbb0b5098bf… (accepted 2026-07-16T16:54:45Z)
+1 resource(s) (ledger-only, no live comparison)
+```
+
+### `--drift`, all clean
+
+```text
+$ ubx status --ledger-dir . --drift --provider ./terraform-provider-aws
+clean: network.fake_widget.main-vpc: adoption 7d8d5792e06c… (accepted 2026-07-16T16:54:45Z)
+clean: payments.fake_widget.api-cache: adoption bdbb0b5098bf… (accepted 2026-07-16T16:54:45Z)
+2 resource(s), 0 drifted, 0 unreadable
+```
+
+### `--drift`, something drifted
+
+```text
+$ ubx status --ledger-dir . --drift --provider ./terraform-provider-aws
+drifted: network.fake_widget.main-vpc: adoption 7d8d5792e06c… (accepted 2026-07-16T16:54:45Z)
+drifted: payments.fake_widget.api-cache: adoption bdbb0b5098bf… (accepted 2026-07-16T16:54:45Z)
+2 resource(s), 2 drifted, 0 unreadable
+```
+
+### `--drift`, something unreadable
+
+A resource whose ledger entry predates the
+[lookup](/concepts/proposal)-persisting amendment (or one the provider
+otherwise can't read — an unknown type, denied credentials, a transient
+failure) is reported `unreadable` and the walk continues; it never aborts the
+report:
+
+```text
+$ ubx status --ledger-dir . --drift --provider ./terraform-provider-aws
+clean: network.fake_widget.main-vpc: adoption 7d8d5792e06c… (accepted 2026-07-16T16:54:45Z)
+clean: payments.fake_widget.api-cache: adoption bdbb0b5098bf… (accepted 2026-07-16T16:54:45Z)
+unreadable: payments.fake_widget.legacy-widget: adoption 98d37e766f62… (accepted 2026-07-16T16:55:30Z) -- no lookup key recorded for this resource (authored before the resolution.inputs lookup amendment, or never had one)
+3 resource(s), 0 drifted, 1 unreadable
+```
+
+## Exit code: the CI contract
+
+`ubx status --drift` is meant to gate a pipeline step, not just print a
+report for a human to read:
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | clean (or ledger-only mode, which has nothing to report drift on) |
+| `1` | at least one resource drifted, nothing unreadable |
+| `2` | at least one resource was unreadable, or the command failed outright (e.g. the provider couldn't be launched at all) |
+
+Whichever is worse always wins if more than one applies — an unreadable
+resource alongside a drifted one still exits `2`, not `1`. A CI step can gate
+on this directly:
+
+```bash
+ubx status --drift --source hashicorp/aws --provider-version 6.54.0
+case $? in
+  0) echo "clean" ;;
+  1) echo "drift detected" && exit 1 ;;
+  2) echo "unreadable resource or command failure" && exit 1 ;;
+esac
+```
+
+## Related
+
+- [Drift](/concepts/drift) — the underlying clean/drifted classification, applied one resource at a time
+- [Ledger](/concepts/ledger) — what "every resource the ledger has ever recorded" means, including how a single ledger directory can span more than one stack
+- [Resource lookup conventions](/cli/lookup) — the `resolution.inputs[].lookup` key `--drift` reuses
+- [`ubx scan`](/cli/scan) — the single-address version of what `--drift` runs per resource
