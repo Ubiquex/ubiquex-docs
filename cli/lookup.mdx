@@ -66,24 +66,31 @@ more, matching the schema each type's provider itself declares.
 acquisition (see [Installation](/getting-started/installation)). It
 negotiates tfplugin protocol v5, the same version `hashicorp/aws` speaks.
 
-GCP support is newer and less far along than AWS's: `ubiquex-cli`'s internal
-conformance suite currently tracks about 40 GCP resource types across
-compute, network, IAM, storage, SQL, and DNS, with identity fields checked
-against the real `hashicorp/google` schema (the same free, no-credentials
-`GetProviderSchema` check the AWS list uses) — but **none of them has been
-live-verified against a real GCP account yet**, the step that would surface
-a `bucket`-alone-reads-back-null-style surprise for GCP the way it did for
-`aws_s3_bucket`. Until that verification happens, the safe default for every
-GCP type is the same one every unlisted AWS type uses:
+GCP support is newer than AWS's: `ubiquex-cli`'s internal conformance suite
+tracks about 40 GCP resource types across compute, network, IAM, storage,
+SQL, and DNS, with identity fields checked against the real
+`hashicorp/google` schema. Five have been live-verified against a real
+account so far:
 
-```text
---lookup '{"id": "<the resource's id>"}'
-```
+| Type | Required `--lookup` shape | Why |
+| --- | --- | --- |
+| `google_service_account` | `{"id": "projects/<project>/serviceAccounts/<email>"}` | `id` (the full resource path) alone is sufficient — same shape as `aws_iam_policy`. |
+| `google_project_iam_custom_role` | `{"id": "projects/<project>/roles/<role_id>"}` | `id` (the full resource path) alone is sufficient, same as `google_service_account`. |
+| `google_storage_bucket` | `{"id": "<name>", "name": "<name>"}` | `id` and `name` are both the bucket name, and **both are required together** — unlike `aws_s3_bucket`, where `id` alone already works. `id` alone errors outright; `name` alone reads back `null`. |
+| `google_pubsub_topic` | `{"id": "projects/<project>/topics/<name>", "name": "<name>"}` | `id` alone doesn't error and doesn't read back `null` — it succeeds, but the topic's own `name` attribute comes back empty. A more dangerous mistake than any AWS type shows: nothing signals that anything went wrong. |
+| `google_secret_manager_secret` | `{"id": "projects/<project>/secrets/<name>", "secret_id": "<name>"}` | Same silent-incomplete-read shape as `google_pubsub_topic` — `id` alone succeeds but with `name`/`secret_id` empty or `null`. |
 
-This page's "confirmed non-default lookup shape" table is AWS-only for now.
-It'll gain a GCP section once real-account verification (`ubiquex-cli`'s
-UBI-21 Stage 2) actually happens — check `ubiquex-cli`'s own STATE.md if
-you want to know whether that's landed since this was written.
+<Warning>
+  `google_pubsub_topic` and `google_secret_manager_secret`'s `id`-alone
+  mistake does **not** produce [a teaching error](#every-other-aws-type) or
+  even a failure — `ubx scan` reports a normal `new`/`drifted` outcome and
+  writes a proposal with genuinely incomplete data. Nothing here saves you
+  from getting this specific one wrong except reading this table first.
+</Warning>
+
+Every other tracked GCP type defaults to `{"id": "<the resource's id>"}`,
+same as AWS's own default — not yet independently verified against a real
+account the way the five above are.
 
 ## Related
 

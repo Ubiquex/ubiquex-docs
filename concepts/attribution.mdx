@@ -1,16 +1,20 @@
 ---
 title: "Attribution"
-description: "Identifying who caused a drift, via AWS CloudTrail"
+description: "Identifying who caused a drift, via AWS CloudTrail or GCP Cloud Audit Logs"
 ---
 
 When `ubx scan` detects [drift](/concepts/drift), it makes a best-effort attempt
-to identify who caused it, by searching AWS CloudTrail for the management event
-responsible. This happens automatically — no extra flag needed — and never
-blocks the drift from being recorded, even when attribution fails outright.
+to identify who caused it, by searching the cloud's own audit trail — AWS
+CloudTrail, or GCP Cloud Audit Logs (see [below](#beyond-aws-gcp-via-cloud-audit-logs))
+— for the management event responsible. This happens automatically — no extra
+flag needed — and never blocks the drift from being recorded, even when
+attribution fails outright.
 
 ## What gets recorded
 
-Every `drift_adopt` proposal's `intent.sources` gains one of two kinds of entry:
+Every `drift_adopt` proposal's `intent.sources` gains one of two kinds of entry
+(for an AWS resource — see [Beyond AWS](#beyond-aws-gcp-via-cloud-audit-logs)
+for GCP's own `gcp_audit`/`audit_unattributed` pair):
 
 - **`cloudtrail`** — a matched CloudTrail event: the actor's IAM ARN, the event
   name, when it happened, and the source IP it came from.
@@ -65,26 +69,77 @@ read back from the ledger itself, never an arbitrary lookback.
 Pass `--no-attribution` to `ubx scan` to skip the CloudTrail search entirely for
 that invocation.
 
-## Beyond AWS: attribution is a per-platform backend
+## Beyond AWS: GCP via Cloud Audit Logs
 
-Everything above describes what's actually shipped and live-verified today:
-CloudTrail, for AWS. Underneath it, `ubx`'s own attribution logic (which
-identity value to search by, exact-match filtering, never guessing between
-several candidate events, the `cloudtrail`/`cloudtrail_unattributed` split) is
-written against one small interface — "search this platform's audit trail for
-events referencing a resource, in a time window" — not against CloudTrail's
-API directly. CloudTrail is the first implementation of that interface, not
-the only one it was designed for.
+`ubx`'s own attribution logic (which identity value to search by,
+exact-match filtering, never guessing between several candidate events) is
+written against one small interface — "search this platform's audit trail
+for events referencing a resource, in a time window" — not against
+CloudTrail's API directly. CloudTrail was the first implementation of that
+interface; GCP's Cloud Audit Logs is the second, live as of `ubiquex-cli`'s
+UBI-21.
 
-As `ubx` gains GCP support, the plan (decided, not yet built — see
-`docs/architecture.md`'s "GCP support" section in the `ubiquex-cli` repo if
-you want the full design) is a second, independent backend against GCP's own
-Cloud Audit Logs, picked automatically based on which provider a resource
-belongs to. The schema is already forward-compatible for this: a new
-`audit_unattributed` source kind (generalizing `cloudtrail_unattributed` with
-a `backend` field naming which platform's search came up empty) is reserved
-for it. `cloudtrail_unattributed` itself isn't going anywhere — every ledger
-entry that already has one keeps it, unchanged, permanently.
+Scanning a GCP resource with `--source hashicorp/google` (or a
+`hashicorp/google` `--provider` binary) picks this backend automatically —
+no separate flag. It searches Admin Activity audit logs (GCP's always-on
+equivalent of CloudTrail's management events) for the resource, over the
+same `[last ledger observation, scan time]` window every backend uses.
+
+```bash
+ubx scan --source hashicorp/google --provider-version 7.40.0 \
+  --stack demo --type google_pubsub_topic --name my-topic \
+  --lookup '{"id":"projects/my-project/topics/my-topic","name":"my-topic"}' \
+  --provider-config '{"project":"my-project"}' \
+  --ledger-dir .
+```
+
+```json
+{
+  "kind": "drift_adopt",
+  "intent": {
+    "summary": "record drift on demo.google_pubsub_topic.my-topic observed outside the ledger",
+    "sources": [
+      {
+        "kind": "gcp_audit",
+        "ref": "1qptahtcj5h",
+        "content_hash": "sha256:4aee4ed033bcebc6c6328781450f28274164869e2456c94a5c73c93a9d4cf3d6",
+        "event_id": "1qptahtcj5h",
+        "event_name": "google.pubsub.v1.Publisher.UpdateTopic",
+        "event_time": "2026-07-16T21:58:45Z",
+        "actor_arn": "me@roozbeh.net",
+        "source_ip": "93.228.76.41"
+      }
+    ]
+  }
+}
+```
+
+`gcp_audit` reuses `cloudtrail`'s own fields rather than inventing
+GCP-specific ones — `actor_arn` carries the GCP principal's email address
+here, not an ARN. When attribution fails, GCP proposals get the
+generalized `audit_unattributed` kind (a `backend` field, `"gcp_audit_logs"`,
+names which platform came up empty) instead of `cloudtrail_unattributed` —
+which itself isn't going anywhere: every existing AWS ledger entry keeps it,
+unchanged, permanently, and new AWS proposals keep using it too.
+
+<Warning>
+  Not every GCP resource type correlates correctly yet. GCP's own audit log
+  entries don't consistently name the resource the same way across
+  services — Pub/Sub's entries use the project ID (matching what `ubx`
+  already observed, so correlation works, as shown above); Secret Manager's
+  entries instead use the numeric project number, which `ubx` has no way to
+  connect back to the resource it just scanned. A `google_secret_manager_secret`
+  drift will report `audit_unattributed`/`no_matching_event` even when a
+  real, matching audit log entry exists. See
+  [`ubiquex-cli`'s own STATE.md](https://github.com/Ubiquex/ubiquex-cli) for
+  the full finding.
+</Warning>
+
+Cloud Audit Logs' own delivery latency was measured directly (the same
+"don't assume, measure" discipline CloudTrail's own ~2-minute finding
+followed): one Pub/Sub mutation became queryable in about 18 seconds — much
+faster than CloudTrail, and with no published latency ceiling the way
+CloudTrail has a documented ~15-minute one.
 
 ## Related
 
