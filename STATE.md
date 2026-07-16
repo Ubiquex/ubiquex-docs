@@ -1,5 +1,51 @@
 # STATE — ubiquex-docs
 
+## UBI-23: secrets -- redaction of Sensitive attributes (2026-07-17, same session as the code)
+
+`ubiquex-cli`'s "secrets must never enter the ledger" work:
+
+- **New `concepts/secrets.mdx`** (added to nav, Concepts group, right
+  after `concepts/attribution`): the full mental model — what gets
+  redacted and when, a worked adoption→drift transcript with real
+  `$redacted` JSON, the per-ledger `.ubx/salt` (generation, `.gitignore`
+  safety net, the honest "losing it degrades equality comparison, never
+  leaks material or hides a change" recovery framing), why
+  `writeback`/`revert-plan` always decline a redacted attribute, the bulk
+  onboarding redaction count, and two explicitly out-of-scope items
+  (`--lookup` is never redacted; a future v6-only-`NestedType` provider
+  gap).
+- **`cli/scan.mdx`** gained a new "Sensitive-flagged attribute is
+  redacted" example and a redaction-count bullet under bulk onboarding,
+  both cross-linking to `concepts/secrets`.
+- **`cli/writeback.mdx`** and **`cli/revert-plan.mdx`** each gained a
+  redacted-attribute example (a real transcript: `writeback` declining
+  with the exact reason text, `revert-plan`'s plan line rendering
+  `(redacted)` on both sides).
+- **`cli/why.mdx`** gained a redacted-attribute example, plus two
+  **pre-existing examples corrected**: `why`'s human rendering gained a
+  new `change: <addr>: <path>: <before> -> <after>` line this session
+  (not redaction-specific — it applies to any proposal with a real delta)
+  that the previously-committed transcripts didn't show, since they
+  predate the change. Re-ran both against the actual built binary rather
+  than hand-patching the text.
+- **`cli/lookup.mdx`** gained a short section explaining why `--lookup`
+  itself is safe to leave unredacted (real schemas never flag an
+  identity/lookup attribute `Sensitive`).
+- **`cli/scan.mdx`**'s two `scan --all` example transcripts had their
+  summary lines corrected too (`N adopted, N skipped` →
+  `N adopted, N skipped, N attribute(s) redacted`) — same "the binary's
+  output genuinely changed, so the doc's transcript would otherwise be
+  lying" reasoning as the `why` fix above.
+
+Every new/changed transcript was regenerated against the actual built
+`ubx` binary (a real `fakeprovider` fixture run with the new
+`FAKEPROVIDER_SENSITIVE_ATTRS` env var, per `ubiquex-cli`'s own doc
+comment) — none hand-written. `mint validate`/`mint broken-links` both
+pass clean. See `ubiquex-cli`'s own STATE.md for the full engineering
+writeup, including the live AWS Secrets Manager verification (a real
+`aws_secretsmanager_secret_version`, rotated and grepped for leaked
+material) and the `aws_iam_access_key` negative finding that preceded it.
+
 ## UBI-21: GCP support, both stages (2026-07-16, same session as the code)
 
 `ubiquex-cli`'s first cross-provider generalization, both stages
