@@ -65,6 +65,27 @@ read back from the ledger itself, never an arbitrary lookback.
 Pass `--no-attribution` to `ubx scan` to skip the CloudTrail search entirely for
 that invocation.
 
+## Beyond AWS: attribution is a per-platform backend
+
+Everything above describes what's actually shipped and live-verified today:
+CloudTrail, for AWS. Underneath it, `ubx`'s own attribution logic (which
+identity value to search by, exact-match filtering, never guessing between
+several candidate events, the `cloudtrail`/`cloudtrail_unattributed` split) is
+written against one small interface — "search this platform's audit trail for
+events referencing a resource, in a time window" — not against CloudTrail's
+API directly. CloudTrail is the first implementation of that interface, not
+the only one it was designed for.
+
+As `ubx` gains GCP support, the plan (decided, not yet built — see
+`docs/architecture.md`'s "GCP support" section in the `ubiquex-cli` repo if
+you want the full design) is a second, independent backend against GCP's own
+Cloud Audit Logs, picked automatically based on which provider a resource
+belongs to. The schema is already forward-compatible for this: a new
+`audit_unattributed` source kind (generalizing `cloudtrail_unattributed` with
+a `backend` field naming which platform's search came up empty) is reserved
+for it. `cloudtrail_unattributed` itself isn't going anywhere — every ledger
+entry that already has one keeps it, unchanged, permanently.
+
 ## Related
 
 - [Drift](/concepts/drift) — what triggers an attribution attempt

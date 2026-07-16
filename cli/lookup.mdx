@@ -1,6 +1,6 @@
 ---
 title: "Resource lookup conventions"
-description: "What --lookup needs to actually find a resource, per AWS type"
+description: "What --lookup needs to actually find a resource, per type -- AWS and GCP"
 ---
 
 [`ubx scan`](/cli/scan)'s `--lookup` flag is a JSON object identifying the
@@ -23,7 +23,7 @@ that's not a surprise.
   contract (it's exit `2`, a genuine error, not an actionable finding).
 </Note>
 
-## Types with a confirmed non-default lookup shape
+## AWS: types with a confirmed non-default lookup shape
 
 These seven types have been verified against the real AWS provider (not
 just a test fixture) as part of `ubiquex-cli`'s internal conformance suite —
@@ -40,7 +40,7 @@ the schema:
 | `aws_sns_topic` | `{"id": "<topic-arn>"}` | `id` **is** the topic ARN, same pattern as `aws_iam_policy`. |
 | `aws_vpc` | `{"id": "<vpc-id>"}` | Standard — `id` is the `vpc-*` id, and that's all the lookup needs. Listed here because it's a type people reach for immediately, and it turns out to need nothing special. |
 
-## Every other type
+## Every other AWS type
 
 Every other AWS type `ubx` has been tested against — roughly forty more,
 covering compute, network, storage, database, DNS, messaging, and
@@ -58,6 +58,32 @@ more, matching the schema each type's provider itself declares.
   surface. If `--lookup '{"id": "..."}'` reads back an unexpected or empty
   result for a type not listed above, that's the first thing to suspect.
 </Note>
+
+## GCP
+
+`ubx` also speaks to `hashicorp/google` the same way it speaks to
+`hashicorp/aws` — same wire protocol, same `--source`/`--provider`
+acquisition (see [Installation](/getting-started/installation)). It
+negotiates tfplugin protocol v5, the same version `hashicorp/aws` speaks.
+
+GCP support is newer and less far along than AWS's: `ubiquex-cli`'s internal
+conformance suite currently tracks about 40 GCP resource types across
+compute, network, IAM, storage, SQL, and DNS, with identity fields checked
+against the real `hashicorp/google` schema (the same free, no-credentials
+`GetProviderSchema` check the AWS list uses) — but **none of them has been
+live-verified against a real GCP account yet**, the step that would surface
+a `bucket`-alone-reads-back-null-style surprise for GCP the way it did for
+`aws_s3_bucket`. Until that verification happens, the safe default for every
+GCP type is the same one every unlisted AWS type uses:
+
+```text
+--lookup '{"id": "<the resource's id>"}'
+```
+
+This page's "confirmed non-default lookup shape" table is AWS-only for now.
+It'll gain a GCP section once real-account verification (`ubiquex-cli`'s
+UBI-21 Stage 2) actually happens — check `ubiquex-cli`'s own STATE.md if
+you want to know whether that's landed since this was written.
 
 ## Related
 
