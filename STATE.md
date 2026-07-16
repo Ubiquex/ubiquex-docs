@@ -1,5 +1,42 @@
 # STATE — ubiquex-docs
 
+## UBI-21: GCP support, both stages (2026-07-16, same session as the code)
+
+`ubiquex-cli`'s first cross-provider generalization, both stages
+(Stage 1 hermetic; Stage 2 needed a real GCP account, set up mid-session):
+
+- **`getting-started/installation.mdx`** now mentions
+  `--source hashicorp/google --provider-version <version>` alongside
+  AWS, and GCP credential setup (`GOOGLE_APPLICATION_CREDENTIALS` /
+  `gcloud auth application-default login`) alongside AWS's own
+  credential chain.
+- **`cli/lookup.mdx`** gained a GCP section: five live-verified types
+  (`google_service_account`, `google_project_iam_custom_role`,
+  `google_storage_bucket`, `google_pubsub_topic`,
+  `google_secret_manager_secret`), each with its actual confirmed
+  `--lookup` shape, not a guess. A `Warning` calls out the two types
+  (`google_pubsub_topic`, `google_secret_manager_secret`) whose `id`-alone
+  mistake produces **no error at all** — `ReadResource` succeeds, but the
+  resource's own natural-key attribute comes back empty — a materially
+  more dangerous shape than anything the existing AWS table shows, since
+  nothing signals anything went wrong.
+- **`concepts/attribution.mdx`**'s "Beyond AWS" section, written in an
+  earlier part of this same session as a description of a design not yet
+  built, was rewritten once `gcpaudit/` actually shipped: a real
+  transcript (a real Pub/Sub drift, the real GCP account email that
+  caused it, a real event ID), not a future plan. A `Warning` documents
+  a real, confirmed gap: GCP audit log entries don't consistently name
+  the affected resource the same way across services (Pub/Sub uses the
+  project ID; Secret Manager uses the numeric project number instead),
+  so `google_secret_manager_secret` drift can't be attributed via this
+  backend yet, even when a matching audit log entry genuinely exists.
+
+`mint validate`/`mint dev`/`mint broken-links` all pass clean. See
+`ubiquex-cli`'s own STATE.md for the full engineering writeup, including
+every empirical finding behind these docs (per-type lookup shapes, the
+GCP IAM read-after-write lag, the correlation gap, and a real UBI-20
+regression this session's own live test runs caught and fixed).
+
 ## UBI-20: hardening pass reference (2026-07-16, same session as the code)
 
 Four workstreams, one ubiquex-cli session, all documented same-session:
