@@ -94,6 +94,26 @@ crashed or hit an error. It does, however, exit `1` when this happens — see
 [Exit codes](/cli/exit-codes) — since it's exactly the kind of actionable
 finding a CI step should be able to gate on.
 
+## Example: a redacted attribute is always declined
+
+An attribute the provider flagged `Sensitive` (see
+[Secrets](/concepts/secrets)) is declined unconditionally, before ever
+attempting to render it — `writeback` never writes a salted fingerprint
+into `.tf` source as if it were the real value:
+
+```text
+$ ubx writeback 895622ca77a31d9061b850a2cb99d06d64c6576d810f81cca82e001c167f4749 \
+    --ledger-dir . --tf-dir tf --write
+payments.fake_db_instance.payments-db (tf/db.tf):
+  declined: master_password -- value is redacted -- ubx cannot write secret material to .tf; restore this attribute from your secret store manually
+writeback: 1 attribute(s) declined, needs manual attention (see above)
+```
+
+`tf/db.tf` is left completely untouched — no hash, no `$redacted` marker,
+no new value of any kind lands in the file. Restoring the real secret is
+always a manual step: `ubx` has no way to know what it was, redacted or
+not.
+
 <Note>
   `--tf-dir` falls back to [`.ubx/config`](/cli/config)'s `tf_dir` if not
   given explicitly — a project with one `.tf` directory only needs `ubx
@@ -102,6 +122,7 @@ finding a CI step should be able to gate on.
 
 ## Related
 
+- [Secrets](/concepts/secrets) — why a redacted attribute is always declined
 - [Drift](/concepts/drift) — what triggers a `drift_adopt` proposal
 - [`ubx scan`](/cli/scan) — the `--tf-dir` write-back preview in a drift receipt
 - [`.ubx/config`](/cli/config) — project defaults, including `tf_dir`

@@ -28,28 +28,57 @@ is tried as a resource address.
 ## Looking up one proposal by ID
 
 ```text
-$ ubx why 88025d141d7574f4ae3a229a6e4510081ecde8051f759b430608daf5800da1e4 --ledger-dir .
-proposal 88025d141d7574f4ae3a229a6e4510081ecde8051f759b430608daf5800da1e4 (drift_adopt)
+$ ubx why 4efe22a32782139b26e99599f00e713c0b99470e7ca69a752b5f96194e8ac1e0 --ledger-dir .
+proposal 4efe22a32782139b26e99599f00e713c0b99470e7ca69a752b5f96194e8ac1e0 (drift_adopt)
 stack:  payments
 status: accepted
 intent: record drift on payments.fake_widget.api-cache observed outside the ledger
-accepted by [roozbeh] via local at 2026-07-11T16:08:22Z
+accepted by [roozbeh] via local at 2026-07-16T22:56:26Z
 blast radius: +0 ~0 -0
+change: payments.fake_widget.api-cache: tags.env: "prod" -> "staging"
 ```
+
+Each changed attribute gets its own `change:` line, `<address>: <path>:
+<before> -> <after>` — for every kind that carries a real delta
+(`drift_adopt`, `drift_revert`, `change`), not just an adoption's
+all-or-nothing snapshot.
 
 ## Looking up a resource's full history
 
 ```text
 $ ubx why payments.fake_widget.api-cache --ledger-dir .
 payments.fake_widget.api-cache: 2 proposal(s), newest first
-- drift_adopt 88025d141d75… (2026-07-11T16:07:50Z): record drift on payments.fake_widget.api-cache observed outside the ledger
-- adoption 16223f8b731d… (2026-07-11T16:07:41Z): adopt existing payments.fake_widget.api-cache into the ledger (discovered by scan)
+- drift_adopt 4efe22a32782… (2026-07-16T22:56:26Z): record drift on payments.fake_widget.api-cache observed outside the ledger
+    change: payments.fake_widget.api-cache: tags.env: "prod" -> "staging"
+- adoption fe772892ff49… (2026-07-16T22:56:26Z): adopt existing payments.fake_widget.api-cache into the ledger (discovered by scan)
 ```
 
 The truncated IDs in this compact chain view are a display-only
 abbreviation — pass the full ID (from a raw ledger file, or `ubx why`'s own
 single-proposal view) to look one up directly; the truncated form is never
 accepted as a lookup argument itself.
+
+## A redacted attribute
+
+If the changed attribute is one the provider flagged `Sensitive` (see
+[Secrets](/concepts/secrets)), `why` renders `(redacted)` in place of the
+value on both sides — never the salted hash, never the real material:
+
+```text
+$ ubx why 895622ca77a31d9061b850a2cb99d06d64c6576d810f81cca82e001c167f4749 --ledger-dir .
+proposal 895622ca77a31d9061b850a2cb99d06d64c6576d810f81cca82e001c167f4749 (drift_adopt)
+stack:  payments
+status: accepted
+intent: record drift on payments.fake_db_instance.payments-db observed outside the ledger
+accepted by [roozbeh] via local at 2026-07-16T22:53:55Z
+blast radius: +0 ~0 -0
+change: payments.fake_db_instance.payments-db: master_password: (redacted) -> (redacted)
+```
+
+`--json` carries the same information as the actual `$redacted` marker
+(`{"$redacted": {"sha256": "..."}}`) rather than the word "(redacted)" —
+still never the real material, since the JSON payload is the same
+already-redacted proposal the human view describes in words.
 
 ## Re-verifying a PR-merge acceptance
 
@@ -155,6 +184,7 @@ meaningful when it's `true`.
 ## Related
 
 - [Why](/concepts/why) — the mental model
+- [Secrets](/concepts/secrets) — why a redacted attribute renders this way
 - [Attribution](/concepts/attribution) — how CloudTrail sources render here
 - [`ubx accept`](/cli/accept) — PR-merge acceptance, what `--verify-acceptance` re-checks
 - [`.ubx/config`](/cli/config) — project defaults, including `github_repo`

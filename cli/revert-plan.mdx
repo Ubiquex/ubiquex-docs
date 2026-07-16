@@ -37,6 +37,26 @@ payments.fake_widget.api-cache: tags.env: "staging" -> "prod"
 no --tf-dir given -- apply the correction above to cloud via your own tooling; ubx never applies it
 ```
 
+## Example: a redacted attribute
+
+An attribute the provider flagged `Sensitive` (see
+[Secrets](/concepts/secrets)) renders `(redacted)` on both sides of the
+plan — never the salted hash, and never the real value:
+
+```text
+$ ubx revert-plan 943b70c0f1bc0bf3cd2e744a4b9338ffae7af7ebd7dc06500a1e28a186440c66 --ledger-dir .
+--- plan ---
+payments.fake_db_instance.payments-db: master_password: (redacted) -> (redacted)
+
+no --tf-dir given -- apply the correction above to cloud via your own tooling; ubx never applies it
+```
+
+With `--tf-dir`, a redacted attribute is declined by the same mechanism
+`ubx writeback` uses (see [`ubx writeback`'s own redacted example](/cli/writeback#example-a-redacted-attribute-is-always-declined))
+and lands in the manual-steps section, never written into `.tf` as a
+literal — `ubx` genuinely can't know the real value to restore, redacted
+or not, so this is always a manual step regardless of `--tf-dir`.
+
 ## Example: `--tf-dir`, a mixed literal/non-literal case
 
 Reuses the exact same [`tfwrite`](/cli/writeback) machinery `ubx writeback`
@@ -83,6 +103,7 @@ the kind of actionable finding a CI step should gate on.
 
 ## Related
 
+- [Secrets](/concepts/secrets) — why a redacted attribute always needs a manual step
 - [Drift](/concepts/drift) — what a `drift_revert` proposal is, and how it differs from `drift_adopt`
 - [`ubx scan`](/cli/scan) — `--propose revert`/`--propose both`, which generate the proposal this command reads
 - [`ubx writeback`](/cli/writeback) — the same underlying `.tf`-editing machinery, applied in the opposite (adopt) direction

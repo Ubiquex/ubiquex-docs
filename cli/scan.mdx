@@ -127,6 +127,38 @@ drifted: payments.fake_widget.api-cache (41a2bac0bb6d4e320bfff58928f939de1e73d6c
 }
 ```
 
+### A `Sensitive`-flagged attribute is redacted before it's ever written
+
+Any attribute the provider's own schema flags `Sensitive` — a database
+password, an API key, a private key — is replaced with a salted
+fingerprint before the proposal is written or hashed, never the real
+value:
+
+```text
+$ ubx scan --provider ./fakeprovider \
+    --stack payments --type fake_db_instance --name payments-db \
+    --lookup '{"id":"payments-db"}' \
+    --ledger-dir . --out adopt.json
+new: payments.fake_db_instance.payments-db (908322392cb434395924801e90f8b2ffe840578c8fcc68a479ecd00982660df2) -- generated a "adoption" proposal
+```
+
+```json
+{
+  "state": {
+    "id": "payments-db",
+    "master_password": { "$redacted": { "sha256": "ec692fb3a62ce3280ae79fc116ddac0f791213afd2a9111d395e46637321e3f3" } },
+    "name": null
+  }
+}
+```
+
+Drift detection still works exactly as before over a redacted attribute:
+scanning again against the *same* real password reports no drift (same
+salt, same value, same hash); scanning after the real password actually
+rotates reports drift, with `before`/`after` both showing `(redacted)` at
+different hashes. See [Secrets](/concepts/secrets) for the full mechanism,
+including the per-ledger salt and what losing it means.
+
 ### After accepting that drift, scanning again matches ("no drift")
 
 ```text
@@ -274,7 +306,7 @@ adopted: prod.fake_widget.api -> proposals/prod.fake_widget.api.json
 adopted: prod.fake_widget.worker[0] -> proposals/prod.fake_widget.worker_0_.json
 adopted: prod.fake_widget.worker[1] -> proposals/prod.fake_widget.worker_1_.json
 adopted: prod.fake_widget.network.cache -> proposals/prod.fake_widget.network.cache.json
-4 adopted, 0 skipped
+4 adopted, 0 skipped, 0 attribute(s) redacted
 ```
 
 A few things happened here worth naming explicitly:
@@ -293,6 +325,11 @@ A few things happened here worth naming explicitly:
   still a plain `--stack` decision, not automatic.
 - **Data sources were skipped entirely, silently** — nothing in state that
   isn't `"mode": "managed"` is a resource `ubx` could ever adopt.
+- **The summary's `attribute(s) redacted` count** is how many
+  `Sensitive`-flagged attributes were replaced with a salted fingerprint
+  across the whole batch — a resource with sensitive fields adopts
+  cleanly, with this count as the only visible sign anything was
+  redacted. See [Secrets](/concepts/secrets).
 
 ### What gets skipped, and why
 
@@ -306,7 +343,7 @@ adopted: legacy.fake_widget.good
 { ... }
 skipped: legacy.aws_ancient_thing.relic -- scan legacy.aws_ancient_thing.relic: unknown resource type: "aws_ancient_thing"
 skipped: legacy.fake_widget.no-id -- state instance has no id attribute
-1 adopted, 2 skipped
+1 adopted, 2 skipped, 0 attribute(s) redacted
 --- skipped ---
 no identity in state: 1
 provider read failed: 1
@@ -367,6 +404,7 @@ two entries for `--propose both`. Exit code follows the usual contract:
 ## Related
 
 - [Drift](/concepts/drift) — the three outcomes and what they generate
+- [Secrets](/concepts/secrets) — how a `Sensitive`-flagged attribute is redacted before it's ever written
 - [Attribution](/concepts/attribution) — what CloudTrail attribution adds to a drift proposal
 - [Resource lookup conventions](/cli/lookup) — what `--lookup` needs per type
 - [`ubx accept`](/cli/accept) — accepting the generated proposal, including PR-merge acceptance
