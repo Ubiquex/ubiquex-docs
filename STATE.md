@@ -1,5 +1,24 @@
 # STATE — ubiquex-docs
 
+## UBI-19: `.ubx/config` and `ubx init` reference (2026-07-16, same session as the code)
+
+New `cli/config.mdx` (full format reference: why TOML over YAML, discovery
+walking upward from cwd with nearest-wins, precedence, the five keys in a
+table, unknown-key warnings, and a `<Warning>` about the real TOML
+ordering gotcha this session's own `ubx init` implementation hit first —
+root-level keys written after a `[table]` header silently get absorbed
+into that table) and `cli/init.mdx` (both generation modes: fully
+commented template, and real-values-for-given-flags). `cli/scan.mdx` and
+`cli/status.mdx` each gained a short daily-command-form example, real
+transcripts, demonstrating what `.ubx/config` actually buys a reader —
+`status.mdx` also documents the one deliberate precedence exception
+(config's `stack` default doesn't apply to `--stack`'s filter semantics
+there). `cli/writeback.mdx`, `cli/revert-plan.mdx`, `cli/accept.mdx`, and
+`cli/why.mdx` each gained a brief config-fallback note for their own
+relevant key, plus a cross-link. `getting-started/installation.mdx` now
+points to `ubx init` as the natural first step after install. `mint
+validate`, `mint dev`, and `mint broken-links` all pass clean.
+
 ## UBI-18: bulk onboarding docs, and the carried UBI-16 debt cleared (2026-07-16, same session as the code)
 
 New `cli/revert-plan.mdx` — this is the carried-over UBI-16 debt (below),
