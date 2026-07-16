@@ -39,6 +39,7 @@ capability with a default:
 | `--provider-config string` | JSON object configuring the provider, e.g. `{"region":"us-east-1"}` (only used with `--drift`) (default `{}`) |
 | `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
 | `--timeout duration` | overall timeout for the fleet walk (only used with `--drift`) (default `1m0s`) |
+| `--json` | emit one JSON document instead of human text — see [`--json` output](#json-output) |
 | `-h`, `--help` | help for status |
 
 ## Examples
@@ -113,6 +114,56 @@ clean: payments.fake_widget.api-cache: adoption bdbb0b5098bf… (accepted 2026-0
 unreadable: payments.fake_widget.legacy-widget: adoption 98d37e766f62… (accepted 2026-07-16T16:55:30Z) -- no lookup key recorded for this resource (authored before the resolution.inputs lookup amendment, or never had one)
 3 resource(s), 0 drifted, 1 unreadable
 ```
+
+## `--json` output
+
+`--json` replaces the human text with one JSON document on stdout. Ledger-only
+mode (no `--drift`):
+
+```text
+$ ubx status --ledger-dir . --json
+{
+  "format": 1,
+  "drift_checked": false,
+  "resources": [
+    {
+      "address": {"stack": "payments", "type": "fake_widget", "name": "api-cache"},
+      "kind": "adoption",
+      "proposal_id": "c145574aad282cdae58be48f10c8a1da42cd5f11ecb3f4a7c5b85517fa4569fe",
+      "accepted_at": "2026-07-16T19:31:00Z"
+    }
+  ],
+  "summary": {"total": 1, "drifted": 0, "unreadable": 0}
+}
+```
+
+`drift_checked` is `false` here on purpose — every resource's `status` field
+is omitted entirely, not set to an empty string, so a consumer can never
+mistake "we didn't check" for "0 drifted." With `--drift`, every resource
+gets a `status` of `"clean"`, `"drifted"`, or `"unreadable"` (plus a
+`reason` string when `"unreadable"`), and `drift_checked` is `true`:
+
+```text
+$ ubx status --ledger-dir . --drift --provider ./terraform-provider-aws --json
+{
+  "format": 1,
+  "drift_checked": true,
+  "resources": [
+    {
+      "address": {"stack": "payments", "type": "fake_widget", "name": "api-cache"},
+      "kind": "drift_adopt",
+      "proposal_id": "dc4bb1e0dd0f8ec7083d0d5e3d418121598b01de53ef3436250a9ce82364ac30",
+      "accepted_at": "2026-07-16T19:31:01Z",
+      "status": "clean"
+    }
+  ],
+  "summary": {"total": 1, "drifted": 0, "unreadable": 0}
+}
+```
+
+`summary` mirrors the human view's own trailing count line. Exit code
+follows the same worse-wins rule described below regardless of `--json` --
+see [Exit codes](/cli/exit-codes).
 
 ## Exit code: the CI contract
 

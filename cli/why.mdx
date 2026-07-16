@@ -22,6 +22,7 @@ is tried as a resource address.
 | `--verify-acceptance` | re-derive a `pr_merge` proposal's acceptance against git history + the GitHub API and report whether it still checks out |
 | `--repo-dir string` | local git working tree to verify `--verify-acceptance`'s merge commit against (default `.`) |
 | `--github-repo string` | owner/name of the GitHub repository, for `--verify-acceptance`'s reviewer re-check (the git-history re-check runs without it) |
+| `--json` | emit one JSON document instead of human text — see [`--json` output](#json-output) |
 | `-h`, `--help` | help for why |
 
 ## Looking up one proposal by ID
@@ -92,6 +93,64 @@ reports "nothing to re-verify" and exits `0` rather than erroring.
   `--github-repo` falls back to [`.ubx/config`](/cli/config)'s `github_repo`
   if not given explicitly.
 </Note>
+
+## `--json` output
+
+`--json` replaces the human text with one JSON document on stdout. Exactly
+one of `proposal` (single-id form) or `chain` (resource-address form) is
+set, never both:
+
+```text
+$ ubx why dc4bb1e0dd0f8ec7083d0d5e3d418121598b01de53ef3436250a9ce82364ac30 --ledger-dir . --json
+{
+  "format": 1,
+  "proposal": { "...": "the full proposal, same shape ubx accept/ubx scan already produce" }
+}
+```
+
+```text
+$ ubx why payments.fake_widget.api-cache --ledger-dir . --json
+{
+  "format": 1,
+  "chain": [
+    { "...": "newest proposal" },
+    { "...": "oldest proposal" }
+  ]
+}
+```
+
+`chain` is ordered newest first, matching the human view's own ordering.
+Adding `--verify-acceptance --json` embeds a `verify_acceptance` object
+alongside `proposal` instead of (or in addition to) printing the
+`--- verify-acceptance ---` text block:
+
+```json
+{
+  "format": 1,
+  "proposal": { "...": "..." },
+  "verify_acceptance": {
+    "applicable": true,
+    "method": "pr_merge",
+    "git_ok": true,
+    "reviewers_checked": true,
+    "reviewers_match": false,
+    "current_approvers": [],
+    "recorded_approvers": ["roozbeh"]
+  }
+}
+```
+
+`applicable` is `false` (every other field omitted or zero-valued) for a
+`local` acceptance or a proposal with no acceptance at all -- confirmed
+above, where this exact proposal's `local` acceptance yields
+`"applicable": false`. `git_ok: false` means the merge commit or
+proposal-file hash no longer check out against git history; the exit code
+still carries the actionable-finding signal (see
+[Exit codes](/cli/exit-codes)) -- the JSON payload isn't the only place
+this shows up, since a script gating on exit code alone must still see it.
+`reviewers_checked` is `false` if `--github-repo` wasn't given --
+`reviewers_match`/`current_approvers`/`recorded_approvers` are only
+meaningful when it's `true`.
 
 ## Related
 

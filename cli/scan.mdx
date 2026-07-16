@@ -51,6 +51,7 @@ below.
 | `--all` | bulk onboarding: enumerate every resource in `--tfstate` instead of scanning a single `--type`/`--name` resource |
 | `--tfstate string` | path to a Terraform state v4 JSON file, read once as a bulk-onboarding enumeration source (required with `--all`) |
 | `--out-dir string` | write each `--all`-generated proposal to its own file in this directory, instead of printing all of them to stdout |
+| `--json` | emit one JSON document instead of human text (single-resource scan only, not `--all` or `--surface-as`) — see [`--json` output](#json-output) |
 | `-h`, `--help` | help for scan |
 
 `--provider` is the direct "point at a binary on disk" workflow. `--source`
@@ -327,6 +328,41 @@ completely clean `--all` walk with nothing skipped exits `0`.
   but auto-accepting 300 of them would be a different, much bigger claim of
   authority this trust chain doesn't make anywhere else.
 </Note>
+
+## `--json` output
+
+`--json` (single-resource scan only) replaces the human text entirely with
+one JSON document on stdout — never mixed with human-readable lines, and
+stable across releases within the same `"format"` version (see
+[Exit codes](/cli/exit-codes) for the same versioning convention applied
+elsewhere). `--out` still writes the proposal file(s) to disk exactly as
+without `--json`; `--json` only changes what goes to stdout.
+
+```text
+$ ubx scan --provider ./terraform-provider-aws --stack payments --type fake_widget \
+    --name api-cache --lookup '{"name":"api-cache","tags":{"env":"prod"}}' \
+    --ledger-dir . --json
+{
+  "format": 1,
+  "address": {
+    "stack": "payments",
+    "type": "fake_widget",
+    "name": "api-cache"
+  },
+  "outcome": "new",
+  "observed_hash": "5c04c1c9c937a742ad32c319ffe75c550c344ed51bbee6d95dd14a12186daa4d",
+  "proposals": [
+    { "...": "the full generated proposal, byte-identical to the non-JSON form's own proposal JSON" }
+  ]
+}
+```
+
+`outcome` is `"new"`, `"drifted"`, or `"unchanged"` — the same three-way
+classification [Drift](/concepts/drift) describes. `proposals` is empty for
+`"unchanged"`, has one entry for `"new"` or a single `--propose` value, and
+two entries for `--propose both`. Exit code follows the usual contract:
+`1` for `"new"`/`"drifted"` (a proposal was generated), `0` for
+`"unchanged"` — see [Exit codes](/cli/exit-codes).
 
 ## Related
 
