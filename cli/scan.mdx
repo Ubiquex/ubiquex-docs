@@ -339,26 +339,36 @@ scanning again correctly detects drift — `before`/`after` both
 and diffed on its own Terraform-observed attributes, never by parsing the
 chart's rendered manifests or tracking the individual Kubernetes objects
 a release manages (that's explicitly out of scope). A real
-`helm upgrade --set replicaCount=3` shows up as `metadata[0].values`
-changing — the top-level `values`/`chart` attributes stay `null` on an
-ordinary adopt scan, since the provider never backfills them from a live
-read:
+`helm upgrade --set` shows up as `metadata[0].values` changing — the
+top-level `values`/`chart` attributes stay `null` on an ordinary adopt
+scan, since the provider never backfills them from a live read.
 
-```json
-{
-  "before": { "metadata": [{ "values": "{\"replicaCount\":1}", "...": "..." }] },
-  "after":  { "metadata": [{ "values": "{\"replicaCount\":3}", "...": "..." }] }
-}
-```
+<Note>
+  `metadata[0].values`/`metadata[0].notes` and `manifest` are always
+  redacted, regardless of what any individual chart's values actually
+  contain — see the `Warning` below for why. So a real values-drift
+  transcript always shows the redacted form:
+
+  ```json
+  {
+    "before": { "metadata": [{ "values": { "$redacted": { "sha256": "e696297b3c59898c2a7ef3a5991b5518d108dde87e95fac57eabb0315f19476b" } }, "...": "..." }] },
+    "after":  { "metadata": [{ "values": { "$redacted": { "sha256": "4dfeec5d17ec69255e7bb910bf6c60b85081a6551d5080c2722da1f0f1a34874" } }, "...": "..." }] }
+  }
+  ```
+</Note>
 
 <Warning>
   Neither `manifest` nor `metadata[0].values`/`metadata[0].notes` are
   `Sensitive`-flagged in the real schema — a value that started sensitive
   (a `set_sensitive` password used at apply time, say) can still appear
-  here in plaintext if a chart template renders it into the release's
-  resolved output. Schema-driven redaction protects the input attribute
-  it's declared on; it can't follow that value everywhere it might get
-  echoed into a derived, computed field. See [Secrets](/concepts/secrets).
+  in plaintext there if a chart template renders it into the release's
+  resolved output, since schema-driven redaction alone protects only the
+  input attribute it's declared on, not everywhere that value might get
+  echoed into a derived, computed field. **`ubx` doesn't stop at the
+  provider's own schema for this reason**: `helm_release.manifest`/
+  `metadata.values`/`metadata.notes` are force-redacted via a small,
+  `ubx`-owned override table, regardless of what the schema itself
+  flags — see [Secrets](/concepts/secrets#the-providers-schema-is-a-floor-not-a-ceiling).
 </Warning>
 
 ## Bulk onboarding (`--all`)
