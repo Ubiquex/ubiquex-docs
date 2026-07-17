@@ -1,5 +1,39 @@
 # STATE — ubiquex-docs
 
+## UBI-30 session 2: `ubx resolve` gains destroys (2026-07-17, same session as the code)
+
+`ubiquex-cli`'s resolver (docs/resolver.md's own "Amendment (UBI-30):
+destroys") gains real destroy support this session -- session 1 was
+docs-only in `ubiquex-cli`, correctly not touching this repo.
+
+- **`cli/resolve.mdx`** updated throughout: frontmatter/intro no longer say
+  "never destroys"; new `--known-dependent` flag documented in the flags
+  table; new "Destroying a resource" section covering the dedicated
+  `destroys` intent-file list, orphan protection (both the refusal and the
+  two ways to make a would-be-orphaning destroy legal -- a mutual destroy,
+  or repointing the dependent away first), and cross-stack orphan
+  protection's three real outcomes (`not_performed`, `checked_clear`, and
+  a real refusal against a genuine cross-stack pin). "When resolution
+  fails" gained the destroy-specific error list.
+- Every transcript is real, captured from the actual built binary
+  (`cmd/ubx` + `provider/internal/fakeprovider`, `FAKEPROVIDER_MODE=ok-v6`)
+  against real temporary ledger directories -- adopt via `ubx scan`/`ubx
+  accept`, link a dependent via a same-batch `$ref`-bearing modify,
+  observe the real orphan refusal, repoint the dependent away in a
+  separate proposal, observe the destroy succeed. The cross-stack refusal
+  transcript used a real second ledger directory with a genuine `$cross`
+  pin recorded against the destroy target, not a hand-written example.
+- One real bug this transcript work found and got fixed in the code (not
+  just the docs): the orphan-protection walk originally accumulated every
+  historical `depends_on` mention forever, so a destroy stayed refused
+  even after its dependent had genuinely been repointed away by a later,
+  separate proposal. Fixed to track each address's own most recently
+  recorded `depends_on` only, with a new hermetic regression test
+  (`core/resolver/destroys_test.go`) reproducing the exact scenario this
+  transcript surfaced.
+
+`mint validate`/`mint broken-links` both pass clean.
+
 ## UBI-26 (closing session): `ubx why`'s new apply-history rendering (2026-07-17, same session as the code)
 
 `ubiquex-cli`'s live adversarial-program session against real AWS found a

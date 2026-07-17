@@ -1,6 +1,6 @@
 ---
 title: "ubx resolve"
-description: "Resolve a typed ubx:intent/v1 file into a draft change proposal -- creates and modifies, never destroys"
+description: "Resolve a typed ubx:intent/v1 file into a draft change proposal -- creates, modifies, and destroys"
 ---
 
 ```text
@@ -8,13 +8,17 @@ ubx resolve <intent-file> (--provider <path> | --source <src> --provider-version
 ```
 
 Resolves a hand-written, machine-shaped [intent file](#the-intent-file) into
-a draft `kind:"change"` [proposal](/concepts/proposal) -- creates and
-modifies only, never destroys (v1 scope). Intra-stack references are
-checked against the [ledger](/concepts/ledger)'s own dependency graph, with
-real cycle detection, and emitted in dependency order; cross-stack
-references are pinned against a neighbor ledger's current head, so a later
-`ubx accept` can tell whether that neighbor has moved on since (see
+a draft `kind:"change"` [proposal](/concepts/proposal) -- creates, modifies,
+and destroys. Intra-stack references are checked against the
+[ledger](/concepts/ledger)'s own dependency graph, with real cycle
+detection, and emitted in dependency order; cross-stack references are
+pinned against a neighbor ledger's current head, so a later `ubx accept`
+can tell whether that neighbor has moved on since (see
 [Cross-stack references](#cross-stack-references) below).
+
+A destroy is explicit intent only -- see [Destroying a
+resource](#destroying-a-resource) below -- never inferred from a resource's
+absence from the intent file.
 
 The result is a draft: it has no `id` or acceptance yet. Pipe it into
 [`ubx propose`](/cli/propose) for a PR-body trailer hash, or
@@ -35,6 +39,7 @@ which attributes are `Computed` or `Sensitive`.
 | `--provider string` | path to the provider binary (mutually exclusive with `--source`) |
 | `--source string` | provider source address, e.g. `hashicorp/aws` (mutually exclusive with `--provider`; requires `--provider-version`) |
 | `--provider-version string` | explicit provider version to acquire (required with `--source`) |
+| `--known-dependent stringArray` | `ledger_dir` of a neighbor stack to check for cross-stack orphan references before destroying (repeatable) |
 | `--out string` | write the resolved proposal here instead of stdout |
 | `--timeout duration` | timeout for launching the provider and fetching its schema (default `1m0s`) |
 | `-h`, `--help` | help for resolve |
@@ -255,6 +260,175 @@ This check is unconditional, not opt-in: unlike a live provider round trip,
 reading a neighbor ledger's head is a free, local filesystem read, so
 there's no reason an operator would need to ask for it explicitly.
 
+## Destroying a resource
+
+A destroy is a dedicated, top-level `destroys` list in the intent file --
+canonical addresses (`<stack>.<type>.<name>`), never an `"op": "destroy"`
+value on a `resources[]` entry, and never inferred from a resource's
+absence from `resources[]`. A resource the ledger knows about that an
+intent file simply doesn't mention is not a destroy signal, now or ever --
+only an address explicitly named in `destroys` is removed:
+
+```json
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "payments",
+  "intent": {"summary": "decommission the old widget"},
+  "resources": [],
+  "destroys": ["payments.fake_widget.old-widget"]
+}
+```
+
+```text
+$ ubx resolve destroy-intent.json --provider ./fakeprovider --ledger-dir .
+resolved: payments: 0 create(s), 0 modify(ies), 1 destroy(s)
+{
+  "schema_version": 2,
+  "stack": "payments",
+  "parent": "9944c6a148f5f1a59af0178f40d03667b9e8abc8417f554c14a12fa219a9ea03",
+  "kind": "change",
+  "intent": {"summary": "decommission the old widget"},
+  "delta": {
+    "destroys": [
+      {
+        "address": {"stack": "payments", "type": "fake_widget", "name": "old-widget"},
+        "state": {"id": "old-widget", "name": null, "tags": {}}
+      }
+    ]
+  },
+  "resolution": {
+    "resolved_at": "2026-07-17T21:15:42Z",
+    "inputs": [
+      {
+        "kind": "destroy_target",
+        "resource": "payments.fake_widget.old-widget",
+        "observed_hash": "c9c672b5a57e403a38cc0d6d2e1381f458e50758d9d0f4117477526a620b426a",
+        "lookup": {"id": "old-widget"}
+      },
+      {
+        "kind": "cross_stack_orphan_check",
+        "resource": "payments.fake_widget.old-widget",
+        "status": "not_performed"
+      }
+    ]
+  },
+  "cost_delta": {"monthly_usd": 0},
+  "blast_radius": {"creates": 0, "modifies": 0, "destroys": 1},
+  "status": "draft"
+}
+```
+
+A destroy carries its target's **full** recorded state inline (`delta.destroys[].state`)
+-- not just the attributes that changed the way `delta.modifies[].before`/`after`
+do. Everything about the resource is being lost, not a subset of it, so
+whoever reviews and signs this proposal sees exactly what's being removed
+without having to separately look it up.
+
+### Orphan protection
+
+Destroying a resource that another live resource still depends on is
+refused, not silently allowed -- checked against the whole ledger's own
+recorded history, not just this intent file:
+
+```text
+$ ubx resolve destroy-intent.json --provider ./fakeprovider --ledger-dir .
+Error: resolve: resolve: destroy target is still referenced by a resource this proposal does not
+also destroy or update: payments.fake_widget.old-widget is still referenced by
+payments.fake_widget.mirror, which this proposal does not also destroy or update
+```
+
+Two ways to make a destroy that would otherwise be refused legal:
+
+- **Destroy the dependent too**, in the same `destroys` list -- a mutual
+  destroy is never an orphan, since destroying always happens in reversed
+  dependency order (the dependent goes first).
+- **Repoint the dependent away first**, in the same intent file's own
+  `resources`, as a `"modify"`. The destroy target's `depends_on` then
+  names the repointing modify, so `ubx ship` waits for it to complete
+  before destroying:
+
+```json
+{
+  "resources": [
+    {
+      "type": "fake_widget", "name": "mirror", "op": "modify",
+      "config": {"id": "mirror", "tags": {}}
+    }
+  ],
+  "destroys": ["payments.fake_widget.old-widget"]
+}
+```
+
+```text
+$ ubx resolve destroy-with-repoint.json --provider ./fakeprovider --ledger-dir .
+resolved: payments: 0 create(s), 1 modify(ies), 1 destroy(s)
+{
+  "delta": {
+    "modifies": [
+      {
+        "target": {"stack": "payments", "type": "fake_widget", "name": "mirror"},
+        "before": {"name": null, "tags.peer_id": {"$computed": {"from": "payments.fake_widget.old-widget.id"}}}
+      }
+    ],
+    "destroys": [
+      {
+        "address": {"stack": "payments", "type": "fake_widget", "name": "old-widget"},
+        "state": {"id": "old-widget", "name": null, "tags": {}},
+        "depends_on": ["payments.fake_widget.mirror"]
+      }
+    ]
+  }
+}
+```
+
+A `$ref`/`$cross` that resolves to an address this same proposal is also
+destroying is always refused (`resolve: $ref/$cross target is being
+destroyed in this same proposal`) -- referencing a value that's being
+removed in the same breath is never sound, and rejecting it is what
+guarantees a repointing modify like `mirror`'s above provably no longer
+references the destroy target by the time it's resolved.
+
+Orphan protection here is a real check against this stack's own ledger
+history, not an exhaustive guarantee: it can only ever see a dependency
+that was itself recorded via `$ref` at some point (a resource that simply
+hardcodes another's value as a plain literal, never through `$ref`, leaves
+no edge to find).
+
+### Cross-stack orphan protection
+
+A neighbor stack pinning this stack's destroy target via `$cross` is a
+harder problem: the pin is recorded entirely on the *neighbor's* own
+ledger, so this stack has no built-in way to know who, if anyone, depends
+on it. Pass `--known-dependent` (repeatable) for every neighbor ledger
+directory worth checking:
+
+```text
+$ ubx resolve destroy-intent.json --provider ./fakeprovider --ledger-dir . \
+    --known-dependent ../networking
+Error: resolve: resolve: destroy target is still referenced by a resource this proposal does not
+also destroy or update: payments.fake_widget.old-widget is pinned by a cross-stack reference in
+../networking
+```
+
+If none of the named neighbors actually pin the target, the resolve
+succeeds and records an honest `checked_clear`:
+
+```json
+{
+  "kind": "cross_stack_orphan_check",
+  "resource": "payments.fake_widget.old-widget",
+  "status": "checked_clear",
+  "checked_ledger_dirs": ["../networking"]
+}
+```
+
+**Omitting `--known-dependent` doesn't mean "no dependents exist"** -- it
+means none were checked, and the resolved proposal says so honestly
+(`status: "not_performed"`, the first transcript above) rather than
+silently implying a guarantee this command has no way to actually make
+without knowing every stack that might reference this one.
+
 ## When resolution fails
 
 An intent file naming a type the provider schema doesn't recognize is
@@ -270,7 +444,12 @@ The same tier covers a circular reference between two resources in the
 same file, a reference to an address that doesn't exist anywhere in the
 batch or the ledger, a `$secret` placed at an attribute the schema doesn't
 flag `Sensitive`, and a `$cross` naming a `ledger_dir` that's never been
-initialized or doesn't have the referenced address recorded.
+initialized or doesn't have the referenced address recorded. Destroy-specific:
+a `destroys` entry naming an address the ledger has never recorded, a
+duplicate address within `destroys`, an address appearing in both
+`resources` and `destroys`, orphan protection's own refusal (see
+[Destroying a resource](#destroying-a-resource) above), and a
+`--known-dependent` naming a `ledger_dir` that's never been initialized.
 
 <Note>
   `ubx resolve` runs its whole resolution twice internally and compares the
