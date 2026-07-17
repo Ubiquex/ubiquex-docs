@@ -1,5 +1,37 @@
 # STATE — ubiquex-docs
 
+## UBI-24: sensitive-override table (2026-07-18, same session as the code)
+
+`ubiquex-cli`'s fix for UBI-22's own `helm_release` redaction gap —
+"we do not treat upstream flags as the ceiling":
+
+- **`concepts/secrets.mdx`** gained a new "The provider's schema is a
+  floor, not a ceiling" section (right after "What gets redacted, and
+  when"): the union model (schema flags + a ubx-owned override table,
+  additive only), the real audit finding (checked both
+  `hashicorp/kubernetes` and `hashicorp/helm`, nothing further found),
+  and a mention of the draft, unsubmitted upstream issue for the Helm
+  provider (`docs/upstream/helm-sensitive-flags.md` in `ubiquex-cli`).
+- **`cli/scan.mdx`**'s own Helm section needed a real correction, not
+  just an addition: its example values-drift transcript previously
+  showed `metadata[0].values` as *raw*, unredacted JSON, and its
+  `Warning` described the gap as still open. Both were written before
+  UBI-24 shipped the override table; now that it has, the same
+  transcript always redacts (regardless of what a given chart's values
+  actually contain), so the doc was corrected to show that, and the
+  `Warning` now states the gap is closed by `ubx`'s own override table
+  rather than left as a disclosed-but-unfixed limitation.
+
+`mint validate`/`mint broken-links` both pass clean. See `ubiquex-cli`'s
+own STATE.md for the full engineering writeup, including the live `kind`
+cluster verification (a real Helm release with a secret-looking value,
+adopted and drift-tested, proposal file grepped by hand for zero
+material both times) and the precise correction that `helm_release`'s
+`metadata` is a compound-typed attribute, not a real nested block —
+which is exactly why tfplugin's wire protocol has no way to flag one of
+its sub-fields Sensitive upstream, and why a ubx-side, JSON-shape-driven
+override was the right fix regardless of upstream cooperation.
+
 ## UBI-22: Kubernetes and Helm support (2026-07-17, same session as the code)
 
 `ubiquex-cli`'s first non-cloud-provider provider, both stages:
