@@ -1,5 +1,35 @@
 # STATE — ubiquex-docs
 
+## UBI-25: read-only MCP server (2026-07-18, same session as the code)
+
+`ubiquex-cli`'s `ubx mcp` verb -- `ubx` as assistant tools:
+
+- **New `guides/mcp.mdx`** ("ubx + your AI assistant"), added to the
+  Guides nav group: what the three tools (`ubx_why`/`ubx_status`/
+  `ubx_scan`) answer and which CLI command each mirrors, the
+  boundary-by-omission stance (`accept`/`ship`/`writeback`/`revert-plan`/
+  `scan --surface-as` are not exposed, stated plainly rather than left to
+  be inferred from absence), Claude Code (`claude mcp add`, verified for
+  real against a scratch project before writing it down) and Claude
+  Desktop (`claude_desktop_config.json`) setup, a real transcript, and
+  the full `ubx mcp --help` text.
+- **The transcript is real**, not hand-written: captured against the
+  same real `ubx-states` S3 bucket/ledger this project's live-verification
+  work has used since UBI-9/UBI-10 -- a real tag mutation, scanned with
+  real CloudTrail attribution, then asked "who changed this bucket and
+  when" via a real MCP client connected to the real `ubx mcp` subprocess
+  over stdio. Trimmed to the two most recent of 24 real matching
+  CloudTrail events for readability; nothing about the mechanism itself
+  trims it for a real client.
+- **Cross-links added** from `cli/why.mdx`/`cli/status.mdx`/`cli/scan.mdx`
+  to the new guide, each naming the specific MCP tool it mirrors.
+
+`mint validate`/`mint broken-links` both pass clean. See `ubiquex-cli`'s
+own STATE.md for the full engineering writeup, including a real SDK
+gotcha (automatic JSON-schema generation over `json.RawMessage` fields)
+found by actually calling the tools over the real protocol before this
+page was written, not assumed safe from the Go types alone.
+
 ## UBI-24: sensitive-override table (2026-07-18, same session as the code)
 
 `ubiquex-cli`'s fix for UBI-22's own `helm_release` redaction gap —
