@@ -1,0 +1,195 @@
+---
+title: "Creating real infrastructure: resolve, accept, ship"
+description: "A real two-resource create chain, end to end -- an SQS queue and a policy that depends on it, live on AWS"
+---
+
+Every other guide in this section adopts or corrects infrastructure that
+already exists. This one creates something new: a hand-written
+[intent file](/cli/resolve#the-intent-file) resolved into a `change`
+proposal, accepted, and shipped for real — [`ubx`](/) creating cloud
+infrastructure for the first time, not just reading or reverting it. The
+transcript below is real: a real `aws_sqs_queue` plus a real
+`aws_sqs_queue_policy` that depends on it, created against a real AWS
+account.
+
+## The chain
+
+An SQS queue, plus a policy attached to it. Cheap, safe, and a genuine
+dependency: the policy's `queue_url` is only known once the queue itself
+has been created — `aws_sqs_queue.url` is schema-`Computed`, filled in by
+AWS at creation time, never something you set yourself.
+
+```json
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "ubi27demo",
+  "intent": {"summary": "two-resource create chain: SQS queue + its own queue policy"},
+  "resources": [
+    {
+      "type": "aws_sqs_queue",
+      "name": "chain-a",
+      "op": "create",
+      "config": {
+        "name": "ubx-ubi27-chain-a",
+        "tags": {"purpose": "ubi27-live-verify", "chain": "a"}
+      }
+    },
+    {
+      "type": "aws_sqs_queue_policy",
+      "name": "chain-a-policy",
+      "op": "create",
+      "config": {
+        "queue_url": {"$ref": {"to": "ubi27demo.aws_sqs_queue.chain-a.url"}},
+        "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"AllowAccountSend\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::839333509514:root\"},\"Action\":\"sqs:SendMessage\",\"Resource\":\"*\"}]}"
+      }
+    }
+  ]
+}
+```
+
+The policy's own `policy` document is a plain, self-contained JSON string
+— it doesn't reference the queue's ARN, on purpose. A `$computed` marker
+only ever replaces a whole config value; it can't be interpolated into a
+larger string, so `Resource: "*"` (scoped to whichever queue the policy is
+attached to, via `queue_url`) sidesteps needing the ARN at all. The
+genuine dependency here is `queue_url` alone.
+
+## 1. Resolve
+
+```text
+$ ubx resolve intent-chain-a.json --source hashicorp/aws --provider-version 6.54.0 --out resolved-chain-a.json
+resolved: ubi27demo: 2 create(s), 0 modify(ies)
+```
+
+The resolved proposal shows exactly what changed: `queue_url` is marked
+`$computed` (a schema-`Computed` attribute referenced before its own
+resource exists), and `depends_on` records the real dependency:
+
+```json
+{
+  "kind": "change",
+  "delta": {
+    "creates": [
+      {
+        "config": {"name": "ubx-ubi27-chain-a", "tags": {"chain": "a", "purpose": "ubi27-live-verify"}},
+        "name": "chain-a", "stack": "ubi27demo", "type": "aws_sqs_queue"
+      },
+      {
+        "config": {
+          "policy": "{\"Version\":\"2012-10-17\",...}",
+          "queue_url": {"$computed": {"from": "ubi27demo.aws_sqs_queue.chain-a.url"}}
+        },
+        "depends_on": ["ubi27demo.aws_sqs_queue.chain-a"],
+        "name": "chain-a-policy", "stack": "ubi27demo", "type": "aws_sqs_queue_policy"
+      }
+    ]
+  }
+}
+```
+
+## 2. Accept
+
+Exactly like any other proposal — nothing about a `change` proposal's
+acceptance is special:
+
+```text
+$ ubx accept resolved-chain-a.json --ledger-dir .
+accepted 15f5a53484d3e413ab6bf1a6a5517e0fd68e898efaf0726a37c8683159f68f8b (stack ubi27demo)
+```
+
+## 3. Ship — real infrastructure, for the first time
+
+```text
+$ ubx ship 15f5a53484d3e413ab6bf1a6a5517e0fd68e898efaf0726a37c8683159f68f8b \
+    --source hashicorp/aws --provider-version 6.54.0 --provider-config '{"region":"us-east-1"}' --ledger-dir .
+applied: ubi27demo.aws_sqs_queue.chain-a
+applied: ubi27demo.aws_sqs_queue_policy.chain-a-policy
+2 resource(s), 2 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+The queue ships first — nothing depends on it being ordered any other
+way. The policy is never even attempted until the queue reaches `applied`;
+once it has, the queue's real, just-assigned URL is substituted for the
+`$computed` marker automatically.
+
+## 4. Verify independently
+
+Never trust `ubx`'s own report alone — checked directly against AWS:
+
+```text
+$ aws sqs get-queue-attributes --queue-url https://sqs.us-east-1.amazonaws.com/839333509514/ubx-ubi27-chain-a --attribute-names All --region us-east-1
+{
+  "QueueArn": "arn:aws:sqs:us-east-1:839333509514:ubx-ubi27-chain-a",
+  "Policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"AllowAccountSend\",...,\"Resource\":\"*\"}]}",
+  "...": "..."
+}
+```
+
+The policy is attached, and the value that flowed between the two
+resources is real: the policy's own applied `queue_url` is byte-identical
+to the queue's own applied `url` — read directly from the
+[apply record](/concepts/apply-record), not just from `ubx`'s summary
+line.
+
+```text
+ubi27demo.aws_sqs_queue.chain-a               -> url: https://sqs.us-east-1.amazonaws.com/839333509514/ubx-ubi27-chain-a
+ubi27demo.aws_sqs_queue_policy.chain-a-policy -> queue_url: https://sqs.us-east-1.amazonaws.com/839333509514/ubx-ubi27-chain-a
+```
+
+## What a real kill mid-chain looks like
+
+The same chain, shipped again from scratch (a fresh queue/policy pair),
+`kill -9`'d for real between the queue applying and the policy's own turn
+beginning. [`ubx why`](/cli/why) shows the full, honest story across both
+attempts — nothing hidden, nothing guessed:
+
+```text
+$ ubx why c532743b0180a15601d50821c8e7e9774b3e8777f95105ac4c49461879f526f5 --ledger-dir .
+apply history:
+  attempt 1: unsealed (interrupted or still in progress)
+    ubi27demo.aws_sqs_queue.chain-b:
+      pending at 2026-07-17T14:24:34Z
+      in_flight at 2026-07-17T14:24:35Z
+      applied at 2026-07-17T14:25:01Z
+  attempt 2: outcome=applied
+    ubi27demo.aws_sqs_queue.chain-b:
+      applied at 2026-07-17T14:25:41Z -- already applied in a prior attempt
+    ubi27demo.aws_sqs_queue_policy.chain-b-policy:
+      pending at 2026-07-17T14:25:41Z
+      in_flight at 2026-07-17T14:25:42Z
+      applied at 2026-07-17T14:26:09Z
+```
+
+Attempt 1 shows exactly where the process died: the queue durably
+recorded as `applied` (including its real, applied `provider_result`),
+the policy never even reached its own turn. Re-running `ubx ship` — the
+same command a human would type after noticing the process died —
+recognizes the queue as already applied (never re-creating it: AWS's own
+`CreatedTimestamp` for the queue is unchanged across both attempts) and
+completes the policy using the queue's REAL recorded output, recovered
+from attempt 1's own history rather than lost or re-derived from a guess.
+
+<Note>
+  Destroys are out of scope for `change` proposals in v1
+  ([`ubx resolve`](/cli/resolve)'s own Scope) — cleaning up resources
+  created this way is a plain `aws` CLI (or console) operation, same as
+  any resource `ubx` didn't create. See docs/reliability-report.md's own
+  UBI-27 section (in the `ubiquex-cli` repo) for this guide's real
+  transcripts in full, including a real bug this work found and fixed
+  along the way, and a real, current gap: a resource created this way
+  isn't yet discoverable by [`ubx status`](/cli/status)/
+  [`ubx why <address>`](/cli/why) after the fact (only a `scan`-adopted
+  or drift-recorded resource is, today).
+</Note>
+
+## Related
+
+- [`ubx resolve`](/cli/resolve) — the intent-file format, `$ref`/`$computed`,
+  and cross-stack references
+- [`ubx accept`](/cli/accept) — accepting a resolved proposal
+- [`ubx ship`](/cli/ship) — the full `change`-proposal shipping mechanism,
+  including a blocked-dependency example
+- [Apply record](/concepts/apply-record) — the ledger object this whole
+  flow produces
+- [Exit codes](/cli/exit-codes) — the 0/1/2 contract every step above follows

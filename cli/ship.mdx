@@ -1,26 +1,30 @@
 ---
 title: "ubx ship"
-description: "Execute an accepted drift_revert proposal against live cloud -- the only command that applies"
+description: "Execute an accepted drift_revert or change proposal against live cloud -- the only command that applies"
 ---
 
 ```text
 ubx ship <proposal-id> [flags]
 ```
 
-Executes an already-*accepted* [`drift_revert`](/concepts/drift) proposal:
-restores the resource's live state to match the ledger's recorded truth, one
-resource at a time. **This is the one `ubx` command that changes real
-infrastructure** — [`ubx accept`](/cli/accept), [`ubx why`](/cli/why),
-[`ubx status`](/cli/status), [`ubx scan`](/cli/scan), and
-[`ubx revert-plan`](/cli/revert-plan) only ever read or record. `ubx
-revert-plan` still exists and still never applies anything itself — it's
-what you reach for pre-acceptance, or if you'd rather apply the correction
-through your own tooling; `ubx ship` is what actually does it, post-acceptance.
+Executes an already-*accepted* [`drift_revert`](/concepts/drift) or
+`change` ([`ubx resolve`](/cli/resolve)) proposal: for a `drift_revert`,
+restores the resource's live state to match the ledger's recorded truth;
+for a `change`, creates and modifies resources for real, in real
+dependency order, feeding each resource's real applied output into any
+sibling still carrying a `$computed` marker pointing at it. **This is the
+one `ubx` command that changes real infrastructure** —
+[`ubx accept`](/cli/accept), [`ubx why`](/cli/why),
+[`ubx status`](/cli/status), [`ubx scan`](/cli/scan),
+[`ubx resolve`](/cli/resolve), and [`ubx revert-plan`](/cli/revert-plan)
+only ever read or record. `ubx revert-plan` still exists and still never
+applies anything itself — it's what you reach for pre-acceptance, or if
+you'd rather apply the correction through your own tooling; `ubx ship` is
+what actually does it, post-acceptance.
 
-Only `drift_revert` proposals can be shipped. Every other kind is either
-record-only (`adoption`/`drift_adopt` — accepting one already is the whole
-action, there's nothing to execute) or needs a resolver `ubx` doesn't have
-yet (`change`/`revert`).
+Only `drift_revert` and `change` proposals can be shipped. Every other kind
+is record-only — accepting an `adoption`/`drift_adopt` already is the
+whole action, there's nothing to execute.
 
 ## Flags
 
@@ -88,6 +92,74 @@ This is permanent, not transient: the same proposal declines identically on
 every future `ubx ship` re-run, since the redacted value never changes. The
 only way past it is restoring the real value out-of-band and recording the
 correction through a fresh `ubx scan`/`ubx accept` cycle.
+
+## Shipping a `change` proposal: a real create chain
+
+A `change` proposal ([`ubx resolve`](/cli/resolve)'s own output) is shipped
+the same way — creates and modifies together, in real dependency order.
+Here `api-cache-mirror` cross-references `api-cache`'s `name` (concrete)
+and its schema-`Computed` `id` (left as `$computed` at resolve time,
+substituted with the real applied value mid-walk):
+
+```text
+$ ubx ship 2b4cb167dc39efc36fe16dec13947f189ff10e68863038f63dfd753d3fc34c9d --provider ./fakeprovider
+applied: payments.fake_widget.api-cache
+applied: payments.fake_widget.api-cache-mirror
+2 resource(s), 2 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+`api-cache` ships first (nothing depends on it being ordered any other
+way); `api-cache-mirror` is never even attempted until `api-cache` reaches
+`applied` — [`ubx why`](/cli/why) shows both:
+
+```text
+$ ubx why 2b4cb167dc39efc36fe16dec13947f189ff10e68863038f63dfd753d3fc34c9d
+apply history:
+  attempt 1: outcome=applied
+    payments.fake_widget.api-cache:
+      pending at 2026-07-17T14:32:37Z
+      in_flight at 2026-07-17T14:32:37Z
+      applied at 2026-07-17T14:32:37Z
+    payments.fake_widget.api-cache-mirror:
+      pending at 2026-07-17T14:32:37Z
+      in_flight at 2026-07-17T14:32:37Z
+      applied at 2026-07-17T14:32:37Z
+```
+
+<Note>
+  Live-verified against real AWS, not just the fixture above: a real
+  two-resource create chain (`aws_sqs_queue` + `aws_sqs_queue_policy`,
+  the policy's `queue_url` only known once the queue itself exists),
+  shipped for real, killed with a real `kill -9` between the queue
+  applying and the policy starting, and correctly recovered on re-run —
+  the dependent completed using the queue's REAL recorded output, never
+  re-creating the queue or losing the value. See
+  docs/reliability-report.md's own UBI-27 section (in the `ubiquex-cli`
+  repo) for the full transcripts, including a real bug this work found
+  and fixed along the way (a create never called the provider's
+  `Configure` step, since unlike a modify it never goes through a read
+  first — surfaced against a real provider as a bare transport error, not
+  a clean configuration failure).
+</Note>
+
+A resource whose dependency hasn't applied yet is never attempted —
+blocked with a named reason, not silently skipped or guessed at:
+
+```text
+$ ubx ship 0eb5887c4ee2da168467202856fa59970e1cc33dd330ec89263a7325d5d48f80 --provider ./fakeprovider
+failed: payments.fake_widget.primary
+  terminal: provider returned 1 diagnostic error(s): invalid attribute value: fakeprovider: simulated terminal diagnostic
+pending: payments.fake_widget.mirror
+  terminal: blocked: dependency payments.fake_widget.primary has not applied -- refusing to ship a resource ahead of what it depends on
+2 resource(s), 0 applied, 2 failed, 0 still unknown -- outcome: failed
+```
+
+Killed and re-run, a `change` proposal's already-applied resources are
+recognized exactly like a `drift_revert`'s (idempotency, above) — with one
+addition: a still-pending dependent recovers its dependency's real applied
+output from the ledger's own history, not just from what the current
+`ubx ship` invocation itself computed, so a kill between two resources
+never loses the value the second one needs.
 
 <Note>
   A `partially_applied` outcome (some resources of a multi-resource revert
@@ -165,6 +237,9 @@ the full state machine.
 
 - [Apply record](/concepts/apply-record) — the ledger object `ubx ship`
   produces, and the full failure-state machine behind it
+- [`ubx resolve`](/cli/resolve) — producing the `change` proposal this
+  command ships, including `$computed`/`depends_on`
+- [Creating real infrastructure](/guides/create-flow) — a full walkthrough, live on real AWS
 - [`ubx revert-plan`](/cli/revert-plan) — the pre-acceptance (or
   manual-reconciliation) alternative that never applies anything itself
 - [Drift](/concepts/drift) — what a `drift_revert` proposal is
