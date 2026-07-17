@@ -83,6 +83,37 @@ $ ubx accept rv-adopt.json --ledger-dir . \
 accepted 151fbb18bef7e0b4344853df70d56c6df98579b43f677962c6a0b792c1ad2778 (stack payments)
 ```
 
+### Cross-stack pin verification
+
+A proposal [`ubx resolve`](/cli/resolve) produced from an intent file with
+a `$cross` reference carries a `cross_stack_pin` resolution input: the
+neighbor ledger's `ledger_dir` and its head *at resolve time*
+(`pinned_head`). `ubx accept` -- both local and `--from-merge` -- always
+re-derives that neighbor ledger's *current* head and refuses the proposal
+if it's moved on since, the same "resolved-time truth vs. accept-time
+reality" shape `--reverify-with` already enforces for live cloud state, one
+level up. This check runs unconditionally, with no flag to opt in or out:
+unlike a live provider round trip, reading a neighbor ledger's head is a
+free, local filesystem read.
+
+Passes when the neighbor hasn't moved since resolve:
+
+```text
+$ ubx accept payments/resolved.json --ledger-dir payments
+accepted c77dadcd84d9a8b31c33517752e3f2336f7e45b1ef6836dfbdbfdb59e240d6ba (stack payments)
+```
+
+Blocked once the neighbor ledger (`networking` here) has advanced --
+someone else accepted a proposal there in the meantime:
+
+```text
+$ ubx accept payments/resolved2.json --ledger-dir payments
+Error: accept: resolve: cross-stack pin is stale -- the neighbor ledger has advanced since this proposal was resolved: networking.fake_widget.vpc (ledger /tmp/ubx-resolve-docs5/networking) pinned at 7a069a2a22e2b4edc6e1ed3aae58108415371c3a9dc6b72c19fc62c6acb9bd33, now dbc6c8e07631cdf860abccbfcdbb7236a7f59407cd855650dd25bae9ef672f2f
+```
+
+Exits `1`, the same tier as a blocked `--reverify-with` reverification --
+and nothing is written to the ledger.
+
 ## PR-merge acceptance
 
 `ubx accept --from-merge` derives acceptance from a merged GitHub pull
@@ -140,6 +171,7 @@ rate limit.
 ## Related
 
 - [Proposal](/concepts/proposal) — the acceptance model
+- [`ubx resolve`](/cli/resolve) — producing a `change` proposal with cross-stack pins to verify here
 - [`ubx propose`](/cli/propose) — computing the hash a PR-merge trailer needs
 - [Exit codes](/cli/exit-codes) — the 0/1/2 contract, including staleness and rejected pr_merge acceptances
 - [`ubx scan`](/cli/scan) — `--surface-as pr` opens the exact kind of PR this accepts from

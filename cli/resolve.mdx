@@ -1,0 +1,291 @@
+---
+title: "ubx resolve"
+description: "Resolve a typed ubx:intent/v1 file into a draft change proposal -- creates and modifies, never destroys"
+---
+
+```text
+ubx resolve <intent-file> (--provider <path> | --source <src> --provider-version <v>) [flags]
+```
+
+Resolves a hand-written, machine-shaped [intent file](#the-intent-file) into
+a draft `kind:"change"` [proposal](/concepts/proposal) -- creates and
+modifies only, never destroys (v1 scope). Intra-stack references are
+checked against the [ledger](/concepts/ledger)'s own dependency graph, with
+real cycle detection, and emitted in dependency order; cross-stack
+references are pinned against a neighbor ledger's current head, so a later
+`ubx accept` can tell whether that neighbor has moved on since (see
+[Cross-stack references](#cross-stack-references) below).
+
+The result is a draft: it has no `id` or acceptance yet. Pipe it into
+[`ubx propose`](/cli/propose) for a PR-body trailer hash, or
+[`ubx accept`](/cli/accept) directly, exactly like a proposal `ubx scan`
+generates.
+
+`ubx resolve` never reads live provider state at all -- a change proposal's
+"before" comes from the ledger's own recorded state, not a fresh cloud
+read (that happens later, at `ubx ship` time). A provider is still
+launched, for exactly one reason: its schema is what tells the resolver
+which attributes are `Computed` or `Sensitive`.
+
+## Flags
+
+| Flag | Description |
+| --- | --- |
+| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `--provider string` | path to the provider binary (mutually exclusive with `--source`) |
+| `--source string` | provider source address, e.g. `hashicorp/aws` (mutually exclusive with `--provider`; requires `--provider-version`) |
+| `--provider-version string` | explicit provider version to acquire (required with `--source`) |
+| `--out string` | write the resolved proposal here instead of stdout |
+| `--timeout duration` | timeout for launching the provider and fetching its schema (default `1m0s`) |
+| `-h`, `--help` | help for resolve |
+
+`ubx resolve` has no `--provider-config` -- unlike `ubx scan`/`ubx accept
+--reverify-with`, it never configures or reads through the provider, only
+fetches its schema.
+
+## The intent file
+
+An intent file (`ubx:intent/v1`) is a hand-written, typed description of
+one stack's desired resources:
+
+```json
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "payments",
+  "intent": {"summary": "add the api-cache widget"},
+  "resources": [
+    {
+      "type": "fake_widget",
+      "name": "api-cache",
+      "op": "create",
+      "config": {"name": "api-cache", "tags": {"env": "prod"}}
+    }
+  ]
+}
+```
+
+`op` is always explicit -- `"create"` or `"modify"` -- never inferred from
+whether the ledger already has that address. This is deliberate: a
+`"modify"` naming an address the ledger has never recorded is a real
+authoring mistake `ubx resolve` catches (`did you mean "create"?`), not
+something silently reinterpreted; a `"create"` naming an address the ledger
+already has is caught the same way, in the other direction.
+
+```text
+$ ubx resolve intent.json --provider ./fakeprovider --ledger-dir .
+resolved: payments: 1 create(s), 0 modify(ies)
+{
+  "schema_version": 1,
+  "stack": "payments",
+  "parent": "",
+  "kind": "change",
+  "intent": {
+    "summary": "add the api-cache widget"
+  },
+  "delta": {
+    "creates": [
+      {
+        "config": {"name": "api-cache", "tags": {"env": "prod"}},
+        "name": "api-cache",
+        "stack": "payments",
+        "type": "fake_widget"
+      }
+    ]
+  },
+  "resolution": {
+    "resolved_at": "2026-07-17T13:23:18Z"
+  },
+  "cost_delta": {"monthly_usd": 0},
+  "blast_radius": {"creates": 1, "modifies": 0, "destroys": 0},
+  "status": "draft"
+}
+```
+
+## Modifying an already-ledgered resource
+
+`op: "modify"` resolves `before`/`after` against the ledger's own recorded
+state for that address, the same shape `ubx scan`'s drift proposals use:
+
+```text
+$ ubx resolve intent-modify.json --provider ./fakeprovider --ledger-dir .
+resolved: payments: 0 create(s), 1 modify(ies)
+{
+  "schema_version": 1,
+  "stack": "payments",
+  "parent": "0d251ac5d6a863ad699ef984cd655ea2bab0d2efc9809e8b6049647c988dd97d",
+  "kind": "change",
+  "intent": {"summary": "promote api-cache to prod"},
+  "delta": {
+    "modifies": [
+      {
+        "target": {"stack": "payments", "type": "fake_widget", "name": "api-cache"},
+        "before": {"id": "computed-id", "tags.env": "staging"},
+        "after": {"tags.env": "prod"}
+      }
+    ]
+  },
+  "resolution": {
+    "resolved_at": "2026-07-17T13:29:22Z",
+    "inputs": [
+      {
+        "kind": "live_state",
+        "resource": "payments.fake_widget.api-cache",
+        "observed_hash": "41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589"
+      }
+    ]
+  },
+  "cost_delta": {"monthly_usd": 0},
+  "blast_radius": {"creates": 0, "modifies": 1, "destroys": 0},
+  "status": "draft"
+}
+```
+
+## Intra-stack references
+
+A resource's `config` can reference another resource in the *same* intent
+file with `$ref`, addressed as `<stack>.<type>.<name>.<attribute path>`.
+`ubx resolve` builds the dependency graph from these references (detecting
+real cycles, something v1 XCL's own single-stack graph never did), resolves
+in topological order, and emits each create's `depends_on` alongside it:
+
+```json
+{
+  "resources": [
+    {
+      "type": "fake_widget", "name": "primary", "op": "create",
+      "config": {"name": "primary", "tags": {"env": "prod"}}
+    },
+    {
+      "type": "fake_widget", "name": "mirror", "op": "create",
+      "config": {
+        "name": {"$ref": {"to": "payments.fake_widget.primary.name"}},
+        "tags": {"peer_id": {"$ref": {"to": "payments.fake_widget.primary.id"}}}
+      }
+    }
+  ]
+}
+```
+
+```text
+$ ubx resolve intent-refs.json --provider ./fakeprovider --ledger-dir .
+resolved: payments: 2 create(s), 0 modify(ies)
+{
+  "delta": {
+    "creates": [
+      {
+        "config": {"name": "primary", "tags": {"env": "prod"}},
+        "name": "primary", "stack": "payments", "type": "fake_widget"
+      },
+      {
+        "config": {
+          "name": "primary",
+          "tags": {"peer_id": {"$computed": {"from": "payments.fake_widget.primary.id"}}}
+        },
+        "depends_on": ["payments.fake_widget.primary"],
+        "name": "mirror", "stack": "payments", "type": "fake_widget"
+      }
+    ]
+  }
+}
+```
+
+Two different things happened to the two `$ref`s here, both correct:
+
+- `mirror.name`'s ref targets `primary.name`, an **ordinary** (non-`Computed`)
+  attribute -- resolved straight to `primary`'s own literal value, `"primary"`.
+- `mirror.tags.peer_id`'s ref targets `primary.id`, which the provider's
+  schema flags `Computed` -- there's no value to substitute yet (it won't
+  exist until `primary` is actually created), so it's left as a `$computed`
+  marker for [`ubx ship`](/concepts/apply-record) to fill in from the real
+  applied result, mid-walk.
+
+A `$computed` value can never be used somewhere the schema requires a
+concrete value -- attempting that is a resolve-time error, not a deferred
+runtime surprise.
+
+## Cross-stack references
+
+`$cross` references a resource in a *different* stack's ledger, addressed
+the same way plus a `ledger_dir`:
+
+```json
+{
+  "tags": {
+    "vpc_name": {
+      "$cross": {
+        "ledger_dir": "../networking",
+        "to": "networking.fake_widget.vpc.name"
+      }
+    }
+  }
+}
+```
+
+Unlike `$ref`, a `$cross` target is always resolved against the neighbor
+ledger's own currently-recorded state -- always concrete, never
+`$computed` -- and records a `cross_stack_pin` resolution input carrying
+the neighbor's ledger head *at resolve time*:
+
+```text
+$ ubx resolve payments/intent.json --provider ./fakeprovider --ledger-dir payments --out payments/resolved.json
+resolved: payments: 1 create(s), 0 modify(ies)
+```
+
+```json
+{
+  "resolution": {
+    "inputs": [
+      {
+        "kind": "cross_stack_pin",
+        "resource": "networking.fake_widget.vpc",
+        "observed_hash": "e84c0a302ecd78281126ad0daed0d53a78ecb24ba6daef993436245918786afa",
+        "pinned_head": "7a069a2a22e2b4edc6e1ed3aae58108415371c3a9dc6b72c19fc62c6acb9bd33",
+        "ledger_dir": "/tmp/ubx-resolve-docs5/networking"
+      }
+    ]
+  }
+}
+```
+
+`ubx accept` re-derives that neighbor ledger's head at accept time and
+refuses the proposal if it's moved on since -- see
+[`ubx accept`'s cross-stack pin verification](/cli/accept#cross-stack-pin-verification).
+This check is unconditional, not opt-in: unlike a live provider round trip,
+reading a neighbor ledger's head is a free, local filesystem read, so
+there's no reason an operator would need to ask for it explicitly.
+
+## When resolution fails
+
+An intent file naming a type the provider schema doesn't recognize is
+refused outright (exit `2` -- `ubx resolve` has no "finding" concept, the
+same audit outcome as `ubx propose`/`ubx init`):
+
+```text
+$ ubx resolve intent-bad.json --provider ./fakeprovider --ledger-dir .
+Error: resolve: resolve: provider schema has no such type: "fake_widgit"
+```
+
+The same tier covers a circular reference between two resources in the
+same file, a reference to an address that doesn't exist anywhere in the
+batch or the ledger, a `$secret` placed at an attribute the schema doesn't
+flag `Sensitive`, and a `$cross` naming a `ledger_dir` that's never been
+initialized or doesn't have the referenced address recorded.
+
+<Note>
+  `ubx resolve` runs its whole resolution twice internally and compares the
+  two results byte-for-byte, hard-failing on any divergence rather than
+  ever hashing an unstable result -- the same determinism guarantee every
+  other proposal-producing path in `ubx` makes, applied here for the first
+  time to something as involved as a dependency-ordered, schema-aware
+  resolution pass.
+</Note>
+
+## Related
+
+- [Proposal](/concepts/proposal) -- the `kind:"change"` shape this command produces
+- [`ubx accept`](/cli/accept) -- accepting the resolved proposal, including cross-stack pin re-verification
+- [`ubx propose`](/cli/propose) -- computing a PR-body trailer hash for a resolved proposal
+- [`ubx scan`](/cli/scan) -- the other proposal-generating path, from live drift rather than typed intent
+- [`ubx ship`](/cli/ship) -- applying an accepted change proposal, filling in `$computed` values as it walks
+- [Exit codes](/cli/exit-codes) -- the 0/2 contract `ubx resolve` follows
