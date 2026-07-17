@@ -1,0 +1,174 @@
+---
+title: "ubx ship"
+description: "Execute an accepted drift_revert proposal against live cloud -- the only command that applies"
+---
+
+```text
+ubx ship <proposal-id> [flags]
+```
+
+Executes an already-*accepted* [`drift_revert`](/concepts/drift) proposal:
+restores the resource's live state to match the ledger's recorded truth, one
+resource at a time. **This is the one `ubx` command that changes real
+infrastructure** — [`ubx accept`](/cli/accept), [`ubx why`](/cli/why),
+[`ubx status`](/cli/status), [`ubx scan`](/cli/scan), and
+[`ubx revert-plan`](/cli/revert-plan) only ever read or record. `ubx
+revert-plan` still exists and still never applies anything itself — it's
+what you reach for pre-acceptance, or if you'd rather apply the correction
+through your own tooling; `ubx ship` is what actually does it, post-acceptance.
+
+Only `drift_revert` proposals can be shipped. Every other kind is either
+record-only (`adoption`/`drift_adopt` — accepting one already is the whole
+action, there's nothing to execute) or needs a resolver `ubx` doesn't have
+yet (`change`/`revert`).
+
+## Flags
+
+| Flag | Description |
+| --- | --- |
+| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `--provider string` | path to the provider binary (mutually exclusive with `--source`) |
+| `--source string` | provider source address, e.g. `hashicorp/aws` (mutually exclusive with `--provider`; requires `--provider-version`) |
+| `--provider-version string` | explicit provider version to acquire (required with `--source`) |
+| `--provider-config string` | JSON object configuring the provider, e.g. `{"region":"us-east-1"}` (default `{}`) |
+| `--timeout duration` | overall timeout for the ship run (default `5m0s`) |
+| `--json` | emit one JSON document instead of human text — see [`--json` output](#json-output) |
+| `-h`, `--help` | help for ship |
+
+## Example: a clean apply
+
+```text
+$ ubx ship 44793cf195a9ae122df0fc68b805a75a6e07324b7a8a9fc6d2fd9415f1b0275e --provider ./terraform-provider-aws
+applied: payments.fake_widget.api-cache
+1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+## Example: idempotent re-run
+
+Every resource already `applied` in a prior attempt is skipped — re-running
+`ubx ship` against a proposal that already fully shipped is a genuine no-op,
+not an empty response:
+
+```text
+$ ubx ship 8fa7a1498d41886a0f68138539d05876deee940a94edbac912c947d2529de56f --provider ./terraform-provider-aws
+8fa7a1498d41886a0f68138539d05876deee940a94edbac912c947d2529de56f: already fully applied -- nothing to do
+```
+
+This is exit `0`, and writes no new [apply record](/concepts/apply-record)
+at all — see [Idempotency](/concepts/apply-record#idempotency-safe-to-re-run-any-number-of-times).
+
+## Example: a provider rejects the change
+
+A real, structured error from the provider (not a timeout or transport
+failure) ends that resource's attempt immediately — never silently retried:
+
+```text
+$ ubx ship 5e773920c109e45cf432a406f0f809b960ea3163c53f4e92a060d5ed94a87dbe --provider ./terraform-provider-aws
+failed: payments.fake_widget.api-cache
+  terminal: provider returned 1 diagnostic error(s): invalid attribute value: ...
+1 resource(s), 0 applied, 1 failed, 0 still unknown -- outcome: failed
+```
+
+## Example: a redacted restore target is declined, not applied
+
+A `drift_revert` whose restore value is itself a [`$redacted`](/concepts/secrets)
+marker — the ledger holds a salted hash, never the real material — is
+declined outright. `ubx ship` will never construct a live apply from it, on
+this run or any future one; the message points at `ubx revert-plan`'s own
+manual-reconciliation path:
+
+```text
+$ ubx ship 8c0b1b07cffccf20c1c59a95be2bb22f85fd9b7110f7695afd9e9ca75f9506ca --provider ./terraform-provider-aws
+pending: payments.fake_widget.secret-box
+  terminal: declined: after value(s) at tags.master_password are redacted -- the ledger holds a salted hash, not the real secret material, and ubx will never construct a live apply from it; use `ubx revert-plan` for this resource's manual reconciliation steps instead
+1 resource(s), 0 applied, 1 failed, 0 still unknown -- outcome: failed
+```
+
+This is permanent, not transient: the same proposal declines identically on
+every future `ubx ship` re-run, since the redacted value never changes. The
+only way past it is restoring the real value out-of-band and recording the
+correction through a fresh `ubx scan`/`ubx accept` cycle.
+
+<Note>
+  A `partially_applied` outcome (some resources of a multi-resource revert
+  applied, others not — most commonly because reality drifted a *second*
+  time between acceptance and shipping) is exercised by the hermetic
+  adversarial test suite rather than shown here as its own transcript; the
+  mechanism is the same "outcome" field, just a third value alongside
+  `applied`/`failed`. See [Apply record — the state machine](/concepts/apply-record#the-state-machine)
+  for the full behavior.
+</Note>
+
+## `--json` output
+
+```text
+$ ubx ship 8fa7a1498d41886a0f68138539d05876deee940a94edbac912c947d2529de56f --provider ./terraform-provider-aws --json
+{
+  "format": 1,
+  "already_applied": true,
+  "apply_record": {
+    "schema_version": 1,
+    "id": "d3156d08dc6168d4d524ea6ffa780a307b597b34bc6dfd8393a883dd1b86bc52",
+    "proposal": "8fa7a1498d41886a0f68138539d05876deee940a94edbac912c947d2529de56f",
+    "parent": "",
+    "attempt": 1,
+    "resources": [
+      {
+        "address": { "stack": "payments", "type": "fake_widget", "name": "api-cache" },
+        "transitions": [
+          { "state": "pending", "at": "2026-07-17T11:15:08Z" },
+          { "state": "in_flight", "at": "2026-07-17T11:15:08Z" },
+          { "state": "applied", "at": "2026-07-17T11:15:08Z" }
+        ],
+        "provider_result": { "id": "computed-id", "name": "a-widget", "tags": {} }
+      }
+    ],
+    "summary": {
+      "outcome": "applied",
+      "started_at": "2026-07-17T11:15:08Z",
+      "finished_at": "2026-07-17T11:15:08Z",
+      "resources_applied": 1,
+      "resources_failed": 0,
+      "resources_still_unknown": 0
+    }
+  }
+}
+```
+
+`apply_record` is the full [apply record](/concepts/apply-record) itself —
+the same object a future `ubx why` will read to answer "what actually
+happened when this shipped" — wrapped, not re-derived into a bespoke shape,
+the same convention [`ubx why --json`](/cli/why#json-output) already
+established for `proposal`.
+
+## Exit code: the CI contract
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | every resource applied (including a genuine no-op: already fully applied) |
+| `1` | `partially_applied` or `failed` — an actionable finding: retry, or investigate why |
+| `2` | bad input (proposal not found, wrong kind, not accepted), or a genuine provider/ledger failure |
+
+See [Exit codes](/cli/exit-codes) for the full per-verb reference.
+
+## Freshness, re-verified per resource
+
+Unlike a one-shot command, `ubx ship` can run long enough, resource to
+resource, that reality moves *during* the run. Freshness is re-checked
+immediately before **each** resource's own attempt, not once at the start —
+a resource that drifts a second time between acceptance and its own turn in
+the queue is refused, not bulldozed; resources already applied earlier in
+the same run stand untouched. See [Apply record](/concepts/apply-record) for
+the full state machine.
+
+## Related
+
+- [Apply record](/concepts/apply-record) — the ledger object `ubx ship`
+  produces, and the full failure-state machine behind it
+- [`ubx revert-plan`](/cli/revert-plan) — the pre-acceptance (or
+  manual-reconciliation) alternative that never applies anything itself
+- [Drift](/concepts/drift) — what a `drift_revert` proposal is
+- [Secrets](/concepts/secrets) — why a redacted restore target can never be
+  shipped automatically
+- [Exit codes](/cli/exit-codes) — the full 0/1/2 reference across every verb
+- [`.ubx/config`](/cli/config) — project defaults for `--provider`/`--source`/`--provider-config`

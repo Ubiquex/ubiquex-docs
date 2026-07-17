@@ -1,5 +1,40 @@
 # STATE — ubiquex-docs
 
+## UBI-26: `ubx ship` -- the executor's first user-visible surface (2026-07-17, same session as the code)
+
+`ubiquex-cli`'s executor (docs/executor.md, docs/schema.md's apply-record
+amendment) reaches its first user-visible CLI surface this session --
+sessions 1-2 were docs/hermetic-code-only, correctly not touching this repo.
+
+- **New `cli/ship.mdx`**: `ubx ship <proposal-id>` -- the one `ubx` command
+  that actually changes real infrastructure. Every transcript is real,
+  captured from the actual built binary against a fakeprovider subprocess
+  (the same fixture `ubiquex-cli`'s own tests use): a clean apply, an
+  idempotent re-run (`already fully applied`), `--json` output, a
+  simulated terminal provider diagnostic, and a hand-constructed
+  redacted-restore-target proposal being declined outright. A
+  `partially_applied` outcome is described narratively (hermetic
+  test-suite territory) rather than faked with an unverified transcript --
+  this project's own standing discipline against inventing output.
+- **New `concepts/apply-record.mdx`**: the ledger object `ubx ship`
+  produces -- where it lives, the state machine (with the durability
+  invariant stated plainly), the idempotency table, redaction at the apply
+  boundary in both directions, and the `drift_revert`-only v1 scope.
+- **`cli/exit-codes.mdx`** gained a `ubx ship` section (0/1/2, matching
+  every other UBI-20-audited verb's table shape) and a cross-link.
+- **`cli/revert-plan.mdx`** gained a `<Note>` distinguishing the two
+  commands now that both exist: `ubx revert-plan` still never applies
+  anything, and is still the only path for an attribute `ubx ship`
+  declines (a redacted restore target).
+- **`concepts/proposal.mdx`**/**`concepts/secrets.mdx`** cross-link to the
+  new apply-record concept page and `ubx ship`'s own redacted-attribute
+  behavior respectively.
+- **`docs.json`** nav: `concepts/apply-record` added to Concepts,
+  `cli/ship` added to CLI Reference (after `cli/revert-plan`, before
+  `cli/exit-codes`).
+
+`mint validate`/`mint broken-links` both pass clean.
+
 ## UBI-25: read-only MCP server (2026-07-18, same session as the code)
 
 `ubiquex-cli`'s `ubx mcp` verb -- `ubx` as assistant tools:

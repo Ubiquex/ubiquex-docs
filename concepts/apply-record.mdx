@@ -1,0 +1,159 @@
+---
+title: "Apply record"
+description: "The ledger object ubx ship produces -- evidence of what actually happened, not just what was decided"
+---
+
+Accepting a [proposal](/concepts/proposal) records a *decision* — the ledger's
+own truth, signed. An **apply record** records what actually happened when
+[`ubx ship`](/cli/ship) tried to carry that decision out: which state each
+resource moved through, what the provider actually said, and how any
+ambiguity got resolved. `Proposal.status` is never rewritten to reflect this
+— ledger entries are immutable once written, the same guarantee that
+protects everything else in the ledger. The apply record is the evidence;
+the proposal file itself stays exactly as it was at acceptance.
+
+## Where it lives
+
+```
+<stack>/
+  ledger/
+    proposals/<id>.prop.json
+    applies/<proposal-id>.attempt-<N>.apply.json
+```
+
+Right alongside `ledger/proposals/`, one file per **attempt** — `ubx ship`
+is safe to re-run, and a re-run that needs to do more work creates a *new*
+apply record, chained to the previous one via `parent`, never editing an
+already-finished attempt.
+
+## A minimal example
+
+```json
+{
+  "schema_version": 1,
+  "id": "d3156d08dc6168d4d524ea6ffa780a307b597b34bc6dfd8393a883dd1b86bc52",
+  "proposal": "8fa7a1498d41886a0f68138539d05876deee940a94edbac912c947d2529de56f",
+  "parent": "",
+  "attempt": 1,
+  "resources": [
+    {
+      "address": { "stack": "payments", "type": "fake_widget", "name": "api-cache" },
+      "transitions": [
+        { "state": "pending", "at": "2026-07-17T11:15:08Z" },
+        { "state": "in_flight", "at": "2026-07-17T11:15:08Z" },
+        { "state": "applied", "at": "2026-07-17T11:15:08Z" }
+      ],
+      "provider_result": { "id": "computed-id", "name": "a-widget", "tags": {} }
+    }
+  ],
+  "summary": {
+    "outcome": "applied",
+    "started_at": "2026-07-17T11:15:08Z",
+    "finished_at": "2026-07-17T11:15:08Z",
+    "resources_applied": 1,
+    "resources_failed": 0,
+    "resources_still_unknown": 0
+  }
+}
+```
+
+- **`proposal`** — which accepted `drift_revert` this attempt executes.
+- **`parent`** — the previous *sealed* apply record's own `id`, for the same
+  proposal; empty for the first attempt. Two independent chains meet here: a
+  stack's ledger is proposals chained by stack, and one proposal's apply
+  history is apply records chained by proposal.
+- **`resources[]`** — one entry per resource, with its own state-machine
+  transitions, any reconciliation attempts, any recorded errors, and the
+  provider's own returned attributes (`provider_result`) — redacted through
+  the same mechanism a live read is (see [Secrets](/concepts/secrets),
+  below).
+- **`summary`** — the terminal outcome: `applied`, `partially_applied`, or
+  `failed`, plus per-resource counts, as of the *end of this attempt* — a
+  resource already applied in an earlier attempt is counted here too, so
+  reading the latest apply record alone answers "what's the state of this
+  proposal," without folding every prior attempt yourself.
+
+## The state machine
+
+Each resource moves through a small set of states, one attempt at a time:
+
+```
+pending ──► in_flight ──► applied
+                       ├─► failed
+                       └─► unknown_post_timeout
+                                 │
+                                 ▼
+                     reconcile-by-query (re-read live state)
+                                 │
+                 ┌───────────────┼───────────────┐
+                 ▼               ▼               ▼
+              applied         failed        still_unknown
+```
+
+**The one invariant everything else depends on**: a resource's `in_flight`
+transition is written to disk *before* the risky provider call it precedes,
+never after. If `ubx ship` is killed at any point — before the call, during
+it, or after it returns but before the result is recorded — the next run
+can tell exactly where things stood, and never has to guess. It re-reads the
+resource's live state (the same "reconcile-by-query" step the diagram
+shows) and trusts *that*, not its own prior assumptions, to decide what
+really happened.
+
+## Idempotency: safe to re-run any number of times
+
+| A resource's last known state | What a re-run does |
+| --- | --- |
+| `applied` | Skipped entirely. |
+| `failed` | Retried, within a bounded per-resource budget; freshness re-verified first. |
+| `unknown_post_timeout` / `still_unknown` | Reconciled again first — never a blind re-apply on top of an unresolved unknown. |
+| Refused for staleness | Freshness re-verified fresh; proceeds normally once it passes. |
+| Refused for a redacted restore target | Declined again, identically — permanent, not retried (see below). |
+
+A proposal whose every resource is `applied` — across one or more attempts —
+is fully shipped: a further `ubx ship` reports this and exits `0` without
+writing a new apply record at all.
+
+## Freshness, re-verified per resource
+
+`ubx ship` re-checks a resource's freshness immediately before *that*
+resource's own attempt, not once at the start of the whole run. A
+multi-resource revert can take long enough that reality moves mid-run;
+resources already applied stand untouched, and anything after the point
+reality moved is refused rather than bulldozed — the attempt's own
+`summary.outcome` becomes `partially_applied`, not `failed`, since real
+progress did happen.
+
+## Redaction applies at the boundary, both directions
+
+- **Out**: `provider_result` — whatever attributes the provider returns —
+  is redacted (the same schema-`Sensitive`-flags-plus-override-table
+  mechanism [Secrets](/concepts/secrets) describes) before it's ever
+  written into an apply record. A live secret is exactly as reachable
+  through an apply's own result as through a read.
+- **In**: a `drift_revert` whose restore target is itself a `$redacted`
+  value is declined outright, never handed to a real provider at all — the
+  ledger holds a salted fingerprint, never the material, so there is
+  nothing to construct a live apply from. See
+  [`ubx ship`'s own redacted-attribute example](/cli/ship#example-a-redacted-restore-target-is-declined-not-applied).
+
+## Scope: `drift_revert` only, for now
+
+`ubx ship` v1 executes exactly one proposal kind. `adoption`/`drift_adopt`
+are record-only by construction — accepting one already is the whole
+action, there's nothing to execute. A `change`/`revert` proposal (something
+you'd author by hand, once a resolver exists to produce one) can carry
+values a real provider still needs to resolve at plan-time; `drift_revert`'s
+restore values are always already-concrete, already-observed — which is
+exactly what lets `ubx ship` skip a separate plan phase and apply directly.
+
+## Related
+
+- [`ubx ship`](/cli/ship) — the command that produces these
+- [Proposal](/concepts/proposal) — the decision an apply record carries out;
+  its own `status` is never rewritten by shipping
+- [Drift](/concepts/drift) — what a `drift_revert` proposal is, and how it
+  differs from `drift_adopt`
+- [Secrets](/concepts/secrets) — the redaction mechanism reused at the apply
+  boundary in both directions
+- [Ledger](/concepts/ledger) — the wider append-only structure apply records
+  live alongside
