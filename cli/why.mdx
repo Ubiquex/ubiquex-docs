@@ -58,6 +58,11 @@ abbreviation — pass the full ID (from a raw ledger file, or `ubx why`'s own
 single-proposal view) to look one up directly; the truncated form is never
 accepted as a lookup argument itself.
 
+A resource's oldest entry (last in this newest-first list) is its
+**genesis** — either an `adoption` (discovered by `ubx scan`, as above) or
+a shipped `change` proposal (created by [`ubx resolve`](/cli/resolve) +
+[`ubx ship`](/cli/ship)) — see below.
+
 ## A redacted attribute
 
 If the changed attribute is one the provider flagged `Sensitive` (see
@@ -80,9 +85,9 @@ change: payments.fake_db_instance.payments-db: master_password: (redacted) -> (r
 still never the real material, since the JSON payload is the same
 already-redacted proposal the human view describes in words.
 
-## A shipped `drift_revert`'s apply history
+## A shipped `drift_revert` or `change` proposal's apply history
 
-If the proposal is a `drift_revert` that's been executed by
+If the proposal is a `drift_revert` or `change` that's been executed by
 [`ubx ship`](/cli/ship), the single-proposal view appends an "apply
 history" section — every attempt, oldest first, sealed or not, with each
 resource's own state-machine transitions and any reconciliation the
@@ -123,12 +128,59 @@ any reconciliation attempts a later re-run had to make:
       reconcile: applied at 2026-07-17T11:47:31Z
 ```
 
-A `drift_revert` that's never been shipped shows no apply history section
-at all — silence, not an empty line. `--json` carries the same information
-under `applies` (see [`--json` output](#json-output)). See
-[Apply record](/concepts/apply-record) for the full state machine this
+A `drift_revert`/`change` proposal that's never been shipped shows no apply
+history section at all — silence, not an empty line. `--json` carries the
+same information under `applies` (see [`--json` output](#json-output)).
+See [Apply record](/concepts/apply-record) for the full state machine this
 history reflects, and the real transcript this example is drawn from in
 [the reliability report](https://github.com/Ubiquex/ubiquex-cli/blob/main/docs/reliability-report.md).
+
+## A resource's genesis is a shipped create
+
+A resource created by [`ubx resolve`](/cli/resolve) + `ubx ship` (rather
+than discovered by `ubx scan`) has no `adoption` proposal at all — its
+**genesis** (the oldest entry in its address chain) is the `change`
+proposal that created it, apply history included. Real transcript: a
+two-resource AWS chain (`aws_sqs_queue` + `aws_sqs_queue_policy`) shipped,
+then drifted twice — once by a benign side effect of shipping the two
+resources together (the queue's own `policy` attribute changing once its
+policy resource attached), once by a real out-of-band `aws sqs tag-queue`
+call:
+
+```text
+$ ubx why ubi29demo.aws_sqs_queue.ubi29-queue --ledger-dir .
+ubi29demo.aws_sqs_queue.ubi29-queue: 3 proposal(s), newest first
+- drift_adopt 7621c361e11c… (2026-07-17T15:21:00Z): record drift on ubi29demo.aws_sqs_queue.ubi29-queue observed outside the ledger
+    source: cloudtrail_unattributed -- too recent for CloudTrail to have delivered a matching event yet
+    change: ubi29demo.aws_sqs_queue.ubi29-queue: tags.incident: (absent) -> "UBI-29-live-verify"
+    change: ubi29demo.aws_sqs_queue.ubi29-queue: tags_all.incident: (absent) -> "UBI-29-live-verify"
+- drift_adopt 45a635e70903… (2026-07-17T15:19:52Z): record drift on ubi29demo.aws_sqs_queue.ubi29-queue observed outside the ledger
+    change: ubi29demo.aws_sqs_queue.ubi29-queue: policy: "" -> "{\"Statement\":[{\"Action\":\"sqs:SendMessage\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::839333509514:root\"},\"Resource\":\"*\",\"Sid\":\"AllowAccountSend\"}],\"Version\":\"2012-10-17\"}"
+    change: ubi29demo.aws_sqs_queue.ubi29-queue: region: null -> "us-east-1"
+- change 533d958735cc… (2026-07-17T15:15:48Z): UBI-29 live verify: SQS queue + policy, Fleet visibility
+apply history:
+  attempt 1: outcome=applied
+    ubi29demo.aws_sqs_queue.ubi29-queue:
+      pending at 2026-07-17T15:17:22Z
+      in_flight at 2026-07-17T15:17:23Z
+      applied at 2026-07-17T15:17:49Z
+    ubi29demo.aws_sqs_queue_policy.ubi29-queue-policy:
+      pending at 2026-07-17T15:17:49Z
+      in_flight at 2026-07-17T15:17:50Z
+      applied at 2026-07-17T15:18:17Z
+```
+
+The oldest entry is `change`, not `adoption` — the queue's genesis really
+is a resolved-and-shipped create, and its own apply history (bottom of the
+transcript) shows the resolve → accept → ship story alongside it, exactly
+like a `drift_revert`'s own apply history would. `ubx status`/a future
+`ubx scan` see this resource the same way, from the moment it ships — see
+[`ubx status`'s own note](/cli/status#ledger-only) — because `ubx ship`
+records a lookup key on the resource's own apply record the instant it's
+created, not something derived later. See docs/reliability-report.md's
+own UBI-29 section (in the `ubiquex-cli` repo) for the full live session
+this transcript is drawn from, including the two real (and honestly
+different) reasons the two `drift_adopt` entries above exist.
 
 ## Re-verifying a PR-merge acceptance
 
@@ -187,11 +239,11 @@ $ ubx why dc4bb1e0dd0f8ec7083d0d5e3d418121598b01de53ef3436250a9ce82364ac30 --led
 }
 ```
 
-For a shipped `drift_revert`, the single-proposal form also carries an
-`applies` array — the same [apply record](/concepts/apply-record) objects
-`ubx ship --json` itself returns, oldest attempt first, omitted entirely
-(not an empty array) for anything that isn't a `drift_revert` or has never
-been shipped:
+For a shipped `drift_revert` or `change` proposal, the single-proposal
+form also carries an `applies` array — the same
+[apply record](/concepts/apply-record) objects `ubx ship --json` itself
+returns, oldest attempt first, omitted entirely (not an empty array) for
+anything that isn't one of those two kinds, or has never been shipped:
 
 ```json
 {
@@ -253,6 +305,8 @@ meaningful when it's `true`.
 - [Why](/concepts/why) — the mental model
 - [Secrets](/concepts/secrets) — why a redacted attribute renders this way
 - [Attribution](/concepts/attribution) — how CloudTrail sources render here
+- [`ubx resolve`](/cli/resolve)/[`ubx ship`](/cli/ship) — producing and executing the `change` proposal a create-genesis chain starts from
+- [`ubx status`](/cli/status) — the fleet-wide view of the same shipped-create resources
 - [`ubx accept`](/cli/accept) — PR-merge acceptance, what `--verify-acceptance` re-checks
 - [`.ubx/config`](/cli/config) — project defaults, including `github_repo`
 - [Exit codes](/cli/exit-codes) — the 0/1/2 contract, including `--verify-acceptance`'s findings
