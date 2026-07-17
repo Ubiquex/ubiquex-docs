@@ -1,5 +1,26 @@
 # STATE — ubiquex-docs
 
+## UBI-26 (closing session): `ubx why`'s new apply-history rendering (2026-07-17, same session as the code)
+
+`ubiquex-cli`'s live adversarial-program session against real AWS found a
+real gap: `ubx why` never rendered anything about a shipped `drift_revert`'s
+own apply history. Fixed same session in the code; docs updated here too,
+since it's a real, user-visible behavior change, not internal-only.
+
+- **`cli/why.mdx`** gained a new "A shipped `drift_revert`'s apply history"
+  section: the real transcript (a clean single-attempt ship, and an
+  interrupted-then-reconciled multi-attempt one), captured from the actual
+  built binary against real AWS infrastructure, not hand-written. A new
+  `--json` example showing the `applies` array.
+- **`concepts/apply-record.mdx`** and **`concepts/why.mdx`** cross-link to
+  the new section.
+- The main published reliability report itself
+  (docs/reliability-report.md) lives in `ubiquex-cli`'s own repo docs, not
+  here -- it's an internal engineering artifact this session drafted, not
+  end-user-facing CLI/concept documentation.
+
+`mint validate`/`mint broken-links` both pass clean.
+
 ## UBI-26: `ubx ship` -- the executor's first user-visible surface (2026-07-17, same session as the code)
 
 `ubiquex-cli`'s executor (docs/executor.md, docs/schema.md's apply-record

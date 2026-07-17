@@ -80,6 +80,56 @@ change: payments.fake_db_instance.payments-db: master_password: (redacted) -> (r
 still never the real material, since the JSON payload is the same
 already-redacted proposal the human view describes in words.
 
+## A shipped `drift_revert`'s apply history
+
+If the proposal is a `drift_revert` that's been executed by
+[`ubx ship`](/cli/ship), the single-proposal view appends an "apply
+history" section — every attempt, oldest first, sealed or not, with each
+resource's own state-machine transitions and any reconciliation the
+executor had to do:
+
+```text
+$ ubx why 52eabf53cfe7cf2b159608cc2da39bf8b8705ff3eb0703232ad89a913d022410 --ledger-dir .
+proposal 52eabf53cfe7cf2b159608cc2da39bf8b8705ff3eb0703232ad89a913d022410 (drift_revert)
+stack:  payments
+status: accepted
+intent: revert payments.aws_s3_bucket.ubx-states back to the ledger's recorded state
+accepted by [roozbeh] via local at 2026-07-17T11:34:19Z
+blast radius: +0 ~1 -0
+change: payments.aws_s3_bucket.ubx-states: tags.hotfix: (absent) -> "incident-412"
+change: payments.aws_s3_bucket.ubx-states: tags.incident: "UBI-26-live-verify" -> (absent)
+change: payments.aws_s3_bucket.ubx-states: tags.purpose: (absent) -> "ubx-mcp-live-verify"
+apply history:
+  attempt 1: outcome=applied
+    payments.aws_s3_bucket.ubx-states:
+      pending at 2026-07-17T11:34:28Z
+      in_flight at 2026-07-17T11:34:35Z
+      applied at 2026-07-17T11:34:37Z
+```
+
+An interrupted attempt (a real `kill -9`, or any crash) shows up exactly as
+it was left — including an unsealed attempt with no recorded outcome, and
+any reconciliation attempts a later re-run had to make:
+
+```text
+  attempt 1: unsealed (interrupted or still in progress)
+    payments.aws_s3_bucket.ubx-states:
+      pending at 2026-07-17T11:43:43Z
+      in_flight at 2026-07-17T11:43:52Z
+  attempt 2: outcome=applied
+    payments.aws_s3_bucket.ubx-states:
+      pending at 2026-07-17T11:47:27Z
+      applied at 2026-07-17T11:47:31Z -- confirmed by reconciliation
+      reconcile: applied at 2026-07-17T11:47:31Z
+```
+
+A `drift_revert` that's never been shipped shows no apply history section
+at all — silence, not an empty line. `--json` carries the same information
+under `applies` (see [`--json` output](#json-output)). See
+[Apply record](/concepts/apply-record) for the full state machine this
+history reflects, and the real transcript this example is drawn from in
+[the reliability report](https://github.com/Ubiquex/ubiquex-cli/blob/main/docs/reliability-report.md).
+
 ## Re-verifying a PR-merge acceptance
 
 `--verify-acceptance` re-checks a `pr_merge` acceptance against current git
@@ -134,6 +184,23 @@ $ ubx why dc4bb1e0dd0f8ec7083d0d5e3d418121598b01de53ef3436250a9ce82364ac30 --led
 {
   "format": 1,
   "proposal": { "...": "the full proposal, same shape ubx accept/ubx scan already produce" }
+}
+```
+
+For a shipped `drift_revert`, the single-proposal form also carries an
+`applies` array — the same [apply record](/concepts/apply-record) objects
+`ubx ship --json` itself returns, oldest attempt first, omitted entirely
+(not an empty array) for anything that isn't a `drift_revert` or has never
+been shipped:
+
+```json
+{
+  "format": 1,
+  "proposal": { "...": "..." },
+  "applies": [
+    { "...": "attempt 1's full apply record" },
+    { "...": "attempt 2's, if any" }
+  ]
 }
 ```
 
