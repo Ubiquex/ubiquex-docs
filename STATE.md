@@ -1,5 +1,38 @@
 # STATE — ubiquex-docs
 
+## UBI-30 session 3: `ubx accept`/`ubx ship` gain destroys (2026-07-18, same session as the code)
+
+`ubiquex-cli`'s executor (docs/executor.md's own "Amendment (UBI-30):
+shipping destroys") gains real destroy execution this session -- sessions
+1-2 (docs-only, then resolver support) correctly didn't touch this repo.
+
+- **`cli/accept.mdx`** gained a new "Confirming a destroy" section: the
+  `--confirm-destroys` flag (a new row in the flags table too), a real
+  refused transcript (no flag, exit 1) and a real accepted one (with the
+  flag) -- both captured from the actual built binary.
+- **`cli/ship.mdx`** gained a new "Shipping a destroy" section: a real
+  end-to-end chain (`ubx scan` adopts a resource, `ubx resolve` produces a
+  destroy proposal, `ubx accept --confirm-destroys`, `ubx ship` applies
+  it) with the human-text and `--json` output both real -- the `--json`
+  transcript shows the exact `[present_matches, destroyed]` reconciliation
+  pair the destroy-specific state machine produces. The intro paragraph
+  and flags/description text no longer describe `change` proposals as
+  creates-and-modifies-only.
+- **`cli/exit-codes.mdx`**: `ubx accept`'s exit-1 row gained the new
+  `--confirm-destroys` cause. While this file was already open: `ubx
+  ship`'s own exit-2 row still said "wrong kind (not drift_revert)," never
+  updated when `change` proposals became shippable (UBI-27) -- a
+  pre-existing docs-debt item, not this session's own gap, corrected
+  opportunistically rather than left for a future session to rediscover.
+- Every transcript real, captured against the actual built binary
+  (`cmd/ubx` + `provider/internal/fakeprovider`, which itself gained real
+  destroy support this session -- a null-`PlannedState` branch and its
+  first piece of cross-call process state, so a live `ReadResource` after
+  a destroy genuinely reports the resource gone within one `ubx ship`
+  invocation).
+
+`mint validate`/`mint broken-links` both pass clean.
+
 ## UBI-30 session 2: `ubx resolve` gains destroys (2026-07-17, same session as the code)
 
 `ubiquex-cli`'s resolver (docs/resolver.md's own "Amendment (UBI-30):

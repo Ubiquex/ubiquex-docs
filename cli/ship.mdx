@@ -10,9 +10,10 @@ ubx ship <proposal-id> [flags]
 Executes an already-*accepted* [`drift_revert`](/concepts/drift) or
 `change` ([`ubx resolve`](/cli/resolve)) proposal: for a `drift_revert`,
 restores the resource's live state to match the ledger's recorded truth;
-for a `change`, creates and modifies resources for real, in real
-dependency order, feeding each resource's real applied output into any
-sibling still carrying a `$computed` marker pointing at it. **This is the
+for a `change`, creates, modifies, and destroys resources for real, in one
+combined dependency order (creates/modifies forward, destroys reversed),
+feeding each resource's real applied output into any sibling still
+carrying a `$computed` marker pointing at it. **This is the
 one `ubx` command that changes real infrastructure** —
 [`ubx accept`](/cli/accept), [`ubx why`](/cli/why),
 [`ubx status`](/cli/status), [`ubx scan`](/cli/scan),
@@ -170,6 +171,68 @@ never loses the value the second one needs.
   `applied`/`failed`. See [Apply record — the state machine](/concepts/apply-record#the-state-machine)
   for the full behavior.
 </Note>
+
+## Shipping a destroy
+
+A `change` proposal's `delta.destroys` ([`ubx resolve`'s own "Destroying a
+resource"](/cli/resolve#destroying-a-resource)) ships through the exact
+same state machine, mixed in with any creates/modifies in the same
+proposal via one combined dependency walk -- never a separate pass. Before
+the risky call, `ubx ship` re-reads the target live and compares it
+against what was signed away: present and matching proceeds; present but
+different is refused (the operator never reviewed that exact state);
+already gone is a low-friction success, never a refusal (there's nothing
+left to lose):
+
+```text
+$ ubx ship a32a2ba327df634f9fd4c95cb18ec44406fb2433a6f9f1f98766b5b58e3e7086 --provider ./fakeprovider
+applied: payments.fake_widget.old-widget
+1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+`--json` shows the two-step reconciliation this precheck-then-confirm
+shape actually produces -- `present_matches` (the live re-read, right
+before the destroy call) followed by `destroyed` (the confirmation after):
+
+```text
+$ ubx ship a32a2ba327df634f9fd4c95cb18ec44406fb2433a6f9f1f98766b5b58e3e7086 --provider ./fakeprovider --json
+```
+```json
+{
+  "apply_record": {
+    "resources": [
+      {
+        "address": {"stack": "payments", "type": "fake_widget", "name": "old-widget"},
+        "transitions": [
+          {"state": "pending", "at": "2026-07-18T00:56:30Z"},
+          {"state": "in_flight", "at": "2026-07-18T00:56:30Z"},
+          {"state": "applied", "at": "2026-07-18T00:56:30Z"}
+        ],
+        "reconciliation": [
+          {"at": "2026-07-18T00:56:30Z", "outcome": "present_matches"},
+          {"at": "2026-07-18T00:56:30Z", "outcome": "destroyed"}
+        ]
+      }
+    ],
+    "summary": {"outcome": "applied", "resources_applied": 1, "resources_failed": 0, "resources_still_unknown": 0}
+  }
+}
+```
+
+If the destroy's own `ApplyResourceChange` call times out ambiguously,
+`ubx ship` reconciles by reading the target again: gone confirms
+`destroyed` (but only because the precheck above already confirmed it was
+there moments earlier -- a bare not-found read alone is never enough to
+conclude anything); still there confirms `failed` (the call never
+landed), retried normally on the next `ubx ship` invocation. A destroy is
+idempotent the same way every other kind is -- already-`applied` (whether
+the outcome was `destroyed` or the target was already gone) is skipped
+entirely on re-run.
+
+`ubx ship` will refuse to have shipped this proposal in the first place
+unless it was accepted with [`--confirm-destroys`](/cli/accept#confirming-a-destroy)
+-- that gate lives in `ubx accept`, not here, since a proposal already
+carrying an `Acceptance` was already confirmed at that point.
 
 ## `--json` output
 

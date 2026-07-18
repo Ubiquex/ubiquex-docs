@@ -16,6 +16,7 @@ Signs a [proposal](/concepts/proposal) and appends it to the
 | Flag | Description |
 | --- | --- |
 | `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `--confirm-destroys` | required to accept any proposal with `blast_radius.destroys > 0` |
 | `--reverify-with string` | path to a provider binary: re-read the resource live and refuse to accept if it no longer matches the proposal's recorded observation (stale). Mutually exclusive with `--reverify-source` |
 | `--reverify-source string` | provider source address to acquire for reverification, e.g. `hashicorp/aws` (mutually exclusive with `--reverify-with`; requires `--reverify-provider-version`) |
 | `--reverify-provider-version string` | explicit provider version to acquire for reverification (required with `--reverify-source`) |
@@ -82,6 +83,37 @@ $ ubx accept rv-adopt.json --ledger-dir . \
     --resource-type fake_widget --resource-name registry-widget2
 accepted 151fbb18bef7e0b4344853df70d56c6df98579b43f677962c6a0b792c1ad2778 (stack payments)
 ```
+
+### Confirming a destroy
+
+Any proposal with `blast_radius.destroys > 0` is refused unless
+`--confirm-destroys` is given, every time -- the only acceptance-time check
+in this command that isn't detecting staleness or verifying evidence
+against reality. The proposal is already fully valid, resolve-time
+orphan-checked (see [`ubx resolve`'s own "Destroying a
+resource"](/cli/resolve#destroying-a-resource)), and fresh by the time
+this gate is reached -- its only job is making sure a human actually meant
+to accept something with teeth.
+
+```text
+$ ubx accept destroy.json --ledger-dir .
+Error: accept: this proposal has blast_radius.destroys > 0 -- pass --confirm-destroys to accept it
+```
+
+Nothing is written to the ledger. Exits `1`, the same tier as a blocked
+reverification or a stale cross-stack pin -- see [Exit
+codes](/cli/exit-codes).
+
+```text
+$ ubx accept destroy.json --ledger-dir . --confirm-destroys
+accepted 331ead727636764d150c9255a0f437880731c8f76cb24d6f41aa4150bfd20f6f (stack payments)
+```
+
+`--confirm-destroys` applies to both acceptance tiers -- a `--from-merge`
+acceptance carrying destroys needs it exactly as a local file does. There
+is no way to configure this away (no `.ubx/config` default, no
+environment variable) -- it's a per-invocation acknowledgment, not a
+one-time setting.
 
 ### Cross-stack pin verification
 
