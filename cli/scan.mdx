@@ -455,6 +455,33 @@ completely clean `--all` walk with nothing skipped exits `0`.
   authority this trust chain doesn't make anywhere else.
 </Note>
 
+### `--all` across multiple providers
+
+A state file spanning more than one provider's resources needs no
+`--provider`/`--source` at all with a real
+[`[providers]` table](/cli/config#multi-provider-stacks) in `.ubx/config` —
+every enumerated resource gets its own provider inferred fresh by type,
+checked against the declared set (a tfstate-imported resource has no
+ledger history of its own to carry a recorded provider forward from, so
+this always runs, for every resource, unlike `ubx status --drift`'s own
+mixed legacy/explicit case):
+
+```text
+$ ubx scan --all --tfstate prod.tfstate --stack payments --ledger-dir .
+adopted: payments.aws_db_instance.main
+{ ... }
+adopted: payments.helm_release.app
+{ ... }
+2 adopted, 0 skipped, 0 attribute(s) redacted
+```
+
+`aws_db_instance.main` routed to `hashicorp/aws`, `helm_release.app` to
+`hashicorp/helm` — each declared provider launched once, lazily, and
+reused for every resource its own schema owns. A type no declared
+provider recognizes (or one two declared providers both claim) is
+skipped with the same `provider read failed` reason a genuine read
+failure gets, never aborting the rest of the batch.
+
 ## `--json` output
 
 `--json` (single-resource scan only) replaces the human text entirely with
@@ -500,6 +527,7 @@ two entries for `--propose both`. Exit code follows the usual contract:
 - [`ubx writeback`](/cli/writeback) — the `--tf-dir` preview in a drift receipt, applied for real
 - [`ubx status`](/cli/status) — the same drift check, across every resource the ledger knows about, not just one address
 - [`ubx revert-plan`](/cli/revert-plan) — what an accepted `--propose revert` proposal produces
+- [`.ubx/config`](/cli/config) — `[providers]`/`[provider_configs]` for a multi-provider `--all` walk
 - [Onboarding an existing Terraform-managed account](/guides/onboarding) — the full `--all` walkthrough
 - [ubx + your AI assistant](/guides/mcp) — the `ubx_scan` MCP tool this command mirrors
 - [Exit codes](/cli/exit-codes) — the 0/1/2 contract

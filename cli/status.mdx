@@ -149,6 +149,48 @@ unreadable: payments.fake_widget.legacy-widget: adoption 98d37e766f62… (accept
 3 resource(s), 0 drifted, 1 unreadable
 ```
 
+## Drift across multiple providers
+
+A stack with a real [`[providers]` table](/cli/config#multi-provider-stacks)
+in `.ubx/config` needs no `--provider`/`--source` at all for `--drift` --
+each fleet entry routes to its own provider instead. A resource created or
+last touched by [`ubx ship`](/cli/ship) already has its own provider
+recorded (`ubx resolve` decided it, at resolve time); a legacy or adopted
+entry with no recorded provider of its own gets one inferred fresh by
+type, checked against every declared provider -- the identical mechanism
+a brand-new resource's own `ubx resolve` already uses, never a second one
+invented here. Either way, only the providers actually needed are
+launched, lazily, once each -- never one launch per resource:
+
+```text
+$ ubx status --ledger-dir . --drift
+clean: payments.aws_db_instance.main: adoption b4734afddffb… (accepted 2026-07-18T12:58:38Z)
+clean: payments.helm_release.app: adoption 920f73b8bf6e… (accepted 2026-07-18T12:58:38Z)
+2 resource(s), 0 drifted, 0 unreadable
+```
+
+Both resources above were adopted individually (no recorded provider of
+their own) -- `hashicorp/aws` and `hashicorp/helm` were each launched
+once, inferred by type, and reused for every resource that type owns. A
+real out-of-band change against either is caught exactly like the
+single-provider case:
+
+```text
+$ ubx status --ledger-dir . --drift
+drifted: payments.aws_db_instance.main: adoption b4734afddffb… (accepted 2026-07-18T12:58:38Z)
+drifted: payments.helm_release.app: adoption 920f73b8bf6e… (accepted 2026-07-18T12:58:38Z)
+2 resource(s), 2 drifted, 0 unreadable
+```
+
+<Note>
+  `--provider`/`--source`/`--provider-version`/`--provider-config` are
+  ignored (with a warning) once `[providers]` is declared -- the same
+  staging [`ubx resolve`'s own note](/cli/resolve) describes. A type no
+  declared provider owns, or one two declared providers both claim,
+  reports that resource `unreadable` (`provider unavailable: ...`) and
+  the walk continues -- it never aborts the rest of the report.
+</Note>
+
 ## `--json` output
 
 `--json` replaces the human text with one JSON document on stdout. Ledger-only
@@ -233,5 +275,5 @@ esac
 - [`ubx scan`](/cli/scan) — the single-address version of what `--drift` runs per resource
 - [`ubx resolve`](/cli/resolve)/[`ubx ship`](/cli/ship) — a shipped create's own lookup key, recorded at ship time, is exactly what makes it show up here
 - [Exit codes](/cli/exit-codes) — the full 0/1/2 reference across every verb
-- [`.ubx/config`](/cli/config) — project defaults, including the one deliberate exception (`--stack`) noted above
+- [`.ubx/config`](/cli/config) — project defaults, including the one deliberate exception (`--stack`) noted above, and `[providers]`/`[provider_configs]` for a multi-provider stack
 - [ubx + your AI assistant](/guides/mcp) — the `ubx_status` MCP tool this command mirrors

@@ -69,8 +69,8 @@ region = "us-east-1"
 | `provider.path` | `--provider` | [`ubx scan`](/cli/scan), [`ubx status --drift`](/cli/status) |
 | `provider.source` + `provider.version` | `--source` + `--provider-version` | [`ubx scan`](/cli/scan), [`ubx status --drift`](/cli/status) |
 | `provider_config` | `--provider-config` | anywhere a provider is configured |
-| `providers` | *(no flag equivalent)* | [`ubx resolve`](/cli/resolve), [`ubx ship`](/cli/ship) — see [Multi-provider stacks](#multi-provider-stacks), below |
-| `provider_configs` | *(no flag equivalent)* | [`ubx resolve`](/cli/resolve), [`ubx ship`](/cli/ship) — see [Multi-provider stacks](#multi-provider-stacks), below |
+| `providers` | *(no flag equivalent)* | [`ubx resolve`](/cli/resolve), [`ubx ship`](/cli/ship), [`ubx status --drift`](/cli/status), [`ubx scan --all`](/cli/scan) — see [Multi-provider stacks](#multi-provider-stacks), below |
+| `provider_configs` | *(no flag equivalent)* | [`ubx resolve`](/cli/resolve), [`ubx ship`](/cli/ship), [`ubx status --drift`](/cli/status), [`ubx scan --all`](/cli/scan) — see [Multi-provider stacks](#multi-provider-stacks), below |
 | `github_repo` | `--github-repo` | [`ubx accept --from-merge`](/cli/accept), [`ubx why --verify-acceptance`](/cli/why), [`ubx scan --surface-as`](/cli/scan) |
 | `tf_dir` | `--tf-dir` | [`ubx writeback`](/cli/writeback), [`ubx revert-plan`](/cli/revert-plan), [`ubx scan --surface-as`](/cli/scan)'s receipt preview |
 
@@ -182,11 +182,16 @@ resolved: payments: 2 create(s), 0 modify(ies), 0 destroy(s)
 ```
 
 <Note>
-  `ubx scan`/`ubx status --drift` don't read `[providers]` yet — they
-  still take a single `--provider`/`--source` per invocation, unchanged.
-  Multi-provider support there (grouping a whole fleet by each
-  resource's own recorded provider) is real, separate, not-yet-built
-  work — `ubx resolve`/`ubx ship` are what `[providers]` drives today.
+  `ubx scan --all`/`ubx status --drift` read `[providers]` too — see
+  [`ubx status`'s own multi-provider section](/cli/status#drift-across-multiple-providers)
+  and [`ubx scan`'s own](/cli/scan#--all-across-multiple-providers). A
+  fleet entry with its own recorded provider (a resource created or
+  last touched by `ubx ship`) routes straight there; a legacy/adopted
+  entry with none gets one inferred fresh by type against the declared
+  set — the identical mechanism `ubx resolve` already uses for a
+  brand-new resource. `ubx scan --type/--name` (a single, already-known
+  resource) needs no `[providers]` at all — pass `--provider`/`--source`
+  directly, exactly as a single-provider stack always has.
 </Note>
 
 ### `[k8s_audit]`
