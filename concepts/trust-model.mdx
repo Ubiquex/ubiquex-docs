@@ -1,0 +1,227 @@
+---
+title: "Why trust the record"
+description: "What the ledger proves that a PR history doesn't, and where its identity actually comes from"
+---
+
+Two skeptical questions come up early, from anyone who already runs
+infrastructure through pull requests: *"we already review changes in PRs —
+why do I need a separate ledger?"* and *"who's actually vouching for any of
+this — do I have to trust `ubx` itself?"* Both deserve a real answer, not a
+brochure one.
+
+## "We already have PR-based change tracking"
+
+A team running Atlantis, or just plain `terraform apply` gated by PR review,
+already has *some* record of intentional change. The ledger isn't a
+replacement for that review process — [`ubx accept --from-merge`](/cli/accept#pr-merge-acceptance)
+derives its own strongest acceptance tier directly from it. What it adds is
+everything a PR history structurally can't provide.
+
+### Drift is invisible to git
+
+A PR only exists for a change that went *through* a PR. A console edit, a
+`kubectl apply` from someone's laptop, an incident-response hotfix run
+directly against the cloud API — none of these ever touch git, so a
+PR-only history has nothing to say about them at all. `ubx scan` finds this
+drift by comparing live state against the ledger's own record, generates a
+`drift_adopt` proposal for it, and — where the cloud's own audit trail has
+the answer — [attributes it automatically](/concepts/attribution) to the
+actor and API call that caused it:
+
+```text
+proposal acad3e426d36fb90df66f319a56e11ae8723fd6380caf9ee0b897335c4480e3d (drift_adopt)
+  source: cloudtrail -- arn:aws:iam::123456789012:user/alice PutBucketTagging at 2026-07-11T14:02:17Z from 203.0.113.42
+```
+
+A PR history has no equivalent line to show. Reality doesn't ask permission
+to change; the ledger's job is to notice when it does, a git history's job
+is not.
+
+### Plan and apply are correlated by hash, not convention
+
+A PR comment showing `terraform plan` output and the `apply` that (you
+hope) followed it are linked by *convention* — a human reading both and
+trusting they match, or a CI pipeline's own bookkeeping. `ubx` links them
+by the proposal's own content hash instead: an accepted proposal's `id` is
+the SHA-256 of everything in it, and every later step — a reverify before
+accepting, a destroy's freshness check before shipping — re-derives that
+hash against current reality and refuses outright the moment it no longer
+matches, rather than silently applying against a plan nobody actually
+reviewed:
+
+```text
+$ ubx accept adopt.json --ledger-dir . \
+    --reverify-with ./terraform-provider-aws \
+    --resource-type fake_widget --resource-name api-cache3
+Error: accept: stale observation: reality changed since this proposal was generated: payments.fake_widget.api-cache3 recorded b5afdb3fb4bf5480300afee266988d93afe18054575db5a32ef4975b71d91334, now 028056c53f2b3ed9b25280b101479c28d7cf8f57ffe517e3556e13a0db596ff4
+```
+
+```text
+$ ubx ship <proposal-id> --provider ./fakeprovider
+pending: payments.fake_widget.solo-widget
+  terminal: destroy target drifted since it was signed away -- refusing to destroy state that was never reviewed
+1 resource(s), 0 applied, 1 failed, 0 still unknown -- outcome: failed
+```
+
+Neither of these is `ubx` being unhelpful — both are the hash-binding
+doing exactly its job: what was reviewed and what's about to be executed
+are checked to be the *same thing*, not merely assumed to be, the way a
+PR's plan-then-apply comment pair always has to be.
+
+### Incident-time lookup: resource, not commit
+
+A git history indexes by commit — to answer "what happened to this
+specific resource" you're grepping commit messages and hoping the
+resource's name (or ARN, if you're lucky) shows up verbatim somewhere
+useful. The ledger indexes by resource address instead:
+[`ubx why`](/concepts/why) answers "this resource's entire recorded
+history" directly, in one command, at 3am during an incident, newest
+first:
+
+```text
+$ ubx why payments.fake_widget.api-cache --ledger-dir .
+payments.fake_widget.api-cache: 2 proposal(s), newest first
+- drift_adopt 944279d49fe5… (2026-07-11T15:42:52Z): record drift on payments.fake_widget.api-cache observed outside the ledger
+- adoption daaa09786cd6… (2026-07-11T15:42:41Z): adopt existing payments.fake_widget.api-cache into the ledger (discovered by scan)
+```
+
+### PR comments are editable evidence; the ledger is hash-chained
+
+A PR comment or description can be edited after the fact, by anyone with
+write access, with no visible trace beyond GitHub's own edit history (which
+itself isn't part of what anyone reviewed at merge time). A proposal's
+content is exactly what its `id` hashes — recompute the hash yourself and
+you either get the same value back, or you've just proven the record was
+tampered with. Every accepted proposal also carries its predecessor's hash
+as `parent`, so the ledger is a chain, not a set of independent files: a
+proposal can't be inserted, reordered, or quietly dropped from the middle
+without breaking every hash after it. Independent verifiability, not "we
+promise we didn't edit it," is the actual property here.
+
+### The honest concession
+
+None of this is free, and it isn't free to nobody: a team whose
+infrastructure changes are *genuinely* 100% PR-gated, with no console
+access, no break-glass path, and no drift ever occurring in practice, gets
+real but smaller marginal value from a separate ledger — their git history
+already approximates a lot of what the ledger records for that specific,
+narrow slice of change. The pitch here isn't "PRs are insufficient in
+principle" — it's that reality reliably leaks around PRs (consoles exist,
+incidents happen, someone always has emergency access to *something*), and
+the ledger is what notices when it does.
+
+## Identity, without a login system of its own
+
+`ubx` has no user accounts, no login flow, and no identity provider of its
+own to stand up or trust. Every acceptance tier instead borrows an identity
+that's already authenticated by something else — and the honest answer to
+"who's vouching for this" is different, and gets progressively stronger,
+depending on which tier signed a given proposal. `ubx why`/`ubx accept`
+always record which one:
+
+```text
+accepted by [roozbeh] via local at 2026-07-11T15:42:26Z
+```
+
+```text
+accepted by [roozbeh] via pr_merge at 2026-07-11T16:10:34Z
+```
+
+### `local`: today's weakest tier, honestly labeled as such
+
+Running `ubx accept proposal.json` on your own machine records your OS
+username and the current time — nothing more. This is **not a
+cryptographic signature**: there's no key, nothing to verify independently,
+and no proof beyond "whoever ran this command was logged in as this OS
+user at the time." `ubx`'s own architecture notes this plainly: acceptance
+today is "PR merge binding ... or local `ubx accept`," with "an optional
+hardened cryptographic signing tier" named as real, deliberately deferred
+future work — not something this tier already provides. If your threat
+model requires proof of *who* signed, not just *a name recorded by* — a
+local accept alone doesn't give you that yet; a PR-merge acceptance,
+below, already does, by construction.
+
+### `pr_merge`: derived from the forge's own authenticated event
+
+`ubx accept --from-merge` never asks *you* who approved a change — it
+re-derives the answer from GitHub's own history: the merge commit
+genuinely exists in git, the merged proposal file's hash genuinely matches
+what was reviewed, and every reviewer whose most recent review was an
+approval is read back from the GitHub API itself:
+
+```text
+$ ubx accept --from-merge 1f4a193321c803340fcc3ae1d7bc387c74922763 \
+    --repo-dir . \
+    --proposal-file proposals/pending.json \
+    --github-repo acme/infra \
+    --ledger-dir .
+accepted 3ac4ad60be63780420495d6f6dc16e06c206ad5960fa0a664facce27e73ec6ae (stack payments) via PR #42, 1 approver(s)
+```
+
+This is a real step up from `local`, not just a different label on the same
+guarantee: a merge event only exists in GitHub's history if it went through
+GitHub's own authenticated, permissioned merge action — MFA, branch
+protection, and required-reviewer rules included, whatever your org has
+actually configured. `ubx` derives the acceptance record from that; it
+never just takes a caller's word for who approved what.
+
+The claim doesn't stay static, either — it's re-checkable at any later
+time, not just trusted from the moment it was first accepted:
+[`ubx why --verify-acceptance`](/cli/why#re-verifying-a-pr-merge-acceptance)
+re-derives it fresh, and reports a mismatch honestly rather than silently:
+
+```text
+$ ubx why 3ac4ad60be63780420495d6f6dc16e06c206ad5960fa0a664facce27e73ec6ae \
+    --ledger-dir . --verify-acceptance --repo-dir . --github-repo acme/infra
+--- verify-acceptance ---
+git: merge commit 1f4a193321c803340fcc3ae1d7bc387c74922763 exists in .
+git: proposals/pending.json at that commit still hashes to 3ac4ad60be63780420495d6f6dc16e06c206ad5960fa0a664facce27e73ec6ae
+github API: PR #42's approvers are unchanged ([roozbeh])
+```
+
+A reviewer later withdrawing their approval, or a merge commit vanishing
+from history, shows up here as a reported `MISMATCH` — not evidence the
+ledger entry was wrong when recorded, evidence that something has changed
+*since*.
+
+### The cloud's own audit log: for drift, automatic; for a `ship`, the same raw material, checked by hand
+
+[Drift attribution](/concepts/attribution) searches AWS CloudTrail (or GCP
+Cloud Audit Logs) automatically, every time `ubx scan` finds drift, and
+records whatever it finds — actor, event, timestamp — directly into the
+proposal. This works because the cloud's own control plane, not `ubx`,
+recorded that an action happened: the laptop that ran the mutating call
+can lie to the ledger about intent, but it can't retroactively edit
+CloudTrail's own record of the call itself.
+
+The same is true of every `ubx ship`, even though `ubx` doesn't yet
+automate the correlation for its *own* applies the way it does for drift —
+a real gap, not a design choice: an applied proposal's own apply record
+already carries the resource's identity and the exact timestamp each
+transition happened, which is precisely the material a manual CloudTrail
+`LookupEvents` query needs to independently confirm which principal's
+credentials actually executed it, the same technique attribution already
+automates for drift. Nothing about `ubx ship` prevents that cross-check
+today; nothing automates it yet either.
+
+### What each tier actually proves
+
+| Tier | What's actually being trusted |
+| --- | --- |
+| `local` | An OS username, self-reported by whoever ran the command — no cryptographic proof of identity |
+| `pr_merge` | The forge's own MFA'd, permissioned merge event and its recorded reviewers — re-verifiable at any time against live git/GitHub history |
+| *(planned, not built)* | A hardened cryptographic signing tier — `docs/architecture.md`'s own acceptance model names this as a deliberate future addition, not yet real |
+
+The ledger records which tier signed each proposal, permanently, as part
+of what it hashes — a stricter acceptance requirement adopted later never
+has to guess how a proposal from before that requirement existed was
+actually accepted.
+
+## Related
+
+- [Proposal](/concepts/proposal) — hash-based identity, and both acceptance tiers in full
+- [`ubx accept`](/cli/accept) — the local and `--from-merge` flows, `--confirm-destroys`, and freshness reverification
+- [`ubx why`](/cli/why) — `--verify-acceptance`, and reading a resource's full history back
+- [Attribution](/concepts/attribution) — how drift gets tied to a real cloud actor
+- [Ledger](/concepts/ledger) — the hash chain itself, and concurrent access
+- [Secrets](/concepts/secrets) — the other half of "what the ledger can prove without exposing too much"
