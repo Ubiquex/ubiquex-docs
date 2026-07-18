@@ -1,0 +1,287 @@
+---
+title: "Destroying infrastructure: resolve, accept, ship"
+description: "A full destroy lifecycle -- explicit intent, orphan protection, the three-way freshness precheck, and the tombstone ubx why reads back afterward"
+---
+
+Every destroy in `ubx` is explicit intent, signed, and freshness-checked
+immediately before the risky call -- never inferred from a resource simply
+being absent from an intent file, and never applied against state nobody
+actually reviewed. This guide walks the full lifecycle: authoring a
+`destroys[]` entry, [`ubx resolve`](/cli/resolve)'s orphan protection,
+[`ubx accept --confirm-destroys`](/cli/accept#confirming-a-destroy), and
+[`ubx ship`](/cli/ship)'s own precheck-then-confirm state machine -- ending
+with [`ubx why`](/cli/why) reading the complete biography, genesis to
+tombstone. Every transcript below is real, against the actual built binary.
+
+## Authoring the intent
+
+A destroy is a dedicated, top-level `destroys` list -- canonical addresses
+(`<stack>.<type>.<name>`), never an `"op": "destroy"` value on a
+`resources[]` entry:
+
+```json
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "payments",
+  "intent": {"summary": "decommission the old widget"},
+  "resources": [],
+  "destroys": ["payments.fake_widget.old-widget"]
+}
+```
+
+A resource the ledger knows about that an intent file simply doesn't
+mention is never a destroy signal -- only an address explicitly named here
+is removed. See [`ubx resolve`'s own "Destroying a
+resource"](/cli/resolve#destroying-a-resource) for the full authoring
+reference, including mixing `destroys` with `resources[]` modifies in the
+same file.
+
+## 1. Resolve
+
+```text
+$ ubx resolve destroy-intent.json --provider ./fakeprovider --ledger-dir . --out destroy-resolved.json
+resolved: payments: 0 create(s), 0 modify(ies), 1 destroy(s)
+```
+
+The resolved proposal carries the target's **full** recorded state inline
+(`delta.destroys[].state`) -- not just the attributes that changed the way
+a modify's `before`/`after` do, since everything about the resource is
+being lost, not a subset of it:
+
+```json
+{
+  "delta": {
+    "destroys": [
+      {
+        "address": {"stack": "payments", "type": "fake_widget", "name": "old-widget"},
+        "state": {"id": "old-widget", "name": null, "tags": {}}
+      }
+    ]
+  },
+  "resolution": {
+    "inputs": [
+      {
+        "kind": "destroy_target",
+        "resource": "payments.fake_widget.old-widget",
+        "observed_hash": "c9c672b5a57e403a38cc0d6d2e1381f458e50758d9d0f4117477526a620b426a",
+        "lookup": {"id": "old-widget"}
+      }
+    ]
+  }
+}
+```
+
+`observed_hash` is what [`ubx ship`'s own freshness precheck](#3-ship)
+re-verifies against, immediately before the destroy call -- not just once,
+here at resolve time.
+
+### Orphan protection
+
+Destroying a resource another live resource still depends on is refused,
+checked against the whole ledger's own history, not just this intent file:
+
+```text
+$ ubx resolve destroy-intent.json --provider ./fakeprovider --ledger-dir .
+Error: resolve: resolve: destroy target is still referenced by a resource this proposal does not
+also destroy or update: payments.fake_widget.old-widget is still referenced by
+payments.fake_widget.mirror, which this proposal does not also destroy or update
+```
+
+Two ways to make this legal: destroy the dependent too (in the same
+`destroys` list), or repoint it away first, as a `"modify"` in the same
+intent file:
+
+```json
+{
+  "resources": [
+    {"type": "fake_widget", "name": "mirror", "op": "modify", "config": {"id": "mirror", "tags": {}}}
+  ],
+  "destroys": ["payments.fake_widget.old-widget"]
+}
+```
+
+```text
+$ ubx resolve destroy-with-repoint.json --provider ./fakeprovider --ledger-dir .
+resolved: payments: 0 create(s), 1 modify(ies), 1 destroy(s)
+```
+
+The destroy target's own `depends_on` then names the repointing modify, so
+[`ubx ship`](#3-ship) waits for it to land before destroying:
+
+```json
+{
+  "delta": {
+    "destroys": [
+      {
+        "address": {"stack": "payments", "type": "fake_widget", "name": "old-widget"},
+        "depends_on": ["payments.fake_widget.mirror"]
+      }
+    ]
+  }
+}
+```
+
+A `$ref`/`$cross` that resolves to an address this same proposal is also
+destroying is always refused, for the same reason -- referencing a value
+that's being removed in the same breath is never sound:
+
+```text
+$ ubx resolve destroy-and-ref.json --provider ./fakeprovider --ledger-dir .
+Error: resolve: resolve payments.fake_widget.mirror: resolve: $ref/$cross target is being destroyed
+in this same proposal: payments.fake_widget.old-widget.id
+```
+
+### Cross-stack orphan protection
+
+A neighbor stack pinning this stack's destroy target via `$cross` is
+checked with `--known-dependent` (repeatable, one per neighbor ledger
+worth checking):
+
+```text
+$ ubx resolve destroy-vpc.json --provider ./fakeprovider --ledger-dir . --known-dependent ../payments2
+Error: resolve: resolve: destroy target is still referenced by a resource this proposal does not
+also destroy or update: networking.fake_widget.vpc is pinned by a cross-stack reference in
+../payments2
+```
+
+Omitting `--known-dependent` doesn't mean "no dependents exist" -- it
+means none were checked, and the resolved proposal records that gap
+honestly (`resolution.inputs`' `cross_stack_orphan_check` kind,
+`status: "not_performed"`) rather than silently implying a guarantee this
+command has no way to actually make. See [`ubx resolve`'s own "Cross-stack
+orphan protection"](/cli/resolve#cross-stack-orphan-protection) for the
+full reference, including the `checked_clear` shape when nothing's found.
+
+## 2. Accept
+
+`--confirm-destroys` is required, every time, for any proposal with
+`blast_radius.destroys > 0` -- the only acceptance-time check in `ubx
+accept` that isn't detecting staleness or verifying evidence against
+reality:
+
+```text
+$ ubx accept destroy-resolved.json --ledger-dir .
+Error: accept: this proposal has blast_radius.destroys > 0 -- pass --confirm-destroys to accept it
+```
+
+```text
+$ ubx accept destroy-resolved.json --ledger-dir . --confirm-destroys
+accepted 71834d4dc7a1c367ca39ad54acfebac99354e9992d8513ee36d2f22e9931eaaa (stack payments)
+```
+
+See [`ubx accept`'s own "Confirming a
+destroy"](/cli/accept#confirming-a-destroy) -- this applies to both
+acceptance tiers, `--from-merge` included, with no way to configure it
+away.
+
+## 3. Ship
+
+`ubx ship` re-reads the target live, immediately before the risky call,
+and compares it against what was signed away -- a three-way precheck, not
+a blind trust of the signed proposal:
+
+**Present and matching** proceeds to the real destroy call:
+
+```text
+$ ubx ship 71834d4dc7a1c367ca39ad54acfebac99354e9992d8513ee36d2f22e9931eaaa --provider ./fakeprovider
+applied: payments.fake_widget.old-widget
+1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+```json
+{
+  "reconciliation": [
+    {"outcome": "present_matches"},
+    {"outcome": "destroyed"}
+  ]
+}
+```
+
+**Present but drifted since it was signed away** is refused outright, never
+reaching `in_flight` -- destroying state the operator never reviewed
+defeats the whole reason `delta.destroys[].state` is carried inline:
+
+```text
+$ ubx ship 25e51271019ca2c9556b9680a138a04bb1fcbf2f196c5b4ada094684372f8a04 --provider ./fakeprovider
+pending: payments.fake_widget.solo-widget
+  terminal: destroy target drifted since it was signed away -- refusing to destroy state that was never reviewed
+1 resource(s), 0 applied, 1 failed, 0 still unknown -- outcome: failed
+```
+
+**Already gone** is a low-friction success, never a refusal -- there's
+nothing left to lose that the operator didn't already implicitly ask to
+lose. `ApplyResourceChange` is never even called:
+
+```text
+$ ubx ship a4d89541006efb6d773d3afeee876cee667350125a648c344732c291e7c0664f --provider ./fakeprovider
+applied: payments.fake_widget.widget-a
+applied: payments.fake_widget.widget-b
+2 resource(s), 2 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+```json
+{
+  "resources": [
+    {"address": {"name": "widget-a"}, "reconciliation": [{"outcome": "present_matches"}, {"outcome": "destroyed"}]},
+    {"address": {"name": "widget-b"}, "reconciliation": [{"outcome": "already_absent"}]}
+  ]
+}
+```
+
+`widget-b` here was already gone by the time its own turn in this batch
+came -- its freshness precheck reads not-found and short-circuits straight
+to a terminal `applied` success, `already_absent`, no `in_flight`
+transition at all. See [`ubx ship`'s own "Shipping a
+destroy"](/cli/ship#shipping-a-destroy) for the full reference, including
+what happens if the destroy call itself times out ambiguously.
+
+## `ubx why` reads the tombstone
+
+The address's full biography -- genesis to tombstone, newest first:
+
+```text
+$ ubx why payments.fake_widget.old-widget --ledger-dir .
+payments.fake_widget.old-widget: 2 proposal(s), newest first
+- change 71834d4dc7a1… (2026-07-18T02:51:36Z): decommission the old widget
+    destroy: payments.fake_widget.old-widget
+apply history:
+  attempt 1: outcome=applied
+    payments.fake_widget.old-widget:
+      pending at 2026-07-18T02:51:40Z
+      in_flight at 2026-07-18T02:51:40Z
+      applied at 2026-07-18T02:51:40Z (destroyed)
+      reconcile: present_matches at 2026-07-18T02:51:40Z
+      reconcile: destroyed at 2026-07-18T02:51:40Z
+- adoption 369130a42a99… (2026-07-18T02:51:23Z): adopt existing payments.fake_widget.old-widget into the ledger (discovered by scan)
+```
+
+The terminal transition is annotated `(destroyed)` — not just a generic
+`applied` — so the `destroyed`/`already_absent` distinction this whole
+lifecycle exists to make is visible at a glance. Nothing here is ever
+erased: the destroy proposal is this address's terminal record, and every
+proposal before it (the adoption above) remains exactly as it was.
+
+`ubx status`, run again afterward, no longer reports this address at all
+— not because the ledger forgot it, but because a fully-tombstoned address
+drops out of "what to actively watch":
+
+```text
+$ ubx status --ledger-dir .
+0 resource(s) (ledger-only, no live comparison)
+```
+
+Recreating a resource under the identical address later — a genuine
+tear-down-and-rebuild — makes it reappear in both `ubx status` and a fresh
+`ubx why` exactly as if the address had never been recorded before that
+later create.
+
+## Related
+
+- [`ubx resolve`](/cli/resolve) — the intent-file format, `destroys[]`, and orphan protection in full
+- [`ubx accept`](/cli/accept) — `--confirm-destroys` and both acceptance tiers
+- [`ubx ship`](/cli/ship) — the destroy state machine, reconciliation, and the eventual-consistency caveat
+- [`ubx why`](/cli/why) — the destroyed/already_absent rendering, and a resource's full history
+- [`ubx status`](/cli/status) — why a tombstoned address stops appearing here
+- [Creating real infrastructure](/guides/create-flow) — the other half of a resource's lifecycle
+- [Exit codes](/cli/exit-codes) — the 0/1/2 contract every step above follows

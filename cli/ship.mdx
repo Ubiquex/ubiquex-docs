@@ -219,8 +219,57 @@ $ ubx ship a32a2ba327df634f9fd4c95cb18ec44406fb2433a6f9f1f98766b5b58e3e7086 --pr
 }
 ```
 
-If the destroy's own `ApplyResourceChange` call times out ambiguously,
-`ubx ship` reconciles by reading the target again: gone confirms
+If the target is present but **drifted** from what was signed away, the
+destroy is refused outright -- never reaching `in_flight`, never calling
+`ApplyResourceChange` at all. Destroying state the operator never actually
+reviewed defeats the whole reason `delta.destroys[].state` is carried
+inline in the proposal:
+
+```text
+$ ubx ship 25e51271019ca2c9556b9680a138a04bb1fcbf2f196c5b4ada094684372f8a04 --provider ./fakeprovider
+pending: payments.fake_widget.solo-widget
+  terminal: destroy target drifted since it was signed away -- refusing to destroy state that was never reviewed
+1 resource(s), 0 applied, 1 failed, 0 still unknown -- outcome: failed
+```
+
+The only way past this is a fresh `ubx scan`/`ubx accept` cycle recording
+the new state, then a fresh destroy resolved and accepted against it.
+
+If the target is **already gone** by the time its own turn in this batch
+comes, that's a low-friction success, never a refusal -- there's nothing
+left to lose that the operator didn't already implicitly ask to lose:
+
+```text
+$ ubx ship a4d89541006efb6d773d3afeee876cee667350125a648c344732c291e7c0664f --provider ./fakeprovider
+applied: payments.fake_widget.widget-a
+applied: payments.fake_widget.widget-b
+2 resource(s), 2 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+```json
+{
+  "resources": [
+    {
+      "address": {"stack": "payments", "type": "fake_widget", "name": "widget-b"},
+      "transitions": [
+        {"state": "pending", "at": "2026-07-18T02:52:40Z"},
+        {"state": "applied", "at": "2026-07-18T02:52:40Z", "detail": "already absent before this attempt"}
+      ],
+      "reconciliation": [
+        {"at": "2026-07-18T02:52:40Z", "outcome": "already_absent"}
+      ]
+    }
+  ]
+}
+```
+
+`widget-b` above never reaches `in_flight` at all -- its own freshness
+precheck read comes back not-found, and that alone is enough to conclude
+`already_absent`, since nothing has landed here yet for this attempt to
+have caused it.
+
+If the destroy's own `ApplyResourceChange` call times out ambiguously
+instead, `ubx ship` reconciles by reading the target again: gone confirms
 `destroyed` (but only because the precheck above already confirmed it was
 there moments earlier -- a bare not-found read alone is never enough to
 conclude anything); still there confirms `failed` (the call never
@@ -228,6 +277,22 @@ landed), retried normally on the next `ubx ship` invocation. A destroy is
 idempotent the same way every other kind is -- already-`applied` (whether
 the outcome was `destroyed` or the target was already gone) is skipped
 entirely on re-run.
+
+<Note>
+  **A real, named limitation, not silently rounded away**: this
+  reconciliation read is retried a handful of times, quickly (a few
+  attempts, milliseconds apart) -- enough for an ordinary RPC hiccup, but
+  not for a cloud provider's own genuine deletion-visibility lag. Real AWS
+  SQS, for instance, can keep reporting a queue as present for well beyond
+  the ~60 seconds its own documentation suggests, after `DeleteQueue`
+  already succeeded. If that lag outlasts the retry budget, the resource is
+  left honestly `unknown_post_timeout` rather than guessed at either
+  way — a later, ordinary `ubx ship` re-run against the same proposal
+  reconciles it correctly once the provider's own view catches up. This is
+  a real, currently open gap in the retry budget itself (tracked
+  separately, not specific to destroys), not evidence the destroy failed
+  to land.
+</Note>
 
 `ubx ship` will refuse to have shipped this proposal in the first place
 unless it was accepted with [`--confirm-destroys`](/cli/accept#confirming-a-destroy)
