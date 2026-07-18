@@ -299,6 +299,43 @@ unless it was accepted with [`--confirm-destroys`](/cli/accept#confirming-a-dest
 -- that gate lives in `ubx accept`, not here, since a proposal already
 carrying an `Acceptance` was already confirmed at that point.
 
+## Shipping across multiple providers
+
+A stack with a real [`[providers]` table](/cli/config#multi-provider-stacks)
+in `.ubx/config` ships a `change` proposal spanning more than one
+provider binary as ONE signed unit -- `ubx resolve` already recorded
+which provider owns each resource; `ubx ship` reads that back and
+launches each one lazily, only the providers this specific proposal's
+own resources actually need, each configured from its own
+`[provider_configs]` entry. `--provider`/`--source`/`--provider-config`
+are ignored (with a warning) once `[providers]` is declared -- the same
+staging [`ubx resolve`'s own note](/cli/resolve) describes.
+
+A resource whose own provider can't launch at all fails on its own,
+terminally -- it never blocks a sibling resource against a different,
+already-fine provider:
+
+```text
+$ ubx ship 9927129ddc5f0ba5fc14fd18c6bbd55ac39caf00cdcc54614fee11d0283ab22c --ledger-dir .
+pending: payments.aws_db_instance.main
+  terminal: provider unavailable: provider "hashicorp/aws" is pinned to 6.61.0 in this stack's [providers] config, but this proposal recorded 6.60.0 -- re-resolve against the current config
+```
+
+The transcript above is a version pin moving out from under an
+already-signed proposal (`[providers]`'s own pin advanced to `6.61.0`
+after this proposal was resolved and signed against `6.60.0`) -- refused
+outright, never silently launched against whichever version happens to
+be current. A launch failure for an unreachable registry or bad
+credentials reports the identical shape (`provider unavailable: ...`,
+naming the real cause) -- the outcome seals `partially_applied` when at
+least one other resource, against a different provider, still lands
+normally.
+
+<Note>
+  `ubx scan`/`ubx status --drift` don't read `[providers]` yet -- see
+  [`.ubx/config`'s own note](/cli/config#multi-provider-stacks).
+</Note>
+
 ## `--json` output
 
 ```text
@@ -374,4 +411,4 @@ the full state machine.
 - [Secrets](/concepts/secrets) — why a redacted restore target can never be
   shipped automatically
 - [Exit codes](/cli/exit-codes) — the full 0/1/2 reference across every verb
-- [`.ubx/config`](/cli/config) — project defaults for `--provider`/`--source`/`--provider-config`
+- [`.ubx/config`](/cli/config) — project defaults for `--provider`/`--source`/`--provider-config`, and `[providers]`/`[provider_configs]` for a multi-provider stack

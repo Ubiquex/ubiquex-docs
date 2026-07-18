@@ -69,6 +69,8 @@ region = "us-east-1"
 | `provider.path` | `--provider` | [`ubx scan`](/cli/scan), [`ubx status --drift`](/cli/status) |
 | `provider.source` + `provider.version` | `--source` + `--provider-version` | [`ubx scan`](/cli/scan), [`ubx status --drift`](/cli/status) |
 | `provider_config` | `--provider-config` | anywhere a provider is configured |
+| `providers` | *(no flag equivalent)* | [`ubx resolve`](/cli/resolve), [`ubx ship`](/cli/ship) — see [Multi-provider stacks](#multi-provider-stacks), below |
+| `provider_configs` | *(no flag equivalent)* | [`ubx resolve`](/cli/resolve), [`ubx ship`](/cli/ship) — see [Multi-provider stacks](#multi-provider-stacks), below |
 | `github_repo` | `--github-repo` | [`ubx accept --from-merge`](/cli/accept), [`ubx why --verify-acceptance`](/cli/why), [`ubx scan --surface-as`](/cli/scan) |
 | `tf_dir` | `--tf-dir` | [`ubx writeback`](/cli/writeback), [`ubx revert-plan`](/cli/revert-plan), [`ubx scan --surface-as`](/cli/scan)'s receipt preview |
 
@@ -91,6 +93,101 @@ validation either way.
 A freeform table — whatever keys the provider you're using actually needs
 (`region` for AWS, say). Marshaled straight to the JSON string every
 `--provider-config` flag already accepts.
+
+### Multi-provider stacks
+
+A real stack is rarely one provider — the canonical example is an
+`aws_db_instance` a `helm_release` depends on, one payments stack, two
+provider binaries. `[providers]` declares the whole set — source →
+pinned version, explicit pins only, the same convention `[provider]`
+already uses one level up — and `[provider_configs]` gives each one its
+own configuration, keyed by that same source:
+
+```toml
+[providers]
+"hashicorp/aws"  = "6.60.0"
+"hashicorp/helm" = "3.0.2"
+
+[provider_configs."hashicorp/aws"]
+region = "us-east-1"
+
+[provider_configs."hashicorp/helm"]
+kubeconfig = "~/.kube/config"
+```
+
+Once `[providers]` is non-empty, it becomes the authority for that
+stack: `ubx resolve` launches every declared provider and asks each
+one's own schema which types it owns (never guessed from a type's own
+name) — never just the one `--provider`/`--source` used to name. A
+resolved proposal records the *actual* winner on every resource, right
+alongside it:
+
+```text
+$ ubx resolve intent.json --ledger-dir .
+resolved: payments: 2 create(s), 0 modify(ies), 0 destroy(s)
+```
+
+```json
+{
+  "delta": {
+    "creates": [
+      { "name": "main", "provider": {"source": "hashicorp/aws", "version": "6.60.0"}, "...": "..." },
+      { "name": "app", "provider": {"source": "hashicorp/helm", "version": "3.0.2"}, "...": "..." }
+    ]
+  }
+}
+```
+
+[`ubx ship`](/cli/ship) reads that same recorded `provider` field back —
+never re-inferring it — launching each one lazily, only the providers a
+given proposal's own resources actually need, each configured from its
+*own* `[provider_configs]` entry (AWS's own region config is never
+handed to Helm's `Configure` call, or vice versa). A resource whose own
+provider fails to launch fails on its own, terminally — a sibling
+resource against a different, already-fine provider is never blocked by
+it:
+
+```text
+$ ubx ship 9927129ddc5f0ba5fc14fd18c6bbd55ac39caf00cdcc54614fee11d0283ab22c --ledger-dir .
+pending: payments.aws_db_instance.main
+  terminal: provider unavailable: provider "hashicorp/aws" is pinned to 6.61.0 in this stack's [providers] config, but this proposal recorded 6.60.0 -- re-resolve against the current config
+```
+
+That specific transcript is a **version pin changing out from under an
+already-signed proposal** — `[providers]`'s own pin moved to `6.61.0`
+after this proposal was resolved and signed against `6.60.0` — refused
+outright, never silently launched against whichever version happens to
+be current. A proposal is signed against a specific provider version;
+running something other than what was reviewed is exactly the kind of
+drift this project exists to catch, not reproduce. Re-resolving against
+the current config (a fresh `ubx resolve` → `ubx accept`) clears it.
+
+<Note>
+  `[providers]`/`[provider_configs]` are entirely optional — a
+  single-provider stack (the common case today) keeps working exactly as
+  it always has: no `[providers]` table means `ubx resolve`/`ubx ship`
+  fall back to `--provider`/`--source`+`--provider-version`+
+  `--provider-config` (or `[provider]`/`[provider_config]`, above)
+  unchanged, byte for byte.
+</Note>
+
+Passing `--provider`/`--source`/`--provider-version`/`--provider-config`
+against a stack that **also** declares a real `[providers]` table
+doesn't silently pick one or the other — it warns, and the table wins:
+
+```text
+$ ubx resolve intent.json --ledger-dir . --source hashicorp/aws --provider-version 6.60.0
+warning: --source, --provider-version ignored -- this stack declares a [providers] table in .ubx/config, which is the authority for a multi-provider stack
+resolved: payments: 2 create(s), 0 modify(ies), 0 destroy(s)
+```
+
+<Note>
+  `ubx scan`/`ubx status --drift` don't read `[providers]` yet — they
+  still take a single `--provider`/`--source` per invocation, unchanged.
+  Multi-provider support there (grouping a whole fleet by each
+  resource's own recorded provider) is real, separate, not-yet-built
+  work — `ubx resolve`/`ubx ship` are what `[providers]` drives today.
+</Note>
 
 ### `[k8s_audit]`
 
