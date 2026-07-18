@@ -1,36 +1,148 @@
 ---
 title: ".ubx/config"
-description: "Project defaults, so daily commands stop repeating the same five flags"
+description: "Project defaults, cascaded per directory, in HCL, TOML, or YAML"
 ---
 
 `.ubx/config` lets a team stop repeating `--stack`, `--source`/`--provider-version`
 (or `--provider`), `--provider-config`, `--github-repo`, and `--tf-dir` on every
-`ubx` invocation. Generate one with [`ubx init`](/cli/init), or hand-write it —
-it's a plain TOML file.
+`ubx` invocation. Generate one with [`ubx init`](/cli/init), or hand-write it in
+whichever of the three supported formats you prefer.
 
-## Why TOML, not YAML
+## Formats: HCL canonical, TOML forever, YAML strict
 
-Both were on the table. TOML's grammar has no significant whitespace and no
-implicit type coercion — YAML's well-known `no`/`yes`, `on`/`off`, and
-bare-string-vs-boolean ambiguities have no TOML equivalent, since every
-value's type is unambiguous from its own syntax. For a file whose whole job
-is "the same defaults, every time," that determinism mattered more than
-YAML's familiarity. TOML is comment-native and already precedented for
-exactly this role in other developer tooling (`Cargo.toml`, `pyproject.toml`)
-— a file a human is expected to hand-edit, not a data interchange format.
+<Note>
+  One internal config shape underneath all three — the cascade, merge, and
+  provenance logic described below never knows or cares which format
+  produced a given value.
+</Note>
 
-## Discovery: nearest `.ubx/config` wins
+**HCL is canonical** — what `ubx init` writes by default, and what every
+example on this page uses. Values are literal only: no variables,
+functions, or interpolation. A stray `"${…}"` or a function call is a
+hard parse error, not a silent no-op:
 
-`ubx` looks for `.ubx/config` starting at the current working directory and
-walking upward through parent directories, stopping at the first one it
-finds — the same convention `.git` itself uses to find a repository root.
-This is **independent of `--ledger-dir`**: your project's defaults are a
+```hcl
+# .ubx/config.hcl
+stack = "payments"
+
+provider = {
+  source  = "hashicorp/aws"
+  version = "6.60.0"
+}
+```
+
+**TOML is fully supported, forever** — the original format, still
+deterministic, still exactly what `ubx init --format=toml` writes:
+
+```toml
+# .ubx/config.toml
+stack = "payments"
+
+[provider]
+source = "hashicorp/aws"
+version = "6.60.0"
+```
+
+**YAML is supported in strict mode** — `ubx init --format=yaml` writes
+fully-quoted, unambiguous output on purpose. The classic YAML footguns
+this project worried about are handled two different ways: `no`/`yes`/
+`on`/`off` already parse as plain strings (not booleans) in the YAML
+library `ubx` uses, so there's nothing to reject there; a bare, unquoted
+number that would silently lose information — `6.60` parsing as the
+float `6.6`, for instance, quietly dropping the distinction between a
+version string `"6.60"` and `"6.6"` — **is** a hard error:
+
+```text
+$ ubx config
+config: load config: parse /path/.ubx/config.yaml: /path/.ubx/config.yaml: version: "6.60" would silently narrow to 6.6 -- quote it if a string was meant (e.g. a version like "6.60"), or write its exact canonical form if a number was meant
+```
+
+Quote it and it loads cleanly:
+
+```yaml
+# .ubx/config.yaml
+provider:
+  version: "6.60"
+```
+
+Only one format is read per directory. Discovery order is
+`config.hcl` → `config.toml` → `config` (the original, extensionless
+TOML name, kept forever) → `config.yaml` — first found wins for that
+directory; a second format file sitting alongside the winner is never
+read, never merged, and never warned about.
+
+## Discovery: a per-key cascade, not just nearest-wins
+
+`ubx` walks from the current working directory upward to the filesystem
+root, collecting **every** `.ubx/config*` it finds along the way — not
+just the nearest one. Each directory contributes at most one file (per
+the format discovery order above). The values then merge **per key**,
+not per file: the nearest directory to define a given key wins that key
+specifically, and a table's keys merge independently of each other, so a
+child directory overriding one setting never wipes out its siblings from
+a parent:
+
+```hcl
+# repo root: .ubx/config.hcl
+github_repo = "acme/infra"
+tf_dir      = "./terraform"
+```
+
+```hcl
+# payments/.ubx/config.hcl
+stack = "payments"
+```
+
+```text
+$ cd payments && ubx config
+github_repo = acme/infra	<- /repo/.ubx/config.hcl
+stack = payments	<- /repo/payments/.ubx/config.hcl
+tf_dir = ./terraform	<- /repo/.ubx/config.hcl
+```
+
+The stack directory only had to declare the one key it actually differs
+on — `github_repo`/`tf_dir` came from the root without being repeated.
+This is also true across formats: a repo root's `config.toml`, an
+intermediate directory's `config.hcl`, and a leaf directory's
+`config.yaml` all merge into one cascade exactly the same way; nothing
+about the merge itself is format-specific.
+
+This is independent of `--ledger-dir`: your project's defaults are a
 property of where you're standing when you run `ubx`, not of wherever
-`--ledger-dir` happens to point (which can legitimately be a different path
-entirely, e.g. shared ledger storage outside the checkout). No config file
-anywhere up to the filesystem root isn't an error — every value it could
-have supplied just falls through to that flag's own ordinary default, or to
-"required and absent."
+`--ledger-dir` happens to point. No config file anywhere up to the
+filesystem root isn't an error — every value it could have supplied
+just falls through to that flag's own ordinary default, or to "required
+and absent."
+
+## Provenance: `ubx config`
+
+Because a cascade is powerful and can be invisibly wrong, `ubx config`
+prints every effective value and exactly which file supplied it — the
+same command shown above:
+
+```text
+ubx config
+```
+
+```text
+github_repo = acme/infra	<- /repo/.ubx/config.hcl
+stack = payments	<- /repo/payments/.ubx/config.hcl
+tf_dir = ./terraform	<- /repo/.ubx/config.hcl
+```
+
+If nothing was found anywhere in the walk:
+
+```text
+$ ubx config
+no .ubx/config found (checked every directory from here up to the filesystem root)
+```
+
+<Note>
+  `ubx config` prints exactly what the merged cascade contains,
+  including a key it also warned about as unrecognized (see "Unknown
+  keys," below) — the view's job is showing what's actually there, not
+  silently filtering a second time.
+</Note>
 
 ## Precedence
 
@@ -46,21 +158,23 @@ the state file's own basename.
 
 ## What it covers
 
-```toml
-# .ubx/config
+```hcl
+# .ubx/config.hcl
 
-stack = "payments"
+stack       = "payments"
 github_repo = "acme/infra"
-tf_dir = "./terraform"
+tf_dir      = "./terraform"
 
-[provider]
-# Pick ONE: a local binary path, or a registry source + explicit version.
-path = "./terraform-provider-aws"
-# source = "hashicorp/aws"
-# version = "6.54.0"
+provider = {
+  # Pick ONE: a local binary path, or a registry source + explicit version.
+  path = "./terraform-provider-aws"
+  # source  = "hashicorp/aws"
+  # version = "6.54.0"
+}
 
-[provider_config]
-region = "us-east-1"
+provider_config = {
+  region = "us-east-1"
+}
 ```
 
 | Key | Maps to | Used by |
@@ -81,14 +195,14 @@ region = "us-east-1"
   to get wrong by accident, and out of scope for this file on purpose.
 </Note>
 
-### `[provider]`: pick one shape
+### `provider`: pick one shape
 
 `path` (a local binary) and `source`/`version` (registry acquisition) are
 mutually exclusive, exactly like the `--provider`/`--source` flags
 themselves — config never has to re-decide that rule, it's the same
 validation either way.
 
-### `[provider_config]`
+### `provider_config`
 
 A freeform table — whatever keys the provider you're using actually needs
 (`region` for AWS, say). Marshaled straight to the JSON string every
@@ -98,24 +212,36 @@ A freeform table — whatever keys the provider you're using actually needs
 
 A real stack is rarely one provider — the canonical example is an
 `aws_db_instance` a `helm_release` depends on, one payments stack, two
-provider binaries. `[providers]` declares the whole set — source →
-pinned version, explicit pins only, the same convention `[provider]`
-already uses one level up — and `[provider_configs]` gives each one its
+provider binaries. `providers` declares the whole set — source →
+pinned version, explicit pins only, the same convention `provider`
+already uses one level up — and `provider_configs` gives each one its
 own configuration, keyed by that same source:
 
-```toml
-[providers]
-"hashicorp/aws"  = "6.60.0"
-"hashicorp/helm" = "3.0.2"
+```hcl
+providers = {
+  "hashicorp/aws"  = "6.60.0"
+  "hashicorp/helm" = "3.0.2"
+}
 
-[provider_configs."hashicorp/aws"]
-region = "us-east-1"
-
-[provider_configs."hashicorp/helm"]
-kubeconfig = "~/.kube/config"
+provider_configs = {
+  "hashicorp/aws" = {
+    region = "us-east-1"
+  }
+  "hashicorp/helm" = {
+    kubeconfig = "~/.kube/config"
+  }
+}
 ```
 
-Once `[providers]` is non-empty, it becomes the authority for that
+<Note>
+  In TOML this is `[providers]` plus `[provider_configs."hashicorp/aws"]`
+  — dotted table headers, same content. Quoted keys like
+  `"hashicorp/aws"` are only valid as *attribute-object* keys in HCL, not
+  as HCL block arguments, which is why both tables are written as
+  `key = { ... }` rather than a block.
+</Note>
+
+Once `providers` is non-empty, it becomes the authority for that
 stack: `ubx resolve` launches every declared provider and asks each
 one's own schema which types it owns (never guessed from a type's own
 name) — never just the one `--provider`/`--source` used to name. A
@@ -141,7 +267,7 @@ resolved: payments: 2 create(s), 0 modify(ies), 0 destroy(s)
 [`ubx ship`](/cli/ship) reads that same recorded `provider` field back —
 never re-inferring it — launching each one lazily, only the providers a
 given proposal's own resources actually need, each configured from its
-*own* `[provider_configs]` entry (AWS's own region config is never
+*own* `provider_configs` entry (AWS's own region config is never
 handed to Helm's `Configure` call, or vice versa). A resource whose own
 provider fails to launch fails on its own, terminally — a sibling
 resource against a different, already-fine provider is never blocked by
@@ -150,11 +276,11 @@ it:
 ```text
 $ ubx ship 9927129ddc5f0ba5fc14fd18c6bbd55ac39caf00cdcc54614fee11d0283ab22c --ledger-dir .
 pending: payments.aws_db_instance.main
-  terminal: provider unavailable: provider "hashicorp/aws" is pinned to 6.61.0 in this stack's [providers] config, but this proposal recorded 6.60.0 -- re-resolve against the current config
+  terminal: provider unavailable: provider "hashicorp/aws" is pinned to 6.61.0 in this stack's providers config, but this proposal recorded 6.60.0 -- re-resolve against the current config
 ```
 
 That specific transcript is a **version pin changing out from under an
-already-signed proposal** — `[providers]`'s own pin moved to `6.61.0`
+already-signed proposal** — `providers`'s own pin moved to `6.61.0`
 after this proposal was resolved and signed against `6.60.0` — refused
 outright, never silently launched against whichever version happens to
 be current. A proposal is signed against a specific provider version;
@@ -163,16 +289,16 @@ drift this project exists to catch, not reproduce. Re-resolving against
 the current config (a fresh `ubx resolve` → `ubx accept`) clears it.
 
 <Note>
-  `[providers]`/`[provider_configs]` are entirely optional — a
+  `providers`/`provider_configs` are entirely optional — a
   single-provider stack (the common case today) keeps working exactly as
-  it always has: no `[providers]` table means `ubx resolve`/`ubx ship`
+  it always has: no `providers` table means `ubx resolve`/`ubx ship`
   fall back to `--provider`/`--source`+`--provider-version`+
-  `--provider-config` (or `[provider]`/`[provider_config]`, above)
+  `--provider-config` (or `provider`/`provider_config`, above)
   unchanged, byte for byte.
 </Note>
 
 Passing `--provider`/`--source`/`--provider-version`/`--provider-config`
-against a stack that **also** declares a real `[providers]` table
+against a stack that **also** declares a real `providers` table
 doesn't silently pick one or the other — it warns, and the table wins:
 
 ```text
@@ -182,7 +308,7 @@ resolved: payments: 2 create(s), 0 modify(ies), 0 destroy(s)
 ```
 
 <Note>
-  `ubx scan --all`/`ubx status --drift` read `[providers]` too — see
+  `ubx scan --all`/`ubx status --drift` read `providers` too — see
   [`ubx status`'s own multi-provider section](/cli/status#drift-across-multiple-providers)
   and [`ubx scan`'s own](/cli/scan#--all-across-multiple-providers). A
   fleet entry with its own recorded provider (a resource created or
@@ -190,20 +316,21 @@ resolved: payments: 2 create(s), 0 modify(ies), 0 destroy(s)
   entry with none gets one inferred fresh by type against the declared
   set — the identical mechanism `ubx resolve` already uses for a
   brand-new resource. `ubx scan --type/--name` (a single, already-known
-  resource) needs no `[providers]` at all — pass `--provider`/`--source`
+  resource) needs no `providers` at all — pass `--provider`/`--source`
   directly, exactly as a single-provider stack always has.
 </Note>
 
-### `[k8s_audit]`
+### `k8s_audit`
 
 The one config table with no CLI flag equivalent — entirely optional,
-and unlike `[provider]`/`[provider_config]`, config-only:
+and unlike `provider`/`provider_config`, config-only:
 
-```toml
-[k8s_audit]
-cluster = "my-eks-cluster"
-region = "us-east-1"
-# log_group = "/aws/eks/my-eks-cluster/cluster"  # optional; defaults to this shape from cluster
+```hcl
+k8s_audit = {
+  cluster = "my-eks-cluster"
+  region  = "us-east-1"
+  # log_group = "/aws/eks/my-eks-cluster/cluster"  # optional; defaults to this shape from cluster
+}
 ```
 
 Which EKS cluster's control-plane audit log to search for
@@ -217,27 +344,33 @@ that implies this, so it needs its own explicit table. Absent, or
 ## Unknown keys warn, they don't fail
 
 A typo, or a field a different `ubx` version doesn't recognize, is reported
-by name and otherwise ignored — never a hard failure blocking every command
-in a project until someone fixes it:
+by name and the file it came from, and otherwise ignored — never a hard
+failure blocking every command in a project until someone fixes it. This
+works identically across all three formats:
 
 ```text
 $ ubx scan --type fake_widget --name api-cache --lookup '{"name":"api-cache"}' --ledger-dir .
-warning: /path/to/.ubx/config: unknown config key "retention_days" (ignored)
+warning: /path/to/.ubx/config.hcl: unknown config key "retention_days" (ignored)
 new: payments.fake_widget.api-cache (5c04c1c9c937a742ad32c319ffe75c550c344ed51bbee6d95dd14a12186daa4d) -- generated a "adoption" proposal
 ```
 
-A config file that isn't valid TOML *syntax* at all is a different matter —
-that's a hard error, since there's no partial, best-effort way to read
-something that doesn't parse.
+A config file that isn't valid **at all** in its own format — malformed
+TOML, an HCL file with a non-literal expression, a YAML document whose
+top level isn't a mapping — is a different matter: a hard error for the
+whole file, since there's no partial, best-effort way to read something
+that doesn't parse. It contributes nothing to the cascade, not even its
+own otherwise-fine keys.
 
 <Warning>
-  Root-level keys (`stack`, `github_repo`, `tf_dir`) must come **before**
-  any `[table]` header in the file. In TOML, a bare key written after a
+  This is TOML-specific, and doesn't apply to HCL or YAML at all: root-level
+  keys (`stack`, `github_repo`, `tf_dir`) must come **before** any `[table]`
+  header in a `.ubx/config.toml` file. In TOML, a bare key written after a
   `[table]` section belongs to that table, not the document root — no
-  matter how many blank lines separate them. `ubx init` always generates
-  them in the right order; if you're hand-editing a config and one of
-  these three keys doesn't seem to be taking effect, check it isn't
-  sitting after `[provider]` or `[provider_config]` by mistake.
+  matter how many blank lines separate them. `ubx init --format=toml`
+  always generates them in the right order; if you're hand-editing a TOML
+  config and one of these three keys doesn't seem to be taking effect,
+  check it isn't sitting after `[provider]` or `[provider_config]` by
+  mistake. HCL and YAML's own table syntax has no such ordering rule.
 </Warning>
 
 ## The short daily-command form
@@ -264,6 +397,6 @@ No `--stack`, no `--provider`, no `--provider-config` on any of them.
 
 ## Related
 
-- [`ubx init`](/cli/init) — generates a starter `.ubx/config`
+- [`ubx init`](/cli/init) — generates a starter `.ubx/config.hcl` (or `--format=toml`/`--format=yaml`)
 - [`ubx scan`](/cli/scan), [`ubx status`](/cli/status), [`ubx accept`](/cli/accept), [`ubx why`](/cli/why), [`ubx writeback`](/cli/writeback), [`ubx revert-plan`](/cli/revert-plan) — every command config applies to
-- [Attribution](/concepts/attribution#kubernetes-and-helm-eks-audit-logs) — what `[k8s_audit]` configures
+- [Attribution](/concepts/attribution#kubernetes-and-helm-eks-audit-logs) — what `k8s_audit` configures
