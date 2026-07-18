@@ -1,0 +1,254 @@
+---
+title: "A real multi-provider stack: AWS + GCP, one signed proposal"
+description: "A cross-provider $ref, resolved -> accepted -> shipped as ONE proposal, drift on both sides, both correctly attributed -- all against real infrastructure"
+---
+
+Every other create-flow guide in this section ships against exactly one
+provider. This one is the live finale for [multi-provider
+stacks](/cli/config#multi-provider-stacks): a real `aws_sqs_queue` plus a
+real `google_service_account`, in one intent file, with a genuine
+cross-provider `$ref` -- resolved, accepted, and shipped as ONE signed
+proposal against a real AWS account and a real GCP project
+(`personal-273114`). Every transcript below is real.
+
+## `.ubx/config`
+
+```toml
+stack = "payments"
+
+[providers]
+"hashicorp/aws" = "6.54.0"
+"hashicorp/google" = "7.40.0"
+
+[provider_configs."hashicorp/aws"]
+region = "us-east-1"
+
+[provider_configs."hashicorp/google"]
+project = "personal-273114"
+```
+
+## The stack
+
+An SQS queue, plus a GCP service account whose `description` holds the
+queue's own real, `Computed` ARN -- a genuine cross-provider dependency:
+the service account can't be created until AWS has actually assigned the
+queue its ARN.
+
+```json
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "payments",
+  "intent": {"summary": "payments-shaped stack: AWS SQS queue + GCP service account, live UBI-43 finale"},
+  "resources": [
+    {
+      "type": "aws_sqs_queue",
+      "name": "ubi43-payments-queue",
+      "op": "create",
+      "config": {
+        "name": "ubi43-payments-queue",
+        "tags": {"project": "ubi43-live-finale"}
+      }
+    },
+    {
+      "type": "google_service_account",
+      "name": "ubi43-payments-svc",
+      "op": "create",
+      "config": {
+        "account_id": "ubi43-payments-svc",
+        "display_name": "ubi43 payments live finale",
+        "description": {"$ref": {"to": "payments.aws_sqs_queue.ubi43-payments-queue.arn"}}
+      }
+    }
+  ]
+}
+```
+
+## 1. Resolve -- no `--provider`/`--source` at all
+
+With a real `[providers]` table in `.ubx/config`, `ubx resolve` needs
+nothing else -- each resource's own provider is inferred by type, checked
+against every declared provider's own real schema:
+
+```text
+$ ubx resolve intent.json --ledger-dir . --out change.json
+resolved: payments: 2 create(s), 0 modify(ies), 0 destroy(s)
+```
+
+The resolved proposal shows the real cross-provider dependency: the
+service account's `description` is marked `$computed`, `depends_on`
+records the queue, and each node carries the provider that will actually
+execute it:
+
+```json
+{
+  "kind": "change",
+  "delta": {
+    "creates": [
+      {
+        "config": {"name": "ubi43-payments-queue", "tags": {"project": "ubi43-live-finale"}},
+        "name": "ubi43-payments-queue",
+        "provider": {"source": "hashicorp/aws", "version": "6.54.0"},
+        "stack": "payments", "type": "aws_sqs_queue"
+      },
+      {
+        "config": {
+          "account_id": "ubi43-payments-svc",
+          "description": {"$computed": {"from": "payments.aws_sqs_queue.ubi43-payments-queue.arn"}},
+          "display_name": "ubi43 payments live finale"
+        },
+        "depends_on": ["payments.aws_sqs_queue.ubi43-payments-queue"],
+        "name": "ubi43-payments-svc",
+        "provider": {"source": "hashicorp/google", "version": "7.40.0"},
+        "stack": "payments", "type": "google_service_account"
+      }
+    ]
+  }
+}
+```
+
+## 2. Accept, 3. Ship -- one signed proposal, two real providers
+
+```text
+$ ubx accept change.json --ledger-dir .
+accepted ea9824fc00b2f356a066689f64b12253a7e97ea37699de072da273e957a06364 (stack payments)
+
+$ ubx ship ea9824fc00b2f356a066689f64b12253a7e97ea37699de072da273e957a06364 --ledger-dir .
+applied: payments.aws_sqs_queue.ubi43-payments-queue
+applied: payments.google_service_account.ubi43-payments-svc
+2 resource(s), 2 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+`hashicorp/aws` and `hashicorp/google` were each launched once, lazily,
+from the same `[providers]` table -- the queue applies first (nothing
+depends on it any other way); the service account is never attempted
+until the queue reaches `applied`, at which point its real, just-assigned
+ARN is substituted for the `$computed` marker automatically.
+
+## 4. Verify independently -- the cross-provider value is real
+
+```text
+$ curl -s -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+    "https://iam.googleapis.com/v1/projects/personal-273114/serviceAccounts/ubi43-payments-svc@personal-273114.iam.gserviceaccount.com"
+{
+  "email": "ubi43-payments-svc@personal-273114.iam.gserviceaccount.com",
+  "displayName": "ubi43 payments live finale",
+  "description": "arn:aws:sqs:us-east-1:839333509514:ubi43-payments-queue"
+}
+```
+
+The service account's own `description`, read back directly from GCP's
+own API (not from `ubx`'s own report), is byte-identical to the queue's
+real applied ARN.
+
+## Drift on both sides, both correctly attributed
+
+A real out-of-band mutation against each provider's own resource, made
+directly against each cloud's own API -- bypassing `ubx` entirely, the
+same way every other drift guide in this project does:
+
+```text
+$ aws sqs tag-queue --queue-url https://sqs.us-east-1.amazonaws.com/839333509514/ubi43-payments-queue \
+    --tags incident=out-of-band-2026-07-18 --region us-east-1
+```
+
+For the GCP half of the stack, a real `google_project_iam_custom_role`
+was added to the same stack specifically for this half of the demo (see
+the note below for why the service account itself couldn't play this
+role) -- its own `permissions` list mutated directly via the IAM REST API:
+
+```text
+$ curl -s -X PATCH ".../v1/projects/personal-273114/roles/ubi43_payments_role?updateMask=includedPermissions" \
+    -d '{"includedPermissions": ["storage.buckets.get", "storage.buckets.list"]}'
+```
+
+`ubx status --drift`, with no per-resource flags at all, correctly
+launches only the providers each entry actually needs and detects both:
+
+```text
+$ ubx status --ledger-dir . --drift
+drifted: payments.aws_sqs_queue.ubi43-payments-queue: drift_adopt ...
+drifted: payments.google_project_iam_custom_role.ubi43_payments_role: change ...
+2 resource(s) drifted, ...
+```
+
+`ubx why` shows the complete, honest biography of each -- including real
+attribution:
+
+```text
+$ ubx why payments.aws_sqs_queue.ubi43-payments-queue --ledger-dir .
+- drift_adopt 18c544684312...: record drift on payments.aws_sqs_queue.ubi43-payments-queue observed outside the ledger
+    source: cloudtrail -- arn:aws:iam::839333509514:user/roozbeh TagQueue at 2026-07-18T13:12:21Z from 93.228.76.41
+    change: payments.aws_sqs_queue.ubi43-payments-queue: tags.incident: (absent) -> "out-of-band-2026-07-18"
+
+$ ubx why payments.google_project_iam_custom_role.ubi43_payments_role --ledger-dir .
+- drift_adopt 50802788293b...: record drift on payments.google_project_iam_custom_role.ubi43_payments_role observed outside the ledger
+    source: gcp_audit zio83jdym08
+    change: payments.google_project_iam_custom_role.ubi43_payments_role: permissions: [
+            "storage.buckets.get"
+          ] -> [
+            "storage.buckets.get",
+            "storage.buckets.list"
+          ]
+```
+
+Both real events -- AWS's own `TagQueue` (real actor ARN, real source IP,
+real CloudTrail event ID) and GCP's own `UpdateRole` (real actor email) --
+correlated automatically, no manual hint needed.
+
+<Note>
+  **Why a second GCP resource, not the service account itself, carries
+  the attributed drift.** Two real, separate gaps were found live while
+  building this guide, each affecting a different half of "detect drift,
+  then attribute it": `google_service_account`'s own drift *detection*
+  works correctly through `ubx`'s ordinary automatic lookup, but its
+  audit-log entries name the resource by a numeric `unique_id` that never
+  appears in the resource's own observed state -- so its own drift is
+  real, but currently unattributable (`audit_unattributed`/
+  `no_matching_event`, filed as its own follow-up). `google_pubsub_topic`,
+  the type already proven to attribute correctly, has the opposite
+  problem: its own drift can't be *detected* at all through `ubx`'s
+  ordinary, ledger-recorded lookup (which is always a minimal `{"id":
+  ...}`, never the `name` this type's own `Read` needs to refresh
+  anything beyond identity -- see [`ubx scan`'s own GCP
+  section](/cli/lookup) for the read-side version of this gotcha).
+  `google_project_iam_custom_role` was the one real type found, live,
+  that has neither gap -- `id` alone is sufficient for both its own
+  automatic drift detection and its own audit-log correlation. Both
+  findings are real, both are documented (`conformance/registry.go` in
+  `ubiquex-cli`, and a filed follow-up issue for the destroy-side version
+  of the `google_pubsub_topic` gap, which turned out to be more serious
+  than the read-side one already known), not silently worked around.
+</Note>
+
+## Cleanup -- a real destroy, one signed proposal, four resources
+
+Every resource this session created (the queue, the service account, and
+two additional GCP resources used while chasing the drift-attribution
+findings above) was decommissioned for real, through `ubx` -- not a raw
+cloud-CLI fallback:
+
+```text
+$ ubx ship <destroy-proposal-id> --ledger-dir .
+applied: payments.google_service_account.ubi43-payments-svc
+applied: payments.aws_sqs_queue.ubi43-payments-queue
+applied: payments.google_project_iam_custom_role.ubi43_payments_role
+applied: payments.google_pubsub_topic.ubi43-payments-events
+4 resource(s), 4 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+Verified independently afterward against both clouds directly: the SQS
+queue and GCP service account are genuinely gone; the custom role is
+GCP's own correct soft-deleted state. The one exception -- the
+`google_pubsub_topic` reported destroyed by the ledger but still real and
+live on GCP -- is exactly the follow-up finding above; it was cleaned up
+by hand to leave the account genuinely clean.
+
+## Related
+
+- [`.ubx/config`'s Multi-provider stacks section](/cli/config#multi-provider-stacks) -- declaring `[providers]`/`[provider_configs]`
+- [`ubx resolve`](/cli/resolve) -- type-to-provider inference, the `$ref`/`$computed` mechanism
+- [`ubx ship`](/cli/ship) -- shipping across multiple providers, per-node routing
+- [`ubx status`](/cli/status#drift-across-multiple-providers) / [`ubx scan`](/cli/scan#--all-across-multiple-providers) -- fleet-wide drift across mixed providers
+- [Attribution](/concepts/attribution) -- CloudTrail and GCP Cloud Audit Logs, and their real correlation limits
+- [Destroying infrastructure](/guides/destroy-flow) -- the full destroy lifecycle this cleanup used
