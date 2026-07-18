@@ -233,6 +233,45 @@ $ ubx ship a32a2ba327df634f9fd4c95cb18ec44406fb2433a6f9f1f98766b5b58e3e7086 --pr
 }
 ```
 
+### A provider that reports success without it being true
+
+Real transcript (the exact GCP scenario named above, re-run with the
+fix): the provider's `ApplyResourceChange` response is a clean success —
+no error, no diagnostics — but the resource is still there once the
+read-back's full retry budget is spent:
+
+```text
+$ ubx ship ef1a7f6b8ba84f3402aac4f4cbbdac6c8e3b24d9814073d645be3f15995eb294 --provider ./terraform-provider-google --provider-config '{"project":"personal-273114"}'
+failed: ubi44.google_pubsub_topic.ubi44-fixed-1784417122
+  terminal: the provider reported a successful destroy, but a post-destroy read-back found the resource still present after the full retry budget -- the delete never actually happened
+1 resource(s), 0 applied, 1 failed, 0 still unknown -- outcome: failed
+```
+
+`ubx why` renders the full attempt, including every intervening retry
+that found the resource still present before the budget's own final
+verdict:
+
+```text
+$ ubx why ef1a7f6b8ba84f3402aac4f4cbbdac6c8e3b24d9814073d645be3f15995eb294
+...
+apply history:
+  attempt 1: outcome=failed
+    ubi44.google_pubsub_topic.ubi44-fixed-1784417122:
+      pending at 2026-07-18T23:26:15Z
+      in_flight at 2026-07-18T23:26:16Z
+      unknown_post_timeout at 2026-07-18T23:26:16Z -- provider reported a successful destroy -- verifying via a post-destroy read-back before recording it as destroyed
+      failed at 2026-07-18T23:27:13Z -- provider reported success but a post-destroy read-back found the resource still present
+      reconcile: present_matches at 2026-07-18T23:26:16Z
+      reconcile: inconclusive at 2026-07-18T23:26:17Z -- still present after a reported successful destroy -- retrying to allow for real propagation lag before concluding the provider's claim was false
+      (... further inconclusive retries, spaced per the backoff schedule ...)
+      reconcile: provider_reported_success_but_present at 2026-07-18T23:27:13Z -- the provider reported a successful destroy, but a post-destroy read-back found the resource still present after the full retry budget -- the delete never actually happened
+```
+
+Re-shipping against a provider that keeps lying fails again, the same
+way, never eventually accepting the claim. See
+[the reliability report's own UBI-44 chapter](https://github.com/Ubiquex/ubiquex-cli/blob/main/docs/reliability-report.md)
+for the full live investigation this transcript is drawn from.
+
 If the target is present but **drifted** from what was signed away, the
 destroy is refused outright -- never reaching `in_flight`, never calling
 `ApplyResourceChange` at all. Destroying state the operator never actually
@@ -282,30 +321,44 @@ precheck read comes back not-found, and that alone is enough to conclude
 `already_absent`, since nothing has landed here yet for this attempt to
 have caused it.
 
-If the destroy's own `ApplyResourceChange` call times out ambiguously
-instead, `ubx ship` reconciles by reading the target again: gone confirms
-`destroyed` (but only because the precheck above already confirmed it was
-there moments earlier -- a bare not-found read alone is never enough to
-conclude anything); still there confirms `failed` (the call never
-landed), retried normally on the next `ubx ship` invocation. A destroy is
-idempotent the same way every other kind is -- already-`applied` (whether
-the outcome was `destroyed` or the target was already gone) is skipped
+**A clean `ApplyResourceChange` response is never sufficient by itself
+to earn `destroyed`** — found live, against a real `google_pubsub_topic`:
+the provider reported success (no error, no diagnostics — the identical
+shape a genuine destroy produces) while never actually deleting the
+resource, confirmed independently via Cloud Audit Logs. So `ubx ship`
+always re-reads the target after the call, whether it reported success
+or timed out ambiguously: gone confirms `destroyed` (but only because
+the precheck above already confirmed it was there moments earlier -- a
+bare not-found read alone is never enough to conclude anything); still
+there is handled two different ways depending on what the call itself
+said. If the call was ambiguous (an RPC timeout, say), a still-present
+read is immediately conclusive — `failed`, the call never landed,
+retried normally on the next `ubx ship` invocation. If the call reported
+success, a still-present read is *not* immediately conclusive — real
+propagation lag can look identical to a lie for a while — so it's
+retried through the same backoff budget described below, resolving a
+distinctly-worded `failed` (the provider's own claim never checked out)
+only once that budget is genuinely exhausted. A destroy is idempotent
+the same way every other kind is -- already-`applied` (whether the
+outcome was `destroyed` or the target was already gone) is skipped
 entirely on re-run.
 
 <Note>
-  **A real, named limitation, not silently rounded away**: this
-  reconciliation read is retried a handful of times, quickly (a few
-  attempts, milliseconds apart) -- enough for an ordinary RPC hiccup, but
-  not for a cloud provider's own genuine deletion-visibility lag. Real AWS
-  SQS, for instance, can keep reporting a queue as present for well beyond
-  the ~60 seconds its own documentation suggests, after `DeleteQueue`
-  already succeeded. If that lag outlasts the retry budget, the resource is
-  left honestly `unknown_post_timeout` rather than guessed at either
-  way — a later, ordinary `ubx ship` re-run against the same proposal
-  reconciles it correctly once the provider's own view catches up. This is
-  a real, currently open gap in the retry budget itself (tracked
-  separately, not specific to destroys), not evidence the destroy failed
-  to land.
+  **Real cloud eventual consistency, budgeted for, not silently
+  ignored**: real AWS SQS, for instance, can keep reporting a queue as
+  present for well beyond the ~60 seconds its own documentation
+  suggests, after `DeleteQueue` already succeeded. The post-destroy
+  read-back's own retry budget is sized for this — roughly a minute of
+  backoff, starting fast (an honest, synchronously-consistent provider,
+  the common case, resolves on the very first read, no added delay at
+  all) and growing to accommodate a real slow tail. If a destroy is
+  still present once that full budget is spent, `ubx ship` calls it
+  plainly: either an ordinary `failed` (the call was ambiguous and never
+  landed) or, more seriously, `provider_reported_success_but_present`
+  (the provider's own claimed success didn't check out) — never
+  silently upgraded to `destroyed` either way, and never left in a vague
+  `unknown_post_timeout` limbo once the read-back itself gave a clear,
+  repeated answer.
 </Note>
 
 `ubx ship` will refuse to have shipped this proposal in the first place
