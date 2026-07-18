@@ -73,14 +73,15 @@ read, never merged, and never warned about.
 
 ## Discovery: a per-key cascade, not just nearest-wins
 
-`ubx` walks from the current working directory upward to the filesystem
-root, collecting **every** `.ubx/config*` it finds along the way — not
-just the nearest one. Each directory contributes at most one file (per
-the format discovery order above). The values then merge **per key**,
-not per file: the nearest directory to define a given key wins that key
-specifically, and a table's keys merge independently of each other, so a
-child directory overriding one setting never wipes out its siblings from
-a parent:
+`ubx` walks from the current working directory upward, collecting
+**every** `.ubx/config*` it finds along the way — not just the nearest
+one — until a [cascade ceiling](#cascade-ceiling-where-the-walk-stops)
+stops it. Each directory contributes at most one file (per the format
+discovery order above). The values then merge **per key**, not per file:
+the nearest directory to define a given key wins that key specifically,
+and a table's keys merge independently of each other, so a child
+directory overriding one setting never wipes out its siblings from a
+parent:
 
 ```hcl
 # repo root: .ubx/config.hcl
@@ -109,16 +110,71 @@ about the merge itself is format-specific.
 
 This is independent of `--ledger-dir`: your project's defaults are a
 property of where you're standing when you run `ubx`, not of wherever
-`--ledger-dir` happens to point. No config file anywhere up to the
-filesystem root isn't an error — every value it could have supplied
-just falls through to that flag's own ordinary default, or to "required
-and absent."
+`--ledger-dir` happens to point. No config file anywhere in the walk
+isn't an error — every value it could have supplied just falls through
+to that flag's own ordinary default, or to "required and absent."
+
+## Cascade ceiling: where the walk stops
+
+An unbounded upward walk would be exactly the kind of powerful, silently
+wrong thing worth worrying about — reading some unrelated ancestor
+directory's config just because it happened to exist. Three rules,
+checked in this order at every directory the walk visits:
+
+1. **`root = true`** — a directory can declare itself the top of the
+   cascade, editorconfig-style. That directory's own other keys still
+   apply (this is an *inclusive* stop, not "ignore this file too"); the
+   walk just never reads anything farther up.
+2. **No `root` marker anywhere → the git repo boundary is the implicit
+   ceiling.** The directory containing `.git` (a directory for an
+   ordinary checkout, a file for a worktree or submodule — either
+   counts) is still included, then the walk stops. Most projects never
+   need to write `root = true` at all — the repo root already is one.
+3. **Outside any repo → `$HOME` or the filesystem root**, reached
+   naturally by the same walk once neither of the first two rules ever
+   fires.
+
+```hcl
+# grandparent/.ubx/config.hcl
+github_repo = "should-never-be-read"
+```
+
+```hcl
+# grandparent/parent/.ubx/config.hcl
+root   = true
+tf_dir = "./terraform"
+```
+
+```hcl
+# grandparent/parent/child/.ubx/config.hcl
+stack = "payments"
+```
+
+```text
+$ cd grandparent/parent/child && ubx config
+root = true	<- /grandparent/parent/.ubx/config.hcl
+stack = payments	<- /grandparent/parent/child/.ubx/config.hcl
+tf_dir = ./terraform	<- /grandparent/parent/.ubx/config.hcl
+cascade stopped at: root marker (/grandparent/parent/.ubx/config.hcl)
+```
+
+`github_repo` from the grandparent never appears — the walk stopped at
+`root = true` before ever reaching it. A directory with no `root` key,
+inside an ordinary git checkout, gets the same protection for free:
+
+```text
+$ cd repo/payments && ubx config
+github_repo = acme/infra	<- /repo/.ubx/config.hcl
+stack = payments	<- /repo/payments/.ubx/config.hcl
+tf_dir = ./terraform	<- /repo/.ubx/config.hcl
+cascade stopped at: repo boundary (/repo)
+```
 
 ## Provenance: `ubx config`
 
 Because a cascade is powerful and can be invisibly wrong, `ubx config`
-prints every effective value and exactly which file supplied it — the
-same command shown above:
+prints every effective value and exactly which file supplied it, plus
+where and why the walk stopped:
 
 ```text
 ubx config
@@ -128,13 +184,16 @@ ubx config
 github_repo = acme/infra	<- /repo/.ubx/config.hcl
 stack = payments	<- /repo/payments/.ubx/config.hcl
 tf_dir = ./terraform	<- /repo/.ubx/config.hcl
+cascade stopped at: repo boundary (/repo)
 ```
 
-If nothing was found anywhere in the walk:
+If nothing was found anywhere in the walk, the ceiling still prints —
+there's always *some* reason the walk ended where it did:
 
 ```text
 $ ubx config
 no .ubx/config found (checked every directory from here up to the filesystem root)
+cascade stopped at: filesystem root (/)
 ```
 
 <Note>
@@ -188,6 +247,7 @@ provider_config = {
 | `github_repo` | `--github-repo` | [`ubx accept --from-merge`](/cli/accept), [`ubx why --verify-acceptance`](/cli/why), [`ubx scan --surface-as`](/cli/scan) |
 | `tf_dir` | `--tf-dir` | [`ubx writeback`](/cli/writeback), [`ubx revert-plan`](/cli/revert-plan), [`ubx scan --surface-as`](/cli/scan)'s receipt preview |
 | `ledger.store` | *(no flag equivalent)* | [`ubx resolve`](/cli/resolve), [`ubx accept`](/cli/accept) (local), [`ubx ship`](/cli/ship) — see [Ledger stores](/concepts/ledger-stores) for which commands read this so far |
+| `root` | *(no flag equivalent)* | every command, indirectly — stops the cascade walk from reading anything farther up; see [Cascade ceiling](#cascade-ceiling-where-the-walk-stops) |
 
 <Note>
   `--ledger-dir` is deliberately not one of these. A wrong provider region
@@ -390,6 +450,43 @@ own otherwise-fine keys.
   mistake. HCL and YAML's own table syntax has no such ordering rule.
 </Warning>
 
+## User-global `~/.ubx/config`
+
+A file at `~/.ubx/config` (same three-format discovery) is consulted
+too, but **outside** the cascade above entirely — it's never a layer the
+upward walk itself passes through, and it's always the single
+lowest-priority source, folded in underneath whatever the project
+cascade supplies.
+
+The reason it's structurally separate, not just deprioritized: **a
+checkout must resolve identically on every machine.** A project-truth
+key — `stack`, `providers`, `provider_configs`, `ledger` — read from a
+per-user file would mean the same commit means two different things for
+two different people. So `~/.ubx/config` is **allowlist-only**: every
+top-level key found there is checked against a small, fixed list of
+genuinely personal-preference settings — today, exactly one,
+`init_format` (see [`ubx init`](/cli/init)) — and anything else, whether
+it's a real project key or just a typo, is a **hard error**, not a
+warning:
+
+```text
+$ ubx config
+config: load config: user-global config: /home/alice/.ubx/config: "stack" is not allowed here -- user-global config may only supply personal-preference keys (currently: init_format), never project-truth keys (stack, providers, provider_configs, ledger, ...), so a checkout resolves identically on every machine; move "stack" to the project's own .ubx/config instead
+```
+
+The normal cascade's own "unknown keys warn, they don't fail" leniency
+deliberately does not extend here — a project-truth key silently
+arriving from `$HOME` is a correctness problem, not a
+forward-compatibility convenience.
+
+<Note>
+  If `$HOME` itself happens to be the cascade's own ceiling (running
+  `ubx` with no repo structure above it at all), `$HOME`'s config is
+  already read once as an ordinary cascade layer — it's never *also*
+  checked against the personal-preference allowlist a second time. A
+  file is either a cascade layer or the user-global one, never both.
+</Note>
+
 ## The short daily-command form
 
 With the config above in place:
@@ -414,7 +511,7 @@ No `--stack`, no `--provider`, no `--provider-config` on any of them.
 
 ## Related
 
-- [`ubx init`](/cli/init) — generates a starter `.ubx/config.hcl` (or `--format=toml`/`--format=yaml`)
+- [`ubx init`](/cli/init) — generates a starter `.ubx/config.hcl` (or `--format=toml`/`--format=yaml`); `init_format` is the one user-global personal-preference key today
 - [`ubx scan`](/cli/scan), [`ubx status`](/cli/status), [`ubx accept`](/cli/accept), [`ubx why`](/cli/why), [`ubx writeback`](/cli/writeback), [`ubx revert-plan`](/cli/revert-plan) — every command config applies to
 - [Attribution](/concepts/attribution#kubernetes-and-helm-eks-audit-logs) — what `k8s_audit` configures
 - [Ledger stores](/concepts/ledger-stores) — what `ledger.store` configures, and the addressing model behind it
