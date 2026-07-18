@@ -182,6 +182,52 @@ own UBI-29 section (in the `ubiquex-cli` repo) for the full live session
 this transcript is drawn from, including the two real (and honestly
 different) reasons the two `drift_adopt` entries above exist.
 
+## A resource's tombstone: destroyed via `ubx ship`
+
+A `change` proposal's own `delta.destroys` (accepted with
+[`--confirm-destroys`](/cli/accept#confirming-a-destroy), shipped by
+[`ubx ship`](/cli/ship)) is rendered here too, both the destroy entry
+itself and — once shipped — its own terminal transition annotated
+`(destroyed)` or `(already_absent)`, the same distinction the ledger's
+`reconcile:` line already carries but easy to miss without the
+annotation:
+
+```text
+$ ubx why payments.aws_sqs_queue.ubi30-killtarget --ledger-dir .
+payments.aws_sqs_queue.ubi30-killtarget: 6 proposal(s), newest first
+- change 1a916b015bc9… (2026-07-18T02:29:51Z): UBI-30 live finale: destroy the kill-9 target, for real this time, with the PlanResourceChange fix in place
+    destroy: payments.aws_sqs_queue.ubi30-killtarget
+apply history:
+  attempt 1: unsealed (interrupted or still in progress)
+    payments.aws_sqs_queue.ubi30-killtarget:
+      pending at 2026-07-18T02:30:18Z
+      in_flight at 2026-07-18T02:30:20Z
+      reconcile: present_matches at 2026-07-18T02:30:19Z
+  attempt 2: outcome=applied
+    payments.aws_sqs_queue.ubi30-killtarget:
+      pending at 2026-07-18T02:30:54Z
+      applied at 2026-07-18T02:31:32Z -- confirmed by reconciliation (destroyed)
+      reconcile: destroyed at 2026-07-18T02:31:32Z
+- adoption 765405df1179… (2026-07-18T02:29:21Z): adopt existing payments.aws_sqs_queue.ubi30-killtarget into the ledger (discovered by scan)
+```
+
+Attempt 1 here is a real `kill -9`, sent after the resource's own destroy
+call had already landed against AWS but before the executor recorded the
+result — the same interrupted-attempt shape any `drift_revert`/`change`
+proposal can show (see above), just for a destroy. Attempt 2, a plain
+re-run of `ubx ship`, reconciles it correctly: a not-found read, following
+an immediately-preceding `present_matches`, resolves `destroyed` rather
+than the ambiguous `already_absent` — and the transition line makes that
+distinction visible without having to separately read the `reconcile:`
+line below it. `already_absent` (a destroy whose target was already gone
+*before* `ubx ship` ever attempted it) renders the same way:
+`applied at <time> (already_absent)`.
+
+A fully-destroyed address also drops out of [`ubx status`'s own
+report](/cli/status#ledger-only) the moment the destroy seals — `why`'s
+own full history above is unaffected either way, since `why` always shows
+everything ever recorded for an address, tombstoned or not.
+
 ## Re-verifying a PR-merge acceptance
 
 `--verify-acceptance` re-checks a `pr_merge` acceptance against current git
