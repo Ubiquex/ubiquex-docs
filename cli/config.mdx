@@ -404,19 +404,59 @@ that implies this, so it needs its own explicit table. Absent, or
 
 ### `ledger`
 
-Which [`LedgerStore`](/concepts/ledger-stores) backs this stack:
+Which [`LedgerStore`](/concepts/ledger-stores) backs this stack, and
+optionally, per-stack `$cross` overrides:
 
 ```hcl
 ledger = {
   store = "s3://acme-ledger/acme/prod/"
+
+  external = {
+    networking = "s3://other-org-ledger/other-org/prod/"
+  }
 }
 ```
 
 Absent, or `store = "git"`, is the unchanged default — today's exact
 in-repo directory behavior, driven by `--ledger-dir` alone. A stack name
 is always appended as a further path segment automatically; it's never
-configured here. See [Ledger stores](/concepts/ledger-stores) for the
-full addressing model and exactly which commands read this table so far.
+configured here. `external` is optional: it overrides, per stack name,
+which base store a [`$cross`](/concepts/ledger-stores#cross-by-stack-name)
+reference resolves against, for the rare case where a neighbor stack
+lives under a *different* base store than your own. See
+[Ledger stores](/concepts/ledger-stores) for the full addressing model
+and exactly which commands read this table so far.
+
+<Note>
+  `ledger.external`'s own keys are quoted-key attribute-object entries
+  (`external = { networking = "..." }`), not a nested HCL block — a
+  stack name isn't always a bare HCL identifier, and quoted keys are
+  only valid in the attribute-object form, the same reason `providers`/
+  `provider_configs` are written this way too (see
+  [Multi-provider stacks](#multi-provider-stacks), above).
+</Note>
+
+`ubx config` itself derives and prints the full resolved address once a
+stack is known, either from `--stack` or from config's own `stack`
+default:
+
+```text
+$ ubx config --stack payments
+ledger.store = s3://acme-ledger/acme/prod/	<- /repo/.ubx/config.hcl
+ledger address (stack "payments"): s3://acme-ledger/acme/prod/payments/
+```
+
+Without a stack to derive against, it says so rather than guessing one:
+
+```text
+$ ubx config
+ledger.store = s3://acme-ledger/acme/prod/	<- /repo/.ubx/config.hcl
+ledger address: [ledger] store is a remote store, but no stack is known to derive it against (pass --stack)
+```
+
+No derived-address line is printed at all when `[ledger]` is absent or
+`store = "git"` — there's no address to derive, since git-local's own
+flat layout uses `--ledger-dir` directly.
 
 ## Unknown keys warn, they don't fail
 

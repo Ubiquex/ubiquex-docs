@@ -19,6 +19,7 @@ is tried as a resource address.
 | Flag | Description |
 | --- | --- |
 | `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `--stack string` | which stack's ledger to open, for a bare proposal-id argument — required only when `.ubx/config`'s `[ledger]` store is a remote store (a resource-address argument already names its own stack); unused for the default git store |
 | `--verify-acceptance` | re-derive a `pr_merge` proposal's acceptance against git history + the GitHub API and report whether it still checks out |
 | `--repo-dir string` | local git working tree to verify `--verify-acceptance`'s merge commit against (default `.`) |
 | `--github-repo string` | owner/name of the GitHub repository, for `--verify-acceptance`'s reviewer re-check (the git-history re-check runs without it) |
@@ -42,6 +43,22 @@ Each changed attribute gets its own `change:` line, `<address>: <path>:
 <before> -> <after>` — for every kind that carries a real delta
 (`drift_adopt`, `drift_revert`, `change`), not just an adoption's
 all-or-nothing snapshot.
+
+<Note>
+  A bare proposal-id argument (unlike the resource-address form below)
+  carries no stack of its own — for the default git store this is fine,
+  the flat legacy layout has only ever had one ledger per `--ledger-dir`.
+  Once a stack's own `.ubx/config` names a [remote store](/concepts/ledger-stores),
+  opening a ledger at all means knowing which stack's address to open
+  first, so `--stack` becomes required for this form specifically:
+
+  ```text
+  $ ubx why 3ff1769e2c4d2cadc8e492cce9ae5b465b9263b3f39a5aae946617ae8fc028c0
+  why: --stack is required to open a remote ledger store (.ubx/config's [ledger] store is "s3://acme-ledger/acme/prod/", not git) -- a remote store's own per-stack chain means opening one at all requires knowing which stack first
+  ```
+
+  A resource-address argument never needs it — its own `<stack>.<type>.<name>` already names the stack unambiguously.
+</Note>
 
 ## Looking up a resource's full history
 

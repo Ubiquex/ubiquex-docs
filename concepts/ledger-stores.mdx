@@ -62,9 +62,15 @@ given `--ledger-dir`. A remote store's own per-stack addressing breaks
 that assumption on purpose: opening a ledger at all means knowing which
 stack's own address to open. Where a command's own argument already
 names a stack — an intent file (`ubx resolve`), a proposal file
-(`ubx accept`) — nothing new is required. `ubx ship <proposal-id>` has
-only a bare hash to go on, so it gained a new `--stack` flag, required
-only once a stack's own config names a remote store:
+(`ubx accept`) — nothing new is required. Every command whose only
+argument is a bare hash gained a `--stack` flag, required once a
+stack's own config names a remote store: `ubx ship <proposal-id>`,
+`ubx why <proposal-id>` (a resource-address argument to `why` already
+names its own stack and needs nothing extra). `ubx status` and
+`ubx scan --all` go one step further — a remote store has no single
+"every stack" to enumerate, so `--stack` becomes outright required
+there, not just optional-with-a-fallback (see [`ubx status`](/cli/status)'s
+own note on this):
 
 ```text
 $ ubx ship 3ff1769e2c4d2cadc8e492cce9ae5b465b9263b3f39a5aae946617ae8fc028c0 --provider ./fakeprovider
@@ -106,13 +112,125 @@ address: `proposals/<id>.prop.json`, `applies/<id>.attempt-1.apply.json`,
 `heads/genesis`, and the best-effort `head-hint` cache, all under the
 stack's own `acme/prod/payments/` prefix.
 
+## `$cross` by stack name
+
+A [`$cross` reference](/concepts/proposal) can pin a neighbor either by
+an explicit `ledger_dir` (a real path — the git-local shape, permanent)
+or, once a stack is backed by a remote store, by the neighbor's own
+**stack name**:
+
+```json
+{
+  "tags": {
+    "vpc_ref": {"$cross": {"stack": "networking", "to": "networking.fake_widget.main-vpc.id"}}
+  }
+}
+```
+
+`"stack"` resolves against the *current* stack's own `[ledger].store`
+— the derived address is `<that store>/networking/`, the identical rule
+[Addressing](#addressing-derived-by-rule-never-mapped-per-stack) above
+describes, never a separately-configured path. The two forms are
+mutually exclusive; giving both is refused outright, and giving neither
+(or `"stack"` when the current stack has no base store to resolve
+against — a git-local stack) is refused too, naming `ledger_dir` as the
+git-local alternative.
+
+### `[ledger.external]`: when a neighbor lives under a different base
+
+The rare case — a neighbor stack addressed under a *different* store
+than your own — is an override table, per stack name:
+
+```hcl
+ledger = {
+  store = "s3://acme-ledger/acme/prod/"
+
+  external = {
+    "other-team" = "s3://other-team-ledger/other-team/prod/"
+  }
+}
+```
+
+A `$cross` by `"stack": "other-team"` resolves against this override
+instead of the current stack's own store; every other stack name still
+resolves against the current stack's own store as usual.
+
+## A worked example, live against real S3: two stacks, one base, `$cross` by name
+
+Two real stacks (`networking`, `payments`) under one real S3 base.
+`networking` creates a resource first:
+
+```text
+$ ubx resolve networking-intent.json --provider ./fakeprovider --out networking-resolved.json
+resolved: networking: 1 create(s), 0 modify(ies), 0 destroy(s)
+$ ubx accept networking-resolved.json
+accepted 11cb78278141bff345b955ac908e5ca07e65ace051a6469867e564c71c36f894 (stack networking)
+$ ubx ship 11cb78278141bff345b955ac908e5ca07e65ace051a6469867e564c71c36f894 --stack networking --provider ./fakeprovider
+applied: networking.fake_widget.main-vpc
+1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+`payments`' own intent file names no `ledger_dir` at all — only
+`{"$cross": {"stack": "networking", "to": "networking.fake_widget.main-vpc.id"}}`.
+Resolving it derives the real address and pins the real head:
+
+```text
+$ ubx resolve payments-intent.json --provider ./fakeprovider --out payments-resolved.json
+resolved: payments: 1 create(s), 0 modify(ies), 0 destroy(s)
+```
+
+```json
+{
+  "resolution": {
+    "inputs": [
+      {
+        "kind": "cross_stack_pin",
+        "resource": "networking.fake_widget.main-vpc",
+        "observed_hash": "88e05d8509dc31a8b493122c99634f07a70ca795322fc41590dada1ab5e3930b",
+        "pinned_head": "11cb78278141bff345b955ac908e5ca07e65ace051a6469867e564c71c36f894",
+        "ledger_dir": "s3://ubx-states/acme/prod/networking/"
+      }
+    ]
+  }
+}
+```
+
+`ledger_dir` here is fully resolved — the real S3 address `"stack"`
+derived it into, not the bare stack name. Accepting while the pin is
+fresh succeeds normally:
+
+```text
+$ ubx accept payments-resolved.json
+accepted 9082648d20a885915c80c65ddf35bff20fe5a2c3ad9fc880648ca74bdb716feb (stack payments)
+```
+
+A second `payments` proposal, resolved against the identical pin, is
+then correctly **refused** once `networking`'s real head genuinely
+advances — a real second proposal accepted against it, not a simulated
+one:
+
+```text
+$ ubx accept networking-resolved-2.json
+accepted ac5c0bf69d86bca315fd59e013727c72ad7285fb8b6723af6ed4283a1affe5d9 (stack networking)
+$ ubx accept payments-resolved-2.json
+accept: resolve: cross-stack pin is stale -- the neighbor ledger has advanced since this proposal was resolved: networking.fake_widget.main-vpc (ledger s3://ubx-states/acme/prod/networking/) pinned at 11cb78278141bff345b955ac908e5ca07e65ace051a6469867e564c71c36f894, now ac5c0bf69d86bca315fd59e013727c72ad7285fb8b6723af6ed4283a1affe5d9
+```
+
+Exit `1` — the same "resolved-time truth vs. accept-time reality"
+staleness check [row 5 of the resolver's own adversarial
+program](https://github.com/Ubiquex/ubiquex-cli/blob/main/docs/resolver-adversarial.md)
+already proved for git-local neighbors, now proven for a real remote
+one too. Reading the bucket directly afterward (not through `ubx` at
+all) confirmed every object at exactly the addresses this design
+predicts, under each stack's own prefix — cleaned up afterward.
+
 ## What's wired today, and what isn't yet
 
 <Warning>
-  Only `ubx resolve`, `ubx accept` (local acceptance), and `ubx ship`
-  read `[ledger]`'s own `store` key so far. `ubx why`, `ubx status`,
-  `ubx scan`/`--all`, `ubx revert-plan`, `ubx writeback`,
-  `ubx accept --from-merge`, and the MCP surface all still open the
+  `ubx resolve`, `ubx accept` (local acceptance), `ubx ship`, `ubx why`,
+  `ubx status`, and `ubx scan`/`--all` all read `[ledger]`'s own `store`
+  key now. `ubx revert-plan`, `ubx writeback`, `ubx propose`,
+  `ubx accept --from-merge`, and the MCP surface still open the
   git-directory store unconditionally, regardless of what `[ledger]`
   names — a real, named gap, not a silent one, queued for a follow-up
   session.
@@ -125,9 +243,17 @@ driver packages pull in the full Azure SDK and GCP's own
 monitoring/tracing stack, dozens of new dependencies apiece, confirmed
 directly rather than assumed cheap just because the code path is shared.
 
+The PR-acceptance ceremony's own remote-store mirroring (git as the
+signing surface, the remote store as the system of record, mirrored on
+accept) is designed but not built — `cli/accept.go`'s `acceptFromMerge`
+still opens git-local unconditionally, the one remaining git-local-only
+acceptance path, named as its own future slice rather than folded into
+this one.
+
 ## Related
 
 - [Ledger](/concepts/ledger) — the chain model itself, unaffected by which store holds it
-- [`.ubx/config`](/cli/config) — the cascade `[ledger]`'s own `store` key rides
-- [`ubx ship`](/cli/ship) — the new `--stack` flag
+- [`.ubx/config`](/cli/config) — the cascade `[ledger]`'s own `store`/`external` keys ride
+- [`ubx why`](/cli/why)/[`ubx status`](/cli/status)/[`ubx scan`](/cli/scan) — the rest of the CLI surface now reading `[ledger]`
+- [`ubx ship`](/cli/ship) — the `--stack` flag
 - [Why trust the record](/concepts/trust-model) — the ledger's own hash-chained identity, independent of storage location
