@@ -31,7 +31,8 @@ whole action, there's nothing to execute.
 
 | Flag | Description |
 | --- | --- |
-| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`); unused if `.ubx/config`'s `[ledger]` names a remote store |
+| `--stack string` | which stack's ledger to open — required only when `.ubx/config`'s `[ledger]` `store` is a remote store (a bare proposal id carries no stack of its own); falls back to `.ubx/config`'s `stack`, same as elsewhere |
 | `--provider string` | path to the provider binary (mutually exclusive with `--source`) |
 | `--source string` | provider source address, e.g. `hashicorp/aws` (mutually exclusive with `--provider`; requires `--provider-version`) |
 | `--provider-version string` | explicit provider version to acquire (required with `--source`) |
@@ -39,6 +40,19 @@ whole action, there's nothing to execute.
 | `--timeout duration` | overall timeout for the ship run (default `5m0s`) |
 | `--json` | emit one JSON document instead of human text — see [`--json` output](#json-output) |
 | `-h`, `--help` | help for ship |
+
+<Note>
+  If `.ubx/config`'s `[ledger]` table names a remote store,
+  `--stack` becomes required — a bare proposal id carries no stack of
+  its own to derive the store's address from, unlike `ubx resolve`
+  (which reads it from the intent file) or `ubx accept` (from the
+  proposal file). See [Ledger stores](/concepts/ledger-stores) for why.
+
+  ```text
+  $ ubx ship 3ff1769e2c4d2cadc8e492cce9ae5b465b9263b3f39a5aae946617ae8fc028c0 --provider ./fakeprovider
+  ship: --stack is required to open a remote ledger store (.ubx/config's [ledger] store is "s3://ubx-states/acme/prod/", not git) -- a remote store's own per-stack chain means opening one at all requires knowing which stack first
+  ```
+</Note>
 
 ## Example: a clean apply
 
@@ -407,6 +421,7 @@ the full state machine.
 - [Creating real infrastructure](/guides/create-flow) — a full walkthrough, live on real AWS
 - [`ubx revert-plan`](/cli/revert-plan) — the pre-acceptance (or
   manual-reconciliation) alternative that never applies anything itself
+- [Ledger stores](/concepts/ledger-stores) — remote stores, and why `--stack` becomes required for them
 - [Drift](/concepts/drift) — what a `drift_revert` proposal is
 - [Secrets](/concepts/secrets) — why a redacted restore target can never be
   shipped automatically

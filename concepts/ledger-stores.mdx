@@ -1,0 +1,133 @@
+---
+title: "Ledger stores"
+description: "Where the ledger's own JSON lives -- the in-repo git directory, or a configured remote object store"
+---
+
+Two separate storage questions, decided separately. **Authoring mediums**
+(intent files, diagrams, SDK code, dialogues) always live in git as repo
+assets — human-authored, PR-reviewed, pinned into a proposal by content
+hash. Nothing configurable there. **The ledger's own JSON** (`proposals/`,
+`applies/`) is different: it gets a configurable **store**, behind a
+`LedgerStore` interface. The in-repo git directory — today's behavior,
+and everything on this site outside this page — is the reference
+implementation and the permanent default. A remote object store (`s3://`
+today; `gs://`/`azblob://` designed, not yet wired) is for larger-than-repo
+ledgers, org-central ledgers without a checkout, and WORM/retention tiers.
+
+<Note>
+  Vocabulary: this is a ledger **store** — the config key is `store`,
+  matching the `LedgerStore` interface name — never a "backend." There's
+  no server and no database; every store holds the same
+  content-addressed, hash-chained JSON objects, just at a different
+  address.
+</Note>
+
+## Configuring a store
+
+```hcl
+# .ubx/config.hcl
+ledger = {
+  store = "s3://acme-ledger/acme/prod/"
+}
+```
+
+Absent, or `store = "git"`, is the unchanged default — every command
+behaves exactly as it always has, `--ledger-dir` and all. Naming a
+remote store instead is the only thing that changes anything.
+
+## Addressing: derived by rule, never mapped per stack
+
+A ledger address is always `<configured store>/<stack>/` — the stack
+name is an address segment, appended automatically, never configured
+separately:
+
+```
+s3://acme-ledger/acme/prod/          ← the configured store
+├── payments/{proposals,applies,heads,...}   ← stack "payments"
+└── network/{proposals,applies,heads,...}    ← stack "network"
+```
+
+A new stack needs zero setup — its own prefix appears the first time
+anything is appended to it — and each stack under a store gets its own
+independent head and hash chain (git-local's flat, single-chain layout,
+where several stacks can share one interleaved chain, is kept forever as
+the supported legacy shape; a remote store's own chain is always
+per-stack).
+
+## A real consequence: `--stack` is required to open a remote ledger
+
+Git-local's flat layout means a command never had to know a proposal's
+stack *before* opening the ledger — there's only ever one ledger for a
+given `--ledger-dir`. A remote store's own per-stack addressing breaks
+that assumption on purpose: opening a ledger at all means knowing which
+stack's own address to open. Where a command's own argument already
+names a stack — an intent file (`ubx resolve`), a proposal file
+(`ubx accept`) — nothing new is required. `ubx ship <proposal-id>` has
+only a bare hash to go on, so it gained a new `--stack` flag, required
+only once a stack's own config names a remote store:
+
+```text
+$ ubx ship 3ff1769e2c4d2cadc8e492cce9ae5b465b9263b3f39a5aae946617ae8fc028c0 --provider ./fakeprovider
+ship: --stack is required to open a remote ledger store (.ubx/config's [ledger] store is "s3://ubx-states/acme/prod/", not git) -- a remote store's own per-stack chain means opening one at all requires knowing which stack first
+```
+
+```text
+$ ubx ship 3ff1769e2c4d2cadc8e492cce9ae5b465b9263b3f39a5aae946617ae8fc028c0 --stack payments --provider ./fakeprovider
+applied: payments.fake_widget.s3livecheck
+1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+## A worked example, live against real S3
+
+The full `resolve` → `accept` → `ship` flow, backed by a real S3 bucket
+instead of a local directory — the resource itself here is a test
+fixture, but the ledger objects are genuinely written to and read back
+from S3:
+
+```text
+$ ubx resolve intent.json --provider ./fakeprovider --out resolved.json
+resolved: payments: 1 create(s), 0 modify(ies), 0 destroy(s)
+```
+
+```text
+$ ubx accept resolved.json
+accepted 3ff1769e2c4d2cadc8e492cce9ae5b465b9263b3f39a5aae946617ae8fc028c0 (stack payments)
+```
+
+```text
+$ ubx ship 3ff1769e2c4d2cadc8e492cce9ae5b465b9263b3f39a5aae946617ae8fc028c0 --stack payments --provider ./fakeprovider
+applied: payments.fake_widget.s3livecheck
+1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+Reading the bucket directly afterward (not through `ubx` at all) confirms
+the same objects the design predicts actually landed at the derived
+address: `proposals/<id>.prop.json`, `applies/<id>.attempt-1.apply.json`,
+`heads/genesis`, and the best-effort `head-hint` cache, all under the
+stack's own `acme/prod/payments/` prefix.
+
+## What's wired today, and what isn't yet
+
+<Warning>
+  Only `ubx resolve`, `ubx accept` (local acceptance), and `ubx ship`
+  read `[ledger]`'s own `store` key so far. `ubx why`, `ubx status`,
+  `ubx scan`/`--all`, `ubx revert-plan`, `ubx writeback`,
+  `ubx accept --from-merge`, and the MCP surface all still open the
+  git-directory store unconditionally, regardless of what `[ledger]`
+  names — a real, named gap, not a silent one, queued for a follow-up
+  session.
+</Warning>
+
+`gs://` (GCS) and `azblob://` (Azure Blob Storage) are designed the same
+way as `s3://` — one shared implementation, parameterized by whichever
+`gocloud.dev/blob` driver opens the URL — but aren't wired yet: their own
+driver packages pull in the full Azure SDK and GCP's own
+monitoring/tracing stack, dozens of new dependencies apiece, confirmed
+directly rather than assumed cheap just because the code path is shared.
+
+## Related
+
+- [Ledger](/concepts/ledger) — the chain model itself, unaffected by which store holds it
+- [`.ubx/config`](/cli/config) — the cascade `[ledger]`'s own `store` key rides
+- [`ubx ship`](/cli/ship) — the new `--stack` flag
+- [Why trust the record](/concepts/trust-model) — the ledger's own hash-chained identity, independent of storage location
