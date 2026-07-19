@@ -224,17 +224,69 @@ one too. Reading the bucket directly afterward (not through `ubx` at
 all) confirmed every object at exactly the addresses this design
 predicts, under each stack's own prefix — cleaned up afterward.
 
+## The PR-acceptance ceremony: git signs, the remote store records
+
+`ubx accept --from-merge`'s own verification ([`.ubx accept`](/cli/accept)'s
+own reference, [Why trust the record](/concepts/trust-model)) is entirely
+about **git and GitHub history** — the merge commit exists, the proposal
+file at that commit still hashes to the PR body's own trailer, the
+reviewers are whatever the GitHub API says right now — and none of that
+changes for a stack whose store is remote. What changes is *where the
+accepted record ends up living*, never *what's verified or how*: git
+stays the signing surface, the configured `LedgerStore` becomes the
+system of record. Once the unchanged git/GitHub verification succeeds,
+`ubx accept --from-merge` opens the stack's own configured store — the
+identical `[ledger]`-aware open local `ubx accept` already uses — and
+writes the accepted record through it, CAS-guarded exactly like every
+other accept. The git-committed proposal file is never deleted or
+treated as disposable — git history stays permanent regardless — but
+`ubx why`/`ubx status`/a later accept's own head check all read the
+mirrored, authoritative copy in the configured store from this point on,
+never the git-committed file directly.
+
+Real transcript: a PR opened and merged against a real repo, accepted
+against a stack backed by real S3:
+
+```text
+$ gh pr merge 4 --repo acme/infra --merge
+$ ubx accept --from-merge edf42bbcce8c6719d5bc97df1004b794123641a1 \
+    --repo-dir . --proposal-file .ubx/live-verify/ceremony.prop.json \
+    --github-repo acme/infra
+accepted b1f852714813431b6d62cac6c333f459e911d0cbfe69069b6d290ea6b8f06126 (stack ceremony) via PR #4, 0 approver(s)
+```
+
+Reading the bucket directly afterward (not through `ubx` at all)
+confirms the accepted record — full `acceptance.method: "pr_merge"`,
+`merge_sha`, `pr_number` — landed at exactly `<store>/<stack>/proposals/
+<id>.prop.json`, the same derived address every other command reads
+from:
+
+```text
+$ aws s3api get-object --bucket acme-ledger --key acme/prod/ceremony/proposals/b1f852714813431b6d62cac6c333f459e911d0cbfe69069b6d290ea6b8f06126.prop.json /tmp/readback.json
+$ cat /tmp/readback.json
+{
+  "...": "...",
+  "acceptance": {
+    "method": "pr_merge",
+    "merge_sha": "edf42bbcce8c6719d5bc97df1004b794123641a1",
+    "pr_number": 4,
+    "proposal_file": ".ubx/live-verify/ceremony.prop.json",
+    "accepted_at": "2026-07-19T00:09:27Z"
+  },
+  "status": "accepted"
+}
+```
+
 ## What's wired today, and what isn't yet
 
-<Warning>
-  `ubx resolve`, `ubx accept` (local acceptance), `ubx ship`, `ubx why`,
-  `ubx status`, and `ubx scan`/`--all` all read `[ledger]`'s own `store`
-  key now. `ubx revert-plan`, `ubx writeback`, `ubx propose`,
-  `ubx accept --from-merge`, and the MCP surface still open the
-  git-directory store unconditionally, regardless of what `[ledger]`
-  names — a real, named gap, not a silent one, queued for a follow-up
-  session.
-</Warning>
+<Note>
+  `ubx resolve`, `ubx accept` (both local and `--from-merge`),
+  `ubx ship`, `ubx why`, `ubx status`, `ubx scan`/`--all`,
+  `ubx revert-plan`, `ubx writeback`, and the MCP surface all read
+  `[ledger]`'s own `store` key now — the full primary CLI surface. Only
+  `ubx propose` doesn't, because it never touches a ledger at all: it
+  computes a proposal's canonical hash from a file, nothing else.
+</Note>
 
 `gs://` (GCS) and `azblob://` (Azure Blob Storage) are designed the same
 way as `s3://` — one shared implementation, parameterized by whichever
@@ -242,18 +294,16 @@ way as `s3://` — one shared implementation, parameterized by whichever
 driver packages pull in the full Azure SDK and GCP's own
 monitoring/tracing stack, dozens of new dependencies apiece, confirmed
 directly rather than assumed cheap just because the code path is shared.
-
-The PR-acceptance ceremony's own remote-store mirroring (git as the
-signing surface, the remote store as the system of record, mirrored on
-accept) is designed but not built — `cli/accept.go`'s `acceptFromMerge`
-still opens git-local unconditionally, the one remaining git-local-only
-acceptance path, named as its own future slice rather than folded into
-this one.
+Orphaned-proposal garbage collection and a cross-stack pin chain longer
+than one hop are both named, real gaps too — neither is covered by any
+adversarial row yet.
 
 ## Related
 
 - [Ledger](/concepts/ledger) — the chain model itself, unaffected by which store holds it
 - [`.ubx/config`](/cli/config) — the cascade `[ledger]`'s own `store`/`external` keys ride
-- [`ubx why`](/cli/why)/[`ubx status`](/cli/status)/[`ubx scan`](/cli/scan) — the rest of the CLI surface now reading `[ledger]`
-- [`ubx ship`](/cli/ship) — the `--stack` flag
+- [`ubx accept`](/cli/accept) — both acceptance tiers, including `--from-merge`'s own PR-ceremony reference
+- [`ubx why`](/cli/why)/[`ubx status`](/cli/status)/[`ubx scan`](/cli/scan) — the rest of the CLI surface reading `[ledger]`
+- [`ubx revert-plan`](/cli/revert-plan)/[`ubx writeback`](/cli/writeback) — both gained a `--stack` flag for the same reason `ubx why`/`ubx ship` did
+- [ubx + your AI assistant](/guides/mcp) — the MCP surface reading the same `[ledger]` table
 - [Why trust the record](/concepts/trust-model) — the ledger's own hash-chained identity, independent of storage location
