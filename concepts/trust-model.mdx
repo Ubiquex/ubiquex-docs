@@ -68,6 +68,23 @@ doing exactly its job: what was reviewed and what's about to be executed
 are checked to be the *same thing*, not merely assumed to be, the way a
 PR's plan-then-apply comment pair always has to be.
 
+A destructive proposal gets one further, deliberately hardcoded piece of
+friction on top of the hash check: `--confirm-destroys`. Approving a PR
+that happens to contain a `terraform destroy` is one click, indistinguishable
+from approving any other change; `ubx accept` refuses a proposal with any
+`blast_radius.destroys` at all unless the flag is passed explicitly, every
+time, regardless of who's accepting or which tier they're using:
+
+```text
+$ ubx accept destroy-resolved.json --ledger-dir .
+accept: this proposal has blast_radius.destroys > 0 -- pass --confirm-destroys to accept it
+```
+
+```text
+$ ubx accept destroy-resolved.json --ledger-dir . --confirm-destroys
+accepted 4c10aa040d6250481b50662801fa53348fd8dd3490927a410626f7a47af9273f (stack payments)
+```
+
 ### Incident-time lookup: resource, not commit
 
 A git history indexes by commit — to answer "what happened to this
@@ -204,6 +221,39 @@ credentials actually executed it, the same technique attribution already
 automates for drift. Nothing about `ubx ship` prevents that cross-check
 today; nothing automates it yet either.
 
+### The executor doesn't take the provider's word for it either
+
+Every tier above is about *human* identity — who's vouching for a
+decision to accept something. The same skepticism turned out to matter
+for a *machine* claim too: a Terraform provider's own `ApplyResourceChange`
+response, at the wire-protocol level `ubx` speaks directly. A real
+`google_pubsub_topic` destroy once reported a clean, error-free success —
+no diagnostics, nothing wrong with the response at all — while the real
+topic stayed live in GCP, confirmed independently via Cloud Audit Logs
+showing zero real `DeleteTopic` calls behind that "success." `ubx` no
+longer accepts a provider's own success claim for a destroy at face
+value: a post-destroy read-back is what actually earns the `destroyed`
+verdict, universally, not the provider's response by itself.
+
+```text
+$ ubx ship ef1a7f6b8ba84f3402aac4f4cbbdac6c8e3b24d9814073d645be3f15995eb294 --provider ./terraform-provider-google --provider-config '{"project":"personal-273114"}'
+failed: ubi44.google_pubsub_topic.ubi44-fixed-1784417122
+  terminal: the provider reported a successful destroy, but a post-destroy read-back found the resource still present after the full retry budget -- the delete never actually happened
+1 resource(s), 0 applied, 1 failed, 0 still unknown -- outcome: failed
+```
+
+The same asymmetry runs through every tier above, just applied one layer
+lower: a *negative* answer (a provider's real error diagnostic, a
+reviewer withdrawing approval, a merge commit vanishing from history) is
+trusted immediately, because there's no incentive to fabricate bad news
+and every one of these is independently checkable regardless. A *positive*
+claim — "this succeeded," "I approved this," "I ran this command" — is
+exactly the shape of thing that's worth independently confirming, because
+someone (or something) getting it wrong, accidentally or not, is the
+whole failure mode this project exists to catch. `ubx` extends the
+identical posture from the humans it can't fully trust to the providers
+it can't fully trust either: verify, don't just believe.
+
 ### What each tier actually proves
 
 | Tier | What's actually being trusted |
@@ -222,6 +272,8 @@ actually accepted.
 - [Proposal](/concepts/proposal) — hash-based identity, and both acceptance tiers in full
 - [`ubx accept`](/cli/accept) — the local and `--from-merge` flows, `--confirm-destroys`, and freshness reverification
 - [`ubx why`](/cli/why) — `--verify-acceptance`, and reading a resource's full history back
+- [`ubx ship`](/cli/ship) — the full destroy verification mechanism a provider's own claimed success no longer bypasses
 - [Attribution](/concepts/attribution) — how drift gets tied to a real cloud actor
 - [Ledger](/concepts/ledger) — the hash chain itself, and concurrent access
+- [Ledger stores](/concepts/ledger-stores) — the PR-acceptance ceremony's own remote-store mirroring, for a stack whose store isn't git
 - [Secrets](/concepts/secrets) — the other half of "what the ledger can prove without exposing too much"
