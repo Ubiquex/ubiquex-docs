@@ -23,6 +23,7 @@ is tried as a resource address.
 | `--verify-acceptance` | re-derive a `pr_merge` proposal's acceptance against git history + the GitHub API and report whether it still checks out |
 | `--repo-dir string` | local git working tree to verify `--verify-acceptance`'s merge commit against (default `.`) |
 | `--github-repo string` | owner/name of the GitHub repository, for `--verify-acceptance`'s reviewer re-check (the git-history re-check runs without it) |
+| `--dialogue` | if this proposal's `intent.sources` names a captured [`ubx chat`](/guides/chat) dialogue, read and render the actual conversation behind it — change proposal → the draft it came from → the real conversation. See [Rendering a captured dialogue](#rendering-a-captured-dialogue), below |
 | `--json` | emit one JSON document instead of human text — see [`--json` output](#json-output) |
 | `-h`, `--help` | help for why |
 
@@ -59,6 +60,43 @@ all-or-nothing snapshot.
 
   A resource-address argument never needs it — its own `<stack>.<type>.<name>` already names the stack unambiguously.
 </Note>
+
+## Rendering a captured dialogue
+
+If a proposal's own `intent.sources` names a dialogue captured by
+[`ubx chat`](/guides/chat), `--dialogue` walks all the way back to it —
+change proposal → the draft it came from → the actual turns typed. Real,
+unedited output, against a proposal accepted from a real chat session:
+
+```text
+$ ubx why 2467ee0b6bd83c664cb1e228d2a4adf42b262d9557c56b0223ece9ca3f64f13f --dialogue --ledger-dir .
+proposal 2467ee0b6bd83c664cb1e228d2a4adf42b262d9557c56b0223ece9ca3f64f13f (change)
+stack:  payments
+status: accepted
+intent: Create a smaller multi-AZ Postgres database for the payments service, modeled on the staging database.
+  source: dialogue dialogues/bcb5b373f239719331b717d06f5ce6e07470c97bd54145488103d7c7196237dc.dlg.json (content_hash=sha256:bcb5b373f239719331b717d06f5ce6e07470c97bd54145488103d7c7196237dc)
+  source: intent_provider claude:claude-opus-4-8 (content_hash=sha256:ba83af15bbbfbac1bed213315495b7e541ccf3bafed580454319da5bf0c1f4cd)
+accepted by [roozbeh] via local at 2026-07-27T22:34:22Z
+blast radius: +1 ~0 -0
+
+conversation (claude / claude-opus-4-8, started 2026-07-27T22:31:06Z):
+  [Turn 1, 2026-07-27T22:31:06Z]: We need a Postgres database for the payments service, like our staging database but smaller.
+  [Turn 2, 2026-07-27T22:31:23Z]: Make it multi-az.
+```
+
+`--dialogue` is purely additive — the same proposal, without the flag,
+renders exactly as the transcript at the top of this page already shows,
+with no `conversation:` section at all. A proposal with no dialogue
+source (it wasn't drafted via `ubx chat`, or the file can't be read)
+still says so explicitly rather than rendering nothing:
+
+```text
+$ ubx why 4efe22a32782139b26e99599f00e713c0b99470e7ca69a752b5f96194e8ac1e0 --dialogue --ledger-dir .
+proposal 4efe22a32782139b26e99599f00e713c0b99470e7ca69a752b5f96194e8ac1e0 (drift_adopt)
+...
+
+--dialogue: this proposal has no captured dialogue source (it wasn't drafted via `ubx chat`, or the file couldn't be read)
+```
 
 ## Looking up a resource's full history
 
@@ -375,3 +413,4 @@ meaningful when it's `true`.
 - [Exit codes](/cli/exit-codes) — the 0/1/2 contract, including `--verify-acceptance`'s findings
 - [ubx + your AI assistant](/guides/mcp) — asking this same question from Claude Code/Desktop, over MCP
 - [Why trust the record](/concepts/trust-model) — what `--verify-acceptance` and each acceptance tier actually prove
+- [Chat: interactive drafting](/guides/chat) — `ubx chat`, what `--dialogue` walks back to

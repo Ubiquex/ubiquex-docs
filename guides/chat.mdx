@@ -1,0 +1,308 @@
+---
+title: "Chat: interactive drafting"
+description: "ubx chat: refine an intent/v1 draft turn by turn, in conversation, before anything is ever reviewed or signed"
+---
+
+[The md medium](/guides/md-medium) starts from a document written once.
+`ubx chat` is the same drafting pipeline, run as a conversation instead —
+each line you type is a turn, and the whole transcript so far is
+re-drafted, from scratch, after every one.
+
+<Note>
+  **The same one rule.** The LLM's only job is transcription: turns in, an
+  intent/v1 **draft** out. It never computes a real value, never resolves a
+  reference, never touches your ledger or a cloud provider, and never
+  applies anything. `ubx chat` only ever writes a draft file (and, on
+  `/save`, the captured conversation behind it) — everything after that is
+  the exact same [`ubx resolve`](/cli/resolve) →
+  [`ubx accept`](/cli/accept) → [`ubx ship`](/cli/ship) chain any
+  hand-written intent file goes through.
+</Note>
+
+## Setup
+
+Identical to `--from-doc` — the same `[intent]` config table, same
+adapter, same key:
+
+```hcl
+# .ubx/config.hcl
+intent = {
+  adapter = "claude"
+  key_ref = { env = "ANTHROPIC_API_KEY" }
+}
+```
+
+See [`.ubx/config`'s `intent` table](/cli/config#intent) for the full
+reference.
+
+## The loop
+
+```text
+ubx chat --stack <stack> [--ledger-dir .] [--out <path>] [--timeout 3m]
+```
+
+Type a line, press enter — that's a turn. `ubx` redrafts the **entire**
+conversation so far (never an incremental patch) and shows you the
+resulting draft's own ambiguity content immediately. Two commands end the
+session:
+
+- **`/save`** — finalize. Writes the captured conversation to
+  `dialogues/<hash>.dlg.json` and the current draft to `--out` (or
+  stdout), then exits.
+- **`/quit`**, or plain EOF (closing the terminal, Ctrl-D) — abandon.
+  Nothing is written to disk, for any reason, ever, unless a session
+  reaches `/save`. There's no cleanup step involved — the whole
+  conversation lives in memory until the moment `/save` writes it, so an
+  abandoned session simply never produces a file to begin with.
+
+## A real conversation, refining a stack
+
+This is unedited output from the real Claude API, a real two-turn session
+refining the `payments` stack:
+
+```text
+$ ubx chat --stack payments --ledger-dir .
+ubx chat: type a turn and press enter. /save to finalize, /quit (or EOF) to abandon without saving anything.
+We need a Postgres database for the payments service, like our staging database but smaller.
+```
+
+That first turn redrafts and renders immediately — the same ambiguity
+render `--from-doc` shows, just after one turn instead of a whole
+document. The second turn changes the shape of the draft, not just its
+size:
+
+```text
+Make it multi-az.
+Assumptions (2):
+  - Turn 1 said 'like our staging database but smaller' but gave no explicit size. Assuming staging uses db.t3.medium, I chose db.t3.small, one tier below, to satisfy 'smaller' while remaining a reasonable Postgres instance size.
+      affects: aws_db_instance.payments-db.instance_class
+  - 'Smaller' also plausibly refers to storage; chose 20 GB allocated storage as a conservative small footprint, since no storage size was stated.
+      affects: aws_db_instance.payments-db.allocated_storage
+Defaults (3):
+  - Document said 'Postgres' with no version; defaulted engine to 'postgres' and engine_version to '15' as a current stable major version.
+      affects: aws_db_instance.payments-db.engine
+      affects: aws_db_instance.payments-db.engine_version
+  - No database name given; defaulted db_name to 'payments' matching the service.
+      affects: aws_db_instance.payments-db.db_name
+  - No master username specified; defaulted to 'payments_admin'.
+      affects: aws_db_instance.payments-db.username
+```
+
+`instance_class`/`allocated_storage` came from turn 1's own "smaller"
+ambiguity; `multi_az: true` (visible in the written draft below) came
+straight from turn 2, folded into the exact same draft — there's no
+separate "patch" object layered on top, because every turn produces one
+whole, self-contained draft. `/save` finalizes it:
+
+```text
+/save
+captured dialogue: dialogues/bcb5b373f239719331b717d06f5ce6e07470c97bd54145488103d7c7196237dc.dlg.json
+Assumptions (2):
+  - Turn 1 said 'like our staging database but smaller' but gave no explicit size. Assuming staging uses db.t3.medium, I chose db.t3.small, one tier below, to satisfy 'smaller' while remaining a reasonable Postgres instance size.
+      affects: aws_db_instance.payments-db.instance_class
+  - 'Smaller' also plausibly refers to storage; chose 20 GB allocated storage as a conservative small footprint, since no storage size was stated.
+      affects: aws_db_instance.payments-db.allocated_storage
+Defaults (3):
+  - Document said 'Postgres' with no version; defaulted engine to 'postgres' and engine_version to '15' as a current stable major version.
+      affects: aws_db_instance.payments-db.engine
+      affects: aws_db_instance.payments-db.engine_version
+  - No database name given; defaulted db_name to 'payments' matching the service.
+      affects: aws_db_instance.payments-db.db_name
+  - No master username specified; defaulted to 'payments_admin'.
+      affects: aws_db_instance.payments-db.username
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "payments",
+  "intent": {
+    "summary": "Create a smaller multi-AZ Postgres database for the payments service, modeled on the staging database.",
+    "sources": [
+      {
+        "kind": "dialogue",
+        "ref": "dialogues/bcb5b373f239719331b717d06f5ce6e07470c97bd54145488103d7c7196237dc.dlg.json",
+        "content_hash": "sha256:bcb5b373f239719331b717d06f5ce6e07470c97bd54145488103d7c7196237dc"
+      },
+      {
+        "kind": "intent_provider",
+        "ref": "claude:claude-opus-4-8",
+        "content_hash": "sha256:ba83af15bbbfbac1bed213315495b7e541ccf3bafed580454319da5bf0c1f4cd"
+      }
+    ],
+    "assumptions": [ "...": "the same two entries shown above" ],
+    "defaults": [ "...": "the same three entries shown above" ]
+  },
+  "resources": [
+    {
+      "type": "aws_db_instance",
+      "name": "payments-db",
+      "op": "create",
+      "config": {
+        "engine": "postgres",
+        "engine_version": "15",
+        "instance_class": "db.t3.small",
+        "allocated_storage": 20,
+        "multi_az": true,
+        "db_name": "payments",
+        "username": "payments_admin"
+      }
+    }
+  ]
+}
+```
+
+`instance_class`/`allocated_storage` are still `db.t3.small`/`20` — the
+same interpretation turn 1 landed on, unchanged by turn 2, exactly what
+"the whole conversation redrafts every time" should mean when a later
+turn adds something rather than contradicting anything.
+
+## What got captured, and where it lives
+
+`dialogues/bcb5b373f239719331b717d06f5ce6e07470c97bd54145488103d7c7196237dc.dlg.json`
+is content-addressed — its filename is the SHA-256 of its own full JSON
+content, the same tamper-evidence scheme every other content-hashed file
+in this project already uses. It records both turns verbatim, the
+adapter and model pinned (`claude`/`claude-opus-4-8`), a session start
+timestamp, and the final draft this session produced:
+
+```json
+{
+  "schema_version": 1,
+  "stack": "payments",
+  "adapter": "claude",
+  "model": "claude-opus-4-8",
+  "started_at": "2026-07-27T22:31:06Z",
+  "turns": [
+    { "text": "We need a Postgres database for the payments service, like our staging database but smaller.", "at": "2026-07-27T22:31:06Z" },
+    { "text": "Make it multi-az.", "at": "2026-07-27T22:31:23Z" }
+  ],
+  "draft": { "...": "the same draft, without a sources entry naming itself -- see below" }
+}
+```
+
+The draft embedded here is a **pre-provenance** copy — its own
+`intent.sources` is empty. That's deliberate, not an omission: this file
+can't hash itself and also contain a reference to its own hash. The
+draft you actually get (stdout or `--out`, shown above) is a separate
+copy of the same content with `intent.sources` filled in afterward,
+naming this exact file and its hash.
+
+`dialogues/` lives at the top level, a sibling of `ledger/` — never
+nested inside it. That follows directly from
+[Ledger stores](/concepts/ledger-stores)' own "authoring mediums always
+live in git as repo assets" split: a dialogue is a medium a change came
+from, the same category a markdown document or a hand-written intent
+file belongs to, not part of the ledger's own swappable storage backend.
+Pointing `[ledger].store` at S3 moves `ledger/proposals/` and
+`ledger/applies/`; `dialogues/` never moves with it.
+
+## A contradiction, and how it's resolved
+
+A second real session, testing what happens when a later turn changes
+its mind:
+
+```text
+$ ubx chat --stack payments --ledger-dir .
+ubx chat: type a turn and press enter. /save to finalize, /quit (or EOF) to abandon without saving anything.
+Provision a Postgres database for payments, in the payments stack, instance class db.t3.large.
+[renders turn 1's own draft -- elided here since turn 2 immediately supersedes it]
+Actually, use db.t3.micro instead, not large.
+Assumptions (1):
+  - Turn 1 requested instance class db.t3.large; Turn 2 overrode it with db.t3.micro ('use db.t3.micro instead, not large'). Following the later turn, so instance_class is db.t3.micro.
+      affects: aws_db_instance.payments.instance_class
+```
+
+The later turn always wins for the resolved value — confirmed here in
+the written config (`"instance_class": "db.t3.micro"`, never
+`"db.t3.large"`) — but the override is never silent: an
+`intent.assumptions` entry names both statements explicitly and says
+which one was followed. This is the same "never a silent choice" rule
+[the md medium](/guides/md-medium#ambiguity-is-visible-content-never-a-silent-choice)
+already applies to ambiguity inside one document, extended to ambiguity
+introduced by a change of mind over time.
+
+## Secrets are still redacted, turn by turn
+
+Redaction runs on every turn individually, before it's sent to the
+adapter or appended to the captured dialogue — never after the fact, and
+never on the conversation as a whole after it ends. If a turn contains
+something secret-shaped, `ubx chat` warns and strips it before that turn
+ever leaves your machine:
+
+```text
+For reference, our current deploy key is AKIAIOSFODNN7EXAMPLE -- don't lose track of that.
+warning: chat: redacted possible secret material (aws-access-key-id) before sending this turn to the claude adapter
+```
+
+The redacted turn — never the original — is what the adapter sees and
+what gets written to `dialogues/*.dlg.json` on `/save`. This is the exact
+mechanism [the md medium's own redaction demo](/guides/md-medium#secret-material-is-redacted-before-it-ever-leaves-your-machine)
+already proved live for `--from-doc`; for chat it's proven per-turn by
+this repo's own `TestChat_RedactsSecretMidConversation` test.
+
+## Abandoning a session leaves nothing behind
+
+`/quit`, or just closing the terminal, ends the session with **no file
+written anywhere** — not a partial dialogue, not a partial draft:
+
+```text
+$ ubx chat --stack payments --ledger-dir .
+ubx chat: type a turn and press enter. /save to finalize, /quit (or EOF) to abandon without saving anything.
+Provision a small Redis cache for sessions.
+[renders that turn's own draft, same as any other turn]
+/quit
+session abandoned, nothing saved
+```
+
+`ls dialogues/` afterward shows nothing new — confirmed both by this
+repo's own `TestChat_QuitCommand_NoFileWritten`/
+`TestChat_AbandonedSession_EOF_NoFileWritten` tests (the EOF case:
+closing the terminal or killing the process mid-session, no `/quit`
+needed) and structurally, by construction: `ubx chat` holds the whole
+conversation in memory, and the only code path that ever calls
+`os.WriteFile` is `/save`'s own handler. `/quit` and EOF both return
+before that point — there's no cleanup step involved, because there's
+never an intermediate file on disk for either one to leave behind.
+
+## Walking back to the real conversation: `ubx why --dialogue`
+
+Once a draft from a chat session is resolved, accepted, and (optionally)
+shipped, its provenance chain reaches all the way back to the actual
+words typed. `ubx why --dialogue` renders that conversation, real,
+unedited output:
+
+```text
+$ ubx why 2467ee0b6bd83c664cb1e228d2a4adf42b262d9557c56b0223ece9ca3f64f13f --dialogue --ledger-dir .
+proposal 2467ee0b6bd83c664cb1e228d2a4adf42b262d9557c56b0223ece9ca3f64f13f (change)
+stack:  payments
+status: accepted
+intent: Create a smaller multi-AZ Postgres database for the payments service, modeled on the staging database.
+  source: dialogue dialogues/bcb5b373f239719331b717d06f5ce6e07470c97bd54145488103d7c7196237dc.dlg.json (content_hash=sha256:bcb5b373f239719331b717d06f5ce6e07470c97bd54145488103d7c7196237dc)
+  source: intent_provider claude:claude-opus-4-8 (content_hash=sha256:ba83af15bbbfbac1bed213315495b7e541ccf3bafed580454319da5bf0c1f4cd)
+accepted by [roozbeh] via local at 2026-07-27T22:34:22Z
+blast radius: +1 ~0 -0
+
+conversation (claude / claude-opus-4-8, started 2026-07-27T22:31:06Z):
+  [Turn 1, 2026-07-27T22:31:06Z]: We need a Postgres database for the payments service, like our staging database but smaller.
+  [Turn 2, 2026-07-27T22:31:23Z]: Make it multi-az.
+```
+
+That's the full chain, real end to end: a conversation → a captured
+dialogue → a draft → a resolved, accepted `change` proposal → `why`
+walking it back to the exact turns that produced it. `--dialogue` is
+purely additive — without it, `ubx why` renders exactly as it always has
+(see [`ubx why`](/cli/why)); a proposal that didn't come from `ubx chat`
+prints an explicit note saying so, rather than silently showing nothing.
+
+## Related
+
+- [The md medium](/guides/md-medium) — the document-based sibling of this
+  same drafting pipeline, same adapter, same draft shape
+- [`ubx why`](/cli/why) — full reference, including `--dialogue`
+- [`.ubx/config`'s `intent` table](/cli/config#intent) — adapter, model,
+  and key configuration, shared with `--from-doc`
+- [Ledger stores](/concepts/ledger-stores) — why `dialogues/` lives
+  top-level, never nested inside `ledger/`
+- [Proposal](/concepts/proposal) — the `intent` object a chat-produced
+  draft's `assumptions`/`defaults` ride on
+- [Secrets](/concepts/secrets) — the ledger's own "references only, never
+  material" rule, which redaction-at-capture extends to chat turns
