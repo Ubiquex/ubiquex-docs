@@ -1,5 +1,51 @@
 # STATE — ubiquex-docs
 
+## UBI-46: chat — `ubx chat`, dialogue capture, `ubx why --dialogue` (2026-07-28, same session as the code)
+
+`ubiquex-cli`'s intent-provider arc gains its second medium this session —
+chat, riding UBI-41's own `Adapter`/`DraftWithRetry` interface unchanged,
+exactly as that arc's closing comment predicted:
+
+- **New `guides/chat.mdx`** (new entry in the existing "AI-Assisted
+  Authoring" nav group, alongside `guides/md-medium.mdx`): the full
+  interactive-loop walkthrough — setup (the identical `[intent]` config
+  `--from-doc` already uses, no new config key), a real two-turn session
+  refining the `payments` stack ("like our staging database but smaller,"
+  then "make it multi-az"), the resulting `dialogues/<hash>.dlg.json`
+  structure and why it embeds a pre-provenance copy of the draft, why
+  `dialogues/` lives top-level rather than under `ledger/` (cross-linked
+  to `concepts/ledger-stores.mdx`'s own authoring-mediums split), a second
+  real session demonstrating a contradiction ("db.t3.large" then
+  "actually, use db.t3.micro instead") resolved by later-turn-wins with
+  the override named in `intent.assumptions`, per-turn redaction, and
+  session abandonment (`/quit`/EOF) leaving no file behind. Closes with a
+  real, freshly-captured `ubx why --dialogue` transcript walking a real
+  accepted proposal back to the real conversation that produced it.
+- **`cli/why.mdx`** gained the new `--dialogue` flag (flags table) and a
+  new "Rendering a captured dialogue" section: the same real transcript
+  as the guide, plus the explicit no-dialogue-source message a proposal
+  that didn't come from `ubx chat` renders instead of silent nothing.
+- **`cli/config.mdx`** and **`cli/propose.mdx`** both gained a one-line
+  cross-link to the new guide — no new config surface, since chat reads
+  the identical `[intent]` table `--from-doc` already documents.
+
+Every transcript in the new guide and in `cli/why.mdx`'s new section is
+real: the two chat sessions ran against the real Claude API this session
+(reusing `ubiquex-cli`'s own live-finale work, not re-fabricated for
+docs), and the `ubx why --dialogue` transcript was captured fresh, this
+session, by running the actual built binary against the real accepted
+proposal and dialogue file still on disk from that same live finale. Two
+places (a contradiction session's own turn-1-only render, and an
+abandoned-session example) are explicitly marked as elided rather than
+inventing specific model output that was never actually captured —
+consistent with this file's own "real transcripts, honestly labeled when
+something is illustrative rather than captured" standard.
+
+`mint validate`/`mint broken-links` both pass clean. See `ubiquex-cli`'s
+own STATE.md for the full engineering writeup, including the directory-
+location decision's real citation and the live-verified contradiction
+probe. **UBI-46 closed in Linear** this session.
+
 ## UBI-41: the md medium — `ubx propose --from-doc` (2026-07-28, closing session, same day as the code)
 
 `ubiquex-cli`'s intent-provider arc (Phase 3's opener — AI enters the
