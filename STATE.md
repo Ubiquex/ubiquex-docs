@@ -1,5 +1,58 @@
 # STATE — ubiquex-docs
 
+## UBI-41: the md medium — `ubx propose --from-doc` (2026-07-28, closing session, same day as the code)
+
+`ubiquex-cli`'s intent-provider arc (Phase 3's opener — AI enters the
+product) reaches its first user-visible surface this session, closing
+the arc:
+
+- **New `guides/md-medium.mdx`** (new "AI-Assisted Authoring" nav group):
+  the full walkthrough — setup (`.ubx/config`'s `intent` table), a real
+  transcript with all three ambiguity sections populated (`Assumptions`/
+  `Defaults`/`Questions`, including a `blocking` question the model
+  correctly raised about an unresolvable `@ref`), the written draft
+  file's own `intent.sources` provenance (`document`/`intent_provider`
+  kinds), a redaction-at-capture demonstration (a real AWS example key
+  pasted into a doc, confirmed absent from the output via a direct
+  `grep`), and what happens after the draft (`ubx resolve`/`accept`/`ship`
+  — never auto-chained).
+- **New `guides/md-authoring-conventions.mdx`**: `@refs`, requirement
+  phrasing, cost ceilings — stated as guidance that improves extraction
+  quality, never a grammar `ubx` enforces (`ubiquex-cli`'s own conformance
+  suite, not this page, defines what actually works reliably).
+- **`cli/propose.mdx`** rewritten throughout: the page now documents two
+  genuinely different modes sharing one verb (`ubx propose <proposal.json>`
+  unchanged; the new `ubx propose --from-doc`), new flags table entries,
+  a full `--from-doc` example with the real transcript above, and three
+  real error transcripts (`--stack` required, `--from-doc`+positional-arg
+  mutual exclusivity, an unresolvable `key_ref.env`).
+- **`cli/config.mdx`** gained a new `### intent` section (matching the
+  existing `k8s_audit`/`ledger` subsection pattern): the table shape,
+  what `key_ref`/`auth`/`vertex` mean, a `<Warning>` on the
+  named-but-empty-env-var refusal (with a real transcript), and a real
+  `ubx config` transcript showing `intent.*` provenance.
+- **`concepts/proposal.mdx`** gained a short paragraph on the new
+  `assumptions`/`defaults`/`questions` fields an `--from-doc`-resolved
+  proposal's own `intent` object carries, and a cross-link.
+
+Every transcript is real, captured against the actual built `ubx` binary
+making real calls to the real Claude API (`ANTHROPIC_API_KEY` supplied by
+the user for this session) — none hand-written. Three real findings from
+`ubiquex-cli`'s own live verification work this arc (a system-prompt
+self-priming bug, a real empty-`resources[]` bug, a real but non-bug
+safety-classifier refusal) are documented in that repo's own
+`docs/intent-provider-conformance-report.md`, not duplicated here — this
+repo documents shipped user-facing behavior, not the engineering history
+behind it, per this file's own standing convention.
+
+`mint validate`/`mint broken-links` both pass clean. See `ubiquex-cli`'s
+own STATE.md for the full engineering writeup across all four sessions of
+this arc, and its own `docs/intent-provider-conformance-report.md` for
+Claude's own published conformance numbers. **UBI-41 closed in Linear**
+this session — chat (rides this arc's own adapter interface, its own
+future session) and OpenAI/Gemini/local adapters (parked on the roster,
+no code) both named explicitly as what stays open, not silently implied.
+
 ## UBI-30 session 3: `ubx accept`/`ubx ship` gain destroys (2026-07-18, same session as the code)
 
 `ubiquex-cli`'s executor (docs/executor.md's own "Amendment (UBI-30):

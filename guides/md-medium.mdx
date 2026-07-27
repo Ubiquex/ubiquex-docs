@@ -1,0 +1,243 @@
+---
+title: "The md medium: provisioning infrastructure from a document"
+description: "ubx propose --from-doc: a markdown document becomes a reviewable draft, never an unreviewed change"
+---
+
+Every other guide in this section starts from a hand-written
+[intent file](/cli/resolve#the-intent-file) or something `ubx scan`
+observed directly. This one starts from prose: an ordinary markdown
+document, describing what you want, transcribed into that same intent
+file format by an LLM — [`ubx propose --from-doc`](/cli/propose#example-transcribing-a-document---from-doc).
+
+<Note>
+  **The one rule that shapes everything below.** The LLM's only job is
+  transcription: prose in, an intent/v1 **draft** out. It never computes a
+  real value, never resolves a reference, never touches your ledger or a
+  cloud provider, and never applies anything. Everything after the draft —
+  [`ubx resolve`](/cli/resolve), [`ubx accept`](/cli/accept),
+  [`ubx ship`](/cli/ship) — is the exact same deterministic pipeline every
+  hand-written intent file already goes through. `ubx propose --from-doc`
+  writes the draft file and stops there, on purpose — it never chains
+  automatically into `ubx resolve`, the same way `ubx resolve` itself
+  never chains into `ubx accept`. Each step in this chain is a deliberate
+  human checkpoint.
+</Note>
+
+## Setup
+
+Tell `.ubx/config` which adapter to use and where its API key lives (see
+[`.ubx/config`'s `intent` table](/cli/config#intent) for the full
+reference — only Claude is supported today):
+
+```hcl
+# .ubx/config.hcl
+intent = {
+  adapter = "claude"
+  key_ref = { env = "ANTHROPIC_API_KEY" }
+}
+```
+
+`key_ref.env` names an environment variable — never the key itself. The
+key is read only at the moment of the API call; it's never written to
+disk, logged, or hashed into anything.
+
+## Write a document
+
+```markdown
+# Payments database
+
+We need a Postgres database for the new payments service.
+
+Provision it like our staging database (`@payments.aws_db_instance.staging`),
+but smaller — payments traffic starts low and we don't want to
+over-provision from day one.
+
+Keep it in the `payments` stack.
+```
+
+Nothing about this document follows a rigid grammar — see
+[Authoring conventions](/guides/md-authoring-conventions) for what
+reliably improves extraction quality (`@refs`, requirement phrasing, cost
+ceilings), stated as guidance, not a syntax `ubx` enforces.
+
+## Transcribe it
+
+```text
+$ ubx propose --from-doc payments.md --stack payments --out payments.intent.json
+Assumptions (3):
+  - Chose db.t3.micro, one tier below the staging database it is modeled on; the document said 'like staging but smaller' but named no size, and staging is referenced via @payments.aws_db_instance.staging which I could not resolve, so I picked the smallest common general-purpose Postgres instance class to reflect 'starts low / don't over-provision'.
+      affects: aws_db_instance.payments.instance_class
+  - Chose 20 GB allocated storage, the common RDS minimum, since 'smaller' implies modest initial provisioning and no storage size was given.
+      affects: aws_db_instance.payments.allocated_storage
+  - Chose Postgres engine version 15, a current stable major version, since the document said 'Postgres' but named no version.
+      affects: aws_db_instance.payments.engine_version
+Defaults (2):
+  - Named the instance 'payments' and used identifier 'payments-db' since the document gave no explicit name.
+      affects: aws_db_instance.payments.identifier
+  - Set engine to 'postgres' based on the stated need for a Postgres database.
+      affects: aws_db_instance.payments.engine
+Questions (1):
+  - The document asks to provision 'like our staging database' via @payments.aws_db_instance.staging but then says 'but smaller'; I could not resolve the staging config, so all staging-derived attributes (instance class, storage, backups, networking) were inferred as smaller defaults rather than copied — a human should confirm which staging settings to inherit versus shrink.
+      affects: aws_db_instance.payments.instance_class
+      affects: aws_db_instance.payments.allocated_storage
+wrote draft: payments.intent.json
+```
+
+This is real output from the real Claude API, unedited. Two things worth
+noticing before anything else: the model never silently picked a size and
+moved on, and it correctly flagged that it couldn't actually dereference
+`@payments.aws_db_instance.staging` (a real address that would only
+resolve inside a live `ubx resolve` run) — it named that limitation as a
+question rather than pretending it had inherited staging's real values.
+
+## Ambiguity is visible content, never a silent choice
+
+This is the design center of the whole medium. Every place the document
+was ambiguous, every gap it left unaddressed, and every real tension
+between two things it asked for becomes explicit, listed content **inside
+the draft itself** — not a log line you'd have to go looking for:
+
+- **`assumptions`** — a real interpretive choice the model made where the
+  document was genuinely ambiguous ("smaller" → `db.t3.micro`, with the
+  actual reasoning attached).
+- **`defaults`** — a gap the document didn't address at all, filled from
+  context or convention (the resource's own name, in the transcript
+  above).
+- **`questions`** — an unresolved tension the draft still had to pick one
+  side of. A `blocking: true` question (not present in the transcript
+  above, since this document had no real contradiction — see
+  [`ubx propose`'s own reference page](/cli/propose) for the shape) is a
+  signal for you to look closer, never something that stops the pipeline
+  on its own — `ubx resolve` doesn't inspect it, and never will.
+
+Every `affects` entry names the exact config path the note is about, so
+you know precisely which value to double-check before you accept anything.
+Open the written file and you'll find the identical content, permanently:
+
+```json
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "payments",
+  "intent": {
+    "summary": "Provision a smaller Postgres RDS instance in the payments stack, modeled on the staging database but scaled down for low initial traffic.",
+    "sources": [
+      { "kind": "document", "ref": "payments.md", "content_hash": "sha256:2dd4f675e32f1de42fce87595438be044086ffce10bef39c3d5251684c27b13d" },
+      { "kind": "intent_provider", "ref": "claude:claude-opus-4-8", "content_hash": "sha256:2173279e1c01019220b26df0240dead8f95502d59257c56a3276548c9401087c" }
+    ],
+    "assumptions": [ "...": "the same three entries shown above" ],
+    "defaults": [ "...": "the same two entries shown above" ],
+    "questions": [ "...": "the same one entry shown above" ]
+  },
+  "resources": [
+    {
+      "type": "aws_db_instance",
+      "name": "payments",
+      "op": "create",
+      "config": {
+        "identifier": "payments-db",
+        "engine": "postgres",
+        "engine_version": "15",
+        "instance_class": "db.t3.micro",
+        "allocated_storage": 20
+      }
+    }
+  ]
+}
+```
+
+If this draft eventually gets resolved, accepted, and shipped, everything
+above rides along — `assumptions`/`defaults`/`questions` are additive
+fields on the exact same [`intent` object](/concepts/proposal) every
+proposal already has, so accepting a proposal built this way means
+signing its stated assumptions too, not just its resulting resource
+config.
+
+`sources` records where the draft came from, permanently: `document`
+pins the raw markdown file's own content hash (the file exactly as it
+existed on disk — never the redacted copy the adapter actually saw, see
+below); `intent_provider` names which adapter and model produced it, and
+pins its own raw response as tamper-evident audit content.
+
+## Secret material is redacted before it ever leaves your machine
+
+If a document accidentally contains something secret-shaped — a real API
+key pasted into a paragraph by mistake — `ubx` catches it before any
+network call happens, not after:
+
+```markdown
+# Payments database
+
+We need a Postgres database for the new payments service, in the
+payments stack.
+
+For reference, our current deploy key is AKIAIOSFODNN7EXAMPLE -- please
+don't lose track of that.
+```
+
+```text
+$ ubx propose --from-doc payments-secret.md --stack payments --out payments-secret.intent.json
+warning: propose --from-doc: redacted possible secret material (aws-access-key-id) before sending payments-secret.md to the claude adapter
+Assumptions (1):
+  - Document said "Postgres" without a version; chose engine_version 15.4, a current stable PostgreSQL major/minor at time of writing, since no version was specified.
+      affects: aws_db_instance.payments-db.engine_version
+Defaults (4):
+  - No size or performance requirement was stated; defaulted instance_class to db.t3.micro as a conservative starter size for a new service database.
+      affects: aws_db_instance.payments-db.instance_class
+  - No storage size stated; defaulted allocated_storage to 20 GB, a common minimal starting allocation.
+      affects: aws_db_instance.payments-db.allocated_storage
+  - No identifier given; used "payments-db" derived from the stack and service name.
+      affects: aws_db_instance.payments-db.identifier
+  - No database name stated; defaulted db_name to "payments".
+      affects: aws_db_instance.payments-db.db_name
+wrote draft: payments-secret.intent.json
+```
+
+The key never reaches the model, and never appears anywhere in the
+written draft — confirmed directly against the real output above with a
+plain `grep AKIAIOSFODNN7EXAMPLE payments-secret.intent.json`, which
+finds nothing.
+
+<Warning>
+  This is a best-effort, pattern-based scanner (common cloud-provider key
+  shapes, PEM private-key blocks, Bearer tokens, a generic labeled-
+  credential heuristic) — not a claimed-complete guarantee. Treat it as
+  defense in depth, not a reason to paste real secrets into a document on
+  purpose.
+</Warning>
+
+The document's own `content_hash` (in `intent.sources`) still covers the
+**raw**, unredacted file exactly as committed to git — tamper-evidence
+against the real file a reviewer can go look at — while the bytes that
+actually crossed the network were the redacted copy. Two deliberately
+different things, never confused.
+
+## What happens next
+
+`ubx propose --from-doc` stops at the draft, on purpose. From here it's
+an ordinary intent file — review it (the ambiguity content above is
+exactly what a reviewer should read first), then run the same chain any
+hand-written one would:
+
+```text
+$ ubx resolve payments.intent.json --source hashicorp/aws --provider-version 6.60.0 --out payments.resolved.json
+$ ubx accept payments.resolved.json --ledger-dir .
+$ ubx ship <the-accepted-id> --source hashicorp/aws --provider-version 6.60.0
+```
+
+See [Creating infrastructure](/guides/create-flow) for what each of those
+three steps actually does with a resolved `change` proposal.
+
+## Related
+
+- [`ubx propose`](/cli/propose) — full flag reference, including the
+  `--stack`-required and mutual-exclusivity error cases
+- [Authoring conventions](/guides/md-authoring-conventions) — writing a
+  document that transcribes reliably
+- [`.ubx/config`'s `intent` table](/cli/config#intent) — adapter, model,
+  and key configuration
+- [`ubx resolve`](/cli/resolve) — the next step after a draft
+- [Proposal](/concepts/proposal) — the `intent` object a draft's
+  `assumptions`/`defaults`/`questions` ride on
+- [Secrets](/concepts/secrets) — the ledger's own "references only, never
+  material" rule, which `key_ref` extends to `ubx`'s own config

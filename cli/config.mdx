@@ -247,6 +247,7 @@ provider_config = {
 | `github_repo` | `--github-repo` | [`ubx accept --from-merge`](/cli/accept), [`ubx why --verify-acceptance`](/cli/why), [`ubx scan --surface-as`](/cli/scan) |
 | `tf_dir` | `--tf-dir` | [`ubx writeback`](/cli/writeback), [`ubx revert-plan`](/cli/revert-plan), [`ubx scan --surface-as`](/cli/scan)'s receipt preview |
 | `ledger.store` | *(no flag equivalent)* | [`ubx resolve`](/cli/resolve), [`ubx accept`](/cli/accept) (local), [`ubx ship`](/cli/ship) — see [Ledger stores](/concepts/ledger-stores) for which commands read this so far |
+| `intent.adapter` / `intent.model` / `intent.key_ref` | *(no flag equivalent)* | [`ubx propose --from-doc`](/cli/propose#example-transcribing-a-document---from-doc) — see [`intent`](#intent), below |
 | `root` | *(no flag equivalent)* | every command, indirectly — stops the cascade walk from reading anything farther up; see [Cascade ceiling](#cascade-ceiling-where-the-walk-stops) |
 
 <Note>
@@ -458,6 +459,56 @@ No derived-address line is printed at all when `[ledger]` is absent or
 `store = "git"` — there's no address to derive, since git-local's own
 flat layout uses `--ledger-dir` directly.
 
+### `intent`
+
+Which [intent provider](/guides/md-medium) adapter transcribes a markdown
+document into a draft for [`ubx propose --from-doc`](/cli/propose#example-transcribing-a-document---from-doc),
+and how it authenticates:
+
+```hcl
+intent = {
+  adapter = "claude"
+  key_ref = { env = "ANTHROPIC_API_KEY" }
+}
+```
+
+| Key | Meaning |
+| --- | --- |
+| `adapter` | which intent provider to use. Only `"claude"` exists today; unset defaults to it |
+| `model` | which model that adapter uses. Unset falls back to the adapter's own default (`claude-opus-4-8` for `"claude"`) |
+| `key_ref.env` | the environment variable holding the real API key |
+| `auth` | Gemini's own API-key-vs-Vertex-AI split (`"api_key"` or `"vertex"`) — no Gemini adapter is built yet; this key is reserved |
+| `vertex.project` / `vertex.location` | consulted only when `auth = "vertex"` — reserved alongside it |
+
+<Warning>
+  `key_ref.env` is a reference, never the key itself — the same rule
+  covering [secrets](/concepts/secrets) in the ledger applies one layer up,
+  to `ubx`'s own config: a literal API key sitting in a git-tracked config
+  file is compromised the moment anyone else clones the repo. `key_ref`
+  omitted entirely (no `[intent]`, or `intent = { adapter = "claude" }`
+  alone) is a deliberate, valid choice too — it falls through to the
+  adapter's own ambient credential resolution (an `ANTHROPIC_API_KEY`
+  already in the environment, or a stored `ant auth login` profile).
+  What's *not* valid is naming an environment variable that turns out to
+  be empty — that's refused loudly, not silently treated as "no key
+  configured":
+
+  ```text
+  $ ubx propose --from-doc payments.md --stack payments
+  propose --from-doc: intent: key_ref.env names "ANTHROPIC_API_KEY", but that environment variable is unset or empty
+  ```
+</Warning>
+
+`ubx config` shows exactly which file supplied each `intent.*` value, the
+same as every other key:
+
+```text
+$ ubx config --stack payments
+intent.adapter = claude	<- /tmp/repo/.ubx/config.hcl
+intent.key_ref.env = ANTHROPIC_API_KEY	<- /tmp/repo/.ubx/config.hcl
+stack = payments	<- /tmp/repo/.ubx/config.hcl
+```
+
 ## Unknown keys warn, they don't fail
 
 A typo, or a field a different `ubx` version doesn't recognize, is reported
@@ -555,3 +606,4 @@ No `--stack`, no `--provider`, no `--provider-config` on any of them.
 - [`ubx scan`](/cli/scan), [`ubx status`](/cli/status), [`ubx accept`](/cli/accept), [`ubx why`](/cli/why), [`ubx writeback`](/cli/writeback), [`ubx revert-plan`](/cli/revert-plan) — every command config applies to
 - [Attribution](/concepts/attribution#kubernetes-and-helm-eks-audit-logs) — what `k8s_audit` configures
 - [Ledger stores](/concepts/ledger-stores) — what `ledger.store` configures, and the addressing model behind it
+- [The md medium](/guides/md-medium) — what `intent` configures, end to end

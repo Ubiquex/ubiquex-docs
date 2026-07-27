@@ -1,30 +1,49 @@
 ---
 title: "ubx propose"
-description: "Compute a draft proposal's canonical hash for a PR body's ubx-proposal trailer"
+description: "Compute a draft proposal's canonical hash for a PR body's ubx-proposal trailer, or transcribe a markdown document into an intent/v1 draft"
 ---
 
 ```text
 ubx propose <proposal.json> [flags]
+ubx propose --from-doc <file>.md --stack <stack> [flags]
 ```
 
-Computes a draft [proposal](/concepts/proposal)'s canonical hash and prints it
-as a `ubx-proposal: <hash>` line. This never touches a ledger — it's a pure
-function of the file's own content, the same hash `ubx accept` computes
-internally. It's the first step of [PR-merge acceptance](/cli/accept): put
-that line in the body of the pull request carrying the proposal file, so
-`ubx accept --from-merge` has a claimed hash to verify against once the PR is
-merged.
+Two genuinely different pipeline stages share this verb, disambiguated by
+`--from-doc`:
 
-The file must be a genuine draft — `propose` refuses a proposal that already
-has an `id` or `acceptance` set.
+- **`ubx propose <proposal.json>`** computes a draft [proposal](/concepts/proposal)'s
+  canonical hash and prints it as a `ubx-proposal: <hash>` line. This never
+  touches a ledger — it's a pure function of the file's own content, the same
+  hash `ubx accept` computes internally. It's the first step of
+  [PR-merge acceptance](/cli/accept): put that line in the body of the pull
+  request carrying the proposal file, so `ubx accept --from-merge` has a
+  claimed hash to verify against once the PR is merged. The file must be a
+  genuine draft — `propose` refuses one that already has an `id` or
+  `acceptance` set.
+- **`ubx propose --from-doc <file>.md --stack <stack>`** transcribes a
+  markdown authoring document into an [`ubx:intent/v1` draft](/guides/md-medium)
+  via the [intent provider](/cli/config#intent) configured in `.ubx/config`
+  — the md medium's own entry point. This is a genuinely earlier pipeline
+  stage: it produces something [`ubx resolve`](/cli/resolve) can consume,
+  not a proposal. It never resolves anything itself, never touches a
+  ledger, and never chains automatically into `ubx resolve` — the same
+  "each step is a deliberate human checkpoint" posture every other verb in
+  this chain holds.
+
+The two modes are mutually exclusive — `--from-doc` and a positional
+`proposal.json` argument together is a hard error.
 
 ## Flags
 
 | Flag | Description |
 | --- | --- |
+| `--from-doc` | path to a markdown authoring document — switches to the transcription mode |
+| `--stack` | target stack name (required with `--from-doc`) |
+| `--out` | write the intent/v1 draft here instead of stdout (only with `--from-doc`) |
+| `--timeout` | timeout for the intent provider's own drafting round trip (only with `--from-doc`; default `3m0s`) |
 | `-h`, `--help` | help for propose |
 
-## Example
+## Example: hashing a resolved proposal
 
 Given `draft.json`:
 
@@ -52,7 +71,96 @@ That line goes in the PR body. Once the PR merges, `ubx accept --from-merge`
 re-hashes the same file at the merge commit and checks it against this
 trailer.
 
+## Example: transcribing a document (`--from-doc`)
+
+Given `payments.md`:
+
+```markdown
+# Payments database
+
+We need a Postgres database for the new payments service.
+
+Provision it like our staging database (`@payments.aws_db_instance.staging`),
+but smaller — payments traffic starts low and we don't want to
+over-provision from day one.
+
+Keep it in the `payments` stack.
+```
+
+And a `.ubx/config.hcl` naming which adapter to use and where its API key
+lives (see [`.ubx/config`'s `intent` table](/cli/config#intent) — the key
+itself is never written here, only a reference to an environment variable):
+
+```hcl
+intent = {
+  adapter = "claude"
+  key_ref = { env = "ANTHROPIC_API_KEY" }
+}
+```
+
+```text
+$ ubx propose --from-doc payments.md --stack payments --out payments.intent.json
+Assumptions (3):
+  - Chose db.t3.micro, one tier below the staging database it is modeled on; the document said 'like staging but smaller' but named no size, and staging is referenced via @payments.aws_db_instance.staging which I could not resolve, so I picked the smallest common general-purpose Postgres instance class to reflect 'starts low / don't over-provision'.
+      affects: aws_db_instance.payments.instance_class
+  - Chose 20 GB allocated storage, the common RDS minimum, since 'smaller' implies modest initial provisioning and no storage size was given.
+      affects: aws_db_instance.payments.allocated_storage
+  - Chose Postgres engine version 15, a current stable major version, since the document said 'Postgres' but named no version.
+      affects: aws_db_instance.payments.engine_version
+Defaults (2):
+  - Named the instance 'payments' and used identifier 'payments-db' since the document gave no explicit name.
+      affects: aws_db_instance.payments.identifier
+  - Set engine to 'postgres' based on the stated need for a Postgres database.
+      affects: aws_db_instance.payments.engine
+Questions (1):
+  - The document asks to provision 'like our staging database' via @payments.aws_db_instance.staging but then says 'but smaller'; I could not resolve the staging config, so all staging-derived attributes (instance class, storage, backups, networking) were inferred as smaller defaults rather than copied — a human should confirm which staging settings to inherit versus shrink.
+      affects: aws_db_instance.payments.instance_class
+      affects: aws_db_instance.payments.allocated_storage
+wrote draft: payments.intent.json
+```
+
+This is real, unedited output — see [The md medium](/guides/md-medium) for
+what each section means and why it's there, and
+[Authoring conventions](/guides/md-authoring-conventions) for how to write a
+document that transcribes reliably.
+
+## When resolution fails (`--from-doc`)
+
+`--stack` is required — there's no filename-derived default the way
+[`ubx scan --all`](/cli/scan#--all-across-multiple-providers) has one,
+since a document names no address of its own to infer a stack from:
+
+```text
+$ ubx propose --from-doc payments.md
+propose --from-doc: --stack is required
+```
+
+`--from-doc` and a positional `proposal.json` argument are mutually
+exclusive — the two modes are never merged or guessed between:
+
+```text
+$ ubx propose --from-doc payments.md --stack payments some-proposal.json
+propose: --from-doc and a proposal.json argument are mutually exclusive
+```
+
+An `[intent].key_ref.env` naming an environment variable that turns out to
+be unset is a real misconfiguration, refused loudly rather than silently
+falling back to the adapter's own ambient credential chain (leaving
+`key_ref` out entirely is what deliberately opts into that fallback — see
+[`.ubx/config`'s `intent` table](/cli/config#intent)):
+
+```text
+$ ubx propose --from-doc payments.md --stack payments
+propose --from-doc: intent: key_ref.env names "ANTHROPIC_API_KEY", but that environment variable is unset or empty
+```
+
+Every exit code above is `2` — see [Exit codes](/cli/exit-codes).
+
 ## Related
 
-- [`ubx accept`](/cli/accept) — PR-merge acceptance, using this trailer
-- [Proposal](/concepts/proposal) — how the hash is computed
+- [`ubx accept`](/cli/accept) — PR-merge acceptance, using the hash-mode trailer
+- [`ubx resolve`](/cli/resolve) — the next step after `--from-doc`, consuming its own written draft
+- [The md medium](/guides/md-medium) — the full walkthrough: ambiguity rendering, redaction, and what comes after the draft
+- [Authoring conventions](/guides/md-authoring-conventions) — how to write a document `--from-doc` transcribes reliably
+- [`.ubx/config`'s `intent` table](/cli/config#intent) — which adapter, which model, where the key lives
+- [Proposal](/concepts/proposal) — how the hash-mode's canonical hash is computed
