@@ -224,6 +224,60 @@ $ ubx ship <the-accepted-id>
 See [Creating infrastructure](/guides/create-flow) for what each of those
 three steps actually does with a resolved `change` proposal.
 
+## Rendering the ledger back
+
+Once `payments`'s own resources are live, [`ubx
+render`](/cli/render) draws them back as a diagram — the literal converse
+of `ubx propose --from-diagram`, and the reason this medium is
+**bidirectional by construction**, not just an importer:
+
+```text
+$ ubx render --stack payments --ledger-dir . --out rendered/payments.d2
+wrote rendered/payments.d2
+```
+
+```d2 rendered/payments.d2
+classes: {
+  fake_widget
+}
+r0: "main-vpc" {
+  class: fake_widget
+  tooltip: "id: computed-id; name: main-vpc; tags: {}"
+}
+r1: "payments-db" {
+  class: fake_widget
+  tooltip: "id: computed-id; name: main-vpc; tags: {}"
+}
+r1 -> r0
+```
+
+Real, unedited output. Notice what changed from the diagram you authored:
+node keys are now synthetic (`r0`/`r1`, assigned deterministically —
+your own diagram's own node names/containers are gone, since containers
+were always pure visual grouping, never read back), and each node picked
+up a real `tooltip:` with its actual, current attribute values — the
+lossy-medium rule's *other* half: annotations render from ledger truth,
+they never author into it.
+
+A `$cross`-referencing resource renders with its own reference node,
+annotated with the real pinned neighbor head:
+
+```d2
+ref0: "@networking.fake_widget.main" {
+  class: external
+  tooltip: "pinned_head: cadee2897cb50edfdb848a9664dff2c336285e043204a090544d47d358e5e345"
+}
+consumer -> ref0
+```
+
+Commit `rendered/payments.d2` alongside your ledger, and [`ubx render
+--check`](/cli/render#render---check) becomes a real CI gate: it re-emits
+and byte-compares against the committed copy, failing (exit `1`) the
+moment the ledger changes without the diagram being regenerated —
+`render`'s own fourth-projection-surface version of the same
+"regenerate, meant to be committed and diffed" discipline [`ubx sdk
+gen`](/cli/sdk-gen) already established for typed bindings.
+
 ## Related
 
 - [`ubx propose`](/cli/propose) — full flag reference, including the
@@ -236,6 +290,8 @@ three steps actually does with a resolved `change` proposal.
 - [`[providers]`](/cli/config#multi-provider-stacks) — required for
   `--from-diagram`'s own type inference
 - [`ubx resolve`](/cli/resolve) — the next step after a draft
+- [`ubx render`](/cli/render) — the render half of this medium: the
+  ledger's own live resources drawn back as a diagram, `--check` as a CI gate
 - [`$cross` by stack name](/concepts/ledger-stores#cross-by-stack-name) —
   the real wire-level mechanism a diagram's own cross-stack edges can't
   reach yet

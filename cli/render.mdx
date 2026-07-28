@@ -1,0 +1,211 @@
+---
+title: "ubx render"
+description: "Emit the canonical D2 diagram of a stack's own live, resolved resources"
+---
+
+```text
+ubx render --stack <name> [--out <path>] [--check] [flags]
+```
+
+The render half of [the diagram medium](/guides/diagram-medium) — the literal
+converse of [`ubx propose --from-diagram`](/cli/propose#example-transcribing-a-diagram---from-diagram).
+Walks a stack's own live resources (the same [`ledger`](/concepts/ledger)
+fleet walk [`ubx status`](/cli/status) already performs) and emits the
+canonical [D2](https://d2lang.com) rendering of their current, resolved
+shape: one flat top-level node per live resource, `class:` naming its real
+type, an attribute `tooltip:` from real ledger truth, and dependency/
+cross-stack edges drawn from each resource's own creating proposal. Never
+writes to the ledger, never resolves anything — a pure read.
+
+<Note>
+  No synthetic containers. There's no canonical grouping basis to invent (by
+  type? by dependency cluster? by a diagram's own original authored
+  structure, which `render` has no access to and shouldn't need) that
+  wouldn't be an unreviewable guess baked into every emitted diagram — a
+  human editing the emitted file by hand can add their own grouping
+  afterward, the same "generated, reviewable, human-editable-adjacent
+  artifact" posture [`ubx sdk gen`](/cli/sdk-gen)'s own bindings already
+  established.
+</Note>
+
+## Flags
+
+| Flag | Description |
+| --- | --- |
+| `--stack string` | which stack to render — required (a diagram is always rendered for exactly one stack) |
+| `--out string` | write the rendered `.d2` file here instead of stdout |
+| `--check` | don't write — byte-compare the freshly emitted diagram against `--out`'s own current content, exiting `1` on any difference (requires `--out`) |
+| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `-h`, `--help` | help for render |
+
+## Example: rendering a live stack
+
+Given a `payments` stack with two resources already shipped — a `main-vpc`
+and a `payments-db` that `$ref`-depends on it:
+
+```text
+$ ubx render --stack payments --ledger-dir . --out rendered/payments.d2
+wrote rendered/payments.d2
+```
+
+```d2 rendered/payments.d2
+classes: {
+  fake_widget
+}
+r0: "main-vpc" {
+  class: fake_widget
+  tooltip: "id: computed-id; name: main-vpc; tags: {}"
+}
+r1: "payments-db" {
+  class: fake_widget
+  tooltip: "id: computed-id; name: main-vpc; tags: {}"
+}
+r1 -> r0
+```
+
+This is real, unedited output (against the hermetic `fakeprovider`, which is
+why the type is `fake_widget` rather than a real cloud type — the mechanism
+is identical for any real provider). `r0`/`r1` are synthetic, deterministic
+keys assigned in `(type, name)`-sorted order — never the resource's own
+name, since two different-typed resources can legally share a name (only
+the full `(type, name)` pair is unique in a ledger address), and a key
+joining them with `.` would collide with D2's own container-nesting
+separator. Nothing about readability is lost: the resource's own name still
+renders in full as the node's own label, and its type is right there in
+`class:`.
+
+`r1 -> r0` is `payments-db`'s own real `depends_on` edge, read back from its
+own creating proposal — the literal converse of `ubx propose --from-diagram`'s
+own edge → `depends_on` translation.
+
+## Example: a cross-stack reference
+
+A resource whose own config holds a `$cross` reference into another stack
+renders as an edge into a dedicated reference node, annotated with the real
+pinned neighbor head:
+
+```text
+$ ubx render --stack payments --ledger-dir .
+classes: {
+  external
+  fake_widget
+}
+r0: "consumer" {
+  class: fake_widget
+  tooltip: "id: computed-id; name: shared-widget; tags: {}"
+}
+r1: "main-vpc" {
+  class: fake_widget
+  tooltip: "id: computed-id; name: main-vpc; tags: {}"
+}
+r2: "payments-db" {
+  class: fake_widget
+  tooltip: "id: computed-id; name: main-vpc; tags: {}"
+}
+ref0: "@networking.fake_widget.main" {
+  class: external
+  tooltip: "pinned_head: cadee2897cb50edfdb848a9664dff2c336285e043204a090544d47d358e5e345"
+}
+r0 -> ref0
+r2 -> r1
+```
+
+`ref0`'s own label, `"@networking.fake_widget.main"`, is exactly the
+address form [the diagram medium's cross-stack
+grammar](/guides/diagram-medium#the-cross-structural-limitation) reads back
+in — render and parse share one convention, not two. `pinned_head` is the
+neighbor ledger's own real `Head()` at the moment `consumer`'s own `$cross`
+reference resolved; two resources pinning the identical neighbor address
+share one reference node rather than drawing a redundant duplicate.
+
+## `render --check`
+
+Re-emits and byte-compares against `--out`'s own current content — the same
+"regenerate, meant to be committed and diffed" discipline
+[`ubx sdk gen`](/cli/sdk-gen) already established, but a real, first-class
+command mode rather than leaving the diff-and-fail step to `git diff`
+outside the tool:
+
+```text
+$ ubx render --stack payments --ledger-dir . --out rendered/payments.d2 --check
+render --check: rendered/payments.d2 matches the current resolved state
+```
+
+Once the ledger changes (a new resource shipped, in this case) without the
+committed file being regenerated, `--check` catches it — a real, actionable
+finding, not a hard error:
+
+```text
+$ ubx render --stack payments --ledger-dir . --out rendered/payments.d2 --check
+--- rendered/payments.d2 (before)
++++ rendered/payments.d2 (after)
+@@ -1,12 +1,22 @@
+ classes: {
++  external
+   fake_widget
+ }
+-r0: "main-vpc" {
++r0: "consumer" {
+   class: fake_widget
++  tooltip: "id: computed-id; name: shared-widget; tags: {}"
++}
++r1: "main-vpc" {
++  class: fake_widget
+   tooltip: "id: computed-id; name: main-vpc; tags: {}"
+ }
+-r1: "payments-db" {
++r2: "payments-db" {
+   class: fake_widget
+   tooltip: "id: computed-id; name: main-vpc; tags: {}"
+ }
+-r1 -> r0
++ref0: "@networking.fake_widget.main" {
++  class: external
++  tooltip: "pinned_head: cadee2897cb50edfdb848a9664dff2c336285e043204a090544d47d358e5e345"
++}
++r0 -> ref0
++r2 -> r1
+
+render --check: rendered/payments.d2 is stale -- re-run "ubx render --stack payments --out rendered/payments.d2" and commit the result
+```
+
+Exit code `1` — a real, actionable finding (the committed `rendered/` copy
+needs regenerating and committing), not a hard error. A missing `--out`
+file behaves the same way, naming the exact command to run:
+
+```text
+$ ubx render --stack payments --ledger-dir . --out rendered/payments.d2 --check
+render --check: rendered/payments.d2 does not exist yet -- run "ubx render --stack payments --out rendered/payments.d2" and commit the result
+```
+
+`--check` without `--out` is refused outright — there's nothing to compare
+against:
+
+```text
+$ ubx render --stack payments --ledger-dir . --check
+render: --check requires --out (the committed file to compare against)
+```
+
+Every exit code above is `1` (a real finding) or `2` (a hard error) — see
+[Exit codes](/cli/exit-codes).
+
+## Determinism
+
+Two `render` runs against an unchanged ledger produce byte-identical
+output — `d2format.Format` (D2's own canonical formatter, confirmed
+idempotent) is reused directly as the canonical serializer, and every
+internal ordering (resources by `(type, name)`, attributes by key, edges by
+source then target) is sorted explicitly. This is what makes `--check`'s
+own byte-compare meaningful at all.
+
+## Related
+
+- [The diagram medium](/guides/diagram-medium) — the full guide: writing a
+  diagram, parsing it, and rendering the ledger's own truth back
+- [`ubx propose --from-diagram`](/cli/propose#example-transcribing-a-diagram---from-diagram) —
+  the parse half of this medium, the other direction
+- [`ubx sdk gen`](/cli/sdk-gen) — the same "regenerate, meant to be
+  committed" discipline, for typed TypeScript bindings instead of a diagram
+- [`ubx status`](/cli/status) — the same ledger-fleet-walk read `render`
+  reuses
+- [Ledger](/concepts/ledger) — what `FoldState`/`Fleet` actually read
