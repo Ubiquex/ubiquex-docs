@@ -1,0 +1,107 @@
+---
+title: "ubx sdk gen"
+description: "Generate typed TypeScript bindings for every provider declared in [providers] -- local, never published"
+---
+
+```text
+ubx sdk gen [flags]
+```
+
+Reads `.ubx/config`'s own [`[providers]` table](/cli/config#multi-provider-stacks)
+(the same source of truth [`ubx resolve`](/cli/resolve)/[`ubx ship`](/cli/ship)
+already read), acquires each declared provider's real binary at its pinned
+version, dumps its real schema (no `Configure`, no credentials needed -- a
+pure local gRPC call against the launched binary), and writes one
+TypeScript file per provider source under `--out`: idiomatic camelCase
+bindings whose generated field map maps back to the provider's real wire
+attribute names at evaluation time.
+
+Always regenerates from the exact config-pinned version's real,
+freshly-acquired schema -- never a stale cache from a different version.
+Generated files are meant to be **committed to git** like any other
+reviewable generated code; re-run this command after bumping a provider's
+pinned version in `[providers]`.
+
+<Note>
+  `ubx sdk gen` requires a real `[providers]` table -- unlike `ubx
+  resolve`/`ubx ship`, it has no legacy single-`--provider`/`--source`
+  fallback. Codegen is a multi-provider-stacks-era feature; there's no
+  earlier CLI shape it needs to stay compatible with.
+</Note>
+
+## Flags
+
+| Flag | Description |
+| --- | --- |
+| `--out string` | directory to write generated TypeScript bindings into, one file per declared provider source (default `sdk/generated`) |
+| `--timeout duration` | timeout for launching each provider and fetching its schema -- applied **per provider**, not once for the whole command (default `1m0s`) |
+| `-h`, `--help` | help for gen |
+
+## Example
+
+```toml .ubx/config
+[providers]
+"hashicorp/aws" = "6.54.0"
+```
+
+```text
+$ ubx sdk gen --out sdk/generated
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp-aws.ts
+```
+
+One file per source, named `<source-with-slashes-replaced-by-dashes>.ts`.
+Each resource type gets a `Config` interface (settable fields), an `Attrs`
+interface (every field, including computed-only ones like `id`/`arn`), and
+a runtime binding object a program passes to `resource()`:
+
+```typescript sdk/generated/hashicorp-aws.ts (excerpt)
+export interface AwsDbInstanceConfig {
+  allocatedStorage?: number | Computed<number>;
+  dbName?: string | Computed<string>;
+  engine?: string | Computed<string>;
+  instanceClass: string | Computed<string>;
+  username?: string | Computed<string>;
+  // ...every other real aws_db_instance attribute
+}
+
+export interface AwsDbInstanceAttrs {
+  id: string;
+  arn: string;
+  // ...every field, plain types -- Computed<T> wrapping happens once,
+  // generically, when a resource() call returns a handle
+}
+
+export const AwsDbInstance: ResourceBinding<AwsDbInstanceConfig, AwsDbInstanceAttrs> = {
+  wireType: "aws_db_instance",
+  fields: { allocatedStorage: "allocated_storage", dbName: "db_name", /* ... */ },
+};
+```
+
+A field is only ever settable in `Config` if the real schema marks it
+`Required` or `Optional` -- a pure output attribute like `id` never
+appears there, only in `Attrs`.
+
+## Offline after generation
+
+`ubx sdk gen` is the one step in the SDK authoring flow that touches the
+network (to acquire a provider binary, if it isn't already cached).
+[`ubx resolve --from-code`](/cli/resolve#authoring-in-typescript) never does -- it
+evaluates a program against whatever bindings already exist on disk,
+inside a hermetic sandbox with no network access at all. This is
+deliberate: generation and evaluation are separate, explicit steps, the
+same way `ubx propose --from-doc` (network) and `ubx resolve` (offline)
+are already two separate commands.
+
+## `@ubx/sdk` is bundled, not (yet) published
+
+The runtime library a program imports as `@ubx/sdk` (`stack`, `resource`,
+`secret`, `cross`, `intent`, `Computed<T>`) is not published to npm yet --
+it's embedded directly inside the `ubx` binary and made available to the
+evaluator automatically. You don't need to `npm install` anything for
+`ubx resolve --from-code` to work; only generated bindings (this command's
+own output) need to exist on disk.
+
+## Related
+
+- [`ubx resolve --from-code`](/cli/resolve#authoring-in-typescript) -- evaluating an SDK program that imports these bindings
+- [`.ubx/config`'s `[providers]` table](/cli/config#multi-provider-stacks) -- declaring which providers to generate bindings for

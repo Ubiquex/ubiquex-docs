@@ -1,34 +1,114 @@
 ---
 title: "SDK Reference"
-description: "The ubx SDK is not yet released. Resources are authored today via typed intent files."
+description: "Author infrastructure as typed TypeScript code, evaluated in a hermetic sandbox -- the @ubx/sdk runtime is bundled with ubx today; npm publication is still pending."
 ---
 
-The ubx SDK — a describe-only TypeScript library for authoring infrastructure
-as typed code — is **not yet released**.
-
-## What exists today
-
-Resources are created and modified through **typed intent files** (`intent/v1`
-JSON), resolved deterministically and shipped through the signed proposal
-pipeline:
+`@ubx/sdk` is a describe-only TypeScript library for authoring
+infrastructure as typed code. It works today, through the CLI --
+`@ubx/sdk` itself isn't published to npm yet (it's bundled directly
+inside the `ubx` binary), so there's no separate install step: generate
+bindings, write a program, resolve it.
 
 ```bash
-ubx resolve intent.json --source hashicorp/aws --provider-version 6.54.0 \
-  --out change.prop.json
+ubx sdk gen --out sdk/generated
+ubx resolve --from-code payments.ts --out change.prop.json
 ubx accept change.prop.json
 ubx ship <proposal-id>
 ```
 
-See [ubx resolve](/cli/resolve) for the intent file format and the full
-authoring flow, and the [create flow guide](/guides/create-flow) for a
-complete worked example against real infrastructure.
+## The runtime surface
 
-## What the SDK will be
+A program's entire vocabulary is five functions and one type:
 
-When released, the SDK will generate the same intent objects with type
-safety and IDE support — it is an authoring frontend to the pipeline that
-exists today, not a separate system. Code authored with the SDK will
-evaluate in a hermetic sandbox and freeze to the same signed, hashed
-proposal artifact that every other medium produces.
+```typescript payments.ts
+import { intent, resource, stack } from "@ubx/sdk";
+import { AwsDbInstance } from "./sdk/generated/hashicorp-aws.ts";
 
-This page will become the SDK reference when the SDK ships.
+export default stack("payments", () => {
+  intent({ summary: "provision the payments database" });
+
+  resource(AwsDbInstance, "payments", {
+    engine: "postgres",
+    instanceClass: "db.t3.small",
+    allocatedStorage: 20,
+    dbName: "payments",
+    username: "payments_admin",
+  });
+});
+```
+
+- **`stack(name, fn)`** -- the module's default export. `fn` describes the
+  stack's own desired resources; it never runs at import time, only when
+  the evaluator explicitly asks for it.
+- **`resource(binding, name, config)`** -- declares one resource. `binding`
+  is a typed class from [`ubx sdk gen`](/cli/sdk-gen)'s own generated
+  output, carrying the real provider type and field shape. Returns a
+  handle for wiring into sibling resources (see `Computed<T>`, below).
+- **`secret(backend, path)`** / **`cross(ledgerDir, address)`** -- typed
+  constructors for a secret reference or a cross-stack reference, the
+  same `$secret`/`$cross` markers a hand-written intent file already
+  supports.
+- **`intent({summary, sources?})`** -- the emitted document's own summary.
+  Required, exactly once per stack.
+- **`Computed<T>`** -- what a `resource()` call's own return value's
+  fields are typed as. Never a real value: at evaluation time nothing has
+  been created yet, so a just-declared resource's own `.id` is a
+  *reference*, not a value. Passing one into another resource's config
+  produces a `$ref`; trying to use it as a string, in arithmetic, or with
+  `JSON.stringify` throws immediately, naming the address and the
+  attempted operation.
+
+Every field of a `resource()` call's return value is `Computed<T>` --
+including ones the program itself just set -- and property access on a
+`Computed<object>` drills recursively (`primary.settings.enabled` is
+itself a valid, traceable `Computed<boolean>`).
+
+## `ubx sdk gen`: local, pinned, offline after generation
+
+Typed bindings are generated **locally**, from the real provider schema
+your `.ubx/config` already pins -- never a published, version-matrixed
+package for every provider. See [`ubx sdk gen`](/cli/sdk-gen) for the
+full command reference; the short version:
+
+```text
+$ ubx sdk gen --out sdk/generated
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp-aws.ts
+```
+
+Generated files are meant to be committed to git, like any other
+reviewable generated code. Evaluating a program never touches the
+network -- only generation does.
+
+## The hermetic evaluator
+
+`ubx resolve --from-code` runs a program inside a real, locked-down [Deno](https://deno.com)
+subprocess: no filesystem, network, environment, or subprocess access,
+and no remote module resolution. This isn't a soft default -- it's
+enforced unconditionally, with no configuration flag to widen it.
+
+The evaluator also guards against accidental nondeterminism: `Date.now()`
+and `Math.random()` throw immediately if a program calls them, and the
+whole evaluation runs **twice**, as two separate subprocesses, with a
+hard failure if the two runs ever disagree -- the same determinism
+guarantee every other proposal-producing path in `ubx` makes.
+
+## What a program can't do yet
+
+- **Only creates.** A hermetic, sandboxed program has no way to check
+  whether an address already exists in the ledger, so there's no way to
+  author a `"modify"` from TypeScript today -- use a hand-written intent
+  file or [`ubx scan`](/cli/scan)'s own drift-generated proposals for
+  that.
+- **No published package.** `npm install @ubx/sdk` doesn't work yet --
+  the runtime ships bundled with `ubx` itself, which is sufficient for
+  evaluation; a real npm release (mainly useful for editor/IDE
+  type-checking convenience) hasn't shipped.
+- **TypeScript only, for now.** Go and Python evaluators are designed
+  for the same contract but not yet built.
+
+## Related
+
+- [`ubx resolve --from-code`](/cli/resolve#authoring-in-typescript) -- the full command reference and worked example
+- [`ubx sdk gen`](/cli/sdk-gen) -- generating typed bindings
+- [`ubx propose --from-doc`](/cli/propose) -- the other typed-authoring medium, markdown transcribed by an LLM
+- [Creating real infrastructure](/guides/create-flow) -- a full walkthrough, live on real AWS

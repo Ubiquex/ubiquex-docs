@@ -1,19 +1,21 @@
 ---
 title: "ubx resolve"
-description: "Resolve a typed ubx:intent/v1 file into a draft change proposal -- creates, modifies, and destroys"
+description: "Resolve a typed ubx:intent/v1 file (or a TypeScript SDK program, --from-code) into a draft change proposal -- creates, modifies, and destroys"
 ---
 
 ```text
 ubx resolve <intent-file> (--provider <path> | --source <src> --provider-version <v>) [flags]
+ubx resolve --from-code <entry>.ts [flags]
 ```
 
-Resolves a hand-written, machine-shaped [intent file](#the-intent-file) into
-a draft `kind:"change"` [proposal](/concepts/proposal) -- creates, modifies,
-and destroys. Intra-stack references are checked against the
-[ledger](/concepts/ledger)'s own dependency graph, with real cycle
-detection, and emitted in dependency order; cross-stack references are
-pinned against a neighbor ledger's current head, so a later `ubx accept`
-can tell whether that neighbor has moved on since (see
+Resolves a hand-written, machine-shaped [intent file](#the-intent-file) --
+or a [TypeScript SDK program](#authoring-in-typescript),
+`--from-code` -- into a draft `kind:"change"` [proposal](/concepts/proposal)
+-- creates, modifies, and destroys. Intra-stack references are checked
+against the [ledger](/concepts/ledger)'s own dependency graph, with real
+cycle detection, and emitted in dependency order; cross-stack references
+are pinned against a neighbor ledger's current head, so a later `ubx
+accept` can tell whether that neighbor has moved on since (see
 [Cross-stack references](#cross-stack-references) below).
 
 A destroy is explicit intent only -- see [Destroying a
@@ -43,13 +45,14 @@ which attributes are `Computed` or `Sensitive`.
 
 | Flag | Description |
 | --- | --- |
+| `--from-code string` | evaluate a [TypeScript SDK program](#authoring-in-typescript) instead of reading an intent file (mutually exclusive with the positional argument) |
 | `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
 | `--provider string` | path to the provider binary (mutually exclusive with `--source`) |
 | `--source string` | provider source address, e.g. `hashicorp/aws` (mutually exclusive with `--provider`; requires `--provider-version`) |
 | `--provider-version string` | explicit provider version to acquire (required with `--source`) |
 | `--known-dependent stringArray` | `ledger_dir` of a neighbor stack to check for cross-stack orphan references before destroying (repeatable) |
 | `--out string` | write the resolved proposal here instead of stdout |
-| `--timeout duration` | timeout for launching the provider and fetching its schema (default `1m0s`) |
+| `--timeout duration` | timeout for launching the provider and fetching its schema, and (`--from-code`) evaluating the SDK program -- one shared budget for the whole command (default `2m0s`) |
 | `-h`, `--help` | help for resolve |
 
 `ubx resolve` has no `--provider-config` -- unlike `ubx scan`/`ubx accept
@@ -114,6 +117,131 @@ resolved: payments: 1 create(s), 0 modify(ies)
   "status": "draft"
 }
 ```
+
+## Authoring in TypeScript
+
+`--from-code <entry>.ts` evaluates a TypeScript [SDK program](/sdk)
+through a hermetic, sandboxed Deno subprocess instead of reading an
+intent file from disk -- no network, filesystem, or environment access
+for the program itself, confirmed empirically, not just documented as a
+goal. The resulting `intent/v1` document is provenance-stamped with the
+entry file's own content hash and handed to the exact same resolution
+pipeline as any other intent producer.
+
+First, generate typed bindings for the providers you've declared (see
+[`ubx sdk gen`](/cli/sdk-gen)):
+
+```text
+$ ubx sdk gen --out sdk/generated
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp-aws.ts
+```
+
+Then author a program against them:
+
+```typescript payments.ts
+import { intent, resource, stack } from "@ubx/sdk";
+import { AwsDbInstance } from "./sdk/generated/hashicorp-aws.ts";
+
+export default stack("payments", () => {
+  intent({
+    summary:
+      "Provision a small Postgres RDS instance in the payments stack, modeled on the staging database but downsized for low initial traffic.",
+  });
+
+  resource(AwsDbInstance, "payments", {
+    engine: "postgres",
+    instanceClass: "db.t3.small",
+    allocatedStorage: 20,
+    dbName: "payments",
+    username: "payments_admin",
+  });
+});
+```
+
+```text
+$ ubx resolve --from-code payments.ts --ledger-dir . --out resolved.json
+resolved: payments: 1 create(s), 0 modify(ies), 0 destroy(s)
+```
+
+```json
+{
+  "intent": {
+    "summary": "Provision a small Postgres RDS instance in the payments stack, modeled on the staging database but downsized for low initial traffic.",
+    "sources": [
+      {
+        "kind": "document",
+        "ref": "payments.ts",
+        "content_hash": "sha256:ace1f28bd1c577e0f8788533d44232799eec52f9ec8f094dda5950f406e430a4"
+      }
+    ]
+  },
+  "delta": {
+    "creates": [
+      {
+        "config": {
+          "allocated_storage": 20,
+          "db_name": "payments",
+          "engine": "postgres",
+          "instance_class": "db.t3.small",
+          "username": "payments_admin"
+        },
+        "name": "payments",
+        "provider": {"source": "hashicorp/aws", "version": "6.54.0"},
+        "stack": "payments",
+        "type": "aws_db_instance"
+      }
+    ]
+  }
+}
+```
+
+Notice `intent.sources` names one `"document"` entry -- the entry file
+itself, content-hashed -- the same `"document"` kind a markdown authoring
+document gets (see [`ubx propose --from-doc`](/cli/propose)).
+There's no separate "which adapter drafted this" entry the way an
+LLM-transcribed document (`ubx propose --from-doc`) gets: a TypeScript
+program has no interpretation step, so there's nothing analogous to
+name. This isn't a coincidence --
+the exact resolved `delta.creates[]` above is byte-for-byte identical
+(after canonical JSON normalization) to what resolving the equivalent
+markdown-authored, LLM-transcribed document produces for the same
+infrastructure -- three independent producers (a hand-written intent
+file, a markdown document, and this TypeScript program) converging on the
+same signed shape.
+
+`.instanceClass` has no `?` in the generated `AwsDbInstanceConfig`
+interface -- it's required by the real AWS schema, and TypeScript
+enforces that before the program ever runs, not after a failed resolve.
+
+### `Computed<T>`: wiring one resource's output into another
+
+A `resource()` call returns a handle whose fields are all `Computed<T>` --
+references, never real values (nothing exists yet). Passing one into a
+sibling resource's own config produces a `$ref`, exactly like the JSON
+`$ref` marker above:
+
+```typescript
+const primary = resource(AwsDbInstance, "payments", { /* ... */ });
+
+resource(AwsDbInstance, "payments-replica", {
+  instanceClass: "db.t3.small",
+  replicateSourceDb: primary.id as unknown as string,
+});
+```
+
+Trying to use a `Computed<T>` as a real value -- string interpolation,
+`JSON.stringify`, arithmetic -- throws immediately, naming the address
+and the attempted operation, rather than silently producing
+`"[object Object]"`.
+
+### What `--from-code` can't do (yet)
+
+A program can only ever describe **creates** -- there's no way to author
+a `"modify"` from TypeScript today. A hermetic, sandboxed program has no
+filesystem or network access, so it has no way to check whether an
+address already exists in the ledger; expressing `"modify"` intent needs
+real design work this hasn't had yet. Use a hand-written intent file (or
+[`ubx scan`](/cli/scan)'s own drift-generated proposals) for modifies.
 
 ## Modifying an already-ledgered resource
 
@@ -472,9 +600,11 @@ duplicate address within `destroys`, an address appearing in both
 
 - [Proposal](/concepts/proposal) -- the `kind:"change"` shape this command produces
 - [`ubx accept`](/cli/accept) -- accepting the resolved proposal, including cross-stack pin re-verification
-- [`ubx propose`](/cli/propose) -- computing a PR-body trailer hash for a resolved proposal
+- [`ubx propose`](/cli/propose) -- computing a PR-body trailer hash for a resolved proposal, or transcribing a markdown document into an intent draft
 - [`ubx scan`](/cli/scan) -- the other proposal-generating path, from live drift rather than typed intent
 - [`ubx ship`](/cli/ship) -- applying an accepted change proposal, filling in `$computed` values as it walks
+- [`ubx sdk gen`](/cli/sdk-gen) -- generating the typed bindings a `--from-code` program imports
+- [SDK Reference](/sdk) -- the `@ubx/sdk` runtime surface (`stack`, `resource`, `secret`, `cross`, `intent`, `Computed<T>`)
 - [`.ubx/config`'s `[providers]`/`[provider_configs]`](/cli/config#multi-provider-stacks) -- declaring a multi-provider stack
 - [Creating real infrastructure](/guides/create-flow) -- a full walkthrough, live on real AWS
 - [Exit codes](/cli/exit-codes) -- the 0/2 contract `ubx resolve` follows
