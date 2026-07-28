@@ -1,0 +1,173 @@
+---
+title: "ubx addresses"
+description: "Referenceable-address inventory — copy-paste-ready $cross forms for every resource in a stack"
+---
+
+```text
+ubx addresses [--stack <name>] [--all] [--json] [flags]
+```
+
+Authoring a [`$cross` reference](/concepts/ledger-stores) means knowing a
+neighbor's exact address ahead of time — `@payments.aws_db_instance.staging.endpoint`,
+not "the payments database." Until now, finding that string meant manual
+archaeology through [`ubx status`](/cli/status)/[`ubx why`](/cli/why)
+output. `ubx addresses` is a flat, copy-pasteable inventory of every active
+resource in a stack, each with its own referenceable attributes drawn from
+the real provider schema and rendered as the exact `$cross` form an md doc
+or intent file needs. Read-only: it never touches an apply, only a
+provider's own schema.
+
+## Flags
+
+| Flag | Description |
+| --- | --- |
+| `--stack string` | which stack to inventory — this workspace's own stack by default; a different name resolves via the same base store / `[ledger.external]` mechanism `$cross` uses |
+| `--all` | include tombstoned (destroyed) addresses, annotated — excluded by default |
+| `--json` | emit one JSON document instead of human text |
+| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `--timeout duration` | timeout for launching each distinct provider@version and fetching its schema (applied once per distinct pair, not once for the whole command) (default `1m0s`) |
+| `-h`, `--help` | help for addresses |
+
+## Example: an active resource
+
+```text
+$ ubx addresses --ledger-dir .
+payments.fake_widget.payments-db
+  provider: fake/widget@0.1.0
+  @payments.fake_widget.payments-db.id (computed, known after apply)
+  @payments.fake_widget.payments-db.name (always present)
+  @payments.fake_widget.payments-db.tags (always present)
+```
+
+Real, unedited output. Each attribute is fetched from the provider's own
+real schema **at the version this resource was actually built against**
+(recorded on the resource itself, [UBI-43](/cli/status)'s own "provider
+field returns" amendment) — never whatever `[providers]` happens to pin
+today. `id` is marked computed: the provider only knows its value after
+a real apply, never something an author can set. `name`/`tags` are always
+present — declared attributes an author configures directly.
+
+<Note>
+  An address with no recorded provider — adopted via `ubx accept`, or
+  known only from a `drift_adopt`, never a real shipped create — has no
+  version to fetch a schema against. It still appears in the inventory,
+  annotated `attributes unknown: no recorded provider`, rather than
+  failing the whole command over one resource's own gap.
+</Note>
+
+### `--json`
+
+```json
+{
+  "format": 1,
+  "entries": [
+    {
+      "address": { "stack": "payments", "type": "fake_widget", "name": "payments-db" },
+      "tombstoned": false,
+      "provider": { "source": "fake/widget", "version": "0.1.0" },
+      "attributes": [
+        { "name": "id", "computed": true, "cross_form": "@payments.fake_widget.payments-db.id" },
+        { "name": "name", "computed": false, "cross_form": "@payments.fake_widget.payments-db.name" },
+        { "name": "tags", "computed": false, "cross_form": "@payments.fake_widget.payments-db.tags" }
+      ]
+    }
+  ]
+}
+```
+
+## Example: `--all` shows a destroyed address, annotated
+
+```text
+$ ubx addresses --ledger-dir .
+payments.fake_widget.payments-db
+  provider: fake/widget@0.1.0
+  @payments.fake_widget.payments-db.id (computed, known after apply)
+  @payments.fake_widget.payments-db.name (always present)
+  @payments.fake_widget.payments-db.tags (always present)
+
+$ ubx addresses --ledger-dir . --all
+payments.fake_widget.payments-cache
+  DESTROYED by cd6ef960f755…
+  provider: fake/widget@0.1.0
+  @payments.fake_widget.payments-cache.id (computed, known after apply)
+  @payments.fake_widget.payments-cache.name (always present)
+  @payments.fake_widget.payments-cache.tags (always present)
+
+payments.fake_widget.payments-db
+  provider: fake/widget@0.1.0
+  @payments.fake_widget.payments-db.id (computed, known after apply)
+  @payments.fake_widget.payments-db.name (always present)
+  @payments.fake_widget.payments-db.tags (always present)
+```
+
+`payments-cache` was shipped and later destroyed; the default inventory
+excludes it entirely (it's not something a new reference should point
+at), `--all` includes it with a `DESTROYED by <proposal>` annotation —
+its own attribute list still shown, since the `$cross` form is real
+history, useful for understanding what a doc referenced *before* the
+destroy, never a live pointer.
+
+## Cross-stack: the same resolution `$cross` uses
+
+`--stack <name>` naming a genuinely different stack resolves via the
+exact base-store/`[ledger.external]` mechanism a
+[`$cross` reference](/concepts/ledger-stores) itself uses to pin a
+neighbor — so the command answers "what can I reference in that
+neighbor" from anywhere in the workspace, without a `cd`:
+
+```text
+$ cat .ubx/config
+stack = "payments"
+
+[providers]
+"fake/widget" = "0.1.0"
+
+[ledger.external]
+networking = "/Users/roozbeh/demo/ubx-addresses-demo"
+
+$ ubx addresses --ledger-dir . --stack networking
+networking.fake_widget.vpc-main
+  provider: fake/widget@0.1.0
+  @networking.fake_widget.vpc-main.id (computed, known after apply)
+  @networking.fake_widget.vpc-main.name (always present)
+  @networking.fake_widget.vpc-main.tags (always present)
+```
+
+Real, unedited output — run from inside `payments`'s own directory,
+`networking`'s own ledger lives at a sibling path under the
+`[ledger.external]` override, resolved and opened without touching
+`payments`'s own ledger at all.
+
+<Note>
+  A git-local workspace asking for a stack name that's neither its own
+  nor listed in `[ledger.external]` has no base to resolve against —
+  refused with a teaching error, not a silent guess:
+
+  ```text
+  $ ubx addresses --ledger-dir . --stack billing
+  addresses: unknown stack "billing" -- known stacks: payments (this workspace's own stack), networking ([ledger.external])
+  ```
+
+  Point `--ledger-dir` directly at the neighbor's own directory instead,
+  the same fallback `$cross`'s own `"ledger_dir"` form offers.
+</Note>
+
+## Example: an empty stack
+
+```text
+$ ubx addresses --ledger-dir .
+ubx addresses: no addresses recorded
+```
+
+Renders sanely rather than as an error — exit 0, same as every other
+successful (if empty) inventory.
+
+## Related
+
+- [`ubx verify`](/cli/verify), [`ubx blame`](/cli/blame), and
+  [`ubx stats`](/cli/stats) — the other read-only projections in this
+  family
+- [Ledger stores](/concepts/ledger-stores) — `$cross`, `[ledger.external]`,
+  and the base-store addressing convention `ubx addresses --stack` mirrors
+- [`ubx status`](/cli/status) — the live, drift-aware fleet view;
+  `ubx addresses` is the authoring-focused, schema-backed inventory
