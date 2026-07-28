@@ -1,0 +1,149 @@
+---
+title: "ubx verify"
+description: "Independently re-verify the ledger's own chain integrity, offline — the auditor's command"
+---
+
+```text
+ubx verify [--stack <name>] [--repo-dir <dir> [--github-repo <owner/name>]] [flags]
+```
+
+The auditor's command: independent full-chain verification, one command,
+entirely offline. `ubx`'s own claim is "independently verifiable" — `ubx
+verify` makes that claim a demo, not a slogan. It re-checks everything
+checkable without trusting a single already-computed value: every
+proposal's own content hash against its own `id`, the parent-chain walk
+itself, every sealed apply record's own hash and its own attempt-chaining,
+and every `$redacted` marker's own inner shape.
+
+<Note>
+  Read-only, no provider, no credentials needed for the offline core (hash,
+  chain, apply-record, and `$redacted` checks). `--repo-dir`/`--github-repo`
+  are the one opt-in exception — even then, it's read-only git/API calls
+  re-deriving a `pr_merge` acceptance, never a write anywhere.
+</Note>
+
+## Flags
+
+| Flag | Description |
+| --- | --- |
+| `--stack string` | which stack to verify — required only for a remote `[ledger]` store; git-local verifies every proposal in the chain regardless of stack, `--stack` narrows which findings get reported |
+| `--repo-dir string` | local git working tree to re-derive `pr_merge` acceptances against (omit to report them as inconclusive rather than attempt it) |
+| `--github-repo string` | `owner/name` of the GitHub repository, for the reviewer re-check half of `pr_merge` re-derivation (git-history re-check runs without it, given `--repo-dir`) |
+| `--json` | emit one JSON document instead of human text |
+| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `--timeout duration` | timeout for each `pr_merge` acceptance's own re-derivation call (only with `--repo-dir`, default `1m0s`) |
+| `-h`, `--help` | help for verify |
+
+## Example: a clean ledger
+
+```text
+$ ubx verify --ledger-dir .
+verify: 1 proposal(s) checked
+chain: intact
+acceptance: 0 re-derived, 1 convenience-tier (local), 0 inconclusive
+```
+
+Real, unedited output. `acceptance` reports every proposal's own acceptance
+method: `local` acceptances are reported as **convenience-tier** — there's
+nothing to independently re-derive a local acceptance against, and claiming
+otherwise would be exactly the kind of rounding-up this command exists to
+refuse.
+
+### `--json`
+
+```text
+$ ubx verify --ledger-dir . --json
+```
+
+```json
+{
+  "format": 1,
+  "proposals_checked": 1,
+  "chain_intact": true,
+  "acceptance": {
+    "derived": 0,
+    "convenience_tier": 1,
+    "inconclusive": 0,
+    "checks": [
+      {
+        "proposal_id": "e830007e783f25bf34140ee85983ebc9c5f8a5b6f545af09db212369fb95ce8b",
+        "method": "local",
+        "ok": true,
+        "note": "convenience-tier acceptance -- nothing to independently re-derive it against"
+      }
+    ]
+  }
+}
+```
+
+## What it re-checks
+
+- **Content hash.** Every proposal's own stored bytes are re-hashed
+  (`core.Hash`, the exact same canonicalization `ubx accept` uses to
+  compute an `id` in the first place) and compared against its own `id`.
+  This is genuinely new ground: nothing else in `ubx` ever re-verifies a
+  stored proposal's bytes against its own id on read — `core.Hash` is only
+  ever *called* to compute one, at accept time.
+- **The parent chain.** Walked independently, not via a shortcut that
+  would abort on the first problem — a broken link (a `Parent` pointing at
+  an id the store has no proposal for) is reported as a finding, never a
+  crash.
+- **Apply records.** Every *sealed* apply attempt's own hash, and its own
+  `Parent` link to the most recently sealed attempt before it — mirroring
+  the exact linkage rule `ubx ship` itself uses, so a legitimate crashed-
+  and-retried apply is never mistaken for a broken chain.
+- **`$redacted` markers.** Every redacted value's own inner shape
+  (`{"sha256": "<64-hex>"}`) is checked, not just the outer
+  `{"$redacted": ...}` wrapper.
+- **`pr_merge` acceptance**, opportunistically: given `--repo-dir`, the
+  merge commit's own continued existence and the proposal file's own
+  hash at that commit are re-checked (no network); given `--github-repo`
+  too, the PR's *current* approving reviewers are also re-fetched and
+  compared. Neither flag given, or only `--repo-dir`: reported as
+  **inconclusive**, honestly — never rounded up to a pass.
+
+## Example: a tampered proposal
+
+Once a proposal's own stored bytes are edited after the fact — hand-edited
+on disk, not through any `ubx` command — `ubx verify` catches it:
+
+```text
+$ ubx verify --ledger-dir .
+verify: 1 proposal(s) checked
+  e830007e783f25bf34140ee85983ebc9c5f8a5b6f545af09db212369fb95ce8b: hash_mismatch -- recomputed content hash 2957b60196e587acf4ff65433f3b24e855599b06bde383287dd6737ef1251b47 does not match its own id
+chain: BROKEN (1 finding(s), see above)
+acceptance: 0 re-derived, 1 convenience-tier (local), 0 inconclusive
+verify: 1 chain finding(s), 0 acceptance re-derivation(s) failed -- see above
+```
+
+Real, unedited output. Exit code `1` — a real, actionable finding.
+
+<Warning>
+  A tampered proposal doesn't just fail its own check: **every later
+  proposal in the chain gets flagged too**, whether or not any of their own
+  bytes were also touched (`tainted_descendant`). A later proposal's own
+  hash and parent link can check out perfectly while still resting on
+  corrupted history — `ubx verify` surfaces that, not just the one file
+  that changed.
+</Warning>
+
+## Exit codes
+
+Every exit code follows the same contract every other `ubx` verb does —
+`0` everything checks out; `1` a real finding (a broken hash, a chain
+break, a failed acceptance re-derivation); `2` a genuine error (a corrupt
+ledger head, a network/tool failure re-deriving acceptance). "Couldn't
+check" (inconclusive) and "checked and found a problem" are never
+conflated into the same exit code — see [Exit codes](/cli/exit-codes).
+
+## Related
+
+- [`ubx why`](/cli/why) — `--verify-acceptance`, the single-proposal
+  version of the `pr_merge` re-derivation `ubx verify` runs across the
+  whole chain
+- [`ubx status`](/cli/status) — the fleet-wide *live-state* view;
+  `ubx verify` is the *ledger-integrity* view, a genuinely different
+  question
+- [Proposal](/concepts/proposal) — the canonical hash `ubx verify`
+  independently recomputes
+- [Ledger](/concepts/ledger) — the chain `ubx verify` walks
