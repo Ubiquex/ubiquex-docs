@@ -1,15 +1,16 @@
 ---
 title: "ubx propose"
-description: "Compute a draft proposal's canonical hash for a PR body's ubx-proposal trailer, or transcribe a markdown document into an intent/v1 draft"
+description: "Compute a draft proposal's canonical hash for a PR body's ubx-proposal trailer, or transcribe a markdown document or D2 diagram into an intent/v1 draft"
 ---
 
 ```text
 ubx propose <proposal.json> [flags]
 ubx propose --from-doc <file>.md --stack <stack> [flags]
+ubx propose --from-diagram <file>.d2 --stack <stack> [flags]
 ```
 
-Two genuinely different pipeline stages share this verb, disambiguated by
-`--from-doc`:
+Three genuinely different pipeline stages share this verb, disambiguated by
+`--from-doc`/`--from-diagram`:
 
 - **`ubx propose <proposal.json>`** computes a draft [proposal](/concepts/proposal)'s
   canonical hash and prints it as a `ubx-proposal: <hash>` line. This never
@@ -29,18 +30,33 @@ Two genuinely different pipeline stages share this verb, disambiguated by
   ledger, and never chains automatically into `ubx resolve` — the same
   "each step is a deliberate human checkpoint" posture every other verb in
   this chain holds.
+- **`ubx propose --from-diagram <file>.d2 --stack <stack>`** parses a D2
+  diagram's own topology into an [`ubx:intent/v1` draft](/guides/diagram-medium)
+  — the diagram medium's own entry point. No LLM anywhere in this path: node
+  types are inferred from the diagram's own `class:` values against the
+  [providers](/cli/config#multi-provider-stacks) declared in `.ubx/config`,
+  the same schema-ownership inference a hand-written intent file's untyped
+  `resources[].type` already gets. Same two-step shape as `--from-doc`: it
+  stops at a written draft, never resolves, never touches a ledger — a
+  diagram parse can still produce real, visible ambiguity (an uninferable
+  node type, or a topology-only edge into a cross-stack reference), so it
+  gets the same human-review checkpoint.
 
-The two modes are mutually exclusive — `--from-doc` and a positional
-`proposal.json` argument together is a hard error.
+The three modes are mutually exclusive — any two of `--from-doc`,
+`--from-diagram`, and a positional `proposal.json` argument together is a
+hard error.
 
 ## Flags
 
 | Flag | Description |
 | --- | --- |
 | `--from-doc` | path to a markdown authoring document — switches to the transcription mode |
-| `--stack` | target stack name (required with `--from-doc`) |
-| `--out` | write the intent/v1 draft here instead of stdout (only with `--from-doc`) |
-| `--timeout` | timeout for the intent provider's own drafting round trip (only with `--from-doc`; default `3m0s`) |
+| `--from-diagram` | path to a `.d2` diagram — switches to the diagram-topology mode |
+| `--stack` | target stack name (required with `--from-doc` or `--from-diagram`) |
+| `--out` | write the intent/v1 draft here instead of stdout (only with `--from-doc` or `--from-diagram`) |
+| `--summary` | `intent.summary` for the draft (only with `--from-diagram` — a diagram has no prose to derive one from; defaults to a generated summary naming the stack and resource count if omitted) |
+| `--neighbor-ledger` | `<stack>=<path>` mapping a diagram's own cross-stack reference to a real ledger directory, overriding the `../<stack>` convention (repeatable, only with `--from-diagram`) |
+| `--timeout` | timeout for the intent provider's own drafting round trip (only with `--from-doc`), or for provider acquisition/schema fetch (only with `--from-diagram`); default `3m0s` |
 | `-h`, `--help` | help for propose |
 
 ## Example: hashing a resolved proposal
@@ -156,12 +172,163 @@ propose --from-doc: intent: key_ref.env names "ANTHROPIC_API_KEY", but that envi
 
 Every exit code above is `2` — see [Exit codes](/cli/exit-codes).
 
+## Example: transcribing a diagram (`--from-diagram`)
+
+Given `payments.d2`:
+
+```d2 payments.d2
+classes: {
+  aws_vpc: {}
+  aws_db_instance: {}
+}
+payments: {
+  vpc: main-vpc {
+    class: aws_vpc
+  }
+  db: payments-db {
+    class: aws_db_instance
+  }
+}
+payments.db -> payments.vpc
+```
+
+And a `.ubx/config` naming the real provider `InferProvider` resolves each
+`class:` value against (see
+[`[providers]`](/cli/config#multi-provider-stacks)):
+
+```toml .ubx/config
+[providers]
+"hashicorp/aws" = "6.54.0"
+```
+
+```text
+$ ubx propose --from-diagram payments.d2 --stack payments --out payments.intent.json
+no assumptions, defaults, or open questions -- the document was unambiguous.
+wrote draft: payments.intent.json
+```
+
+```json payments.intent.json
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "payments",
+  "intent": {
+    "summary": "2 resource(s) authored via payments.d2 for stack \"payments\"",
+    "sources": [
+      {
+        "kind": "document",
+        "ref": "payments.d2",
+        "content_hash": "sha256:505f6dab7dc39d25476943d9a20b9fa8dddaee5f7795f759471679f2b8ae96b0"
+      }
+    ]
+  },
+  "resources": [
+    {
+      "type": "aws_db_instance",
+      "name": "payments-db",
+      "op": "create",
+      "config": {},
+      "depends_on": ["payments.aws_vpc.main-vpc"]
+    },
+    {
+      "type": "aws_vpc",
+      "name": "main-vpc",
+      "op": "create",
+      "config": {}
+    }
+  ]
+}
+```
+
+This is real, unedited output, `--from-diagram` acquiring the real, pinned
+`hashicorp/aws@6.54.0` provider and inferring both node types against its
+real schema — see [The diagram medium](/guides/diagram-medium) for the full
+D2 subset (`class:`, containers, edges) and what each field of the draft
+means.
+
+`payments.db -> payments.vpc`, an edge between two resources in the same
+stack, became `payments-db`'s own `depends_on` entry — a topology-only
+dependency signal with no config attribute to carry it, resolved into the
+same dependency graph `$ref`/`$cross` scanning already builds.
+
+### Cross-stack references and the `$cross` note
+
+A node whose label starts with `@` (or carries `class: external`) names an
+address in another stack rather than authoring a new resource. An edge into
+one still renders as visible ambiguity content, since a topology-only edge
+has no attribute to carry a real `$cross` marker in:
+
+```d2 payments-cross.d2
+classes: {
+  aws_db_instance: {}
+  external: {}
+}
+vpc_ref: "@networking.aws_vpc.main" {
+  class: external
+}
+payments: {
+  db: payments-db {
+    class: aws_db_instance
+  }
+}
+payments.db -> vpc_ref
+```
+
+```text
+$ ubx propose --from-diagram payments-cross.d2 --stack payments
+Defaults (1):
+  - resource "payments.aws_db_instance.payments-db" is drawn with a relationship to external reference "networking.aws_vpc.main" -- the diagram medium does not yet emit a wire-level $cross reference for a topology-only edge with no named attribute. Add an explicit $cross reference in the resource's own config by hand if this needs to be enforced structurally.
+      affects: payments.aws_db_instance.payments-db
+{ ... }
+```
+
+`vpc_ref` resolves against the `networking` stack's own ledger directory via
+the `../networking` sibling convention, or `--neighbor-ledger
+networking=<path>` to override it. This is a genuine v1 limitation, not a
+bug — a real `$cross` reference into another stack still has to be added by
+hand in the resource's own config, via the SDK or md medium, or a
+hand-written intent file. See
+[The diagram medium](/guides/diagram-medium#the-cross-structural-limitation)
+for the full reasoning.
+
+## When resolution fails (`--from-diagram`)
+
+`--stack` is required, same as `--from-doc`:
+
+```text
+$ ubx propose --from-diagram payments.d2
+propose --from-diagram: --stack is required
+```
+
+`--from-diagram` has no legacy single-provider fallback — like
+[`ubx sdk gen`](/cli/sdk-gen), it's a post-multi-provider-stacks feature, so
+`.ubx/config` needs a real `[providers]` table:
+
+```text
+$ ubx propose --from-diagram payments.d2 --stack payments
+propose --from-diagram: no [providers] declared in .ubx/config -- the diagram medium has no legacy single-provider fallback (like "ubx sdk gen", it's a post-multi-provider-stacks feature); declare at least one source in [providers]
+```
+
+Any two of `--from-doc`, `--from-diagram`, and a positional `proposal.json`
+argument together is a hard error, same posture as the `--from-doc`/
+positional-argument check above:
+
+```text
+$ ubx propose proposal.json --from-diagram payments.d2 --stack payments
+propose: a proposal.json argument, --from-doc, and --from-diagram are mutually exclusive
+```
+
+Every exit code above is `2` — see [Exit codes](/cli/exit-codes).
+
 ## Related
 
 - [`ubx accept`](/cli/accept) — PR-merge acceptance, using the hash-mode trailer
-- [`ubx resolve`](/cli/resolve) — the next step after `--from-doc`, consuming its own written draft
+- [`ubx resolve`](/cli/resolve) — the next step after `--from-doc`/`--from-diagram`, consuming its own written draft
 - [The md medium](/guides/md-medium) — the full walkthrough: ambiguity rendering, redaction, and what comes after the draft
+- [The diagram medium](/guides/diagram-medium) — the full D2 walkthrough: topology authoring, type inference, the `$cross` structural limitation
 - [Authoring conventions](/guides/md-authoring-conventions) — how to write a document `--from-doc` transcribes reliably
 - [Chat: interactive drafting](/guides/chat) — `ubx chat`, the conversational sibling of `--from-doc`, same adapter, same draft shape
+- [`ubx sdk gen`](/cli/sdk-gen) — the same "no legacy single-provider fallback" posture, for typed TypeScript bindings instead of a diagram
 - [`.ubx/config`'s `intent` table](/cli/config#intent) — which adapter, which model, where the key lives
+- [`[providers]`](/cli/config#multi-provider-stacks) — required for `--from-diagram`'s own type inference
 - [Proposal](/concepts/proposal) — how the hash-mode's canonical hash is computed

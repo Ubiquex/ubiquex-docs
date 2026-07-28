@@ -1,0 +1,243 @@
+---
+title: "The diagram medium: provisioning infrastructure from a D2 diagram"
+description: "ubx propose --from-diagram: a D2 diagram's own topology becomes a reviewable draft, no LLM anywhere in the path"
+---
+
+Every other guide in this section starts from a hand-written
+[intent file](/cli/resolve#the-intent-file), something `ubx scan` observed
+directly, or prose transcribed by an LLM ([the md medium](/guides/md-medium)).
+This one starts from a diagram: an ordinary [D2](https://d2lang.com) file,
+describing your infrastructure as nodes, containers, and edges, parsed
+directly into that same intent file format —
+[`ubx propose --from-diagram`](/cli/propose#example-transcribing-a-diagram---from-diagram).
+
+<Note>
+  **The one rule that shapes everything below.** A diagram authors
+  **topology only** — nodes become resources, containers are pure visual
+  grouping, edges become dependencies. It never authors an attribute value;
+  attribute annotations, when `ubx render` draws them back, come from the
+  ledger's own resolved truth, never the other way around. And unlike the md
+  medium, **no LLM is anywhere in this path at all** — a node's type comes
+  from a `class:` value, resolved deterministically against your declared
+  providers' real schema, the exact same inference a hand-written intent
+  file's own untyped `resources[].type` already gets.
+</Note>
+
+## Setup
+
+`--from-diagram` has no legacy single-provider fallback — like
+[`ubx sdk gen`](/cli/sdk-gen), it needs a real `[providers]` table in
+`.ubx/config`, since it's a multi-provider-stacks-era feature with no
+earlier CLI shape to stay compatible with:
+
+```toml .ubx/config
+[providers]
+"hashicorp/aws" = "6.54.0"
+```
+
+## Write a diagram
+
+D2's own `class:`/`classes: {}` keyword — its CSS-like styling-class
+system — is repurposed as the type-annotation mechanism: a class named
+after a real provider wire type, with an empty body, carries zero styling
+and *is* the type.
+
+```d2 payments.d2
+classes: {
+  aws_vpc: {}
+  aws_db_instance: {}
+}
+payments: {
+  vpc: main-vpc {
+    class: aws_vpc
+  }
+  db: payments-db {
+    class: aws_db_instance
+  }
+}
+payments.db -> payments.vpc
+```
+
+- **Nodes** become resources. A node's label (falling back to its D2 ID) is
+  its `ubx` resource name; its `class:` value is resolved against your
+  declared providers' real schema — ambiguous or unrecognized becomes a
+  visible, blocking question (see below), never a guess.
+- **Containers** are pure visual grouping — however deeply a node is
+  nested, its own resource name is unaffected. `payments.db -> payments.vpc`
+  above refers to the containers' own D2 paths; the resource itself is
+  still just named `payments-db`.
+- **Edges** between two resources become a `depends_on` entry on the
+  dependent resource — a topology-only dependency signal with no config
+  attribute to carry it, merged into the same dependency graph `$ref`/
+  `$cross` scanning already builds (real cycle detection included, for
+  free).
+
+## Parse it
+
+```text
+$ ubx propose --from-diagram payments.d2 --stack payments --out payments.intent.json
+no assumptions, defaults, or open questions -- the document was unambiguous.
+wrote draft: payments.intent.json
+```
+
+```json payments.intent.json
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "payments",
+  "intent": {
+    "summary": "2 resource(s) authored via payments.d2 for stack \"payments\"",
+    "sources": [
+      {
+        "kind": "document",
+        "ref": "payments.d2",
+        "content_hash": "sha256:505f6dab7dc39d25476943d9a20b9fa8dddaee5f7795f759471679f2b8ae96b0"
+      }
+    ]
+  },
+  "resources": [
+    {
+      "type": "aws_db_instance",
+      "name": "payments-db",
+      "op": "create",
+      "config": {},
+      "depends_on": ["payments.aws_vpc.main-vpc"]
+    },
+    {
+      "type": "aws_vpc",
+      "name": "main-vpc",
+      "op": "create",
+      "config": {}
+    }
+  ]
+}
+```
+
+This is real, unedited output — `--from-diagram` acquired the real, pinned
+`hashicorp/aws@6.54.0` provider and inferred both node types against its
+real schema, deterministically, no network call to any LLM at all.
+
+`intent.summary` has no prose source to derive one from, so it's
+auto-generated naming the stack and resource count — pass `--summary` to
+override it with something more specific.
+
+`intent.sources` gets a single `"document"`-kind entry naming the diagram
+file and its content hash — tamper-evidence against the exact file a
+reviewer can go look at, the same `document` kind every non-LLM medium
+uses. (The md medium's own `--from-doc` adds a second `intent_provider`
+entry for the adapter's own response; there's no adapter round trip here to
+pin.)
+
+## Ambiguity is visible content here too
+
+A diagram parse is fully deterministic — there's no interpretive gap the
+way an LLM's own prose transcription has one — but it can still produce
+real, structural ambiguity, and that reuses the exact same
+`assumptions`/`defaults`/`questions` wire fields [the md
+medium](/guides/md-medium#ambiguity-is-visible-content-never-a-silent-choice)
+does, not a second mechanism invented for diagrams specifically.
+
+**A class-less or unrecognized node becomes a blocking question**, never a
+best-effort guess — a node's type is never inferred from its label text:
+
+```d2
+payments: {
+  cache: payments-cache
+}
+```
+
+```text
+$ ubx propose --from-diagram payments-ambiguous.d2 --stack payments
+Questions (1):
+  - [blocking -- review before accepting] node "payments.cache" has no class: attribute -- ubx can't infer its resource type from a label alone. Add a class: naming the real provider type (e.g. "class: aws_db_instance").
+      affects: payments.cache
+```
+
+The node is excluded from `resources[]` entirely until the diagram names a
+real `class:`. If two declared providers both own the same type name, the
+same thing happens — an `ErrAmbiguousType`-shaped question, not a silent
+pick of either provider.
+
+**A cross-stack reference produces a visible, non-blocking note — a real
+v1 limit, not a bug.** A node whose label starts with `@` (or carries
+`class: external`) names an address in another stack rather than a new
+resource:
+
+```d2 payments-cross.d2
+classes: {
+  aws_db_instance: {}
+  external: {}
+}
+vpc_ref: "@networking.aws_vpc.main" {
+  class: external
+}
+payments: {
+  db: payments-db {
+    class: aws_db_instance
+  }
+}
+payments.db -> vpc_ref
+```
+
+```text
+$ ubx propose --from-diagram payments-cross.d2 --stack payments
+Defaults (1):
+  - resource "payments.aws_db_instance.payments-db" is drawn with a relationship to external reference "networking.aws_vpc.main" -- the diagram medium does not yet emit a wire-level $cross reference for a topology-only edge with no named attribute. Add an explicit $cross reference in the resource's own config by hand if this needs to be enforced structurally.
+      affects: payments.aws_db_instance.payments-db
+```
+
+### The `$cross` structural limitation
+
+A real `$cross` reference (see [`$cross` by stack
+name](/concepts/ledger-stores#cross-by-stack-name)) lives *inside* a
+specific config attribute — it resolves to a concrete, pinned value at
+resolve time. A topology-only edge names no attribute at all, and unlike an
+intra-stack `depends_on` edge, there's no ordering-based substitute to
+reach for either: a cross-stack reference resolves immediately, so there's
+nothing to "wait for" that could stand in for the missing attribute.
+
+**Conclusion: a topology-only edge into a cross-stack reference node cannot
+express a real `$cross` marker in v1.** The reference node itself is still
+fully recognized — its type, and its `ledger_dir` (resolved via the
+`../<stack>` sibling-directory convention, or an explicit
+`--neighbor-ledger <stack>=<path>` override, real-existence-checked). The
+relationship is still fully visible, just not wired into `config` — a
+hand-written intent file, or a resource authored via [the SDK](/sdk) or [the
+md medium](/guides/md-medium), remains how you express a real `$cross`
+reference today.
+
+## What happens next
+
+`ubx propose --from-diagram` stops at the draft, on purpose — the exact
+same "each step is a deliberate human checkpoint" posture [the md
+medium](/guides/md-medium#what-happens-next) holds, not `ubx resolve
+--from-code`'s own one-step shape, since a diagram parse can still produce
+real ambiguity worth a second look before anything reaches a ledger. From
+here it's an ordinary intent file:
+
+```text
+$ ubx resolve payments.intent.json --ledger-dir . --out payments.change.json
+$ ubx accept payments.change.json --ledger-dir .
+$ ubx ship <the-accepted-id>
+```
+
+See [Creating infrastructure](/guides/create-flow) for what each of those
+three steps actually does with a resolved `change` proposal.
+
+## Related
+
+- [`ubx propose`](/cli/propose) — full flag reference, including the
+  `--stack`-required, `[providers]`-required, and mutual-exclusivity error
+  cases
+- [The md medium](/guides/md-medium) — the LLM-transcription sibling of this
+  medium, same ambiguity fields, same two-step shape
+- [`ubx sdk gen`](/cli/sdk-gen) — the same "no legacy single-provider
+  fallback" posture, for typed TypeScript bindings instead of a diagram
+- [`[providers]`](/cli/config#multi-provider-stacks) — required for
+  `--from-diagram`'s own type inference
+- [`ubx resolve`](/cli/resolve) — the next step after a draft
+- [`$cross` by stack name](/concepts/ledger-stores#cross-by-stack-name) —
+  the real wire-level mechanism a diagram's own cross-stack edges can't
+  reach yet
+- [Proposal](/concepts/proposal) — the `intent` object a draft's
+  `assumptions`/`defaults`/`questions` ride on
