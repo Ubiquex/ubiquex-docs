@@ -1,0 +1,194 @@
+---
+title: "ubx blame"
+description: "Per-attribute provenance — git blame for infrastructure"
+---
+
+```text
+ubx blame <address> [flags]
+```
+
+Git blame for infrastructure, and structurally impossible for the tools it
+replaces: a state-file tool has no history (state is overwritten in place —
+every prior value is already gone by the time you'd want to ask who set
+it); a log aggregator has history but no *signed decision* to point at.
+`ubx blame <address>` renders, per attribute of a resource's current folded
+state: the value, which proposal **most recently set that specific
+attribute**, and who's accountable for it.
+
+<Note>
+  Two different attributes on the same resource can legitimately have two
+  different answers — `ubx blame` never reports "the resource's own latest
+  touching proposal" for every attribute, only the proposal that actually
+  set each one.
+</Note>
+
+## Flags
+
+| Flag | Description |
+| --- | --- |
+| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `--json` | emit one JSON document instead of human text |
+| `-h`, `--help` | help for blame |
+
+## Example: a shipped resource
+
+```text
+$ ubx blame payments.fake_widget.payments-db --ledger-dir .
+payments.fake_widget.payments-db
+
+id: "computed-id"
+  set by fbad4f7f3006… (change), 2026-07-28T22:08:44Z
+  accepted: local
+name: "payments-db"
+  set by fbad4f7f3006… (change), 2026-07-28T22:08:44Z
+  accepted: local
+tags.team: "payments"
+  set by fbad4f7f3006… (change), 2026-07-28T22:08:44Z
+  accepted: local
+```
+
+Real, unedited output. `id` here is a provider-computed attribute that
+never appeared in the resolved intent's own `config` at all — its value
+and provenance both come from the real apply record (the same UBI-29
+discovery path [`ubx status`](/cli/status)/[`ubx why`](/cli/why) already
+use for a shipped create), never from the resolved proposal's own
+possibly-stale `config`.
+
+### `--json`
+
+```json
+{
+  "format": 1,
+  "address": { "stack": "payments", "type": "fake_widget", "name": "payments-db" },
+  "destroyed": false,
+  "entries": [
+    {
+      "path": "id",
+      "value": "computed-id",
+      "redacted": false,
+      "proposal_id": "fbad4f7f3006cc30e365aa4e84601f0f9b3b4f59eb5afd842c881b5bc771bdf6",
+      "kind": "change",
+      "set_at": "2026-07-28T22:08:44Z",
+      "acceptance_method": "local",
+      "approvers": ["roozbeh"]
+    }
+  ]
+}
+```
+
+## Example: an attribute changed after the fact
+
+Once an attribute is modified by a later proposal — an accepted drift, say
+— blame follows it there, attribute by attribute, never the whole
+resource at once:
+
+```text
+$ ubx blame payments.fake_widget.main-cache --ledger-dir .
+payments.fake_widget.main-cache
+
+id: "computed-id"
+  set by 992d33eb8df5… (adoption), 2026-07-28T22:09:34Z
+  accepted: local
+name: "main-cache"
+  set by 992d33eb8df5… (adoption), 2026-07-28T22:09:34Z
+  accepted: local
+tags.env: "staging"
+  set by c16e89f66941… (drift_adopt), 2026-07-28T22:09:34Z
+  accepted: local
+```
+
+Real, unedited output — `main-cache` was originally adopted with
+`tags.env: "prod"`, then a real drift was detected and accepted. `id` and
+`name` were never touched by that drift, so they still blame the original
+adoption; `tags.env` alone blames the drift proposal that actually changed
+it.
+
+## Redacted attributes still show provenance
+
+A `$redacted` attribute's own material never renders — but who changed it,
+and when, still does. That's the entire point: knowing a secret rotated,
+by whom, and when, without ever seeing what it rotated to.
+
+```text
+$ ubx blame payments.aws_db_instance.payments-db --ledger-dir .
+payments.aws_db_instance.payments-db
+
+id: "db-1"
+  set by <short-id> (adoption), 2026-07-20T00:00:00Z
+  accepted: local
+password: (redacted)
+  set by <short-id> (adoption), 2026-07-20T00:00:00Z
+  accepted: local
+```
+
+## Attribution: who signed it
+
+Every entry names how its proposal was accepted:
+
+- **`local`** — no signer identity beyond the method itself; this
+  project's own local-accept tier doesn't record who ran `ubx accept`, a
+  real, named limit, not an oversight.
+- **`pr_merge`** — the real approving reviewers, exactly as recorded at
+  acceptance time.
+- **A `drift_adopt`-set attribute** additionally shows every
+  [attributed CloudTrail/GCP-audit actor](/concepts/attribution) the
+  drift proposal itself names — never collapsed to a single guessed
+  cause:
+
+```text
+$ ubx blame conformance.aws_s3_bucket.ubx-states --ledger-dir .
+conformance.aws_s3_bucket.ubx-states
+
+tags.env: "staging"
+  set by <short-id> (drift_adopt), 2026-07-10T21:42:35Z
+  accepted: local
+  attributed to: arn:aws:iam::839333509514:user/roozbeh
+```
+
+## A destroyed address blames its final pre-destroy state
+
+`ubx blame` on a destroyed address doesn't come back empty — it renders a
+tombstone note naming which proposal destroyed it and when, then blames
+the resource's own **final, pre-destroy** attribute state:
+
+```text
+$ ubx blame payments.aws_db_instance.old-db --ledger-dir .
+payments.aws_db_instance.old-db
+DESTROYED by <short-id> at 2026-07-21T00:00:00Z -- blaming the final pre-destroy state
+
+engine: "postgres"
+  set by <short-id> (adoption), 2026-07-20T00:00:00Z
+  accepted: local
+id: "db-1"
+  set by <short-id> (adoption), 2026-07-20T00:00:00Z
+  accepted: local
+```
+
+## When it fails
+
+An address the ledger has never recorded at all — never adopted, and
+never created via a shipped change proposal — is an error, not an empty
+report:
+
+```text
+$ ubx blame payments.aws_s3_bucket.never-recorded --ledger-dir .
+blame: payments.aws_s3_bucket.never-recorded has no recorded history -- never adopted, and never created via a shipped change proposal
+```
+
+Every exit code is `0` (found, whether live or destroyed — both are
+complete, real answers) or `2` (never recorded, or a genuine error).
+`ubx blame` never itself signals exit `1` — there's no "wrong" answer a
+re-derived attribute history could surface the way
+[`ubx verify`](/cli/verify) finds broken hashes. See
+[Exit codes](/cli/exit-codes).
+
+## Related
+
+- [`ubx why`](/cli/why) — the full proposal-level history for an address;
+  `ubx blame` is the same history, re-sliced per attribute
+- [`ubx verify`](/cli/verify) — the sibling read-only projection: chain
+  integrity instead of per-attribute provenance
+- [Attribution](/concepts/attribution) — how a `drift_adopt` proposal
+  gets its own CloudTrail/GCP-audit sources in the first place
+- [Ledger](/concepts/ledger) — the fold `ubx blame` re-derives, attribute
+  by attribute
