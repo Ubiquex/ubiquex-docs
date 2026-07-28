@@ -1,5 +1,56 @@
 # STATE — ubiquex-docs
 
+## UBI-33/34: the SDK -- `ubx sdk gen`, `ubx resolve --from-code` (2026-07-28, same session as the code)
+
+`ubiquex-cli`'s SDK arc ships its first real, user-visible CLI surface
+this session (UBI-33/34 session 4, slices 5 and 7 of docs/sdk.md's own
+implementation plan): typed TypeScript authoring, working end to end
+through the CLI, even though `@ubx/sdk` itself isn't published to npm
+yet (bundled inside the `ubx` binary instead).
+
+- **New `cli/sdk-gen.mdx`** (new page, `CLI Reference` tab's `Setup`
+  group, alongside `cli/init`/`cli/config`/`cli/version`): the full
+  `ubx sdk gen` reference -- flags, a real transcript (`generated 1682
+  resource type(s) for hashicorp/aws@6.54.0`, from this session's own
+  live run against the real, already-cached AWS provider), the
+  `Config`/`Attrs`/binding-object shape codegen actually produces, why
+  generation is the one network-touching step (evaluation is fully
+  offline), and why `@ubx/sdk` is bundled rather than needing a separate
+  `npm install`.
+- **`cli/resolve.mdx`** gained a new "Authoring in TypeScript" section
+  (`--from-code`, in the flags table and a full worked example) -- a real
+  program (`payments.ts`, an `aws_db_instance` sized `db.t3.small`/`20`
+  GiB storage) resolved for real, with the real resulting
+  `intent.sources: [{"kind": "document", ...}]` provenance stamp and
+  `delta.creates[]` shape. Documents `Computed<T>` (wiring one resource's
+  output into another, and what happens if you try to use one as a real
+  value) and the one real, current limitation: SDK programs can only
+  express creates, never modifies, since a hermetic sandboxed program has
+  no way to check the ledger for an existing address.
+- **`sdk/index.mdx` rewritten** from its old "not yet released"
+  placeholder to the real, shipped state: the runtime surface (`stack`/
+  `resource`/`secret`/`cross`/`intent`/`Computed<T>`), the hermetic
+  evaluator's real guarantees (no fs/net/env/subprocess, no remote
+  imports, double-run determinism), and an honest "what a program can't
+  do yet" section (creates-only, no published npm package, TypeScript
+  only for now -- Go/Python not built).
+- **`docs.json`** gained `cli/sdk-gen` in the `Setup` group.
+
+Every concrete value in every new example is real, not invented: the
+`aws_db_instance` sizing (`db.t3.small`, 20 GiB, `payments_admin`) is
+copied verbatim from a real, live `ubx propose --from-doc payments.md`
+transcript run this same session against the real Claude API -- the SDK
+program shown here is the literal TypeScript equivalent of that real LLM
+output, and `ubiquex-cli`'s own session (docs/sdk.md's "Live finale"
+section) confirms their resolved `delta.creates[]` are byte-identical
+after canonical JSON normalization, the strongest available proof that
+"the SDK is a producer of intent/v1, nothing more" actually holds. The
+`1682 resource type(s)` transcript and the full resolved JSON blocks are
+real command output, not hand-assembled.
+
+`mint validate` and `mint broken-links` both clean.
+
+
 ## UBI-46: chat — `ubx chat`, dialogue capture, `ubx why --dialogue` (2026-07-28, same session as the code)
 
 `ubiquex-cli`'s intent-provider arc gains its second medium this session —
