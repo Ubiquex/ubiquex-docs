@@ -6,6 +6,7 @@ description: "Compare one resource's live state against the ledger and generate 
 ```text
 ubx scan --stack <name> --type <type> --name <name> (--provider <path> | --source <src> --provider-version <v>) [flags]
 ubx scan --all --tfstate <path> (--provider <path> | --source <src> --provider-version <v>) [flags]
+ubx scan --discover --tag <key=value> [--tag <key=value> ...] --region <region> --stack <stack> (--provider <path> | --source <src> --provider-version <v>) [flags]
 ```
 
 Reads one resource's live state — via a Terraform provider binary, speaking
@@ -28,6 +29,12 @@ resource, it walks every resource in a Terraform state file and generates
 an adoption proposal for each — see [Bulk onboarding](#bulk-onboarding-all)
 below.
 
+`--discover --tag <key=value>` is a third mode: instead of a tfstate file,
+it enumerates real, tagged resources directly from the cloud account via
+the AWS Resource Groups Tagging API — for accounts that were never under
+Terraform management at all — see [Cloud-side
+discovery](#cloud-side-discovery---discover) below.
+
 ## Flags
 
 | Flag | Description |
@@ -44,14 +51,22 @@ below.
 | `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
 | `--out string` | write the generated proposal here instead of stdout (single-resource mode only) |
 | `--timeout duration` | overall timeout for the scan, or the whole `--all` walk (default `1m0s`) |
-| `--no-attribution` | skip CloudTrail attribution for drift proposals |
+| `--no-attribution` | skip audit-log attribution: drift attribution for drift proposals, or genesis attribution (who created it) for `--discover`'s own adoption proposals |
 | `--surface-as string` | on drift, open a GitHub `"issue"` or `"pr"` with a receipt instead of just printing the proposal (requires `--github-repo`; not available with `--propose revert`) |
 | `--github-repo string` | owner/name of the GitHub repository to surface drift in (required with `--surface-as`) |
 | `--tf-dir string` | directory of `.tf` files to compute a best-effort write-back preview diff from, for the receipt (optional) |
 | `--all` | bulk onboarding: enumerate every resource in `--tfstate` instead of scanning a single `--type`/`--name` resource |
 | `--tfstate string` | path to a Terraform state v4 JSON file, read once as a bulk-onboarding enumeration source (required with `--all`) |
-| `--out-dir string` | write each `--all`-generated proposal to its own file in this directory, instead of printing all of them to stdout |
-| `--json` | emit one JSON document instead of human text (single-resource scan only, not `--all` or `--surface-as`) — see [`--json` output](#json-output) |
+| `--out-dir string` | write each `--all`/`--discover`-generated proposal to its own file in this directory, instead of printing all of them to stdout |
+| `--discover` | cloud-side discovery: enumerate resources via the AWS Resource Groups Tagging API instead of a tfstate file, generating an adoption proposal for each — requires `--tag` |
+| `--tag stringArray` | `key=value` tag filter for `--discover` (repeatable; multiple `--tag` with the same key OR-combine, different keys AND-combine) |
+| `--discover-type stringArray` | Terraform resource type allowlist for `--discover` (repeatable, e.g. `aws_sqs_queue`) — narrows client-side; omit to classify every tag-matched resource |
+| `--region string` | AWS region to enumerate with `--discover` (the tagging API is itself regional) |
+| `--limit int` | refuse `--discover` without `--yes` past this many adoptable resources (default `100`) |
+| `--yes` | confirm proceeding past `--discover`'s own `--limit` |
+| `--suggest-stacks` | with `--discover`, print a read-only stack-grouping preview instead of writing proposals — writes nothing, assigns nothing |
+| `--stack-tag string` | with `--discover --suggest-stacks`, the tag key to group discovered resources by (omit to fall back to a naming-prefix heuristic) |
+| `--json` | emit one JSON document instead of human text (single-resource scan only, not `--all`, `--discover`, or `--surface-as`) — see [`--json` output](#json-output) |
 | `-h`, `--help` | help for scan |
 
 `--provider` is the direct "point at a binary on disk" workflow. `--source`
@@ -482,6 +497,138 @@ provider recognizes (or one two declared providers both claim) is
 skipped with the same `provider read failed` reason a genuine read
 failure gets, never aborting the rest of the batch.
 
+## Cloud-side discovery (`--discover`)
+
+`--all --tfstate` needs a Terraform state file to source resource
+identity from. `--discover` doesn't — it enumerates real, tagged
+resources directly from the cloud account itself, via the AWS Resource
+Groups Tagging API, for ClickOps-heavy, half-terraformed, or inherited/
+acquired accounts that were never under Terraform management at all.
+See [Cloud-side discovery](/guides/cloud-discovery) for the full
+walkthrough; this section covers the mechanics.
+
+```text
+ubx scan --discover --tag <key=value> [--tag <key=value> ...] \
+    [--discover-type <type> ...] --region <region> \
+    --stack <stack> (--provider <path> | --source <src> --provider-version <v>) \
+    [--limit <n>] [--yes] [--no-attribution] --out-dir <dir>
+```
+
+`--tag` (repeatable) is the primary, and only, scoping mechanism —
+whole-account (untagged) enumeration isn't a supported mode; the
+realistic path is always tag-scoped. Real transcripts below, against a
+real, hand-tagged AWS account (never touched by `ubx` itself before
+discovery ran):
+
+```text
+$ ubx scan --discover --tag Project=payments --region us-east-1 --stack payments \
+    --source hashicorp/aws --provider-version 6.54.0 --out-dir proposals
+2 resource(s) matched, 2 adoptable
+adopted: payments.aws_iam_policy.ubx-finale-payments-policy-1785361681 (from arn:aws:iam::839333509514:policy/ubx-finale-payments-policy-1785361681) -> proposals/payments.aws_iam_policy.ubx-finale-payments-policy-1785361681.json
+adopted: payments.aws_sqs_queue.ubx-finale-payments-queue-1785361665 (from arn:aws:sqs:us-east-1:839333509514:ubx-finale-payments-queue-1785361665) -> proposals/payments.aws_sqs_queue.ubx-finale-payments-queue-1785361665.json
+2 adopted, 0 skipped, 0 attribute(s) redacted
+```
+
+Both resources were created by hand, via the plain `aws` CLI — never
+`ubx`. `--discover` found them by tag, resolved each ARN into the real
+lookup shape its own type actually needs (an IAM policy's `id` **is**
+its ARN; an SQS queue's `id` is its real queue URL, constructed from
+the ARN's own region/account/queue-name, not a substring of the ARN
+itself), and read each one live through the exact same
+`ReadResource`/`core.RunScan` pipeline every other adoption path
+already uses. The generated proposal is otherwise an ordinary
+`adoption` proposal — accept and ship it exactly like any other.
+
+### `--type` narrows client-side, `--region` because the API is regional
+
+`--discover-type` (repeatable Terraform type names, not AWS service
+namespaces) narrows which discovered ARNs are even considered — a
+single ARN-parsing pass decides both "which lookup-shape tier" and
+"does this match `--discover-type`," so there's no second type-name
+translation table to keep in sync. `--region` is required because the
+tagging API itself is regional — never silently inferred from wherever
+the provider happens to be configured.
+
+### Coverage gaps surface honestly, never silently
+
+Not every AWS resource type has a known lookup-shape translation yet.
+A discovered resource whose type isn't classified is reported, not
+dropped — real transcript, a DynamoDB table tagged alongside an S3
+bucket that *does* have a known translation:
+
+```text
+$ ubx scan --discover --tag Project=networking --region us-east-1 --stack networking \
+    --source hashicorp/aws --provider-version 6.54.0 --out-dir proposals
+2 resource(s) matched, 1 adoptable
+discovered: arn:aws:dynamodb:us-east-1:839333509514:table/ubx-finale-networking-table-1785361702 (unknown type) -- not yet adoptable: not yet adoptable: no known lookup shape for this type
+adopted: networking.aws_s3_bucket.ubx-finale-networking-bucket-1785361691 (from arn:aws:s3:::ubx-finale-networking-bucket-1785361691) -> proposals/networking.aws_s3_bucket.ubx-finale-networking-bucket-1785361691.json
+1 adopted, 1 skipped, 0 attribute(s) redacted
+--- skipped ---
+discovered, not yet adoptable: 1
+```
+
+The DynamoDB table is genuinely, currently unsupported — nothing was
+hidden or guessed at. Exit code follows the same "any skip at all is
+an actionable finding" convention `--all` already established: `1`
+here, `0` for a run where every matched resource adopts cleanly.
+
+### Stack grouping: a reviewable suggestion, never an assignment
+
+`--stack <name>` is required to actually write proposals, same as
+everywhere else. `--suggest-stacks` is a separate, read-only preview
+first — groups discovered resources by a tag you name (or a
+naming-prefix heuristic if you don't), and writes nothing at all:
+
+```text
+$ ubx scan --discover --tag ubx-finale-marker=<marker> --region us-east-1 \
+    --suggest-stacks --stack-tag Project
+networking: 2 resource(s)
+  arn:aws:dynamodb:us-east-1:839333509514:table/ubx-finale-networking-table-1785361702
+  arn:aws:s3:::ubx-finale-networking-bucket-1785361691
+payments: 2 resource(s)
+  arn:aws:iam::839333509514:policy/ubx-finale-payments-policy-1785361681
+  arn:aws:sqs:us-east-1:839333509514:ubx-finale-payments-queue-1785361665
+2 group(s), 4 resource(s) total -- nothing written; re-run with --stack <name> per group to adopt
+```
+
+Review the suggestion, then re-run `--discover` once per group with an
+explicit `--stack` — the same two commands above.
+
+### Genesis attribution: who created it, best-effort
+
+A discovered resource `ubx` never saw created can still often say who
+made it — the same audit-log attribution mechanism [drift](/concepts/
+attribution) already uses, pointed at the resource's own creation event
+instead of whatever caused the most recent drift. Real transcript,
+`ubx why` on the accepted SQS queue's own id:
+
+```text
+$ ubx why 28cee930e54d2df7cd719bdba70922fe2a16c4453dc3a4ed673011724e6bca4a --ledger-dir .
+proposal 28cee930e54d2df7cd719bdba70922fe2a16c4453dc3a4ed673011724e6bca4a (adoption)
+stack:  payments
+status: accepted
+intent: adopt existing payments.aws_sqs_queue.ubx-finale-payments-queue-1785361665 into the ledger (discovered by scan)
+  source: cloudtrail -- arn:aws:iam::839333509514:user/roozbeh CreateQueue at 2026-07-29T21:47:45Z from 93.228.76.41
+    event 7c8610fc-512c-493c-8044-884737a671e9 (content_hash=sha256:9b6ddbc474a9be3fbece3eba9393b401930696f30a2712f6adb7c7af3af1ec4c)
+accepted by [roozbeh] via local at 2026-07-29T21:51:02Z
+blast radius: +0 ~0 -0
+```
+
+`arn:aws:iam::839333509514:user/roozbeh` is the *real* IAM user who
+created this queue via the plain `aws` CLI, minutes before discovery
+ran — `ubx` never saw the creation happen, and still knows who did it.
+This is purely a bonus: a resource adopts successfully with or without
+a match. `--no-attribution` skips it entirely (no source recorded at
+all, not even an unattributed one); by default, a resource whose
+creation event hasn't been found yet — outside the search window,
+predates CloudTrail's own retention, or of a type discovery has no
+creation-verb knowledge for yet — gets an honest `cloudtrail_unattributed`
+source instead of nothing:
+
+```json
+{"kind": "cloudtrail_unattributed", "reason": "no_matching_event"}
+```
+
 ## `--json` output
 
 `--json` (single-resource scan only) replaces the human text entirely with
@@ -530,5 +677,6 @@ two entries for `--propose both`. Exit code follows the usual contract:
 - [`.ubx/config`](/cli/config) — `[providers]`/`[provider_configs]` for a multi-provider `--all` walk
 - [Ledger stores](/concepts/ledger-stores) — where `--stack`'s ledger actually lives when `[ledger]` names a remote store
 - [Onboarding an existing Terraform-managed account](/guides/onboarding) — the full `--all` walkthrough
+- [Cloud-side discovery](/guides/cloud-discovery) — the full `--discover` walkthrough, real transcripts, live on AWS
 - [ubx + your AI assistant](/guides/mcp) — the `ubx_scan` MCP tool this command mirrors
 - [Exit codes](/cli/exit-codes) — the 0/1/2 contract

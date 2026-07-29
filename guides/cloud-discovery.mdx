@@ -1,0 +1,158 @@
+---
+title: "Cloud-side discovery: adoption without a tfstate"
+description: "Point ubx at the account, not at the repo -- discovering and adopting ClickOps-created resources by tag"
+---
+
+[Onboarding an existing Terraform-managed account](/guides/onboarding)
+needs a tfstate file to source resource identity from. Not every real
+account has one — ClickOps-heavy shops, half-terraformed accounts, and
+inherited or acquired infrastructure often don't. `ubx scan --discover`
+makes the cloud account itself the discovery source: it enumerates real,
+tagged resources directly via the AWS Resource Groups Tagging API, no
+Terraform state anywhere in the picture.
+
+Every transcript below is real, against a real AWS account — four
+resources, created entirely by hand (the plain `aws` CLI, never `ubx`
+itself), tagged, discovered, adopted, and swept clean afterward.
+
+<Note>
+  The tagging API returns identity only — an ARN and its tags, nothing
+  else. `ubx` bridges each ARN into whatever lookup shape that resource
+  type's own provider actually needs (sometimes the ARN itself,
+  sometimes something constructed from it, like an SQS queue's own
+  real queue URL) and then reads the resource live through the exact
+  same pipeline every other adoption path already uses — state (or
+  here, a tag) provides identity, never truth.
+</Note>
+
+## The set
+
+Four real resources, hand-created via the `aws` CLI, tagged across two
+groups by a `Project` tag:
+
+- `aws_sqs_queue` + `aws_iam_policy`, tagged `Project=payments`
+- `aws_s3_bucket` + a DynamoDB table, tagged `Project=networking`
+
+The DynamoDB table is deliberately not something `ubx` knows how to
+adopt yet — more on that below.
+
+## 1. Review the grouping first — read-only, writes nothing
+
+Before authoring anything, `--suggest-stacks` groups what's out there
+by a tag you name, without writing a single proposal:
+
+```text
+$ ubx scan --discover --tag ubx-finale-marker=<marker> --region us-east-1 \
+    --suggest-stacks --stack-tag Project
+networking: 2 resource(s)
+  arn:aws:dynamodb:us-east-1:839333509514:table/ubx-finale-networking-table-1785361702
+  arn:aws:s3:::ubx-finale-networking-bucket-1785361691
+payments: 2 resource(s)
+  arn:aws:iam::839333509514:policy/ubx-finale-payments-policy-1785361681
+  arn:aws:sqs:us-east-1:839333509514:ubx-finale-payments-queue-1785361665
+2 group(s), 4 resource(s) total -- nothing written; re-run with --stack <name> per group to adopt
+```
+
+Nothing here assigns a stack — it's a suggestion to review, the same
+posture Terraform module paths already get in [bulk
+onboarding](/guides/onboarding): a real signal, never a silent
+decision `ubx` makes on your behalf.
+
+## 2. Discover and adopt a group
+
+```text
+$ ubx scan --discover --tag Project=payments --region us-east-1 --stack payments \
+    --source hashicorp/aws --provider-version 6.54.0 --out-dir proposals
+2 resource(s) matched, 2 adoptable
+adopted: payments.aws_iam_policy.ubx-finale-payments-policy-1785361681 (from arn:aws:iam::839333509514:policy/ubx-finale-payments-policy-1785361681) -> proposals/payments.aws_iam_policy.ubx-finale-payments-policy-1785361681.json
+adopted: payments.aws_sqs_queue.ubx-finale-payments-queue-1785361665 (from arn:aws:sqs:us-east-1:839333509514:ubx-finale-payments-queue-1785361665) -> proposals/payments.aws_sqs_queue.ubx-finale-payments-queue-1785361665.json
+2 adopted, 0 skipped, 0 attribute(s) redacted
+```
+
+Both resources were created minutes earlier via `aws sqs create-queue`/
+`aws iam create-policy` directly — `ubx` never touched them until this
+command ran. Each generated proposal is an ordinary `adoption`
+proposal from here on — accept and ship it exactly like any other:
+
+```text
+$ ubx accept proposals/payments.aws_iam_policy.ubx-finale-payments-policy-1785361681.json --ledger-dir .
+accepted e2e88e0ca93c367e2eb7c9bc17a3301861e749f6567c55a1fe75ca5eb327866e (stack payments)
+
+$ ubx accept proposals/payments.aws_sqs_queue.ubx-finale-payments-queue-1785361665.json --ledger-dir .
+accepted 28cee930e54d2df7cd719bdba70922fe2a16c4453dc3a4ed673011724e6bca4a (stack payments)
+```
+
+## 3. A coverage gap, surfaced honestly — never silently skipped
+
+The `networking` group has one resource discovery doesn't yet know how
+to bridge into a provider lookup at all — reported as its own line,
+never dropped, never guessed at:
+
+```text
+$ ubx scan --discover --tag Project=networking --region us-east-1 --stack networking \
+    --source hashicorp/aws --provider-version 6.54.0 --out-dir proposals
+2 resource(s) matched, 1 adoptable
+discovered: arn:aws:dynamodb:us-east-1:839333509514:table/ubx-finale-networking-table-1785361702 (unknown type) -- not yet adoptable: not yet adoptable: no known lookup shape for this type
+adopted: networking.aws_s3_bucket.ubx-finale-networking-bucket-1785361691 (from arn:aws:s3:::ubx-finale-networking-bucket-1785361691) -> proposals/networking.aws_s3_bucket.ubx-finale-networking-bucket-1785361691.json
+1 adopted, 1 skipped, 0 attribute(s) redacted
+--- skipped ---
+discovered, not yet adoptable: 1
+```
+
+`aws_s3_bucket` adopted normally; the DynamoDB table simply isn't in
+`ubx`'s own lookup-shape table yet, today — a real, current, honestly
+reported gap, not a bug. Accept the bucket the same way as above.
+
+## 4. `ubx why` shows who created it — genesis attribution
+
+A discovered resource `ubx` never saw created can still often say who
+made it, best-effort, from the same audit-log mechanism [drift
+attribution](/concepts/attribution) already uses — pointed at the
+resource's own creation event instead of whatever caused the most
+recent drift:
+
+```text
+$ ubx why 28cee930e54d2df7cd719bdba70922fe2a16c4453dc3a4ed673011724e6bca4a --ledger-dir .
+proposal 28cee930e54d2df7cd719bdba70922fe2a16c4453dc3a4ed673011724e6bca4a (adoption)
+stack:  payments
+status: accepted
+intent: adopt existing payments.aws_sqs_queue.ubx-finale-payments-queue-1785361665 into the ledger (discovered by scan)
+  source: cloudtrail -- arn:aws:iam::839333509514:user/roozbeh CreateQueue at 2026-07-29T21:47:45Z from 93.228.76.41
+    event 7c8610fc-512c-493c-8044-884737a671e9 (content_hash=sha256:9b6ddbc474a9be3fbece3eba9393b401930696f30a2712f6adb7c7af3af1ec4c)
+accepted by [roozbeh] via local at 2026-07-29T21:51:02Z
+blast radius: +0 ~0 -0
+```
+
+`arn:aws:iam::839333509514:user/roozbeh` is the real IAM identity that
+ran `aws sqs create-queue` — genesis, by adoption, with the real
+attributed creator. This is purely a bonus: the S3 bucket above adopted
+successfully even though its own `CreateBucket` event hadn't yet
+propagated through CloudTrail by the time it was discovered (an honest
+`cloudtrail_unattributed`/`no_matching_event` source instead) — a
+resource never needs a matched creation event to adopt.
+
+<Note>
+  CloudTrail's own real delivery lag means a *very* recently created
+  resource's own creation event may not be searchable yet. `--discover`
+  never waits for this — it adopts immediately either way, recording
+  whatever attribution outcome is available at that moment.
+  `--no-attribution` skips the attempt entirely, the same flag that
+  already skips drift attribution.
+</Note>
+
+## Cleanup
+
+Every resource this walkthrough touched was destroyed afterward,
+directly via the `aws` CLI (the same way it was created) — `ubx`
+itself never applies anything here; adoption is record-only,
+blast-radius zero by construction, exactly like every other adoption
+path.
+
+## Related
+
+- [`ubx scan`](/cli/scan#cloud-side-discovery---discover) — full flag
+  reference for `--discover`
+- [Onboarding an existing Terraform-managed account](/guides/onboarding) — the tfstate-sourced sibling of this same adoption machinery
+- [Attribution](/concepts/attribution) — the audit-log mechanism genesis attribution reuses
+- [Resource lookup conventions](/cli/lookup) — what identifies a resource per type
+- [Drift](/concepts/drift) — what happens once an adopted resource starts drifting for real
