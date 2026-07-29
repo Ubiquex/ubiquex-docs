@@ -14,9 +14,12 @@ re-drafted, from scratch, after every one.
   reference, never touches your ledger or a cloud provider, and never
   applies anything. `ubx chat` only ever writes a draft file (and, on
   `/save`, the captured conversation behind it) — everything after that is
-  the exact same [`ubx resolve`](/cli/resolve) →
-  [`ubx accept`](/cli/accept) → [`ubx ship`](/cli/ship) chain any
-  hand-written intent file goes through.
+  the exact same pipeline any hand-written intent file goes through:
+  [`ubx plan`](/cli/plan) + [`ubx ship`](/cli/ship) for a solo/sandbox
+  workflow (see [The two-step flow](/guides/plan-ship-flow)), or
+  [`ubx resolve`](/cli/resolve) → [`ubx accept`](/cli/accept) →
+  [`ubx ship`](/cli/ship) as three separate steps for a team binding
+  acceptance to [PR-merge review](/guides/pr-merge-acceptance).
 </Note>
 
 ## Setup
@@ -293,8 +296,44 @@ purely additive — without it, `ubx why` renders exactly as it always has
 (see [`ubx why`](/cli/why)); a proposal that didn't come from `ubx chat`
 prints an explicit note saying so, rather than silently showing nothing.
 
+## What happens next
+
+`/save` stops at the draft, same as `--from-doc`. From here it's an
+ordinary intent file, handed to whichever half of the pipeline your team
+uses:
+
+**Solo or sandbox — two commands:** [`ubx plan`](/cli/plan) takes the
+saved draft directly:
+
+```text
+$ ubx plan payments.intent.json --source hashicorp/aws --provider-version 6.60.0
+$ ubx ship <hash> --source hashicorp/aws --provider-version 6.60.0
+```
+
+See [The two-step flow](/guides/plan-ship-flow) for what each command does.
+
+**Team/production, with PR-merge acceptance:**
+
+```text
+$ ubx resolve payments.intent.json --source hashicorp/aws --provider-version 6.60.0 --out payments.resolved.json
+$ ubx propose payments.resolved.json
+$ ubx accept --from-merge <sha> --proposal-file payments.resolved.json --github-repo <owner/name>
+$ ubx ship <the-accepted-id> --source hashicorp/aws --provider-version 6.60.0
+```
+
+`ubx why --dialogue` walks the provenance chain back to the real
+conversation regardless of which path accepted the draft — the chain
+above only changes how acceptance happened, never what's recorded about
+where the draft itself came from. See [Creating
+infrastructure](/guides/create-flow) and [PR-merge
+acceptance](/guides/pr-merge-acceptance) for what each step does.
+
 ## Related
 
+- [The two-step flow](/guides/plan-ship-flow) — `ubx plan` + `ubx ship`,
+  the solo/sandbox path after a draft
+- [PR-merge acceptance](/guides/pr-merge-acceptance) — binding a draft's
+  eventual acceptance to a reviewed pull request
 - [The md medium](/guides/md-medium) — the document-based sibling of this
   same drafting pipeline, same adapter, same draft shape
 - [`ubx why`](/cli/why) — full reference, including `--dialogue`

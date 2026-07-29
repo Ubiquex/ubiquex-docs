@@ -214,29 +214,52 @@ different things, never confused.
 
 ## What happens next
 
-`ubx propose --from-doc` stops at the draft, on purpose. From here it's
-an ordinary intent file — review it (the ambiguity content above is
-exactly what a reviewer should read first), then run the same chain any
-hand-written one would:
+`ubx propose --from-doc` stops at the draft, on purpose. From here it's an
+ordinary intent file — review it (the ambiguity content above is exactly
+what a reviewer should read first), then hand it to whichever half of the
+pipeline your team uses:
+
+**Solo or sandbox — two commands:** [`ubx plan`](/cli/plan) takes the
+written draft directly (its positional intent-file argument accepts any
+`ubx:intent/v1` file, including one `--from-doc` just wrote), resolves it,
+and renders the full receipt for one last look before `ubx ship` accepts
+and applies it:
+
+```text
+$ ubx plan payments.intent.json --source hashicorp/aws --provider-version 6.60.0
+$ ubx ship <hash> --source hashicorp/aws --provider-version 6.60.0
+```
+
+See [The two-step flow](/guides/plan-ship-flow) for what each of those
+commands actually does.
+
+**Team/production, with PR-merge acceptance:** the four-verb ceremony
+signs the resolved proposal through a reviewed pull request instead of
+locally:
 
 ```text
 $ ubx resolve payments.intent.json --source hashicorp/aws --provider-version 6.60.0 --out payments.resolved.json
-$ ubx accept payments.resolved.json --ledger-dir .
+$ ubx propose payments.resolved.json
+$ ubx accept --from-merge <sha> --proposal-file payments.resolved.json --github-repo <owner/name>
 $ ubx ship <the-accepted-id> --source hashicorp/aws --provider-version 6.60.0
 ```
 
-See [Creating infrastructure](/guides/create-flow) for what each of those
-three steps actually does with a resolved `change` proposal.
+See [Creating infrastructure](/guides/create-flow) and [PR-merge
+acceptance](/guides/pr-merge-acceptance) for what each step does.
 
 ## Related
 
+- [The two-step flow](/guides/plan-ship-flow) — `ubx plan` + `ubx ship`,
+  the solo/sandbox path after a draft
 - [`ubx propose`](/cli/propose) — full flag reference, including the
   `--stack`-required and mutual-exclusivity error cases
 - [Authoring conventions](/guides/md-authoring-conventions) — writing a
   document that transcribes reliably
 - [`.ubx/config`'s `intent` table](/cli/config#intent) — adapter, model,
   and key configuration
-- [`ubx resolve`](/cli/resolve) — the next step after a draft
+- [`ubx resolve`](/cli/resolve) — the team/production path's next step after a draft
+- [PR-merge acceptance](/guides/pr-merge-acceptance) — binding a draft's
+  eventual acceptance to a reviewed pull request
 - [Proposal](/concepts/proposal) — the `intent` object a draft's
   `assumptions`/`defaults`/`questions` ride on
 - [Secrets](/concepts/secrets) — the ledger's own "references only, never

@@ -213,16 +213,31 @@ same "each step is a deliberate human checkpoint" posture [the md
 medium](/guides/md-medium#what-happens-next) holds, not `ubx resolve
 --from-code`'s own one-step shape, since a diagram parse can still produce
 real ambiguity worth a second look before anything reaches a ledger. From
-here it's an ordinary intent file:
+here it's an ordinary intent file, handed to whichever half of the
+pipeline your team uses:
+
+**Solo or sandbox — two commands:** [`ubx plan`](/cli/plan) takes the
+written draft directly (its positional intent-file argument accepts any
+`ubx:intent/v1` file, including one `--from-diagram` just wrote):
+
+```text
+$ ubx plan payments.intent.json --ledger-dir .
+$ ubx ship <hash> --ledger-dir .
+```
+
+See [The two-step flow](/guides/plan-ship-flow) for what each command does.
+
+**Team/production, with PR-merge acceptance:**
 
 ```text
 $ ubx resolve payments.intent.json --ledger-dir . --out payments.change.json
-$ ubx accept payments.change.json --ledger-dir .
-$ ubx ship <the-accepted-id>
+$ ubx propose payments.change.json
+$ ubx accept --from-merge <sha> --proposal-file payments.change.json --github-repo <owner/name>
+$ ubx ship <the-accepted-id> --ledger-dir .
 ```
 
-See [Creating infrastructure](/guides/create-flow) for what each of those
-three steps actually does with a resolved `change` proposal.
+See [Creating infrastructure](/guides/create-flow) and [PR-merge
+acceptance](/guides/pr-merge-acceptance) for what each step does.
 
 ## Rendering the ledger back
 
@@ -295,9 +310,13 @@ truth for anything it can't itself author.
 
 ## Related
 
+- [The two-step flow](/guides/plan-ship-flow) — `ubx plan` + `ubx ship`,
+  the solo/sandbox path after a draft
 - [`ubx propose`](/cli/propose) — full flag reference, including the
   `--stack`-required, `[providers]`-required, and mutual-exclusivity error
   cases
+- [PR-merge acceptance](/guides/pr-merge-acceptance) — binding a draft's
+  eventual acceptance to a reviewed pull request
 - [The md medium](/guides/md-medium) — the LLM-transcription sibling of this
   medium, same ambiguity fields, same two-step shape
 - [`ubx sdk gen`](/cli/sdk-gen) — the same "no legacy single-provider
