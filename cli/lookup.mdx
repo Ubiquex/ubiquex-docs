@@ -1,6 +1,6 @@
 ---
 title: "Resource lookup conventions"
-description: "What --lookup needs to actually find a resource, per type -- AWS and GCP"
+description: "What --lookup needs to actually find a resource, per type -- AWS, GCP, and Azure"
 ---
 
 [`ubx scan`](/cli/scan)'s `--lookup` flag is a JSON object identifying the
@@ -91,6 +91,46 @@ account so far:
 Every other tracked GCP type defaults to `{"id": "<the resource's id>"}`,
 same as AWS's own default — not yet independently verified against a real
 account the way the five above are.
+
+## Azure
+
+`ubx` also speaks to `hashicorp/azurerm` the same way it speaks to any
+other provider — same `--source`/`--provider` acquisition. It negotiates
+tfplugin protocol v5, the same version `hashicorp/aws`/`hashicorp/google`
+speak. (`azure/azapi`, a separate, much smaller Azure provider that models
+every ARM resource through a handful of generic types rather than one type
+per resource, negotiates v6 instead — the first provider source this
+project has onboarded that doesn't speak v5. `ubx` isn't set up to scan
+`azapi_*` types the way it is `azurerm_*` ones; see the internal
+architecture notes if you're curious why.)
+
+Azure support is newer than AWS's/GCP's: `ubiquex-cli`'s internal
+conformance suite tracks 42 azurerm resource types across compute,
+network, IAM, storage, database, DNS, and messaging, with identity fields
+checked against the real `hashicorp/azurerm` schema. Unlike GCP's own
+varied `id`/`self_link`/`uid` shapes, every azurerm type has both `id`
+(the full ARM resource path) and `name` as flat top-level attributes — a
+materially simpler, more AWS-like schema shape. Five types have been
+live-verified against a real subscription so far:
+
+| Type | Required `--lookup` shape | Why |
+| --- | --- | --- |
+| `azurerm_storage_account` | `{"id": "/subscriptions/.../storageAccounts/<name>"}` | `id` (the full ARM path) alone is sufficient — the opposite of `google_storage_bucket`'s own "both required" trap; azurerm's ARM id already fully qualifies the resource. |
+| `azurerm_storage_container` | `{"id": "/subscriptions/.../storageAccounts/<account>/blobServices/default/containers/<name>"}` | Same shape as `azurerm_storage_account`. |
+| `azurerm_key_vault` | `{"id": "/subscriptions/.../vaults/<name>"}` | Same shape. Azure Key Vault's own soft-delete default means a *deleted* vault's name stays reserved for up to 90 days — if you're recreating one under the same name, you may need to purge the old one first. |
+| `azurerm_user_assigned_identity` | `{"id": "/subscriptions/.../userAssignedIdentities/<name>"}` | Same shape — `id` alone, same as `google_service_account`. |
+| `azurerm_resource_group` | `{"id": "/subscriptions/<sub>/resourceGroups/<name>"}` | `id` alone is sufficient, but its own shape is the one real surprise here: a resource group's id is just `/subscriptions/<sub>/resourceGroups/<name>` — **not** the `resourceGroups/<rg>/providers/<namespace>/<type>/<name>` shape every other azurerm type's own id follows. A resource group is its own top-level scope, never nested inside another resource group's own path. |
+
+<Note>
+  Every other tracked azurerm type defaults to `{"id": "<the resource's
+  full ARM path>"}`, same as AWS's/GCP's own default — not yet
+  independently verified against a real subscription the way the five
+  above are. Given every sampled type's schema has both `id` and `name`
+  as flat attributes (no GCP-style nesting variation), the default is a
+  reasonable bet, but — per the GCP lesson above — a reasonable-looking
+  schema is not proof; treat an unverified azurerm type with the same
+  caution as an unverified GCP one.
+</Note>
 
 ## Kubernetes and Helm
 
