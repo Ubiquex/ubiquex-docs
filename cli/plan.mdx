@@ -1,0 +1,230 @@
+---
+title: "ubx plan"
+description: "Resolve any medium input into a draft proposal, render its full receipt, and save it as a hash-addressed plan for ubx ship"
+---
+
+```text
+ubx plan <intent-file> (--provider <path> | --source <src> --provider-version <v>) [flags]
+ubx plan --from-code <entry>.ts [flags]
+ubx plan --from-doc <file>.md --stack <stack> [flags]
+ubx plan --from-diagram <file>.d2 --stack <stack> [flags]
+```
+
+`ubx plan` fuses [`ubx propose`](/cli/propose) + [`ubx resolve`](/cli/resolve)
++ a preview render into one command — the terraform-shaped half of this
+project's two-step workflow (`ubx plan`, then [`ubx ship <hash>`](/cli/ship)).
+Exactly one input is required:
+
+- **an intent file** (the positional argument) — a hand-written
+  [`ubx:intent/v1` document](/cli/resolve#the-intent-file), resolved exactly
+  like `ubx resolve` would.
+- **`--from-code <entry>.ts`** — a [TypeScript SDK program](/cli/resolve#authoring-in-typescript),
+  evaluated through the same hermetic Deno evaluator `ubx resolve --from-code` uses.
+- **`--from-doc <file>.md --stack <stack>`** — a markdown authoring document,
+  transcribed into an intent draft via the configured [`[intent]` provider adapter](/cli/config#intent)
+  exactly like [`ubx propose --from-doc`](/cli/propose), then resolved in the
+  same command.
+- **`--from-diagram <file>.d2 --stack <stack>`** — a [D2 diagram](/guides/diagram-medium)'s
+  own topology, parsed exactly like [`ubx propose --from-diagram`](/cli/propose),
+  then resolved in the same command.
+
+Every input resolves through the identical, unmodified
+[`core/resolver.Resolve`](/cli/resolve) every other entry point already
+uses — same invariants, same orphan/pin checks, same failure modes. Its
+full receipt renders to the terminal, and the resolved-but-unaccepted
+proposal is saved at `.ubx/plans/<hash>.json`, keyed by the exact hash
+[`ubx ship <hash>`](/cli/ship) will later look for.
+
+**`ubx plan` never touches a ledger** — nothing here is accepted or
+applied, exactly like `ubx resolve`/`ubx propose` today. Run `ubx ship
+<hash>` to accept (local tier) and apply in one step, or hand the saved
+plan to `ubx propose`/`ubx accept` for the full four-verb ceremony (a
+separate PR-body trailer hash, PR-merge signing) if your team wants that
+instead — see [When to use the four-verb ceremony](#when-to-use-the-four-verb-ceremony-instead).
+
+<Note>
+  The md/diagram media's own established "draft, then a separate human
+  checkpoint before resolving" posture ([`ubx propose --from-doc`/`--from-diagram`](/cli/propose))
+  is deliberately **not** reproduced here: `ubx plan`'s own receipt, covering
+  the full resolved proposal — delta, cost, blast radius — alongside any
+  assumptions/defaults/questions the draft carried, already serves as that
+  checkpoint, rendered before anything is saved. `ubx propose --from-doc`/
+  `--from-diagram` keep their exact existing draft-only behavior, unchanged,
+  for teams that specifically want an extra checkpoint as its own step.
+</Note>
+
+## Flags
+
+| Flag | Description |
+| --- | --- |
+| `--from-code string` | evaluate a TypeScript SDK program (`@ubx/sdk`) instead of reading an intent file |
+| `--from-diagram string` | path to a `.d2` diagram — transcribes its topology into an intent/v1 draft, then resolves it |
+| `--from-doc string` | path to a markdown authoring document — transcribes it into an intent/v1 draft via the configured `[intent]` provider, then resolves it |
+| `--stack string` | target stack name (required with `--from-doc`/`--from-diagram`; the intent-file and `--from-code` inputs already name their own stack) |
+| `--summary string` | `intent.summary` for the draft (only with `--from-diagram` — defaults to a generated summary naming the stack and resource count) |
+| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) — also where the plan is saved, at `.ubx/plans/<hash>.json` |
+| `--provider string` | path to the provider binary (mutually exclusive with `--source`) |
+| `--source string` | provider source address, e.g. `hashicorp/aws` (mutually exclusive with `--provider`; requires `--provider-version`) |
+| `--provider-version string` | explicit provider version to acquire (required with `--source`) |
+| `--known-dependent stringArray` | `ledger_dir` of a neighbor stack to check for cross-stack orphan references before destroying (repeatable) |
+| `--neighbor-ledger stringArray` | `<stack>=<path>` mapping a diagram's own cross-stack reference to a real ledger directory (repeatable, only with `--from-diagram`) |
+| `--out string` | additionally write the full resolved proposal here (the plan is always saved under `.ubx/plans/` regardless) |
+| `--timeout duration` | timeout for provider/schema acquisition, drafting (`--from-doc`), and evaluation (`--from-code`) — one shared budget (default `2m0s`) |
+| `-h`, `--help` | help for plan |
+
+## Example: a two-resource create chain
+
+```json intent.json
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "sandbox",
+  "intent": {"summary": "a widget and its mirror, for the two-step flow"},
+  "resources": [
+    {
+      "type": "fake_widget",
+      "name": "primary",
+      "op": "create",
+      "config": {"name": "primary-widget", "tags": {"env": "sandbox"}}
+    },
+    {
+      "type": "fake_widget",
+      "name": "mirror",
+      "op": "create",
+      "config": {
+        "name": {"$ref": {"to": "sandbox.fake_widget.primary.name"}},
+        "tags": {"peer_id": {"$ref": {"to": "sandbox.fake_widget.primary.id"}}}
+      }
+    }
+  ]
+}
+```
+
+```text
+$ ubx plan intent.json --provider ./fakeprovider --ledger-dir .
+sandbox: a widget and its mirror, for the two-step flow
+delta: +2 create(s), ~0 modify(ies), -0 destroy(s)
+blast radius: +2 ~0 -0
+cost delta: $0/mo
+
+plan: .ubx/plans/101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28.json
+ubx-proposal: 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28
+```
+
+`cost_delta` renders whatever `core/resolver` already computed — `$0/mo`
+today, unchanged by this command; there's no cost-estimation engine yet.
+The last two lines are the ones that matter for the next step: the plan
+file's own path, and the hash [`ubx ship`](/cli/ship) needs.
+
+## Example: assumptions and questions render alongside the resolved delta
+
+`--from-doc`/`--from-diagram` carry whatever ambiguity content the intent
+provider or diagram parse produced ([`Assumptions`/`Defaults`/`Questions`](/cli/propose#example-transcribing-a-document-from-doc))
+straight through to the same receipt — resolved delta and draft-time
+ambiguity, together, in one review:
+
+```text
+$ ubx plan --from-doc payments.md --stack payments --provider ./fakeprovider --ledger-dir .
+payments: provision a database for payments, modeled on staging, smaller
+delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
+blast radius: +1 ~0 -0
+cost delta: $0/mo
+
+Assumptions (1):
+  - chose db.t3.small, one tier below staging's db.t3.medium
+      affects: aws_db_instance.payments-db.instance_class
+
+plan: .ubx/plans/<hash>.json
+ubx-proposal: <hash>
+```
+
+## Example: destroys still require confirmation, at ship time
+
+`ubx plan` never accepts anything, so it never asks for
+`--confirm-destroys` itself — but the destroy still renders in full, the
+same "make the content visible, not just the decision" `ubx resolve`
+already applies to `delta.destroys`:
+
+```text
+$ ubx plan destroy-intent.json --provider ./fakeprovider --ledger-dir .
+sandbox: decommission the mirror widget
+delta: +0 create(s), ~0 modify(ies), -1 destroy(s)
+blast radius: +0 ~0 -1
+cost delta: $0/mo
+destroy: sandbox.fake_widget.mirror
+  id: "computed-id"
+  name: "primary-widget"
+  tags: {"peer_id":"computed-id"}
+
+plan: .ubx/plans/f0b54b4f80fa74e898d774aade8c5450775c35160cd1fc69d29c3fd0eadf7b2b.json
+ubx-proposal: f0b54b4f80fa74e898d774aade8c5450775c35160cd1fc69d29c3fd0eadf7b2b
+```
+
+The confirmation gate itself lives in [`ubx ship`](/cli/ship#destroys-require-confirmation-even-inline),
+at the moment this plan is actually accepted:
+
+```text
+$ ubx ship f0b54b4f80fa74e898d774aade8c5450775c35160cd1fc69d29c3fd0eadf7b2b --provider ./fakeprovider --ledger-dir .
+ship: this proposal has blast_radius.destroys > 0 -- pass --confirm-destroys to accept it
+```
+
+See [`ubx ship`'s own "Shipping a destroy"](/cli/ship#shipping-a-destroy) for
+the full destroy lifecycle once confirmed — freshness precheck, the
+already-gone case, and everything else is identical whether the proposal
+came from `ubx plan` or the four-verb ceremony.
+
+## The plan file
+
+`.ubx/plans/<hash>.json` holds the exact resolved [proposal](/concepts/proposal)
+`ubx plan` printed the receipt for — a plain, human-readable JSON file, not
+a binary format. It sits alongside `.ubx/salt`/`.ubx/lock`, never inside
+`ledger/`: a plan is a draft, not a recorded decision, until `ubx ship`
+actually accepts it.
+
+<Note>
+  The filename **is** the proposal's own content hash — the same hash
+  `id` becomes once it's accepted. `ubx ship` verifies this on read: a
+  hand-edited or corrupted plan file whose content no longer hashes to
+  its own filename is refused outright, never shipped under a hash that
+  no longer describes it.
+</Note>
+
+## When to use the four-verb ceremony instead
+
+`ubx plan`/`ubx ship` is a fast path, not a replacement — the underlying
+machinery (`core/resolver.Resolve`, `core.Accept`, `executor.Ship`) is
+completely unchanged, and nothing about the four-verb ceremony is
+deprecated. Reach for `ubx resolve` → `ubx propose` → `ubx accept
+--from-merge` → `ubx ship` instead of the fused path when your team binds
+acceptance to a real review process:
+
+- **PR-merge acceptance** — [`ubx propose <resolved.json>`](/cli/propose)
+  prints the trailer hash for a PR body, review happens on GitHub, and
+  [`ubx accept --from-merge`](/cli/accept#pr-merge-acceptance) derives
+  acceptance from the merge itself rather than trusting a local `ubx
+  ship` run. See [PR-merge acceptance](/guides/pr-merge-acceptance) for
+  the full walkthrough.
+- **A separate draft-review checkpoint** for the md/diagram media —
+  `ubx propose --from-doc`/`--from-diagram` stop at the draft, letting a
+  human review the raw ambiguity content on its own before anyone runs
+  `ubx resolve` against it at all.
+
+Both paths produce the exact same signed [proposal](/concepts/proposal)
+shape and go through the exact same invariants — which one you reach for
+is about your team's own review process, not a difference in what `ubx`
+enforces.
+
+## Related
+
+- [`ubx ship`](/cli/ship) — inline local-tier acceptance + apply, the other
+  half of the two-step flow
+- [`ubx resolve`](/cli/resolve) — the intent-file format, `$ref`/`$computed`,
+  cross-stack references, and destroy semantics `ubx plan` resolves through unchanged
+- [`ubx propose`](/cli/propose) — the four-verb ceremony's own PR-trailer
+  hash and md/diagram draft-only entry points
+- [`ubx accept`](/cli/accept) — the four-verb ceremony's own local and
+  PR-merge acceptance
+- [Proposal](/concepts/proposal) — the shape every path above produces
+- [Creating real infrastructure](/guides/create-flow) — the four-verb
+  ceremony's own full walkthrough, live on real AWS
+- [Exit codes](/cli/exit-codes) — the 0/2 contract `ubx plan` follows

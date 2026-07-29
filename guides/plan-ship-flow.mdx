@@ -1,0 +1,205 @@
+---
+title: "The two-step flow: ubx plan + ubx ship"
+description: "Terraform-shaped ergonomics for a solo operator or a sandbox: plan, review the receipt, ship"
+---
+
+Most of this documentation's other guides walk through the **four-verb
+ceremony** — `ubx resolve` → `ubx propose` → `ubx accept` → `ubx ship` —
+because that's the right shape for a team binding acceptance to a real
+review process (see [PR-merge acceptance](/guides/pr-merge-acceptance)).
+For a solo operator or a sandbox iterating fast, that's real, avoidable
+ceremony. [`ubx plan`](/cli/plan) and [`ubx ship`](/cli/ship) fuse the
+same underlying machinery into two commands — terraform's own `plan`/
+`apply` shape, not a lower standard of safety: every invariant the
+four-verb path enforces (destroys confirmation, cross-stack pin
+staleness, freshness re-verification) still applies exactly as strictly.
+
+This walkthrough is hermetic — it uses `ubx`'s own fake provider fixture
+(`fake_widget`, the same stand-in [Onboarding](/guides/onboarding) uses)
+rather than a real cloud account, so you can follow along without any
+credentials at all. See [Creating real infrastructure](/guides/create-flow)
+for the equivalent four-verb walkthrough live on real AWS.
+
+## 1. Plan
+
+A hand-written [intent file](/cli/resolve#the-intent-file) — the same
+input `ubx resolve` takes, or any of `ubx plan`'s other three medium
+inputs ([`--from-code`](/cli/plan#flags), `--from-doc`, `--from-diagram`):
+
+```json intent.json
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "sandbox",
+  "intent": {"summary": "a widget and its mirror, for the two-step flow"},
+  "resources": [
+    {
+      "type": "fake_widget",
+      "name": "primary",
+      "op": "create",
+      "config": {"name": "primary-widget", "tags": {"env": "sandbox"}}
+    },
+    {
+      "type": "fake_widget",
+      "name": "mirror",
+      "op": "create",
+      "config": {
+        "name": {"$ref": {"to": "sandbox.fake_widget.primary.name"}},
+        "tags": {"peer_id": {"$ref": {"to": "sandbox.fake_widget.primary.id"}}}
+      }
+    }
+  ]
+}
+```
+
+```text
+$ ubx plan intent.json --provider ./fakeprovider --ledger-dir .
+sandbox: a widget and its mirror, for the two-step flow
+delta: +2 create(s), ~0 modify(ies), -0 destroy(s)
+blast radius: +2 ~0 -0
+cost delta: $0/mo
+
+plan: .ubx/plans/101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28.json
+ubx-proposal: 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28
+```
+
+This is the full receipt: delta, cost, and blast radius, resolved through
+the exact same [`core/resolver.Resolve`](/cli/resolve) the four-verb
+ceremony uses — `mirror`'s reference to `primary`'s schema-`Computed` `id`
+was checked and left as a dependency edge here exactly like it would be
+under `ubx resolve`. Nothing is accepted or applied yet. The resolved
+proposal is saved at `.ubx/plans/<hash>.json` — review it, or hand it to
+a colleague, before deciding to ship it.
+
+## 2. Ship
+
+```text
+$ ubx ship 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28 --provider ./fakeprovider --ledger-dir .
+accepted 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28 (stack sandbox) via local plan
+applied: sandbox.fake_widget.primary
+applied: sandbox.fake_widget.mirror
+2 resource(s), 2 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+No separate `ubx accept` ran — `ubx ship` found the plan, accepted it
+inline (local tier, the exact same mechanism standalone `ubx accept`
+uses), and applied it. [`ubx why`](/cli/why) shows the same
+`acceptance.method: "local"` a standalone `ubx accept` would have
+recorded:
+
+```text
+$ ubx why 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28 --ledger-dir .
+proposal 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28 (change)
+stack:  sandbox
+status: accepted
+intent: a widget and its mirror, for the two-step flow
+accepted by [operator] via local at 2026-07-29T20:19:18Z
+blast radius: +2 ~0 -0
+apply history:
+  attempt 1: outcome=applied
+    sandbox.fake_widget.primary:
+      pending at 2026-07-29T20:19:18Z
+      in_flight at 2026-07-29T20:19:18Z
+      applied at 2026-07-29T20:19:18Z
+    sandbox.fake_widget.mirror:
+      pending at 2026-07-29T20:19:18Z
+      in_flight at 2026-07-29T20:19:18Z
+      applied at 2026-07-29T20:19:18Z
+```
+
+<Note>
+  `[operator]` above stands in for whatever local username `ubx accept`'s
+  own local tier records (docs/schema.md's `acceptance.approvers`) — real
+  output names the actual account that ran the command.
+</Note>
+
+That's the whole flow. Two commands, the same signed, hashed, appliable
+[proposal](/concepts/proposal) shape the four-verb ceremony produces —
+nothing about `ubx plan`/`ubx ship` weakens what gets recorded.
+
+## Destroys still require confirmation
+
+Fusing acceptance into `ubx ship` doesn't relax `--confirm-destroys` —
+it's the identical [acceptance-time friction invariant](/cli/accept#confirming-a-destroy)
+standalone `ubx accept` enforces:
+
+```json destroy-intent.json
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "sandbox",
+  "intent": {"summary": "decommission the mirror widget"},
+  "resources": [],
+  "destroys": ["sandbox.fake_widget.mirror"]
+}
+```
+
+```text
+$ ubx plan destroy-intent.json --provider ./fakeprovider --ledger-dir .
+sandbox: decommission the mirror widget
+delta: +0 create(s), ~0 modify(ies), -1 destroy(s)
+blast radius: +0 ~0 -1
+cost delta: $0/mo
+destroy: sandbox.fake_widget.mirror
+  id: "computed-id"
+  name: "primary-widget"
+  tags: {"peer_id":"computed-id"}
+
+plan: .ubx/plans/f0b54b4f80fa74e898d774aade8c5450775c35160cd1fc69d29c3fd0eadf7b2b.json
+ubx-proposal: f0b54b4f80fa74e898d774aade8c5450775c35160cd1fc69d29c3fd0eadf7b2b
+
+$ ubx ship f0b54b4f80fa74e898d774aade8c5450775c35160cd1fc69d29c3fd0eadf7b2b --provider ./fakeprovider --ledger-dir .
+ship: this proposal has blast_radius.destroys > 0 -- pass --confirm-destroys to accept it
+```
+
+Adding `--confirm-destroys` lets inline acceptance proceed; from there the
+destroy ships through the exact same freshness precheck / reconciliation
+machinery as any other destroy — see [`ubx ship`'s own "Shipping a
+destroy"](/cli/ship#shipping-a-destroy) for the full lifecycle (the
+already-gone case, a drifted target's refusal, and everything else),
+identical regardless of which path accepted it.
+
+A stale cross-stack pin refuses the same way it would under the four-verb
+ceremony, too: if a neighbor stack's ledger advances between `ubx plan`
+and `ubx ship`, inline acceptance refuses rather than shipping against
+state nobody actually reviewed — see [Cross-stack
+references](/cli/resolve#cross-stack-references).
+
+## When to use the four-verb ceremony instead
+
+`ubx plan`/`ubx ship` doesn't replace anything — reach for the full
+ceremony when:
+
+- **Your team binds acceptance to a PR merge.** [`ubx propose
+  <resolved.json>`](/cli/propose) prints a trailer hash for the PR body,
+  and [`ubx accept --from-merge`](/cli/accept#pr-merge-acceptance)
+  derives acceptance from the merge itself — see [PR-merge
+  acceptance](/guides/pr-merge-acceptance) and [Creating real
+  infrastructure](/guides/create-flow) for the full walkthrough, live on
+  real AWS.
+- **You're authoring from markdown or a diagram and want a review gate
+  before resolving at all.** [`ubx propose --from-doc`/`--from-diagram`](/cli/propose)
+  stop at the draft, letting a human review the raw ambiguity content on
+  its own — see [Authoring from markdown](/guides/md-medium) and
+  [Diagram-driven authoring](/guides/diagram-medium). `ubx plan
+  --from-doc`/`--from-diagram` fold that same drafting step into one
+  command instead, with the resolved receipt itself serving as the
+  review.
+
+Both paths go through the identical `core/resolver.Resolve`/`core.Accept`/
+`executor.Ship` machinery and the same invariants — which one to use is
+about your team's own review process, never a difference in what `ubx`
+enforces.
+
+## Related
+
+- [`ubx plan`](/cli/plan) — full reference: all four medium inputs, the
+  receipt format, the plan file's own hash-addressed storage
+- [`ubx ship`](/cli/ship) — full reference: inline acceptance, destroys,
+  freshness, multi-provider stacks
+- [Creating real infrastructure](/guides/create-flow) — the four-verb
+  ceremony's own equivalent walkthrough, live on real AWS
+- [PR-merge acceptance](/guides/pr-merge-acceptance) — binding acceptance
+  to a reviewed pull request instead
+- [Proposal](/concepts/proposal) — the shape both paths produce
+- [Exit codes](/cli/exit-codes) — the 0/1/2 contract both commands follow

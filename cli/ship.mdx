@@ -1,38 +1,50 @@
 ---
 title: "ubx ship"
-description: "Execute an accepted drift_revert or change proposal against live cloud -- the only command that applies"
+description: "Accept (local tier, if needed) and execute a drift_revert or change proposal against live cloud -- the only command that applies"
 ---
 
 ```text
-ubx ship <proposal-id> [flags]
+ubx ship <hash> [flags]
 ```
 
-Executes an already-*accepted* [`drift_revert`](/concepts/drift) or
-`change` ([`ubx resolve`](/cli/resolve)) proposal: for a `drift_revert`,
-restores the resource's live state to match the ledger's recorded truth;
-for a `change`, creates, modifies, and destroys resources for real, in one
-combined dependency order (creates/modifies forward, destroys reversed),
-feeding each resource's real applied output into any sibling still
-carrying a `$computed` marker pointing at it. **This is the
-one `ubx` command that changes real infrastructure** —
-[`ubx accept`](/cli/accept), [`ubx why`](/cli/why),
+Executes a [`drift_revert`](/concepts/drift) or `change` ([`ubx
+resolve`](/cli/resolve), or [`ubx plan`](/cli/plan)'s fused equivalent)
+proposal: for a `drift_revert`, restores the resource's live state to
+match the ledger's recorded truth; for a `change`, creates, modifies, and
+destroys resources for real, in one combined dependency order
+(creates/modifies forward, destroys reversed), feeding each resource's
+real applied output into any sibling still carrying a `$computed` marker
+pointing at it. **This is the one `ubx` command that changes real
+infrastructure** — [`ubx accept`](/cli/accept), [`ubx why`](/cli/why),
 [`ubx status`](/cli/status), [`ubx scan`](/cli/scan),
-[`ubx resolve`](/cli/resolve), and [`ubx revert-plan`](/cli/revert-plan)
-only ever read or record. `ubx revert-plan` still exists and still never
-applies anything itself — it's what you reach for pre-acceptance, or if
-you'd rather apply the correction through your own tooling; `ubx ship` is
-what actually does it, post-acceptance.
+[`ubx resolve`](/cli/resolve), [`ubx plan`](/cli/plan), and
+[`ubx revert-plan`](/cli/revert-plan) only ever read or record. `ubx
+revert-plan` still exists and still never applies anything itself — it's
+what you reach for pre-acceptance, or if you'd rather apply the
+correction through your own tooling; `ubx ship` is what actually does it.
 
 Only `drift_revert` and `change` proposals can be shipped. Every other kind
 is record-only — accepting an `adoption`/`drift_adopt` already is the
 whole action, there's nothing to execute.
+
+## `<hash>` is looked up two ways
+
+1. **An already-accepted proposal id** in this stack's ledger — the
+   four-verb ceremony's own path: [`ubx accept`](/cli/accept) (local or
+   [`--from-merge`](/cli/accept#pr-merge-acceptance)) ran separately,
+   before this command. Unchanged from before this section existed.
+2. **A plan [`ubx plan`](/cli/plan) saved** at `.ubx/plans/<hash>.json`,
+   if no accepted proposal by that id exists. `ubx ship` accepts it
+   inline, local tier, before applying — see
+   [Inline acceptance](#inline-acceptance-the-fused-path) below.
 
 ## Flags
 
 | Flag | Description |
 | --- | --- |
 | `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`); unused if `.ubx/config`'s `[ledger]` names a remote store |
-| `--stack string` | which stack's ledger to open — required only when `.ubx/config`'s `[ledger]` `store` is a remote store (a bare proposal id carries no stack of its own); falls back to `.ubx/config`'s `stack`, same as elsewhere |
+| `--stack string` | which stack's ledger to open — required only when `.ubx/config`'s `[ledger]` `store` is a remote store (a bare hash carries no stack of its own); falls back to `.ubx/config`'s `stack`, same as elsewhere |
+| `--confirm-destroys` | required for [inline acceptance](#inline-acceptance-the-fused-path) of any plan with `blast_radius.destroys > 0`; unused when `<hash>` is already an accepted proposal, since that confirmation already happened at its own accept time |
 | `--provider string` | path to the provider binary (mutually exclusive with `--source`) |
 | `--source string` | provider source address, e.g. `hashicorp/aws` (mutually exclusive with `--provider`; requires `--provider-version`) |
 | `--provider-version string` | explicit provider version to acquire (required with `--source`) |
@@ -40,6 +52,99 @@ whole action, there's nothing to execute.
 | `--timeout duration` | overall timeout for the ship run (default `5m0s`) |
 | `--json` | emit one JSON document instead of human text — see [`--json` output](#json-output) |
 | `-h`, `--help` | help for ship |
+
+## Inline acceptance: the fused path
+
+When `<hash>` isn't yet an accepted proposal, `ubx ship` looks for a plan
+[`ubx plan`](/cli/plan) saved locally and accepts it — local tier, the
+exact same mechanism [`ubx accept`](/cli/accept)'s own local-file path
+uses, not a new or weaker one:
+
+```text
+$ ubx plan intent.json --provider ./fakeprovider --ledger-dir .
+sandbox: a widget and its mirror, for the two-step flow
+delta: +2 create(s), ~0 modify(ies), -0 destroy(s)
+blast radius: +2 ~0 -0
+cost delta: $0/mo
+
+plan: .ubx/plans/101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28.json
+ubx-proposal: 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28
+
+$ ubx ship 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28 --provider ./fakeprovider --ledger-dir .
+accepted 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28 (stack sandbox) via local plan
+applied: sandbox.fake_widget.primary
+applied: sandbox.fake_widget.mirror
+2 resource(s), 2 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+No separate `ubx accept` ran in between — the "accepted ... via local
+plan" line is this command's own inline acceptance step, immediately
+before it starts applying. [`ubx why`](/cli/why) shows exactly the same
+`acceptance.method: "local"` an ordinary `ubx accept` would have
+recorded:
+
+```text
+$ ubx why 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28 --ledger-dir .
+proposal 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28 (change)
+stack:  sandbox
+status: accepted
+intent: a widget and its mirror, for the two-step flow
+accepted by [operator] via local at 2026-07-29T20:19:18Z
+blast radius: +2 ~0 -0
+apply history:
+  attempt 1: outcome=applied
+    ...
+```
+
+### Destroys require confirmation, even inline
+
+`--confirm-destroys` is the exact same [acceptance-time friction
+invariant](/cli/accept#confirming-a-destroy) standalone `ubx accept`
+enforces — inline acceptance doesn't relax it:
+
+```text
+$ ubx plan destroy-intent.json --provider ./fakeprovider --ledger-dir .
+sandbox: decommission the mirror widget
+delta: +0 create(s), ~0 modify(ies), -1 destroy(s)
+blast radius: +0 ~0 -1
+cost delta: $0/mo
+destroy: sandbox.fake_widget.mirror
+  id: "computed-id"
+  name: "primary-widget"
+  tags: {"peer_id":"computed-id"}
+
+plan: .ubx/plans/f0b54b4f80fa74e898d774aade8c5450775c35160cd1fc69d29c3fd0eadf7b2b.json
+ubx-proposal: f0b54b4f80fa74e898d774aade8c5450775c35160cd1fc69d29c3fd0eadf7b2b
+
+$ ubx ship f0b54b4f80fa74e898d774aade8c5450775c35160cd1fc69d29c3fd0eadf7b2b --provider ./fakeprovider --ledger-dir .
+ship: this proposal has blast_radius.destroys > 0 -- pass --confirm-destroys to accept it
+```
+
+A stale cross-stack pin ([`resolver.VerifyPins`](/cli/resolve#cross-stack-references))
+refuses inline acceptance the exact same way it refuses standalone `ubx
+accept` — the neighbor ledger moving between `ubx plan` and `ubx ship` is
+caught, not silently accepted against stale state.
+
+### The plan file's own integrity
+
+A plan file is always written at exactly its own content hash's path.
+`ubx ship` recomputes that hash on read and refuses a mismatch — a
+hand-edited or corrupted plan file is never silently shipped under a
+hash that no longer describes its actual content:
+
+```text
+$ ubx ship f0b54b4f80fa74e898d774aade8c5450775c35160cd1fc69d29c3fd0eadf7b2b --provider ./fakeprovider --ledger-dir .
+Error: ship: plan file at .ubx/plans/f0b54b4f80fa74e898d774aade8c5450775c35160cd1fc69d29c3fd0eadf7b2b.json hashes to <different-hash>, not f0b54b4f80fa74e898d774aade8c5450775c35160cd1fc69d29c3fd0eadf7b2b -- stale or corrupted plan file
+```
+
+<Note>
+  PR-merge acceptance remains available as its own separate path
+  ([`ubx accept --from-merge`](/cli/accept#pr-merge-acceptance)) for teams
+  who want it — inline acceptance here is local tier only, never a
+  substitute for it. See [When to use the four-verb ceremony
+  instead](/cli/plan#when-to-use-the-four-verb-ceremony-instead) for the
+  full comparison.
+</Note>
 
 <Note>
   If `.ubx/config`'s `[ledger]` table names a remote store,
@@ -469,9 +574,12 @@ the full state machine.
 
 - [Apply record](/concepts/apply-record) — the ledger object `ubx ship`
   produces, and the full failure-state machine behind it
+- [`ubx plan`](/cli/plan) — the other half of the two-step flow: resolving
+  any medium input into the plan this command accepts inline
 - [`ubx resolve`](/cli/resolve) — producing the `change` proposal this
   command ships, including `$computed`/`depends_on`
-- [Creating real infrastructure](/guides/create-flow) — a full walkthrough, live on real AWS
+- [The two-step flow](/guides/plan-ship-flow) — `ubx plan` + `ubx ship`, end to end
+- [Creating real infrastructure](/guides/create-flow) — the four-verb ceremony's own full walkthrough, live on real AWS
 - [`ubx revert-plan`](/cli/revert-plan) — the pre-acceptance (or
   manual-reconciliation) alternative that never applies anything itself
 - [Ledger stores](/concepts/ledger-stores) — remote stores, and why `--stack` becomes required for them
