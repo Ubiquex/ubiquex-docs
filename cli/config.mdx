@@ -96,9 +96,9 @@ stack = "payments"
 
 ```text
 $ cd payments && ubx config
-github_repo = acme/infra	<- /repo/.ubx/config.hcl
-stack = payments	<- /repo/payments/.ubx/config.hcl
-tf_dir = ./terraform	<- /repo/.ubx/config.hcl
+github_repo = acme/infra  <- /repo/.ubx/config.hcl
+stack = payments          <- /repo/payments/.ubx/config.hcl
+tf_dir = ./terraform      <- /repo/.ubx/config.hcl
 ```
 
 The stack directory only had to declare the one key it actually differs
@@ -152,9 +152,9 @@ stack = "payments"
 
 ```text
 $ cd grandparent/parent/child && ubx config
-root = true	<- /grandparent/parent/.ubx/config.hcl
-stack = payments	<- /grandparent/parent/child/.ubx/config.hcl
-tf_dir = ./terraform	<- /grandparent/parent/.ubx/config.hcl
+root = true           <- /grandparent/parent/.ubx/config.hcl
+stack = payments      <- /grandparent/parent/child/.ubx/config.hcl
+tf_dir = ./terraform  <- /grandparent/parent/.ubx/config.hcl
 cascade stopped at: root marker (/grandparent/parent/.ubx/config.hcl)
 ```
 
@@ -164,9 +164,9 @@ inside an ordinary git checkout, gets the same protection for free:
 
 ```text
 $ cd repo/payments && ubx config
-github_repo = acme/infra	<- /repo/.ubx/config.hcl
-stack = payments	<- /repo/payments/.ubx/config.hcl
-tf_dir = ./terraform	<- /repo/.ubx/config.hcl
+github_repo = acme/infra  <- /repo/.ubx/config.hcl
+stack = payments          <- /repo/payments/.ubx/config.hcl
+tf_dir = ./terraform      <- /repo/.ubx/config.hcl
 cascade stopped at: repo boundary (/repo)
 ```
 
@@ -181,9 +181,9 @@ ubx config
 ```
 
 ```text
-github_repo = acme/infra	<- /repo/.ubx/config.hcl
-stack = payments	<- /repo/payments/.ubx/config.hcl
-tf_dir = ./terraform	<- /repo/.ubx/config.hcl
+github_repo = acme/infra  <- /repo/.ubx/config.hcl
+stack = payments          <- /repo/payments/.ubx/config.hcl
+tf_dir = ./terraform      <- /repo/.ubx/config.hcl
 cascade stopped at: repo boundary (/repo)
 ```
 
@@ -443,7 +443,7 @@ default:
 
 ```text
 $ ubx config --stack payments
-ledger.store = s3://acme-ledger/acme/prod/	<- /repo/.ubx/config.hcl
+ledger.store = s3://acme-ledger/acme/prod/  <- /repo/.ubx/config.hcl
 ledger address (stack "payments"): s3://acme-ledger/acme/prod/payments/
 ```
 
@@ -451,7 +451,7 @@ Without a stack to derive against, it says so rather than guessing one:
 
 ```text
 $ ubx config
-ledger.store = s3://acme-ledger/acme/prod/	<- /repo/.ubx/config.hcl
+ledger.store = s3://acme-ledger/acme/prod/  <- /repo/.ubx/config.hcl
 ledger address: [ledger] store is a remote store, but no stack is known to derive it against (pass --stack)
 ```
 
@@ -506,9 +506,9 @@ same as every other key:
 
 ```text
 $ ubx config --stack payments
-intent.adapter = claude	<- /tmp/repo/.ubx/config.hcl
-intent.key_ref.env = ANTHROPIC_API_KEY	<- /tmp/repo/.ubx/config.hcl
-stack = payments	<- /tmp/repo/.ubx/config.hcl
+intent.adapter = claude                 <- /tmp/repo/.ubx/config.hcl
+intent.key_ref.env = ANTHROPIC_API_KEY  <- /tmp/repo/.ubx/config.hcl
+stack = payments                        <- /tmp/repo/.ubx/config.hcl
 ```
 
 ## Unknown keys warn, they don't fail
@@ -521,7 +521,11 @@ works identically across all three formats:
 ```text
 $ ubx scan --type fake_widget --name api-cache --lookup '{"name":"api-cache"}' --ledger-dir .
 warning: /path/to/.ubx/config.hcl: unknown config key "retention_days" (ignored)
-new: payments.fake_widget.api-cache (5c04c1c9c937a742ad32c319ffe75c550c344ed51bbee6d95dd14a12186daa4d) -- generated a "adoption" proposal
+New resource found  payments.fake_widget.api-cache
+
+  adoption      f4bf7ff27ac4     +0 create(s) ~0 modify(ies) -0 destroy(s)
+
+  saved to plan store            next: ubx ship f4bf7ff27ac4
 ```
 
 A config file that isn't valid **at all** in its own format — malformed
@@ -585,18 +589,22 @@ forward-compatibility convenience.
 With the config above in place:
 
 ```text
-$ ubx scan --type fake_widget --name api-cache --lookup '{"name":"api-cache","tags":{"env":"prod"}}' --ledger-dir .
-new: payments.fake_widget.api-cache (5c04c1c9c937a742ad32c319ffe75c550c344ed51bbee6d95dd14a12186daa4d) -- generated a "adoption" proposal
+$ ubx scan --type fake_widget --name api-cache --lookup '{"name":"api-cache","tags":{"env":"prod"}}' --ledger-dir . --out adopt.json
+New resource found  payments.fake_widget.api-cache
+
+  adoption      6b95aad80ef8     +0 create(s) ~0 modify(ies) -0 destroy(s)
+
+  saved to plan store            next: ubx ship 6b95aad80ef8
 ```
 
 ```text
 $ ubx accept adopt.json --ledger-dir .
-accepted a28700b248d3f30ec9d9842de89b15d29eb8d433f43f55ce19b93eaa9d18578a (stack payments)
+accepted 6b95aad80ef8db2ce58152a158ccf28d8262ab27a012515b4c810441726858d3 (stack payments)
 ```
 
 ```text
 $ ubx status --ledger-dir . --drift
-clean: payments.fake_widget.api-cache: adoption a28700b248d3… (accepted 2026-07-16T18:29:29Z)
+clean: payments.fake_widget.api-cache: adoption 6b95aad80ef8… (accepted 2026-07-30T23:06:49Z)
 1 resource(s), 0 drifted, 0 unreadable
 ```
 

@@ -27,24 +27,25 @@ attribute**, and who's accountable for it.
 | Flag | Description |
 | --- | --- |
 | `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
+| `--all` | show every attribute, including zero/null/empty provider defaults hidden by default within a grouped block |
+| `--full-hashes` | render every hash in full instead of the default 12-char short form |
 | `--json` | emit one JSON document instead of human text |
 | `-h`, `--help` | help for blame |
 
 ## Example: a shipped resource
 
+Every attribute set by the same proposal, at the same acceptance, groups
+under one header line (UBI-61) — never one repeated "set by/accepted"
+pair per attribute:
+
 ```text
 $ ubx blame payments.fake_widget.payments-db --ledger-dir .
-payments.fake_widget.payments-db
+Blame  payments.fake_widget.payments-db
 
-id: "computed-id"
-  set by fbad4f7f3006… (change), 2026-07-28T22:08:44Z
-  accepted: local
-name: "payments-db"
-  set by fbad4f7f3006… (change), 2026-07-28T22:08:44Z
-  accepted: local
-tags.team: "payments"
-  set by fbad4f7f3006… (change), 2026-07-28T22:08:44Z
-  accepted: local
+▸ 3 attribute(s) · set by 76ef883c2e8d… (change) · 2026-07-30T22:59:16Z · local
+    id: "computed-id"
+    name: "payments-db"
+    tags.team: "payments"
 ```
 
 Real, unedited output. `id` here is a provider-computed attribute that
@@ -56,6 +57,9 @@ possibly-stale `config`.
 
 ### `--json`
 
+Entries stay flat here regardless of grouping — grouping is a human-render
+concern only, never a schema change:
+
 ```json
 {
   "format": 1,
@@ -66,9 +70,9 @@ possibly-stale `config`.
       "path": "id",
       "value": "computed-id",
       "redacted": false,
-      "proposal_id": "fbad4f7f3006cc30e365aa4e84601f0f9b3b4f59eb5afd842c881b5bc771bdf6",
+      "proposal_id": "76ef883c2e8d59847766b279852fd3bcfc3fb0fc1a908ed688dd051d20b185f2",
       "kind": "change",
-      "set_at": "2026-07-28T22:08:44Z",
+      "set_at": "2026-07-30T22:59:16Z",
       "acceptance_method": "local",
       "approvers": ["roozbeh"]
     }
@@ -76,32 +80,44 @@ possibly-stale `config`.
 }
 ```
 
-## Example: an attribute changed after the fact
+## Example: an attribute changed after the fact, and hidden defaults
 
 Once an attribute is modified by a later proposal — an accepted drift, say
-— blame follows it there, attribute by attribute, never the whole
-resource at once:
+— blame follows it there, its own group, never the whole resource lumped
+into one:
 
 ```text
 $ ubx blame payments.fake_widget.main-cache --ledger-dir .
-payments.fake_widget.main-cache
+Blame  payments.fake_widget.main-cache
 
-id: "computed-id"
-  set by 992d33eb8df5… (adoption), 2026-07-28T22:09:34Z
-  accepted: local
-name: "main-cache"
-  set by 992d33eb8df5… (adoption), 2026-07-28T22:09:34Z
-  accepted: local
-tags.env: "staging"
-  set by c16e89f66941… (drift_adopt), 2026-07-28T22:09:34Z
-  accepted: local
+▸ 2 attribute(s) · set by 4b632a865c88… (adoption) · 2026-07-30T22:59:32Z · local
+    id: "main-cache"
+    · 1 provider default(s) hidden -- --all to show
+
+▸ 1 attribute(s) · set by 21f9dd786925… (drift_adopt) · 2026-07-30T22:59:32Z · local
+    tags.env: "staging"
 ```
 
 Real, unedited output — `main-cache` was originally adopted with
-`tags.env: "prod"`, then a real drift was detected and accepted. `id` and
-`name` were never touched by that drift, so they still blame the original
-adoption; `tags.env` alone blames the drift proposal that actually changed
-it.
+`tags.env: "prod"` (`name` left at its provider default, never set),
+then a real drift was detected and accepted as a `drift_adopt`. `id`
+was never touched by that drift, so it still blames the original
+adoption, grouped with the other attribute that same proposal set;
+`tags.env` alone blames the drift proposal that actually changed it.
+`name`'s null/default value is hidden inside its group by default
+(`--all` reveals it):
+
+```text
+$ ubx blame payments.fake_widget.main-cache --ledger-dir . --all
+Blame  payments.fake_widget.main-cache
+
+▸ 2 attribute(s) · set by 4b632a865c88… (adoption) · 2026-07-30T22:59:32Z · local
+    id: "main-cache"
+    name: null
+
+▸ 1 attribute(s) · set by 21f9dd786925… (drift_adopt) · 2026-07-30T22:59:32Z · local
+    tags.env: "staging"
+```
 
 ## Redacted attributes still show provenance
 
@@ -110,15 +126,13 @@ and when, still does. That's the entire point: knowing a secret rotated,
 by whom, and when, without ever seeing what it rotated to.
 
 ```text
-$ ubx blame payments.aws_db_instance.payments-db --ledger-dir .
-payments.aws_db_instance.payments-db
+$ ubx blame payments.fake_widget.secret-box --ledger-dir .
+Blame  payments.fake_widget.secret-box
 
-id: "db-1"
-  set by <short-id> (adoption), 2026-07-20T00:00:00Z
-  accepted: local
-password: (redacted)
-  set by <short-id> (adoption), 2026-07-20T00:00:00Z
-  accepted: local
+▸ 3 attribute(s) · set by 7f54de41a104… (adoption) · 2026-07-30T22:59:52Z · local
+    id: "secret-box"
+    master_password: (redacted)
+    · 1 provider default(s) hidden -- --all to show
 ```
 
 ## Attribution: who signed it
@@ -137,31 +151,29 @@ Every entry names how its proposal was accepted:
 
 ```text
 $ ubx blame conformance.aws_s3_bucket.ubx-states --ledger-dir .
-conformance.aws_s3_bucket.ubx-states
+Blame  conformance.aws_s3_bucket.ubx-states
 
-tags.env: "staging"
-  set by <short-id> (drift_adopt), 2026-07-10T21:42:35Z
-  accepted: local
-  attributed to: arn:aws:iam::839333509514:user/roozbeh
+▸ 1 attribute(s) · set by <short-id> (drift_adopt) · 2026-07-10T21:42:35Z · local
+    tags.env: "staging"
+    attributed to: arn:aws:iam::839333509514:user/roozbeh
 ```
 
 ## A destroyed address blames its final pre-destroy state
 
 `ubx blame` on a destroyed address doesn't come back empty — it renders a
 tombstone note naming which proposal destroyed it and when, then blames
-the resource's own **final, pre-destroy** attribute state:
+the resource's own **final, pre-destroy** attribute state, grouped the
+same way as any other address:
 
 ```text
-$ ubx blame payments.aws_db_instance.old-db --ledger-dir .
-payments.aws_db_instance.old-db
-DESTROYED by <short-id> at 2026-07-21T00:00:00Z -- blaming the final pre-destroy state
+$ ubx blame payments.fake_widget.old-db --ledger-dir .
+Blame  payments.fake_widget.old-db
 
-engine: "postgres"
-  set by <short-id> (adoption), 2026-07-20T00:00:00Z
-  accepted: local
-id: "db-1"
-  set by <short-id> (adoption), 2026-07-20T00:00:00Z
-  accepted: local
+DESTROYED by ef6f0753b005… at 2026-07-30T23:00:13Z -- blaming the final pre-destroy state
+
+▸ 3 attribute(s) · set by 00e3e9da388a… (adoption) · 2026-07-30T23:00:13Z · local
+    id: "old-db"
+    · 2 provider default(s) hidden -- --all to show
 ```
 
 ## When it fails
@@ -171,8 +183,8 @@ never created via a shipped change proposal — is an error, not an empty
 report:
 
 ```text
-$ ubx blame payments.aws_s3_bucket.never-recorded --ledger-dir .
-blame: payments.aws_s3_bucket.never-recorded has no recorded history -- never adopted, and never created via a shipped change proposal
+$ ubx blame payments.fake_widget.never-recorded --ledger-dir .
+blame: payments.fake_widget.never-recorded has no recorded history -- never adopted, and never created via a shipped change proposal
 ```
 
 Every exit code is `0` (found, whether live or destroyed — both are

@@ -25,25 +25,31 @@ is tried as a resource address.
 | `--github-repo string` | owner/name of the GitHub repository, for `--verify-acceptance`'s reviewer re-check (the git-history re-check runs without it) |
 | `--dialogue` | if this proposal's `intent.sources` names a captured [`ubx chat`](/guides/chat) dialogue, read and render the actual conversation behind it — change proposal → the draft it came from → the real conversation. See [Rendering a captured dialogue](#rendering-a-captured-dialogue), below |
 | `--json` | emit one JSON document instead of human text — see [`--json` output](#json-output) |
+| `--full-hashes` | render every hash in full instead of the default 12-char short form |
 | `-h`, `--help` | help for why |
 
 ## Looking up one proposal by ID
 
 ```text
-$ ubx why 4efe22a32782139b26e99599f00e713c0b99470e7ca69a752b5f96194e8ac1e0 --ledger-dir .
-proposal 4efe22a32782139b26e99599f00e713c0b99470e7ca69a752b5f96194e8ac1e0 (drift_adopt)
+$ ubx why 7b97e26c9ec0b82c1a8d15f32e7ba85a50065f8c138a5ce1e5e2aabcd0e23001 --ledger-dir .
+proposal 7b97e26c9ec0… (drift_adopt)
 stack:  payments
 status: accepted
 intent: record drift on payments.fake_widget.api-cache observed outside the ledger
-accepted by [roozbeh] via local at 2026-07-16T22:56:26Z
+accepted by [roozbeh] via local at 2026-07-30T23:11:29Z
 blast radius: +0 ~0 -0
-change: payments.fake_widget.api-cache: tags.env: "prod" -> "staging"
+~ change: payments.fake_widget.api-cache: tags.env: "prod" -> "staging"
 ```
 
-Each changed attribute gets its own `change:` line, `<address>: <path>:
-<before> -> <after>` — for every kind that carries a real delta
-(`drift_adopt`, `drift_revert`, `change`), not just an adoption's
-all-or-nothing snapshot.
+Only the argument stays a full 64-char hash — the header line it echoes back
+truncates to 12 chars + `…` by default; pass `--full-hashes` to render it in
+full instead. Each changed attribute gets its own `~ change:` line
+(color-coded by verb — the same `+`/`~`/`-` create/modify/destroy language
+[`ubx plan`](/cli/plan)/[`ubx ship`](/cli/ship) already use), `<address>:
+<path>: <before> -> <after>` — for every kind that carries a real delta
+(`drift_adopt`, `drift_revert`, `change`). An `adoption` proposal instead
+gets a bare `+ <type>.<name> create` line with no attribute breakdown (its
+own all-or-nothing snapshot) — see the resource-history example below.
 
 <Note>
   A bare proposal-id argument (unlike the resource-address form below)
@@ -70,7 +76,7 @@ unedited output, against a proposal accepted from a real chat session:
 
 ```text
 $ ubx why 2467ee0b6bd83c664cb1e228d2a4adf42b262d9557c56b0223ece9ca3f64f13f --dialogue --ledger-dir .
-proposal 2467ee0b6bd83c664cb1e228d2a4adf42b262d9557c56b0223ece9ca3f64f13f (change)
+proposal 2467ee0b6bd8… (change)
 stack:  payments
 status: accepted
 intent: Create a smaller multi-AZ Postgres database for the payments service, modeled on the staging database.
@@ -92,7 +98,7 @@ still says so explicitly rather than rendering nothing:
 
 ```text
 $ ubx why 4efe22a32782139b26e99599f00e713c0b99470e7ca69a752b5f96194e8ac1e0 --dialogue --ledger-dir .
-proposal 4efe22a32782139b26e99599f00e713c0b99470e7ca69a752b5f96194e8ac1e0 (drift_adopt)
+proposal 4efe22a32782… (drift_adopt)
 ...
 
 --dialogue: this proposal has no captured dialogue source (it wasn't drafted via `ubx chat`, or the file couldn't be read)
@@ -110,22 +116,25 @@ design](https://github.com/Ubiquex/ubiquex/blob/main/docs/architecture.md)
 id>`":
 
 ```text
-$ ubx why 5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c --ledger-dir prod
-proposal 5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c (change)
+$ ubx why 0c24102e9eee73b224a37ba6c504092faff13722443a89dfaa0f5cc18a4d8c9e --ledger-dir prod
+proposal 0c24102e9eee… (change)
 stack:  payments
 status: accepted
-intent: 1 resource(s) authored via payments.d2 for stack "payments"
-  source: document payments.d2 (content_hash=sha256:c111bf28f4d8d3d14628a8a9e6a557553b0f6144050d5baf448d057ddad5eca9)
-  source: promoted from ./2fd3355f7909…
-accepted by [roozbeh] via local at 2026-07-30T16:44:38Z
-blast radius: +1 ~0 -0
+intent: 2 resource(s) authored via payments.d2 for stack "payments"
+  source: document payments.d2 (content_hash=sha256:5ca5d1fa95fdd76c521164c907011b8e6a4fde3a6ec6523885e47f888047058c)
+  source: promoted from staging/7e71587ad039…
+accepted by [roozbeh] via local at 2026-07-30T23:13:16Z
+blast radius: +2 ~0 -0
++ fake_widget.main-vpc create
++ fake_widget.payments-db create
 ```
 
 `base` is the source's own stack base — a remote [`LedgerStore`](/concepts/ledger-stores)
 address if one is configured, or the source's own `--ledger-dir` for the
-default git-local store (which carries no separate base-store concept of
-its own, `.` here). The referenced id is truncated the same
-presentation-only way the resource-history chain view already truncates
+default git-local store (`staging` here — the directory `ubx promote` was
+pointed at via its own `--ledger-dir`, distinct from `--to prod`, the target
+this proposal was actually accepted into). The referenced id is truncated the
+same presentation-only way the resource-history chain view already truncates
 ids below — pass it in full to `ubx why <id> --ledger-dir <source-dir>`
 to look up the source proposal directly and compare the two side by
 side. A proposal promoted more than once (`ubx promote` run again
@@ -145,12 +154,16 @@ pin"](/guides/promotion#evidence-not-a-pin).
 ```text
 $ ubx why payments.fake_widget.api-cache --ledger-dir .
 payments.fake_widget.api-cache: 2 proposal(s), newest first
-- drift_adopt 4efe22a32782… (2026-07-16T22:56:26Z): record drift on payments.fake_widget.api-cache observed outside the ledger
-    change: payments.fake_widget.api-cache: tags.env: "prod" -> "staging"
-- adoption fe772892ff49… (2026-07-16T22:56:26Z): adopt existing payments.fake_widget.api-cache into the ledger (discovered by scan)
+- drift_adopt 7b97e26c9ec0… (2026-07-30T23:11:29Z): record drift on payments.fake_widget.api-cache observed outside the ledger
+    ~ change: payments.fake_widget.api-cache: tags.env: "prod" -> "staging"
+- adoption 761b63052cb0… (2026-07-30T23:11:29Z): adopt existing payments.fake_widget.api-cache into the ledger (discovered by scan)
+    + fake_widget.api-cache create
 ```
 
-The truncated IDs in this compact chain view are a display-only
+Note the `adoption` entry gets its own `+ <type>.<name> create` line here
+too — no attribute breakdown (an adoption is an all-or-nothing snapshot,
+never a per-attribute delta), just the same `+` create marker every other
+kind uses. The truncated IDs in this compact chain view are a display-only
 abbreviation — pass the full ID (from a raw ledger file, or `ubx why`'s own
 single-proposal view) to look one up directly; the truncated form is never
 accepted as a lookup argument itself.
@@ -167,14 +180,14 @@ If the changed attribute is one the provider flagged `Sensitive` (see
 value on both sides — never the salted hash, never the real material:
 
 ```text
-$ ubx why 895622ca77a31d9061b850a2cb99d06d64c6576d810f81cca82e001c167f4749 --ledger-dir .
-proposal 895622ca77a31d9061b850a2cb99d06d64c6576d810f81cca82e001c167f4749 (drift_adopt)
+$ ubx why 257bb893b89a8fd2b1d3194d5b1e13880d3945629a91bf8834356e86911cf569 --ledger-dir .
+proposal 257bb893b89a… (drift_adopt)
 stack:  payments
 status: accepted
 intent: record drift on payments.fake_db_instance.payments-db observed outside the ledger
-accepted by [roozbeh] via local at 2026-07-16T22:53:55Z
+accepted by [roozbeh] via local at 2026-07-30T23:11:20Z
 blast radius: +0 ~0 -0
-change: payments.fake_db_instance.payments-db: master_password: (redacted) -> (redacted)
+~ change: payments.fake_db_instance.payments-db: master_password: (redacted) -> (redacted)
 ```
 
 `--json` carries the same information as the actual `$redacted` marker
@@ -335,7 +348,7 @@ state:
 $ ubx why 3ac4ad60be63780420495d6f6dc16e06c206ad5960fa0a664facce27e73ec6ae \
     --ledger-dir . \
     --verify-acceptance --repo-dir . --github-repo acme/infra
-proposal 3ac4ad60be63780420495d6f6dc16e06c206ad5960fa0a664facce27e73ec6ae (change)
+proposal 3ac4ad60be63… (change)
 stack:  payments
 status: accepted
 intent: postgres for payments

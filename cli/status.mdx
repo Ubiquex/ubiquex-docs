@@ -142,11 +142,18 @@ clean: payments.fake_widget.api-cache: adoption bdbb0b5098bf… (accepted 2026-0
 
 ### `--drift`, something drifted
 
+A drifted entry now (UBI-61) shows the actual attribute-level diff inline —
+the same before/after rendering [`ubx why`](/cli/why) uses for a `modify` —
+plus a `next:` handoff naming exactly the [`ubx scan`](/cli/scan) invocation
+that resolves it, rather than a bare "drifted" verdict a human has to go
+digging from:
+
 ```text
-$ ubx status --ledger-dir . --drift --provider ./terraform-provider-aws
-drifted: network.fake_widget.main-vpc: adoption 7d8d5792e06c… (accepted 2026-07-16T16:54:45Z)
-drifted: payments.fake_widget.api-cache: adoption bdbb0b5098bf… (accepted 2026-07-16T16:54:45Z)
-2 resource(s), 2 drifted, 0 unreadable
+$ ubx status --ledger-dir . --drift --provider ./fakeprovider
+drifted: payments.fake_widget.api-cache: adoption e9a99872799a… (accepted 2026-07-30T22:58:15Z)
+    ~ tags.owner: (absent) -> "someone-else"
+    next: ubx scan --propose both --stack payments --type fake_widget --name api-cache
+1 resource(s), 1 drifted, 0 unreadable
 ```
 
 ### `--drift`, something unreadable
@@ -189,7 +196,10 @@ Both resources above were adopted individually (no recorded provider of
 their own) -- `hashicorp/aws` and `hashicorp/helm` were each launched
 once, inferred by type, and reused for every resource that type owns. A
 real out-of-band change against either is caught exactly like the
-single-provider case:
+single-provider case (each drifted line also renders its own attribute
+diff and `next:` handoff, exactly like the single-provider example
+above -- omitted here since the two providers involved aren't the
+fakeprovider fixture):
 
 ```text
 $ ubx status --ledger-dir . --drift
