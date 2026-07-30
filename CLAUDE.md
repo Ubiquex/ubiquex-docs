@@ -2,11 +2,11 @@
 
 ## What this is
 
-User-facing documentation for `ubx` (ubiquex-cli), built on **Mintlify**.
+User-facing documentation for `ubx` (ubiquex), built on **Mintlify**.
 Audience: platform engineers evaluating or using ubx. This repo is a *projection*
 of the product — it documents what is shipped, never what is planned.
 
-The source of truth for design/architecture lives in the `ubiquex-cli` repo
+The source of truth for design/architecture lives in the `ubiquex` repo
 (`docs/`). Never document internal design here; translate shipped behavior
 into user language.
 
@@ -34,13 +34,13 @@ into user language.
 
 ## Workflow
 
-1. Docs debt arrives from ubiquex-cli's STATE.md ("docs debt" entries) —
+1. Docs debt arrives from ubiquex's STATE.md ("docs debt" entries) —
    batched per slice during foundational phase.
 2. Each docs session: read the debt list, verify actual CLI behavior, write
-   pages, clear the debt entries in ubiquex-cli's STATE.md.
+   pages, clear the debt entries in ubiquex's STATE.md.
 3. Mintlify preview (`mintlify dev`) must render clean before commit.
 
 ## Git rules
 
-Same as ubiquex-cli: Roozbeh's identity and signing key, no AI attribution
+Same as ubiquex: Roozbeh's identity and signing key, no AI attribution
 anywhere, terse conventional messages (`cli-ref: add ubx scan page`).
