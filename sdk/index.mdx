@@ -1,15 +1,17 @@
 ---
 title: "SDK Reference"
-description: "Author infrastructure as typed TypeScript or Go code, each evaluated hermetically -- neither runtime package is published yet."
+description: "Author infrastructure as typed TypeScript, Go, or Python code, each evaluated hermetically -- no runtime package is published yet."
 ---
 
-Two describe-only SDKs for authoring infrastructure as typed code, both
-producing the exact same `intent/v1` shape: `@ubx/sdk` (TypeScript) and
-`github.com/ubiquex/ubx-sdk-go` (Go). Both work today, through the CLI --
-neither runtime is published yet (TypeScript's is bundled directly
-inside the `ubx` binary; Go's needs a local `replace` in your own
-`go.mod` until it is), so there's no separate install step: generate
-bindings, write a program, resolve it.
+Three describe-only SDKs for authoring infrastructure as typed code, all
+producing the exact same `intent/v1` shape: `@ubx/sdk` (TypeScript),
+`github.com/ubiquex/ubx-sdk-go` (Go), and `ubx_sdk` (Python). All three
+work today, through the CLI -- none is published yet (TypeScript's is
+bundled directly inside the `ubx` binary; Go's needs a local `replace`
+in your own `go.mod`; Python's runtime is likewise bundled, though its
+own hermetic Python build is a separate, larger download -- see [The
+hermetic evaluator](#the-python-evaluator) below), so there's no
+separate install step: generate bindings, write a program, resolve it.
 
 ```bash
 ubx sdk gen --out sdk/generated               # TypeScript (default)
@@ -21,6 +23,13 @@ ubx ship <proposal-id>
 ```bash
 ubx sdk gen --lang go --out sdk/generated     # Go
 ubx resolve --from-code payments.go --out change.prop.json
+ubx accept change.prop.json
+ubx ship <proposal-id>
+```
+
+```bash
+ubx sdk gen --lang py --out sdk/generated     # Python
+ubx resolve --from-code payments.py --out change.prop.json
 ubx accept change.prop.json
 ubx ship <proposal-id>
 ```
@@ -223,24 +232,155 @@ is: a program's own `go.mod` reaching for anything beyond a local
 (`GOPROXY=off`) rather than silently fetching untrusted code mid-
 evaluation.
 
+## Python
+
+### The runtime surface
+
+The same vocabulary again, in Python -- `sdk.stack`, `sdk.resource`,
+`sdk.secret`, `sdk.cross`, `sdk.intent`, `sdk.run`, and `sdk.Computed` in
+place of `Computed<T>`:
+
+```python payments.py
+import ubx_sdk as sdk
+from sdk.generated.hashicorp_aws import AwsDbInstance, AwsDbInstanceConfig
+
+
+def describe():
+    sdk.intent("provision the payments database")
+    sdk.resource(AwsDbInstance, "payments", AwsDbInstanceConfig(
+        engine="postgres",
+        instance_class="db.t3.small",
+        allocated_storage=20,
+        db_name="payments",
+        username="payments_admin",
+    ))
+
+
+if __name__ == "__main__":
+    sdk.run("payments", describe)
+```
+
+- **`sdk.stack(name, fn)` / `sdk.run(name, fn)`** -- `fn` describes the
+  stack's own desired resources; `sdk.run` is what a program's own
+  `if __name__ == "__main__":` block calls to evaluate it and print the
+  result -- Python's own natural entry-point idiom, the same role Go's
+  explicit `func main()` plays, needing no separate generated-runner-
+  script indirection the way TypeScript's evaluator does.
+- **`sdk.resource(binding, name, config)`** -- declares one resource.
+  `config` is a typed `@dataclass` from [`ubx sdk gen --lang
+  py`](/cli/sdk-gen)'s own generated output. Returns a `sdk.Computed`
+  handle for wiring into sibling resources.
+- **`sdk.secret(backend, path)`** / **`sdk.cross(ledger_dir, address)`**
+  -- the same `$secret`/`$cross` markers TypeScript's/Go's own
+  constructors produce.
+- **`sdk.intent(summary, sources=None)`** -- the emitted document's own
+  summary. Required, exactly once per stack.
+- **`sdk.Computed`** -- what `sdk.resource()`'s own return value is.
+  Never a real value, same reasoning as `Computed<T>`/`*sdk.Computed` --
+  drilling into a nested attribute is ordinary Python attribute access
+  (`primary.settings.enabled`), implemented via `__getattr__` (Python's
+  own native attribute-customization hook, the same mechanism countless
+  dot-dict/ORM libraries already use) rather than an imitation of
+  TypeScript's Proxy. Using a `Computed` as a real value -- `str()`,
+  `bool()`, arithmetic, iteration -- raises immediately, naming the
+  address and the attempted operation.
+
+### `ubx sdk gen --lang py`
+
+```text
+$ ubx sdk gen --lang py --out sdk/generated
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp_aws.py
+```
+
+Real bindings, real `@dataclass` per resource type, plus a runtime
+descriptor:
+
+```python sdk/generated/hashicorp_aws.py (excerpt)
+@dataclasses.dataclass
+class AwsDbInstanceConfig:
+    allocated_storage: Any = None
+    db_name: Any = None
+    engine: Any = None
+    instance_class: Any = None
+    username: Any = None
+    # ...every other real aws_db_instance settable attribute
+
+AwsDbInstance = sdk.ResourceBinding(
+    wire_type="aws_db_instance",
+    fields={
+        "allocated_storage": sdk.FieldSpec(wire_name="allocated_storage"),
+        "db_name": sdk.FieldSpec(wire_name="db_name"),
+        # ...
+    },
+)
+```
+
+Field names need no case conversion at all here, unlike TypeScript's
+camelCase or Go's PascalCase: every real provider wire name this project
+generates against is already lowercase-with-underscores -- already a
+valid Python identifier verbatim. The one real exception is a wire name
+that collides with a Python keyword (e.g. a field literally named
+`class`), closed with a trailing underscore (`class_`), the same
+convention generated protobuf/thrift bindings already use. No separate
+`Attrs` type, for the same reason Go has none: `Computed` has no static
+per-field shape.
+
+### The hermetic evaluator {#the-python-evaluator}
+
+Python has no compiled-program cheat (unlike Go) and no built-in
+permission model (unlike Deno) -- the hardest evaluator of the three,
+and the one candidate that actually won reversed the going-in
+expectation. `ubx resolve --from-code <entry>.py` runs the program under
+[WASI](https://wasi.dev): [`wasmtime`](https://wasmtime.dev) running a
+real, pinned CPython build compiled to WebAssembly. Confirmed
+empirically to be the *strongest* isolation of any of the three
+evaluators, not just an alternative: network and subprocess-spawning
+are **absent as WASI capabilities**, not merely denied by a sandbox
+policy -- a `_socket` module with no working `connect()`, a `subprocess`
+module that raises "wasi does not support processes" outright. File
+access outside the two directories the evaluator grants (the Python
+standard library, and the program's own directory) fails as "no such
+file or directory," not a permission error -- the path simply isn't
+part of the sandboxed program's own view of the filesystem at all. The
+exact same mechanism runs identically on macOS and Linux -- one
+evaluator, not a different one per platform.
+
+The CPython-WASI build itself (~40MB) is downloaded once and cached
+locally (under `~/.ubx/python-wasi/`) the first time you run
+`ubx resolve --from-code` against a `.py` entry -- not bundled into the
+`ubx` binary itself, so installing `ubx` doesn't carry that cost for
+users who never touch Python SDK programs. [`wasmtime`](https://wasmtime.dev)
+itself must be on `PATH` -- `ubx` refuses to evaluate unsandboxed rather
+than silently degrading if it's missing.
+
+Determinism has one real, Python-specific wrinkle: `set`/`frozenset`
+iteration order is randomized per process by default (a hash-flooding
+DoS mitigation, not a bug) -- `ubx` pins `PYTHONHASHSEED=0`
+unconditionally so this never surfaces as spurious nondeterminism. Plain
+`dict` iteration order is unaffected either way (insertion-order,
+guaranteed by the language itself since Python 3.7). Beyond that,
+Python has no monkey-patchable `Date.now()`-style ambient global to
+guard against either, the same simplification Go's own evaluator has --
+the program runs **twice**, and any other nondeterminism shows up as a
+byte difference between the two runs and fails hard.
+
 ## What a program can't do yet
 
-- **Only creates**, in both languages. A hermetic, sandboxed program has
-  no way to check whether an address already exists in the ledger, so
-  there's no way to author a `"modify"` from a program today -- use a
-  hand-written intent file or [`ubx scan`](/cli/scan)'s own
+- **Only creates**, in all three languages. A hermetic, sandboxed
+  program has no way to check whether an address already exists in the
+  ledger, so there's no way to author a `"modify"` from a program today
+  -- use a hand-written intent file or [`ubx scan`](/cli/scan)'s own
   drift-generated proposals for that.
-- **No published packages.** Neither `npm install @ubx/sdk` nor `go get
-  github.com/ubiquex/ubx-sdk-go` works yet -- TypeScript's runtime ships
-  bundled with `ubx` itself; Go's needs a local `replace` pointing at a
-  checkout of the runtime. A real release of either (mainly useful for
-  editor/IDE convenience) hasn't shipped.
-- **TypeScript and Go only, for now.** A Python evaluator is designed
-  for the same contract but not yet built.
+- **No published packages.** `npm install @ubx/sdk`, `go get
+  github.com/ubiquex/ubx-sdk-go`, and `pip install ubx_sdk` all don't
+  work yet -- every runtime ships bundled with `ubx` itself (Go's also
+  needs a local `replace` pointing at a checkout). A real release of any
+  of the three (mainly useful for editor/IDE convenience) hasn't
+  shipped.
 
 ## Related
 
-- [`ubx resolve --from-code`](/cli/resolve#authoring-in-typescript) -- the full command reference and worked examples (both languages)
-- [`ubx sdk gen`](/cli/sdk-gen) -- generating typed bindings, `--lang ts` or `--lang go`
+- [`ubx resolve --from-code`](/cli/resolve#authoring-in-typescript) -- the full command reference and worked examples (all three languages)
+- [`ubx sdk gen`](/cli/sdk-gen) -- generating typed bindings, `--lang ts`, `--lang go`, or `--lang py`
 - [`ubx propose --from-doc`](/cli/propose) -- the other typed-authoring medium, markdown transcribed by an LLM
 - [Creating real infrastructure](/guides/create-flow) -- a full walkthrough, live on real AWS

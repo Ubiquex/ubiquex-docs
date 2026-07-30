@@ -1,10 +1,10 @@
 ---
 title: "ubx sdk gen"
-description: "Generate typed TypeScript or Go bindings for every provider declared in [providers] -- local, never published"
+description: "Generate typed TypeScript, Go, or Python bindings for every provider declared in [providers] -- local, never published"
 ---
 
 ```text
-ubx sdk gen [--lang ts|go] [flags]
+ubx sdk gen [--lang ts|go|py] [flags]
 ```
 
 Reads `.ubx/config`'s own [`[providers]` table](/cli/config#multi-provider-stacks)
@@ -13,9 +13,9 @@ already read), acquires each declared provider's real binary at its pinned
 version, dumps its real schema (no `Configure`, no credentials needed -- a
 pure local gRPC call against the launched binary), and writes one file
 per provider source under `--out`, in the language named by `--lang`
-(`ts`, the default, or `go`): idiomatic bindings whose generated field
-map maps back to the provider's real wire attribute names at evaluation
-time.
+(`ts`, the default, `go`, or `py`): idiomatic bindings whose generated
+field map maps back to the provider's real wire attribute names at
+evaluation time.
 
 Always regenerates from the exact config-pinned version's real,
 freshly-acquired schema -- never a stale cache from a different version.
@@ -34,7 +34,7 @@ pinned version in `[providers]`.
 
 | Flag | Description |
 | --- | --- |
-| `--lang string` | target language for generated bindings: `ts` or `go` (default `ts`) |
+| `--lang string` | target language for generated bindings: `ts`, `go`, or `py` (default `ts`) |
 | `--out string` | directory to write generated bindings into, one file per declared provider source (default `sdk/generated`) |
 | `--timeout duration` | timeout for launching each provider and fetching its schema -- applied **per provider**, not once for the whole command (default `1m0s`) |
 | `-h`, `--help` | help for gen |
@@ -44,6 +44,10 @@ Every provider source generated into the same `--out` directory with
 directory, unlike TypeScript where each file is its own module
 regardless of directory. The package name is derived from `--out`'s own
 final path component (`sdk/generated` → `package generated`).
+
+With `--lang py`, filenames use underscores rather than TypeScript/Go's
+hyphenated convention (`hashicorp_aws.py`, not `hashicorp-aws.py`) --
+Python module names can't contain a hyphen.
 
 ## Example: TypeScript
 
@@ -127,20 +131,64 @@ of what it's addressing), so there's nothing for a generated `Attrs`
 type to describe. A field is only ever settable in `Config` if the real
 schema marks it `Required` or `Optional`, the same rule as TypeScript.
 
+## Example: Python
+
+```text
+$ ubx sdk gen --lang py --out sdk/generated
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp_aws.py
+```
+
+One file per source, named `<source-with-slashes-and-hyphens-replaced-by-underscores>.py`.
+Each resource type gets a `@dataclass` Config class (settable fields,
+every field typed `Any`) and a runtime binding value a program passes to
+`sdk.resource()`:
+
+```python sdk/generated/hashicorp_aws.py (excerpt)
+@dataclasses.dataclass
+class AwsDbInstanceConfig:
+    allocated_storage: Any = None
+    db_name: Any = None
+    engine: Any = None
+    instance_class: Any = None
+    username: Any = None
+    # ...every other real aws_db_instance settable attribute
+
+AwsDbInstance = sdk.ResourceBinding(
+    wire_type="aws_db_instance",
+    fields={
+        "allocated_storage": sdk.FieldSpec(wire_name="allocated_storage"),
+        "db_name": sdk.FieldSpec(wire_name="db_name"),
+        # ...
+    },
+)
+```
+
+No case conversion needed for field names at all here, unlike
+TypeScript's camelCase or Go's PascalCase -- every real provider wire
+name this project generates against is already a valid Python
+identifier verbatim (lowercase-with-underscores). The one real exception
+is a wire name that collides with a Python keyword (e.g. a field
+literally named `class`), closed with a trailing underscore (`class_`).
+No separate `Attrs` type, same reasoning as Go's.
+
 ## Offline after generation
 
 `ubx sdk gen` is the one step in the SDK authoring flow that touches the
-network (to acquire a provider binary, if it isn't already cached).
-[`ubx resolve --from-code`](/cli/resolve#authoring-in-typescript) never does -- it
-evaluates a program against whatever bindings already exist on disk,
-inside a hermetic sandbox with no network access at all (Go's own
-evaluator additionally sets `GOPROXY=off` at build time, so a program's
-`go.mod` can't reach for an unfetched dependency mid-evaluation either).
-This is deliberate: generation and evaluation are separate, explicit
-steps, the same way `ubx propose --from-doc` (network) and `ubx resolve`
-(offline) are already two separate commands.
+network (to acquire a provider binary, if it isn't already cached; the
+first `--lang py` evaluation also downloads and caches a CPython-WASI
+build, ~40MB, separately from this command -- see [the SDK Reference's
+own Python evaluator section](/sdk#the-python-evaluator)).
+[`ubx resolve --from-code`](/cli/resolve#authoring-in-typescript) never
+touches the network to evaluate -- it evaluates a program against
+whatever bindings already exist on disk, inside a hermetic sandbox with
+no network access at all (Go's own evaluator additionally sets
+`GOPROXY=off` at build time, so a program's `go.mod` can't reach for an
+unfetched dependency mid-evaluation either). This is deliberate:
+generation and evaluation are separate, explicit steps, the same way
+`ubx propose --from-doc` (network) and `ubx resolve` (offline) are
+already two separate commands.
 
-## Neither runtime package is published yet
+## No runtime package is published yet
 
 TypeScript's `@ubx/sdk` (`stack`, `resource`, `secret`, `cross`,
 `intent`, `Computed<T>`) is not published to npm -- it's embedded
@@ -157,8 +205,15 @@ pointing at a real checkout of the runtime, since `go build` has no
 bundled-runtime-injection mechanism the way the TS evaluator's import
 map does.
 
+Python's `ubx_sdk` (`sdk.stack`, `sdk.resource`, `sdk.secret`,
+`sdk.cross`, `sdk.intent`, `sdk.run`, `sdk.Computed`) is not published to
+PyPI yet either -- like TypeScript's, it's embedded inside the `ubx`
+binary and made available to the evaluator automatically; you don't need
+`pip install` anything for `ubx resolve --from-code` to work with a
+`.py` entry.
+
 ## Related
 
-- [`ubx resolve --from-code`](/cli/resolve#authoring-in-typescript) -- evaluating an SDK program that imports these bindings, both languages
+- [`ubx resolve --from-code`](/cli/resolve#authoring-in-typescript) -- evaluating an SDK program that imports these bindings, all three languages
 - [`.ubx/config`'s `[providers]` table](/cli/config#multi-provider-stacks) -- declaring which providers to generate bindings for
-- [SDK Reference](/sdk) -- the full runtime surface, TypeScript and Go
+- [SDK Reference](/sdk) -- the full runtime surface, TypeScript, Go, and Python

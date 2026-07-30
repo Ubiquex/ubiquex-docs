@@ -1,12 +1,13 @@
 ---
 title: "ubx resolve"
-description: "Resolve a typed ubx:intent/v1 file (or a TypeScript/Go SDK program, --from-code) into a draft change proposal -- creates, modifies, and destroys"
+description: "Resolve a typed ubx:intent/v1 file (or a TypeScript/Go/Python SDK program, --from-code) into a draft change proposal -- creates, modifies, and destroys"
 ---
 
 ```text
 ubx resolve <intent-file> (--provider <path> | --source <src> --provider-version <v>) [flags]
 ubx resolve --from-code <entry>.ts [flags]
 ubx resolve --from-code <entry>.go [flags]
+ubx resolve --from-code <entry>.py [flags]
 ```
 
 <Note>
@@ -17,9 +18,9 @@ ubx resolve --from-code <entry>.go [flags]
 </Note>
 
 Resolves a hand-written, machine-shaped [intent file](#the-intent-file) --
-or a [TypeScript](#authoring-in-typescript)/[Go](#authoring-in-go) SDK
-program, `--from-code`, dispatched by the entry file's own extension --
-into a draft `kind:"change"` [proposal](/concepts/proposal)
+or a [TypeScript](#authoring-in-typescript)/[Go](#authoring-in-go)/
+[Python](#authoring-in-python) SDK program, `--from-code`, dispatched by
+the entry file's own extension -- into a draft `kind:"change"` [proposal](/concepts/proposal)
 -- creates, modifies, and destroys. Intra-stack references are checked
 against the [ledger](/concepts/ledger)'s own dependency graph, with real
 cycle detection, and emitted in dependency order; cross-stack references
@@ -54,7 +55,7 @@ which attributes are `Computed` or `Sensitive`.
 
 | Flag | Description |
 | --- | --- |
-| `--from-code string` | evaluate a [TypeScript](#authoring-in-typescript) or [Go](#authoring-in-go) SDK program, dispatched by extension, instead of reading an intent file (mutually exclusive with the positional argument) |
+| `--from-code string` | evaluate a [TypeScript](#authoring-in-typescript), [Go](#authoring-in-go), or [Python](#authoring-in-python) SDK program, dispatched by extension, instead of reading an intent file (mutually exclusive with the positional argument) |
 | `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
 | `--provider string` | path to the provider binary (mutually exclusive with `--source`) |
 | `--source string` | provider source address, e.g. `hashicorp/aws` (mutually exclusive with `--provider`; requires `--provider-version`) |
@@ -389,6 +390,130 @@ missing, or if the current environment can't create its own namespaces
 (a real, found edge: this can happen inside an already-hardened
 container, e.g. some CI images -- see [the SDK
 guide](/sdk#the-go-evaluator) for the full account).
+
+## Authoring in Python
+
+`--from-code <entry>.py` evaluates a Python [SDK program](/sdk) --
+dispatched by extension, same as TypeScript/Go. Python has neither
+TypeScript's sandboxed-interpreter story nor Go's compiled-program
+cheat, so this evaluator's own mechanism is the most different of the
+three: [WASI](https://wasi.dev) -- [`wasmtime`](https://wasmtime.dev)
+running a real CPython build compiled to WebAssembly. Confirmed
+empirically to be the *strongest* isolation of any of the three
+evaluators: network and subprocess-spawning are absent as WASI
+capabilities entirely, not merely denied by a sandbox policy, and the
+identical mechanism runs on macOS and Linux alike (see [the SDK
+guide](/sdk#the-python-evaluator) for the full empirical account).
+
+First, generate typed bindings for Python (see [`ubx sdk gen
+--lang py`](/cli/sdk-gen)):
+
+```text
+$ ubx sdk gen --lang py --out sdk/generated
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp_aws.py
+```
+
+Then author a program against them:
+
+```python payments.py
+import ubx_sdk as sdk
+from sdk.generated.hashicorp_aws import AwsDbInstance, AwsDbInstanceConfig
+
+
+def describe():
+    sdk.intent(
+        "Provision a small Postgres RDS instance in the payments stack, "
+        "modeled on the staging database but downsized for low initial traffic."
+    )
+
+    sdk.resource(AwsDbInstance, "payments", AwsDbInstanceConfig(
+        engine="postgres",
+        instance_class="db.t3.small",
+        allocated_storage=20,
+        db_name="payments",
+        username="payments_admin",
+    ))
+
+
+if __name__ == "__main__":
+    sdk.run("payments", describe)
+```
+
+```text
+$ ubx resolve --from-code payments.py --ledger-dir . --out resolved.json
+resolved: payments: 1 create(s), 0 modify(ies), 0 destroy(s)
+```
+
+```json
+{
+  "intent": {
+    "summary": "Provision a small Postgres RDS instance in the payments stack, modeled on the staging database but downsized for low initial traffic.",
+    "sources": [
+      {
+        "kind": "document",
+        "ref": "payments.py",
+        "content_hash": "sha256:b01e09f8afd29792c6cf301a579834a24ded46941ead76f6887f7269f57af391"
+      }
+    ]
+  },
+  "delta": {
+    "creates": [
+      {
+        "config": {
+          "allocated_storage": 20,
+          "db_name": "payments",
+          "engine": "postgres",
+          "instance_class": "db.t3.small",
+          "username": "payments_admin"
+        },
+        "name": "payments",
+        "provider": {"source": "hashicorp/aws", "version": "6.54.0"},
+        "stack": "payments",
+        "type": "aws_db_instance"
+      }
+    ]
+  }
+}
+```
+
+The same real transcript shown above under [Authoring in
+TypeScript](#authoring-in-typescript) and [Authoring in
+Go](#authoring-in-go) -- `delta.creates[]` is byte-for-byte identical,
+canonicalized, run for real against the real `hashicorp/aws@6.54.0`
+schema. Only `intent.sources` differs, and only because it names a
+different real file -- `payments.py` this time -- with its own real
+content hash.
+
+### `Computed`: wiring one resource's output into another
+
+A `sdk.resource()` call returns a `sdk.Computed` handle -- a reference,
+never a real value. Unlike Go (which needs an explicit `.Field(name)`
+method call, having no Proxy), Python's own `__getattr__` hook lets
+attribute access work exactly the way it reads:
+
+```python
+primary = sdk.resource(AwsDbInstance, "payments", AwsDbInstanceConfig(...))
+
+sdk.resource(AwsDbInstance, "payments-replica", AwsDbInstanceConfig(
+    instance_class="db.t3.small",
+    replicate_source_db=primary.id,
+))
+```
+
+produces the same `$ref` marker TypeScript's/Go's own constructs
+produce. Trying to use a `Computed` as a real value -- `str()`, `bool()`,
+arithmetic, iteration -- raises `ComputedCoercionError` immediately,
+naming the address and the attempted operation, rather than silently
+producing a wrong value.
+
+### What Python's `--from-code` can't do (yet)
+
+The same limits as TypeScript/Go: creates only, no `"modify"`.
+Evaluation requires [`wasmtime`](https://wasmtime.dev) on `PATH` -- `ubx`
+refuses to evaluate unsandboxed rather than silently degrading if it's
+missing. The first evaluation against a `.py` entry also downloads and
+caches a real CPython-WASI build (~40MB, under `~/.ubx/python-wasi/`) --
+a one-time cost, not repeated on later runs.
 
 ## Modifying an already-ledgered resource
 
