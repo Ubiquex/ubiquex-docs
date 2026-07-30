@@ -24,6 +24,13 @@ On drift, `ubx scan` also attempts [CloudTrail attribution](/concepts/attributio
 by default, and can optionally surface the drift as a GitHub issue or pull
 request instead of just printing the proposal.
 
+Every generated proposal — `new`/`drifted`, `adopt`/`revert`/`both` — is
+saved to the same hash-addressed plan store [`ubx plan`](/cli/plan) writes
+to (`.ubx/plans/<hash>.json`), reported as a card naming its own real,
+ship-able hash. `ubx ship <hash>` (or `ubx accept <hash>`, for a
+`drift_adopt`/`adoption` proposal, which has nothing to apply) picks it up
+directly — no manual file handling required.
+
 `--all --tfstate <path>` is a different mode entirely: instead of one
 resource, it walks every resource in a Terraform state file and generates
 an adoption proposal for each — see [Bulk onboarding](#bulk-onboarding-all)
@@ -49,7 +56,7 @@ discovery](#cloud-side-discovery---discover) below.
 | `--provider-version string` | explicit provider version to acquire, e.g. `6.54.0` (required with `--source`; no "latest" resolution) |
 | `--provider-config string` | JSON object configuring the provider, e.g. `{"region":"us-east-1"}` (default `{}`) |
 | `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
-| `--out string` | write the generated proposal here instead of stdout (single-resource mode only) |
+| `--out string` | additionally write the full generated proposal here (single-resource mode only; always saved under `.ubx/plans/` regardless) |
 | `--timeout duration` | overall timeout for the scan, or the whole `--all` walk (default `1m0s`) |
 | `--no-attribution` | skip audit-log attribution: drift attribution for drift proposals, or genesis attribution (who created it) for `--discover`'s own adoption proposals |
 | `--surface-as string` | on drift, open a GitHub `"issue"` or `"pr"` with a receipt instead of just printing the proposal (requires `--github-repo`; not available with `--propose revert`) |
@@ -84,7 +91,11 @@ scan is just:
 
 ```text
 $ ubx scan --type fake_widget --name api-cache --lookup '{"name":"api-cache","tags":{"env":"prod"}}' --ledger-dir .
-new: payments.fake_widget.api-cache (5c04c1c9c937a742ad32c319ffe75c550c344ed51bbee6d95dd14a12186daa4d) -- generated a "adoption" proposal
+New resource found  payments.fake_widget.api-cache
+
+  adoption      57bdc6c31318     +0 create(s) ~0 modify(ies) -0 destroy(s)
+
+  saved to plan store            next: ubx ship 57bdc6c31318
 ```
 
 An explicit `--stack`/`--provider` still always overrides config — see
@@ -94,45 +105,58 @@ An explicit `--stack`/`--provider` still always overrides config — see
 
 ```text
 $ ubx scan --provider ./terraform-provider-aws \
-    --stack payments --type fake_widget --name api-cache \
-    --lookup '{"name":"api-cache","tags":{"env":"prod"}}' \
+    --stack payments --type fake_widget --name api-cache2 \
+    --lookup '{"name":"api-cache2","tags":{"env":"prod"}}' \
     --ledger-dir . --out adopt.json --no-attribution
-new: payments.fake_widget.api-cache (5c04c1c9c937a742ad32c319ffe75c550c344ed51bbee6d95dd14a12186daa4d) -- generated a "adoption" proposal
+New resource found  payments.fake_widget.api-cache2
+
+  adoption      e91bae0a5d36     +0 create(s) ~0 modify(ies) -0 destroy(s)
+
+  saved to plan store            next: ubx ship e91bae0a5d36
 ```
 
 ### A resource that has drifted from the ledger
 
+`--out` (or plain `--json`) still writes the full proposal; the plan store
+save happens either way:
+
 ```text
 $ ubx scan --provider ./terraform-provider-aws \
-    --stack payments --type fake_widget --name api-cache \
-    --lookup '{"name":"api-cache","tags":{"env":"staging"}}' \
-    --ledger-dir . --no-attribution
-drifted: payments.fake_widget.api-cache (41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589) -- generated a "drift_adopt" proposal
+    --stack payments --type fake_widget --name api-cache2 \
+    --lookup '{"name":"api-cache2","tags":{"env":"staging"}}' \
+    --ledger-dir . --no-attribution --out drift.json
+Drift found  payments.fake_widget.api-cache2
+
+  drift_adopt   4d0988674459     +0 create(s) ~0 modify(ies) -0 destroy(s)
+
+  saved to plan store            next: ubx ship 4d0988674459
+
+$ cat drift.json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "stack": "payments",
-  "parent": "16223f8b731dcc40bafb9b0ad8337e9153c82257087eba8b2a17b20503171ca1",
+  "parent": "e91bae0a5d3672b2c48fa33cddfe5bc9350650a38064f5c4cad03c3bf6f3811d",
   "kind": "drift_adopt",
   "intent": {
-    "summary": "record drift on payments.fake_widget.api-cache observed outside the ledger"
+    "summary": "record drift on payments.fake_widget.api-cache2 observed outside the ledger"
   },
   "delta": {
     "modifies": [
       {
-        "target": {"stack": "payments", "type": "fake_widget", "name": "api-cache"},
+        "target": {"stack": "payments", "type": "fake_widget", "name": "api-cache2"},
         "before": {"tags.env": "prod"},
         "after": {"tags.env": "staging"}
       }
     ]
   },
   "resolution": {
-    "resolved_at": "2026-07-11T16:07:50Z",
+    "resolved_at": "2026-07-30T20:46:59Z",
     "inputs": [
       {
         "kind": "live_state",
-        "resource": "payments.fake_widget.api-cache",
-        "observed_hash": "41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589",
-        "lookup": {"name": "api-cache", "tags": {"env": "staging"}}
+        "resource": "payments.fake_widget.api-cache2",
+        "observed_hash": "42fc1d1723e1c9afd5433ca074c6d91057de2628ed208a3ff1a8e68c9a38f443",
+        "lookup": {"name": "api-cache2", "tags": {"env": "staging"}}
       }
     ]
   },
@@ -151,19 +175,21 @@ value:
 
 ```text
 $ ubx scan --provider ./fakeprovider \
-    --stack payments --type fake_db_instance --name payments-db \
-    --lookup '{"id":"payments-db"}' \
-    --ledger-dir . --out adopt.json
-new: payments.fake_db_instance.payments-db (908322392cb434395924801e90f8b2ffe840578c8fcc68a479ecd00982660df2) -- generated a "adoption" proposal
+    --stack payments --type fake_secret_resource --name payments-secret \
+    --lookup '{"id":"payments-secret"}' \
+    --ledger-dir . --out secret-adopt.json
+New resource found  payments.fake_secret_resource.payments-secret
+
+  adoption      099d5f8bd0bd     +0 create(s) ~0 modify(ies) -0 destroy(s)
+
+  saved to plan store            next: ubx ship 099d5f8bd0bd
 ```
 
 ```json
 {
-  "state": {
-    "id": "payments-db",
-    "master_password": { "$redacted": { "sha256": "ec692fb3a62ce3280ae79fc116ddac0f791213afd2a9111d395e46637321e3f3" } },
-    "name": null
-  }
+  "api_key": { "$redacted": { "sha256": "9673efcd1a08ce55a530107616da51679e8adeb59f77440660970fa1042eca18" } },
+  "id": "payments-secret",
+  "name": null
 }
 ```
 
@@ -178,10 +204,10 @@ including the per-ledger salt and what losing it means.
 
 ```text
 $ ubx scan --provider ./terraform-provider-aws \
-    --stack payments --type fake_widget --name api-cache \
-    --lookup '{"name":"api-cache","tags":{"env":"staging"}}' \
+    --stack payments --type fake_widget --name api-cache2 \
+    --lookup '{"name":"api-cache2","tags":{"env":"staging"}}' \
     --ledger-dir . --no-attribution
-no drift: payments.fake_widget.api-cache matches the ledger (observed_hash 41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589)
+no drift: payments.fake_widget.api-cache2 matches the ledger (observed_hash 42fc1d1723e1c9afd5433ca074c6d91057de2628ed208a3ff1a8e68c9a38f443)
 ```
 
 ### Generating a revert proposal instead of (or alongside) adopt
@@ -189,14 +215,19 @@ no drift: payments.fake_widget.api-cache matches the ledger (observed_hash 41a2b
 `--propose revert` generates a `drift_revert` proposal instead of the default
 `drift_adopt` — the corrective direction: `before` is the observed (drifted)
 value, `after` is the value being restored to. `--propose both` generates
-both, as two alternative resolutions to the same detected drift:
+both, as two alternative resolutions to the same detected drift (and prints
+two cards, with both hashes named on the "next:" line):
 
 ```text
 $ ubx scan --provider ./terraform-provider-aws \
-    --stack payments --type fake_widget --name api-cache \
-    --lookup '{"name":"api-cache","tags":{"env":"staging"}}' \
+    --stack payments --type fake_widget --name api-cache2 \
+    --lookup '{"name":"api-cache2","tags":{"env":"prod"}}' \
     --ledger-dir . --no-attribution --propose revert
-drifted: payments.fake_widget.api-cache (41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589) -- generated a "drift_revert" proposal
+Drift found  payments.fake_widget.api-cache2
+
+  drift_revert  fb29aba9bf9e     +0 create(s) ~1 modify(ies) -0 destroy(s)
+
+  saved to plan store            next: ubx ship fb29aba9bf9e
 ```
 
 See [Drift](/concepts/drift#two-resolutions-to-a-drift-adopt-or-revert) for
@@ -207,12 +238,16 @@ the full model, and [`ubx revert-plan`](/cli/revert-plan) for what an accepted
 
 ```text
 $ ubx scan --provider ./terraform-provider-aws \
-    --stack payments --type fake_widget --name widget-surface \
-    --lookup '{"name":"widget-surface","tags":{"env":"staging"}}' \
+    --stack payments --type fake_widget --name widget-surface-issue \
+    --lookup '{"name":"widget-surface-issue","tags":{"env":"staging"}}' \
     --ledger-dir . --no-attribution \
     --surface-as issue --github-repo acme/infra --tf-dir ./tf
 opened issue https://github.com/acme/infra/issues/5
-drifted: payments.fake_widget.widget-surface (73628692262376ab6636f0dd549624a103d7378b070654dd3c6812edcd3459ed) -- generated a "drift_adopt" proposal
+Drift found  payments.fake_widget.widget-surface-issue
+
+  drift_adopt   babf33420d21     +0 create(s) ~0 modify(ies) -0 destroy(s)
+
+  saved to plan store            next: ubx ship babf33420d21
 ```
 
 The issue body carries the full receipt: intent, kind, stack, blast radius,
@@ -224,12 +259,16 @@ issue-write permission on the token, since nothing is committed.
 
 ```text
 $ ubx scan --provider ./terraform-provider-aws \
-    --stack payments --type fake_widget --name widget-pr \
-    --lookup '{"name":"widget-pr","tags":{"env":"staging"}}' \
+    --stack payments --type fake_widget --name widget-surface-pr \
+    --lookup '{"name":"widget-surface-pr","tags":{"env":"staging"}}' \
     --ledger-dir . --no-attribution \
     --surface-as pr --github-repo acme/infra --tf-dir ./tf
 opened pull request https://github.com/acme/infra/pull/11
-drifted: payments.fake_widget.widget-pr (5db59844c8f38c80151103deae8a9ce43291b69783169079fadc8f49d7135850) -- generated a "drift_adopt" proposal
+Drift found  payments.fake_widget.widget-surface-pr
+
+  drift_adopt   c7cc4be969eb     +0 create(s) ~0 modify(ies) -0 destroy(s)
+
+  saved to plan store            next: ubx ship c7cc4be969eb
 ```
 
 `pr` mode commits the proposal file to a new `ubx-drift/<stack>-<type>-<name>`
@@ -262,7 +301,11 @@ $ ubx scan --source acme/widget --provider-version 6.54.0 \
     --stack payments --type fake_widget --name registry-widget \
     --lookup '{"name":"registry-widget","tags":{"env":"prod"}}' \
     --ledger-dir . --out adopt.json
-new: payments.fake_widget.registry-widget (d4691981cdd944e56500f3c323e2f57545fdb84a1991ab786d0d506ea3e50b70) -- generated a "adoption" proposal
+New resource found  payments.fake_widget.registry-widget
+
+  adoption      b55e387893ec     +0 create(s) ~0 modify(ies) -0 destroy(s)
+
+  saved to plan store            next: ubx ship b55e387893ec
 ```
 
 Resolved this way, the generated proposal's `resolution.inputs` entry also
@@ -279,7 +322,7 @@ nothing was verified to attribute a checksum to:
         "resource": "payments.fake_widget.registry-widget",
         "observed_hash": "d4691981cdd944e56500f3c323e2f57545fdb84a1991ab786d0d506ea3e50b70",
         "lookup": {"name": "registry-widget", "tags": {"env": "prod"}},
-        "provider_checksum": "sha256:dbf9e315000f0bc2cb02eed73d41790a973933addff65b7a1b0faca0b10d8179"
+        "provider_checksum": "sha256:c607bde9226150c02b77fa1f6d63df9e1e8a978409d4fa010bdd1279e38f23fb"
       }
     ]
   }
@@ -315,8 +358,23 @@ ubx scan --source hashicorp/kubernetes --provider-version 2.35.1 \
 ```
 
 ```text
-new: k8stest.kubernetes_secret_v1.app-secret (f29bcb4abea8c5c82b1a6516fd37586982a680de564dab05fcc33bc3176525f0) -- generated a "adoption" proposal
+New resource found  k8stest.kubernetes_secret_v1.app-secret
+
+  adoption      <shorthash>     +0 create(s) ~0 modify(ies) -0 destroy(s)
+
+  saved to plan store            next: ubx ship <shorthash>
 ```
+
+<Note>
+  The header/card shape above matches every other example on this page
+  (and was verified against the real fakeprovider-backed transcripts
+  earlier) — `<shorthash>` stands in for a real hash here specifically
+  because this section's own transcript needs a real local `kind` cluster
+  to re-capture faithfully, which wasn't available when this page's other
+  examples were re-verified this session (docs-debt, tracked in
+  `ubiquex`'s own `STATE.md`). Every other transcript on this page is real,
+  unedited output.
+</Note>
 
 ```json
 {

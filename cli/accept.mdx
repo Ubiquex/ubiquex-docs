@@ -48,6 +48,41 @@ $ ubx accept adopt.json --ledger-dir .
 accepted 16223f8b731dcc40bafb9b0ad8337e9153c82257087eba8b2a17b20503171ca1 (stack payments)
 ```
 
+### Accepting by hash, from the plan store
+
+`[proposal.json]` isn't only ever a file path — a hash printed by [`ubx
+plan`](/cli/plan), [`ubx scan --propose`](/cli/scan), or [`ubx
+terminate`](/cli/terminate) works directly, full or short-form, no manual
+file handling required:
+
+```text
+$ ubx plan intent.json --provider ./fakeprovider --ledger-dir .
+payments: widget via ubx plan
+delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
+blast radius: +1 ~0 -0
+cost delta: $0/mo
+
+plan: .ubx/plans/858341742bc160b89e7abecfbe8c2565ad1934db7162d9fab869bdd3addc4e57.json
+ubx-proposal: 858341742bc160b89e7abecfbe8c2565ad1934db7162d9fab869bdd3addc4e57
+
+$ ubx accept 858341742bc1 --ledger-dir .
+accepted 858341742bc160b89e7abecfbe8c2565ad1934db7162d9fab869bdd3addc4e57 (stack payments)
+```
+
+A file path is always tried first (unchanged for a hand-authored draft); the
+plan store (`.ubx/plans/`) is only checked as a fallback, by prefix. Given
+something that's neither, the error names both interpretations:
+
+```text
+$ ubx accept not-a-real-file-or-hash --ledger-dir .
+no such file "not-a-real-file-or-hash", and no matching plan in .ubx/plans: not-a-real-file-or-hash: no matching plan in the plan store -- pass a path to a hand-authored proposal file, or a hash printed by `ubx plan`/`ubx scan --propose`/`ubx terminate`
+```
+
+Most workflows reach `ubx ship <hash>` directly instead (its own inline
+local-tier accept fallback resolves the same way) — this exists for
+accepting without also applying in the same step, e.g. an `adoption`/
+`drift_adopt` proposal, which has nothing to apply.
+
 ### Reverifying freshness before accepting
 
 A proposal captures live state at the moment `ubx scan` ran. If real time

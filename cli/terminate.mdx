@@ -1,0 +1,158 @@
+---
+title: "ubx terminate"
+description: "Author a destroy proposal directly from the ledger's own knowledge of one or more addresses -- no AI, no authoring document"
+---
+
+```text
+ubx terminate <address>... [flags]
+```
+
+`ubx terminate` is UBI-49's own answer to a gap the terraform-shaped
+[plan/ship flow](/guides/plan-ship-flow) otherwise leaves open: decommissioning
+something the ledger already tracks costs an AI call through the
+intent-provider prose path, or a hand-written `destroys[]` intent file, for
+something the ledger already knows everything about. `ubx terminate` skips
+both — the address **is** the spec.
+
+Each `<address>` is self-contained (`<stack>.<type>.<name>`, the same
+convention [`ubx blame`](/cli/blame)/[`ubx why`](/cli/why) already use), so
+multiple addresses can be terminated in one command as long as they all
+belong to the same stack. Under the hood this builds a destroys-only intent
+and resolves it through the identical, unmodified `core/resolver.Resolve`
+every other entry point already uses — the exact same orphan-protection,
+duplicate/missing-target, and no-recorded-lookup checks a hand-written
+`destroys[]` intent file already gets.
+
+Like [`ubx plan`](/cli/plan), this command **never touches a ledger** —
+nothing is accepted or applied here. The full receipt renders for review (the
+destroyed resource's own last-known state, per the full-state-at-review
+requirement drift review already follows), and the resolved-but-unaccepted
+proposal is saved to `.ubx/plans/<hash>.json`, ready for `ubx ship <hash>`.
+
+## Example
+
+Adopt a resource the ledger doesn't track yet, then terminate it:
+
+```text
+$ ubx scan --provider ./fakeprovider --stack payments --type fake_widget --name old-widget \
+    --lookup '{"id":"old-widget"}' --ledger-dir . --out adopt.json
+New resource found  payments.fake_widget.old-widget
+
+  adoption      b7b941ab8789     +0 create(s) ~0 modify(ies) -0 destroy(s)
+
+  saved to plan store            next: ubx ship b7b941ab8789
+
+$ ubx accept adopt.json --ledger-dir .
+accepted b7b941ab8789ea7130a496549d7e084aa7af648d1e68941e64f85e1dc394e6fc (stack payments)
+
+$ ubx terminate payments.fake_widget.old-widget --provider ./fakeprovider --ledger-dir .
+payments: terminate payments.fake_widget.old-widget
+delta: +0 create(s), ~0 modify(ies), -1 destroy(s)
+blast radius: +0 ~0 -1
+cost delta: $0/mo
+destroy: payments.fake_widget.old-widget
+  id: "old-widget"
+  name: null
+  tags: {}
+
+plan: .ubx/plans/75d819771ffe54b5a81f2f51d78ba76d377805e26628dacaeafcf546b622f385.json
+ubx-proposal: 75d819771ffe54b5a81f2f51d78ba76d377805e26628dacaeafcf546b622f385
+next: ubx ship 75d819771ffe
+```
+
+`ubx ship` still enforces the standard double consent for anything with
+`blast_radius.destroys > 0` — a bare `ubx ship <hash>` refuses:
+
+```text
+$ ubx ship 75d819771ffe --provider ./fakeprovider --ledger-dir .
+ship: this proposal has blast_radius.destroys > 0 -- pass --confirm-destroys to accept it
+
+$ ubx ship 75d819771ffe --provider ./fakeprovider --ledger-dir . --confirm-destroys
+accepted 75d819771ffe54b5a81f2f51d78ba76d377805e26628dacaeafcf546b622f385 (stack payments) via local plan
+applied: payments.fake_widget.old-widget
+1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+`ubx why` renders the resulting tombstone the same way it renders any other
+destroy:
+
+```text
+$ ubx why 75d819771ffe54b5a81f2f51d78ba76d377805e26628dacaeafcf546b622f385 --ledger-dir .
+proposal 75d819771ffe54b5a81f2f51d78ba76d377805e26628dacaeafcf546b622f385 (change)
+stack:  payments
+status: accepted
+intent: terminate payments.fake_widget.old-widget
+accepted by [roozbeh] via local at 2026-07-30T20:42:46Z
+blast radius: +0 ~0 -1
+destroy: payments.fake_widget.old-widget
+  id: "old-widget"
+  name: null
+  tags: {}
+apply history:
+  attempt 1: outcome=applied
+    payments.fake_widget.old-widget:
+      pending at 2026-07-30T20:42:46Z
+      in_flight at 2026-07-30T20:42:46Z
+      unknown_post_timeout at 2026-07-30T20:42:46Z -- provider reported a successful destroy -- verifying via a post-destroy read-back before recording it as destroyed
+      applied at 2026-07-30T20:42:46Z -- confirmed by reconciliation (destroyed)
+      reconcile: present_matches at 2026-07-30T20:42:46Z
+      reconcile: destroyed at 2026-07-30T20:42:46Z
+```
+
+## Orphan protection
+
+Terminating a resource another resource still depends on is refused, exactly
+like a hand-written `destroys[]` intent file would be:
+
+```text
+$ ubx terminate payments.fake_widget.primary --provider ./fakeprovider --ledger-dir .
+terminate: resolve: destroy target is still referenced by a resource this proposal does not also destroy or update: payments.fake_widget.primary is still referenced by payments.fake_widget.mirror, which this proposal does not also destroy or update
+```
+
+Terminate both together (or destroy the dependent first) once you've decided
+what should happen to the dependent.
+
+## Missing target
+
+An address the ledger has never recorded gets a clean, actionable error, not
+a partial or misleading receipt:
+
+```text
+$ ubx terminate payments.fake_widget.never-existed --provider ./fakeprovider --ledger-dir .
+terminate: resolve: destroy names an address the ledger has never recorded: payments.fake_widget.never-existed
+```
+
+## `ubx destroy` is not an alias
+
+Terraform muscle memory reaches for `destroy` first. `ubx destroy` exists so
+that muscle memory finds *something* — but it's deliberately not a silent
+alias for `ubx terminate`. Every other consent-relevant surface in this
+project is explicit rather than implicit (double consent, typed
+confirmations, the plan/ship split itself), so `ubx destroy` always teaches
+toward the real verb instead:
+
+```text
+$ ubx destroy payments.fake_widget.old-widget
+destroy: there is no "ubx destroy" -- use "ubx terminate" (same destroys[] machinery underneath, ledger-derived, no authoring document needed)
+```
+
+## Flags
+
+| Flag | Description |
+| --- | --- |
+| `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` — also where the plan is saved, at `.ubx/plans/<hash>.json` (default `.`) |
+| `--provider string` | path to the provider binary (mutually exclusive with `--source`) |
+| `--source string` | provider source address, e.g. `hashicorp/aws` (mutually exclusive with `--provider`; requires `--provider-version`; unused if config declares `[providers]`) |
+| `--provider-version string` | explicit provider version to acquire (required with `--source`) |
+| `--out string` | additionally write the full resolved proposal here (the plan is always saved under `.ubx/plans/` regardless) |
+| `--timeout duration` | timeout for provider acquisition/schema fetch (default `1m0s`) |
+| `--known-dependent stringArray` | `ledger_dir` of a neighbor stack to check for cross-stack orphan references before destroying (repeatable) |
+| `-h`, `--help` | help for terminate |
+
+## Related
+
+- [`ubx ship`](/cli/ship) — accepting (`--confirm-destroys`) and applying the plan `ubx terminate` saves
+- [`ubx plan`](/cli/plan) — the same resolve pipeline `ubx terminate` reuses, for every other kind of change
+- [`ubx why`](/cli/why) — rendering the resulting destroy's own apply history
+- [`ubx scan`](/cli/scan) — generating `drift_adopt`/`drift_revert` proposals for resources that drifted rather than ones you want gone
+- [Proposal](/concepts/proposal) — the `destroys[]` shape this command produces
