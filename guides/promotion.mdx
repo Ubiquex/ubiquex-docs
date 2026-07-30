@@ -1,0 +1,250 @@
+---
+title: "Promoting across environments"
+description: "staging -> prod: re-resolving the same intent against a different environment, with promotion evidence"
+---
+
+An environment (`staging`, `prod`) is **not** a concept `ubx` has any
+special schema for — it's a plain directory with its own `.ubx/config`
+and its own ledger, a deeper base-store prefix at most. "Promote to
+prod" means: take an already-accepted proposal's own authoring document,
+resolve it **again**, against prod's own providers/ledger/live state,
+and record where it came from. This guide walks the whole thing for
+real, against the hermetic `fakeprovider` binary — no real cloud, no
+live LLM call (the worked example uses the `.d2` diagram medium, which
+needs neither).
+
+## Why re-resolution, not copying
+
+A copied proposal would be stale in the target the moment it's written —
+prod's own VPC, its own existing resources, its own provider pins are
+never staging's. So `ubx promote` never copies a proposal's own
+`delta`. It re-reads the **source document** (the `.md`/`.d2` file the
+source proposal's own `intent.sources` names) and resolves it fresh,
+through the exact same [`core/resolver.Resolve`](/cli/resolve) every
+other entry point uses — same invariants, same orphan/pin checks. Values
+can legitimately differ: prod might size the same resource bigger, pin a
+different provider version, or already have a dependency staging
+doesn't. `ubx promote` never validates the two for equality — a reviewer
+sees both proposals and signs the difference knowingly.
+
+## Setting up two environments
+
+Two plain directories, each its own `.ubx/config`:
+
+```toml staging/.ubx/config
+[providers]
+"ubiquex/fake" = "1.0.0"
+```
+
+```toml prod/.ubx/config
+[providers]
+"ubiquex/fake" = "1.0.0"
+```
+
+<Note>
+  This guide uses `UBX_PROVIDER_MIRROR` (a local directory holding the
+  hermetic `fakeprovider` binary, keyed the same way `ubx`'s own real
+  provider cache is) so the whole walkthrough runs with no network
+  access at all — the same mechanism [`ubx sdk gen`'s own "Offline after
+  generation" section](/cli/sdk-gen#offline-after-generation) and
+  `ubiquex`'s own `CLAUDE.md` house rule ("never run `ubx ship` against a
+  real cloud provider... use the hermetic `fakeprovider` binary via
+  `UBX_PROVIDER_MIRROR` instead") both already establish. A real
+  `[providers]` table names a real registry source
+  (`"hashicorp/aws" = "6.54.0"`, say) exactly the same way — nothing
+  about `ubx promote` itself is fakeprovider-specific.
+</Note>
+
+## Authoring once, in staging
+
+A `.d2` diagram (the [diagram medium](/guides/diagram-medium)) — no LLM
+round trip needed, so this whole guide runs hermetically:
+
+```d2 staging/payments.d2
+classes: {
+  fake_widget
+}
+r0: "payments-db" {
+  class: fake_widget
+}
+```
+
+Resolved and shipped in `staging/`:
+
+```text
+$ cd staging
+$ ubx plan --from-diagram payments.d2 --stack payments --ledger-dir .
+payments: 1 resource(s) authored via payments.d2 for stack "payments"
+delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
+blast radius: +1 ~0 -0
+cost delta: $0/mo
+
+plan: .ubx/plans/2fd3355f7909b21b5774f581a596bd3836ac295d57268de5d3b865ef31155592.json
+ubx-proposal: 2fd3355f7909b21b5774f581a596bd3836ac295d57268de5d3b865ef31155592
+
+$ ubx ship 2fd3355f7909b21b5774f581a596bd3836ac295d57268de5d3b865ef31155592 --ledger-dir .
+accepted 2fd3355f7909b21b5774f581a596bd3836ac295d57268de5d3b865ef31155592 (stack payments) via local plan
+applied: payments.fake_widget.payments-db
+1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+`payments-db` now genuinely exists (against the hermetic fake provider)
+in `staging/`, with an accepted, signed proposal behind it.
+
+## Promoting to prod
+
+From the **same working directory** the `ubx plan --from-diagram` call
+above ran from (see [why this matters](#the-working-directory-matters),
+below):
+
+```text
+$ ubx promote 2fd3355f7909b21b5774f581a596bd3836ac295d57268de5d3b865ef31155592 \
+    --ledger-dir . --to ../prod
+promoted 2fd3355f7909… -> payments (../prod)
+payments: 1 resource(s) authored via payments.d2 for stack "payments"
+delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
+blast radius: +1 ~0 -0
+cost delta: $0/mo
+
+plan: ../prod/.ubx/plans/5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c.json
+ubx-proposal: 5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c
+```
+
+What just happened, precisely:
+
+1. `ubx promote` read staging's own proposal
+   `2fd3355f7909…`'s `intent.sources`, found its `document` entry
+   (`payments.d2`), and re-read that **same file** from disk.
+2. It parsed that diagram again — `diagram.Parse`, the identical,
+   deterministic pipeline `ubx propose --from-diagram`/`ubx plan
+   --from-diagram` already use — against `prod/`'s **own** declared
+   `[providers]` table, not staging's.
+3. It resolved the resulting intent through `core/resolver.Resolve`
+   against `prod/`'s **own** ledger (empty, so far) — a genuinely fresh
+   resolve, not a copy of staging's own `delta`.
+4. It appended one additive `intent.sources` entry:
+   `{"kind":"promotion","ref":"2fd3355f7909…","base":"."}` — the
+   provenance claim. `base` here is `"."`, staging's own `--ledger-dir`
+   value (the default git-local store has no separate "stack base"
+   concept of its own; a remote `LedgerStore` would show its real
+   address instead).
+5. It saved the result as an ordinary plan file under `prod/`'s own
+   `.ubx/plans/` — `ubx promote` never touches a ledger itself, exactly
+   like `ubx resolve`/`ubx plan`.
+
+## Accepting the promotion, and reading the trail back
+
+The saved plan ships into `prod/` exactly like any other `ubx plan`
+output — nothing promotion-specific about this step:
+
+```text
+$ ubx ship 5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c --ledger-dir ../prod
+accepted 5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c (stack payments) via local plan
+applied: payments.fake_widget.payments-db
+1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+```
+
+`ubx why` on the resulting id renders the full trail — the fresh
+`document` source (prod's own re-resolution) **and** the additive
+`promotion` source, side by side:
+
+```text
+$ ubx why 5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c --ledger-dir ../prod
+proposal 5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c (change)
+stack:  payments
+status: accepted
+intent: 1 resource(s) authored via payments.d2 for stack "payments"
+  source: document payments.d2 (content_hash=sha256:c111bf28f4d8d3d14628a8a9e6a557553b0f6144050d5baf448d057ddad5eca9)
+  source: promoted from ./2fd3355f7909…
+accepted by [roozbeh] via local at 2026-07-30T16:44:38Z
+blast radius: +1 ~0 -0
+apply history:
+  attempt 1: outcome=applied
+    payments.fake_widget.payments-db:
+      pending at 2026-07-30T16:44:38Z
+      in_flight at 2026-07-30T16:44:38Z
+      applied at 2026-07-30T16:44:38Z
+```
+
+`source: promoted from ./2fd3355f7909…` is the literal rendering
+[`docs/architecture.md`'s own "Environments & promotion"
+design](https://github.com/Ubiquex/ubiquex/blob/main/docs/architecture.md)
+(in the `ubiquex` repo) names: "promoted from staging/8f3c…". A reviewer
+looking at this proposal alone can already tell it was modeled on a real,
+accepted staging proposal, and can go read that proposal directly (`ubx
+why 2fd3355f7909… --ledger-dir staging`) for the full comparison.
+
+## Evidence, not a pin
+
+Nothing about prod's own proposal is validated against staging's. If
+staging's own chain moves on afterward — a new proposal, a drift
+correction, anything — this promoted proposal in prod is **completely
+unaffected**. `promotion` records a historical fact ("this was modeled
+on that"), not a live reference that could go stale. Compare this to a
+`$cross` reference between two stacks in the *same* environment
+([Multi-provider stacks](/guides/multi-provider-flow)), which genuinely
+does activate staleness detection against the neighbor's advancing
+head — promotion is deliberately not that.
+
+## Re-promoting a promoted proposal
+
+A promoted proposal can itself be promoted again — say, `qa` sits
+between `staging` and `prod`. Each hop appends exactly **one** new
+`promotion` entry naming its own immediate source, never the whole
+history flattened into one proposal:
+
+```text
+$ ubx promote <qa-proposal-id> --ledger-dir qa --to prod
+```
+
+prod's own new proposal names `qa`'s proposal id, not staging's — the
+full chain (`prod` ← `qa` ← `staging`) is reconstructed by following each
+proposal's own `ref` back through its own ledger, one hop at a time, the
+same way a git commit's parent chain is walked rather than embedded
+inline in every descendant.
+
+## The working directory matters
+
+`ubx promote` re-reads the source proposal's own `document` source's
+`ref` from disk — the exact path string `ubx propose --from-doc`/
+`--from-diagram` (or `ubx plan`'s own equivalent) originally stamped,
+un-normalized. Run `ubx promote` from a different directory than the
+original authoring command ran from, and it fails cleanly rather than
+guessing:
+
+```text
+$ cd /
+$ ubx promote 2fd3355f7909b21b5774f581a596bd3836ac295d57268de5d3b865ef31155592 --ledger-dir staging --to prod
+promote: re-resolve payments.d2: open payments.d2: no such file or directory
+```
+
+Keep authoring documents' own paths and the working directory you run
+both `ubx propose`/`ubx plan` **and** `ubx promote` from consistent — the
+same discipline any relative-path-based tool already asks for.
+
+## What's refused, by name
+
+- **A source that's only ever been `ubx plan`ned, never accepted.**
+  Promotion evidence claims the source went through the normal accept
+  ceremony; `ubx promote` refuses to build on one that hasn't.
+- **An SDK-authored (`ubx resolve --from-code`) source.** Its own
+  provenance `ref` is stamped as just the entry file's basename,
+  discarding the directory needed to relocate it.
+- **A `ubx chat`-drafted (dialogue) source.** Its own `ref` is relative
+  to the *source* ledger directory specifically, not portable to a
+  different target.
+
+See [`ubx promote`'s own CLI reference](/cli/promote#two-known-named-gaps-this-inherits)
+for the exact refusal text for each, and
+[`docs/schema.md`'s own "Amendment: promotion evidence"](https://github.com/Ubiquex/ubiquex/blob/main/docs/schema.md)
+(in the `ubiquex` repo) for why both are named, unbuilt follow-ups rather
+than silently worked around.
+
+## Related
+
+- [`ubx promote`](/cli/promote) — full flag reference
+- [`ubx plan`](/cli/plan) / [`ubx ship`](/cli/ship) — the two-step flow `ubx promote` feeds into
+- [`ubx why`](/cli/why) — rendering a promoted proposal's own trail
+- [Diagram-driven authoring](/guides/diagram-medium) — the `.d2` medium this guide's worked example uses
+- [Proposal](/concepts/proposal) — the shape a promoted proposal is
+- [Ledger stores](/concepts/ledger-stores) — what "stack base" means for a remote store, instead of a plain `--ledger-dir`

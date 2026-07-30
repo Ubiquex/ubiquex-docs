@@ -98,6 +98,48 @@ proposal 4efe22a32782139b26e99599f00e713c0b99470e7ca69a752b5f96194e8ac1e0 (drift
 --dialogue: this proposal has no captured dialogue source (it wasn't drafted via `ubx chat`, or the file couldn't be read)
 ```
 
+## A promoted proposal
+
+If a proposal was produced by [`ubx promote`](/cli/promote), its
+`intent.sources` carries an additive `promotion` entry alongside
+whatever the fresh re-resolution itself produced (`document`, here) —
+rendered as the literal human story [`docs/architecture.md`'s own
+"Environments & promotion"
+design](https://github.com/Ubiquex/ubiquex/blob/main/docs/architecture.md)
+(in the `ubiquex` repo) names, "promoted from `<base>/<short source
+id>`":
+
+```text
+$ ubx why 5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c --ledger-dir prod
+proposal 5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c (change)
+stack:  payments
+status: accepted
+intent: 1 resource(s) authored via payments.d2 for stack "payments"
+  source: document payments.d2 (content_hash=sha256:c111bf28f4d8d3d14628a8a9e6a557553b0f6144050d5baf448d057ddad5eca9)
+  source: promoted from ./2fd3355f7909…
+accepted by [roozbeh] via local at 2026-07-30T16:44:38Z
+blast radius: +1 ~0 -0
+```
+
+`base` is the source's own stack base — a remote [`LedgerStore`](/concepts/ledger-stores)
+address if one is configured, or the source's own `--ledger-dir` for the
+default git-local store (which carries no separate base-store concept of
+its own, `.` here). The referenced id is truncated the same
+presentation-only way the resource-history chain view already truncates
+ids below — pass it in full to `ubx why <id> --ledger-dir <source-dir>`
+to look up the source proposal directly and compare the two side by
+side. A proposal promoted more than once (`ubx promote` run again
+against an already-promoted, now-accepted proposal) gets exactly one new
+`promotion` entry per hop, naming its own immediate source — see the
+[promotion guide's own "Re-promoting a promoted
+proposal"](/guides/promotion#re-promoting-a-promoted-proposal) for why
+the chain is walked one hop at a time rather than flattened into one
+proposal's own sources.
+
+Nothing here is ever validated for equality against the source — see the
+[promotion guide's own "Evidence, not a
+pin"](/guides/promotion#evidence-not-a-pin).
+
 ## Looking up a resource's full history
 
 ```text
@@ -414,3 +456,5 @@ meaningful when it's `true`.
 - [ubx + your AI assistant](/guides/mcp) — asking this same question from Claude Code/Desktop, over MCP
 - [Why trust the record](/concepts/trust-model) — what `--verify-acceptance` and each acceptance tier actually prove
 - [Chat: interactive drafting](/guides/chat) — `ubx chat`, what `--dialogue` walks back to
+- [Promoting across environments](/guides/promotion) — `ubx promote`, what a `promotion` source's own `base`/ref mean
+- [`ubx promote`](/cli/promote) — producing a promoted proposal
