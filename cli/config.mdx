@@ -25,9 +25,8 @@ hard parse error, not a silent no-op:
 # .ubx/config.hcl
 stack = "payments"
 
-provider = {
-  source  = "hashicorp/aws"
-  version = "6.60.0"
+providers = {
+  "hashicorp/aws" = "6.60.0"
 }
 ```
 
@@ -38,9 +37,8 @@ deterministic, still exactly what `ubx init --format=toml` writes:
 # .ubx/config.toml
 stack = "payments"
 
-[provider]
-source = "hashicorp/aws"
-version = "6.60.0"
+[providers]
+"hashicorp/aws" = "6.60.0"
 ```
 
 **YAML is supported in strict mode** — `ubx init --format=yaml` writes
@@ -54,15 +52,15 @@ version string `"6.60"` and `"6.6"` — **is** a hard error:
 
 ```text
 $ ubx config
-config: load config: parse /path/.ubx/config.yaml: /path/.ubx/config.yaml: version: "6.60" would silently narrow to 6.6 -- quote it if a string was meant (e.g. a version like "6.60"), or write its exact canonical form if a number was meant
+config: load config: parse /path/.ubx/config.yaml: /path/.ubx/config.yaml: hashicorp/aws: "6.60" would silently narrow to 6.6 -- quote it if a string was meant (e.g. a version like "6.60"), or write its exact canonical form if a number was meant
 ```
 
 Quote it and it loads cleanly:
 
 ```yaml
 # .ubx/config.yaml
-provider:
-  version: "6.60"
+providers:
+  "hashicorp/aws": "6.60"
 ```
 
 Only one format is read per directory. Discovery order is
@@ -224,31 +222,39 @@ stack       = "payments"
 github_repo = "acme/infra"
 tf_dir      = "./terraform"
 
-provider = {
-  # Pick ONE: a local binary path, or a registry source + explicit version.
-  path = "./terraform-provider-aws"
-  # source  = "hashicorp/aws"
-  # version = "6.54.0"
+providers = {
+  "hashicorp/aws" = "6.60.0"
 }
 
-provider_config = {
-  region = "us-east-1"
+provider_configs = {
+  "hashicorp/aws" = {
+    region = "us-east-1"
+  }
 }
 ```
 
 | Key | Maps to | Used by |
 | --- | --- | --- |
 | `stack` | `--stack` | [`ubx scan`](/cli/scan) (single-resource mode; `--all` falls back to it after the flag, before the filename default) |
-| `provider.path` | `--provider` | [`ubx scan`](/cli/scan), [`ubx status --drift`](/cli/status) |
-| `provider.source` + `provider.version` | `--source` + `--provider-version` | [`ubx scan`](/cli/scan), [`ubx status --drift`](/cli/status) |
-| `provider_config` | `--provider-config` | anywhere a provider is configured |
-| `providers` | *(no flag equivalent)* | [`ubx resolve`](/cli/resolve), [`ubx ship`](/cli/ship), [`ubx status --drift`](/cli/status), [`ubx scan --all`](/cli/scan) — see [Multi-provider stacks](#multi-provider-stacks), below |
-| `provider_configs` | *(no flag equivalent)* | [`ubx resolve`](/cli/resolve), [`ubx ship`](/cli/ship), [`ubx status --drift`](/cli/status), [`ubx scan --all`](/cli/scan) — see [Multi-provider stacks](#multi-provider-stacks), below |
+| `providers` | *(no flag equivalent — `ubx init --source`/`--provider-version` writes it)* | [`ubx resolve`](/cli/resolve), [`ubx plan`](/cli/plan), [`ubx ship`](/cli/ship), [`ubx status --drift`](/cli/status), [`ubx scan --all`](/cli/scan) — the modern, preferred shape, single- or multi-provider alike; see [Multi-provider stacks](#multi-provider-stacks), below |
+| `provider_configs` | *(no flag equivalent — `ubx init --provider-config`/`--region` writes it)* | same as `providers`, above — per-source configuration |
+| `provider.path` | `--provider` | a local/dev escape hatch only (`ubx init --provider <path>`) — [`ubx scan`](/cli/scan), [`ubx status --drift`](/cli/status); see [`provider`: the legacy single-provider shape](#provider-the-legacy-single-provider-shape) |
+| `provider.source` + `provider.version` | `--source` + `--provider-version` | same legacy shape as `provider.path`, for a registry source instead of a local binary |
+| `provider_config` | `--provider-config` | configuration for the legacy `provider` shape above |
 | `github_repo` | `--github-repo` | [`ubx accept --from-merge`](/cli/accept), [`ubx why --verify-acceptance`](/cli/why), [`ubx scan --surface-as`](/cli/scan) |
 | `tf_dir` | `--tf-dir` | [`ubx writeback`](/cli/writeback), [`ubx revert-plan`](/cli/revert-plan), [`ubx scan --surface-as`](/cli/scan)'s receipt preview |
 | `ledger.store` | *(no flag equivalent)* | [`ubx resolve`](/cli/resolve), [`ubx accept`](/cli/accept) (local), [`ubx ship`](/cli/ship) — see [Ledger stores](/concepts/ledger-stores) for which commands read this so far |
 | `intent.adapter` / `intent.model` / `intent.key_ref` | *(no flag equivalent)* | [`ubx propose --from-doc`](/cli/propose#example-transcribing-a-document---from-doc) — see [`intent`](#intent), below |
 | `root` | *(no flag equivalent)* | every command, indirectly — stops the cascade walk from reading anything farther up; see [Cascade ceiling](#cascade-ceiling-where-the-walk-stops) |
+
+<Note>
+  `ubx init` (UBI-59) writes `providers`/`provider_configs` by default,
+  never the legacy `provider`/`provider_config` singular shape, even for a
+  single-provider stack — see [`ubx init`](/cli/init). The legacy shape
+  still works, forever, and is still the only shape available for a local
+  binary path (`--provider`, below) — but a brand-new stack has no reason
+  to ever write it by hand.
+</Note>
 
 <Note>
   `--ledger-dir` is deliberately not one of these. A wrong provider region
@@ -257,27 +263,36 @@ provider_config = {
   to get wrong by accident, and out of scope for this file on purpose.
 </Note>
 
-### `provider`: pick one shape
+### `provider`: the legacy single-provider shape
 
 `path` (a local binary) and `source`/`version` (registry acquisition) are
 mutually exclusive, exactly like the `--provider`/`--source` flags
 themselves — config never has to re-decide that rule, it's the same
-validation either way.
+validation either way. `path` has no equivalent in the modern
+`providers` map below (no local-path slot) — it's the one case where
+this shape stays the only option, a deliberate local/dev escape hatch,
+not an oversight. For a registry source, prefer `providers` instead —
+`ubx init` writes it there by default, and every command that reads a
+declared provider set checks `providers` first.
 
 ### `provider_config`
 
 A freeform table — whatever keys the provider you're using actually needs
 (`region` for AWS, say). Marshaled straight to the JSON string every
-`--provider-config` flag already accepts.
+`--provider-config` flag already accepts. Configures the legacy `provider`
+shape above — for `providers`, use `provider_configs` instead (below).
 
 ### Multi-provider stacks
 
-A real stack is rarely one provider — the canonical example is an
-`aws_db_instance` a `helm_release` depends on, one payments stack, two
-provider binaries. `providers` declares the whole set — source →
-pinned version, explicit pins only, the same convention `provider`
-already uses one level up — and `provider_configs` gives each one its
-own configuration, keyed by that same source:
+`providers` declares a stack's whole provider set — source → pinned
+version, explicit pins only — and `provider_configs` gives each one its
+own configuration, keyed by that same source. It's written the same way
+whether a stack has one provider or several; the "multi-provider" framing
+is about what the shape was built for, not a minimum size to use it.
+`ubx init` writes exactly one entry here for a single-provider stack —
+the example below just shows the second provider a real multi-provider
+stack (an `aws_db_instance` a `helm_release` depends on, one payments
+stack, two provider binaries) actually needs:
 
 ```hcl
 providers = {
