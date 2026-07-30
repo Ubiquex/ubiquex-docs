@@ -1,22 +1,33 @@
 ---
 title: "SDK Reference"
-description: "Author infrastructure as typed TypeScript code, evaluated in a hermetic sandbox -- the @ubx/sdk runtime is bundled with ubx today; npm publication is still pending."
+description: "Author infrastructure as typed TypeScript or Go code, each evaluated hermetically -- neither runtime package is published yet."
 ---
 
-`@ubx/sdk` is a describe-only TypeScript library for authoring
-infrastructure as typed code. It works today, through the CLI --
-`@ubx/sdk` itself isn't published to npm yet (it's bundled directly
-inside the `ubx` binary), so there's no separate install step: generate
+Two describe-only SDKs for authoring infrastructure as typed code, both
+producing the exact same `intent/v1` shape: `@ubx/sdk` (TypeScript) and
+`github.com/ubiquex/ubx-sdk-go` (Go). Both work today, through the CLI --
+neither runtime is published yet (TypeScript's is bundled directly
+inside the `ubx` binary; Go's needs a local `replace` in your own
+`go.mod` until it is), so there's no separate install step: generate
 bindings, write a program, resolve it.
 
 ```bash
-ubx sdk gen --out sdk/generated
+ubx sdk gen --out sdk/generated               # TypeScript (default)
 ubx resolve --from-code payments.ts --out change.prop.json
 ubx accept change.prop.json
 ubx ship <proposal-id>
 ```
 
-## The runtime surface
+```bash
+ubx sdk gen --lang go --out sdk/generated     # Go
+ubx resolve --from-code payments.go --out change.prop.json
+ubx accept change.prop.json
+ubx ship <proposal-id>
+```
+
+## TypeScript
+
+### The runtime surface
 
 A program's entire vocabulary is five functions and one type:
 
@@ -63,7 +74,7 @@ including ones the program itself just set -- and property access on a
 `Computed<object>` drills recursively (`primary.settings.enabled` is
 itself a valid, traceable `Computed<boolean>`).
 
-## `ubx sdk gen`: local, pinned, offline after generation
+### `ubx sdk gen`: local, pinned, offline after generation
 
 Typed bindings are generated **locally**, from the real provider schema
 your `.ubx/config` already pins -- never a published, version-matrixed
@@ -79,7 +90,7 @@ Generated files are meant to be committed to git, like any other
 reviewable generated code. Evaluating a program never touches the
 network -- only generation does.
 
-## The hermetic evaluator
+### The hermetic evaluator
 
 `ubx resolve --from-code` runs a program inside a real, locked-down [Deno](https://deno.com)
 subprocess: no filesystem, network, environment, or subprocess access,
@@ -92,23 +103,144 @@ whole evaluation runs **twice**, as two separate subprocesses, with a
 hard failure if the two runs ever disagree -- the same determinism
 guarantee every other proposal-producing path in `ubx` makes.
 
+## Go
+
+### The runtime surface
+
+The same five-function vocabulary, in Go -- `sdk.Stack`, `sdk.Resource`,
+`sdk.Secret`, `sdk.Cross`, `sdk.Intent`, and `*sdk.Computed` in place of
+`Computed<T>`:
+
+```go payments.go
+package main
+
+import (
+	sdk "github.com/ubiquex/ubx-sdk-go/runtime"
+
+	generated "payments/sdk/generated"
+)
+
+func main() {
+	sdk.Main(sdk.Stack("payments", func() {
+		sdk.Intent(sdk.IntentInfo{Summary: "provision the payments database"})
+
+		sdk.Resource(generated.AwsDbInstance, "payments", generated.AwsDbInstanceConfig{
+			Engine:           "postgres",
+			InstanceClass:    "db.t3.small",
+			AllocatedStorage: 20,
+			DbName:           "payments",
+			Username:         "payments_admin",
+		})
+	}))
+}
+```
+
+- **`sdk.Stack(name, fn)` / `sdk.Main(def)`** -- `fn` describes the
+  stack's own desired resources; `sdk.Main` is what a program's own
+  `main()` calls to evaluate it and print the result. Go has no
+  import-time module-execution model the way TypeScript's default export
+  does, so this is the one small piece of boilerplate every Go SDK
+  program's `main()` has.
+- **`sdk.Resource(binding, name, config)`** -- declares one resource.
+  `config` is a typed struct from [`ubx sdk gen --lang
+  go`](/cli/sdk-gen)'s own generated output. Returns a `*sdk.Computed`
+  handle for wiring into sibling resources.
+- **`sdk.Secret(backend, path)`** / **`sdk.Cross(ledgerDir, address)`** --
+  the same `$secret`/`$cross` markers TypeScript's `secret()`/`cross()`
+  produce.
+- **`sdk.Intent(sdk.IntentInfo{Summary, Sources})`** -- the emitted
+  document's own summary. Required, exactly once per stack.
+- **`*sdk.Computed`** -- what `sdk.Resource()`'s own return value is.
+  Never a real value, same reasoning as TypeScript's `Computed<T>` --
+  but Go has no Proxy, so drilling into a nested attribute is an
+  explicit `.Field(name)` method call rather than implicit property
+  access: `primary.Field("settings").Field("enabled")` instead of
+  `primary.settings.enabled`.
+
+### `ubx sdk gen --lang go`
+
+```text
+$ ubx sdk gen --lang go --out sdk/generated
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp-aws.go
+```
+
+Real bindings, real config struct per resource type, plus a runtime
+descriptor:
+
+```go sdk/generated/hashicorp-aws.go (excerpt)
+type AwsDbInstanceConfig struct {
+	AllocatedStorage any
+	DbName           any
+	Engine           any
+	InstanceClass    any
+	Username         any
+	// ...every other real aws_db_instance settable attribute
+}
+
+var AwsDbInstance = sdk.ResourceBinding{
+	WireType: "aws_db_instance",
+	Fields: sdk.FieldMap{
+		"AllocatedStorage": sdk.FieldSpec{WireName: "allocated_storage"},
+		"DbName":           sdk.FieldSpec{WireName: "db_name"},
+		// ...
+	},
+}
+```
+
+Every field is typed `any` (able to hold a real value, a `*sdk.Computed`
+reference, or a `sdk.Secret`/`sdk.Cross` marker) -- unlike TypeScript's
+generated `Config`/`Attrs` interface pair, there's no separate `Attrs`
+type at all: Go's `Computed` has no static per-field shape (`.Field(name)`
+works the same regardless), so there's nothing for a generated `Attrs`
+type to describe.
+
+### The hermetic evaluator {#the-go-evaluator}
+
+`ubx resolve --from-code <entry>.go` compiles the program to a real
+binary (`go build`, `CGO_ENABLED=0`) and runs it hermetically -- not
+inside a sandboxed interpreter (Go has none), but as an OS-level
+restricted process: `sandbox-exec` (macOS's own process-sandboxing tool)
+on macOS, [`bubblewrap`](https://github.com/containers/bubblewrap) (`bwrap`)
+on Linux. Confirmed empirically to hold, not just documented as a goal:
+no filesystem, network, or subprocess-spawned-network access, on either
+platform. On Linux, `bwrap` must be on `PATH` -- `ubx` refuses to
+evaluate unsandboxed rather than silently degrading if it's missing, or
+if the environment denies creating its own namespaces (a real edge:
+this can happen inside an already-hardened container, e.g. certain CI
+images).
+
+Determinism works differently than TypeScript's, and more simply:
+compiled Go has no monkey-patchable `Date.now()`/`Math.random()`-style
+ambient global to guard against, so there's no eager-guard layer at
+all. The compiled binary runs **twice**, and any nondeterminism --
+`time.Now()`, `math/rand`, anything else -- shows up as a byte
+difference between the two runs and fails hard, the same determinism
+guarantee every other proposal-producing path in `ubx` makes.
+
+`go.mod` dependency resolution is restricted the same way network access
+is: a program's own `go.mod` reaching for anything beyond a local
+`replace` or the already-populated module cache fails the build loudly
+(`GOPROXY=off`) rather than silently fetching untrusted code mid-
+evaluation.
+
 ## What a program can't do yet
 
-- **Only creates.** A hermetic, sandboxed program has no way to check
-  whether an address already exists in the ledger, so there's no way to
-  author a `"modify"` from TypeScript today -- use a hand-written intent
-  file or [`ubx scan`](/cli/scan)'s own drift-generated proposals for
-  that.
-- **No published package.** `npm install @ubx/sdk` doesn't work yet --
-  the runtime ships bundled with `ubx` itself, which is sufficient for
-  evaluation; a real npm release (mainly useful for editor/IDE
-  type-checking convenience) hasn't shipped.
-- **TypeScript only, for now.** Go and Python evaluators are designed
+- **Only creates**, in both languages. A hermetic, sandboxed program has
+  no way to check whether an address already exists in the ledger, so
+  there's no way to author a `"modify"` from a program today -- use a
+  hand-written intent file or [`ubx scan`](/cli/scan)'s own
+  drift-generated proposals for that.
+- **No published packages.** Neither `npm install @ubx/sdk` nor `go get
+  github.com/ubiquex/ubx-sdk-go` works yet -- TypeScript's runtime ships
+  bundled with `ubx` itself; Go's needs a local `replace` pointing at a
+  checkout of the runtime. A real release of either (mainly useful for
+  editor/IDE convenience) hasn't shipped.
+- **TypeScript and Go only, for now.** A Python evaluator is designed
   for the same contract but not yet built.
 
 ## Related
 
-- [`ubx resolve --from-code`](/cli/resolve#authoring-in-typescript) -- the full command reference and worked example
-- [`ubx sdk gen`](/cli/sdk-gen) -- generating typed bindings
+- [`ubx resolve --from-code`](/cli/resolve#authoring-in-typescript) -- the full command reference and worked examples (both languages)
+- [`ubx sdk gen`](/cli/sdk-gen) -- generating typed bindings, `--lang ts` or `--lang go`
 - [`ubx propose --from-doc`](/cli/propose) -- the other typed-authoring medium, markdown transcribed by an LLM
 - [Creating real infrastructure](/guides/create-flow) -- a full walkthrough, live on real AWS

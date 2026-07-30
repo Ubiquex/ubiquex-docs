@@ -1,20 +1,21 @@
 ---
 title: "ubx sdk gen"
-description: "Generate typed TypeScript bindings for every provider declared in [providers] -- local, never published"
+description: "Generate typed TypeScript or Go bindings for every provider declared in [providers] -- local, never published"
 ---
 
 ```text
-ubx sdk gen [flags]
+ubx sdk gen [--lang ts|go] [flags]
 ```
 
 Reads `.ubx/config`'s own [`[providers]` table](/cli/config#multi-provider-stacks)
 (the same source of truth [`ubx resolve`](/cli/resolve)/[`ubx ship`](/cli/ship)
 already read), acquires each declared provider's real binary at its pinned
 version, dumps its real schema (no `Configure`, no credentials needed -- a
-pure local gRPC call against the launched binary), and writes one
-TypeScript file per provider source under `--out`: idiomatic camelCase
-bindings whose generated field map maps back to the provider's real wire
-attribute names at evaluation time.
+pure local gRPC call against the launched binary), and writes one file
+per provider source under `--out`, in the language named by `--lang`
+(`ts`, the default, or `go`): idiomatic bindings whose generated field
+map maps back to the provider's real wire attribute names at evaluation
+time.
 
 Always regenerates from the exact config-pinned version's real,
 freshly-acquired schema -- never a stale cache from a different version.
@@ -33,11 +34,18 @@ pinned version in `[providers]`.
 
 | Flag | Description |
 | --- | --- |
-| `--out string` | directory to write generated TypeScript bindings into, one file per declared provider source (default `sdk/generated`) |
+| `--lang string` | target language for generated bindings: `ts` or `go` (default `ts`) |
+| `--out string` | directory to write generated bindings into, one file per declared provider source (default `sdk/generated`) |
 | `--timeout duration` | timeout for launching each provider and fetching its schema -- applied **per provider**, not once for the whole command (default `1m0s`) |
 | `-h`, `--help` | help for gen |
 
-## Example
+Every provider source generated into the same `--out` directory with
+`--lang go` shares one Go package -- Go requires one package per
+directory, unlike TypeScript where each file is its own module
+regardless of directory. The package name is derived from `--out`'s own
+final path component (`sdk/generated` → `package generated`).
+
+## Example: TypeScript
 
 ```toml .ubx/config
 [providers]
@@ -81,27 +89,76 @@ A field is only ever settable in `Config` if the real schema marks it
 `Required` or `Optional` -- a pure output attribute like `id` never
 appears there, only in `Attrs`.
 
+## Example: Go
+
+```text
+$ ubx sdk gen --lang go --out sdk/generated
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp-aws.go
+```
+
+One file per source, named `<source-with-slashes-replaced-by-dashes>.go`.
+Each resource type gets a `Config` struct (settable fields, every field
+typed `any`) and a runtime binding value a program passes to
+`sdk.Resource()`:
+
+```go sdk/generated/hashicorp-aws.go (excerpt)
+type AwsDbInstanceConfig struct {
+	AllocatedStorage any
+	DbName           any
+	Engine           any
+	InstanceClass    any
+	Username         any
+	// ...every other real aws_db_instance settable attribute
+}
+
+var AwsDbInstance = sdk.ResourceBinding{
+	WireType: "aws_db_instance",
+	Fields: sdk.FieldMap{
+		"AllocatedStorage": sdk.FieldSpec{WireName: "allocated_storage"},
+		"DbName":           sdk.FieldSpec{WireName: "db_name"},
+		// ...
+	},
+}
+```
+
+No separate `Attrs` type, unlike TypeScript -- Go's `Computed` has no
+static per-field shape (`.Field(name)` drills in dynamically regardless
+of what it's addressing), so there's nothing for a generated `Attrs`
+type to describe. A field is only ever settable in `Config` if the real
+schema marks it `Required` or `Optional`, the same rule as TypeScript.
+
 ## Offline after generation
 
 `ubx sdk gen` is the one step in the SDK authoring flow that touches the
 network (to acquire a provider binary, if it isn't already cached).
 [`ubx resolve --from-code`](/cli/resolve#authoring-in-typescript) never does -- it
 evaluates a program against whatever bindings already exist on disk,
-inside a hermetic sandbox with no network access at all. This is
-deliberate: generation and evaluation are separate, explicit steps, the
-same way `ubx propose --from-doc` (network) and `ubx resolve` (offline)
-are already two separate commands.
+inside a hermetic sandbox with no network access at all (Go's own
+evaluator additionally sets `GOPROXY=off` at build time, so a program's
+`go.mod` can't reach for an unfetched dependency mid-evaluation either).
+This is deliberate: generation and evaluation are separate, explicit
+steps, the same way `ubx propose --from-doc` (network) and `ubx resolve`
+(offline) are already two separate commands.
 
-## `@ubx/sdk` is bundled, not (yet) published
+## Neither runtime package is published yet
 
-The runtime library a program imports as `@ubx/sdk` (`stack`, `resource`,
-`secret`, `cross`, `intent`, `Computed<T>`) is not published to npm yet --
-it's embedded directly inside the `ubx` binary and made available to the
-evaluator automatically. You don't need to `npm install` anything for
-`ubx resolve --from-code` to work; only generated bindings (this command's
-own output) need to exist on disk.
+TypeScript's `@ubx/sdk` (`stack`, `resource`, `secret`, `cross`,
+`intent`, `Computed<T>`) is not published to npm -- it's embedded
+directly inside the `ubx` binary and made available to the evaluator
+automatically. You don't need to `npm install` anything for `ubx resolve
+--from-code` to work with a `.ts` entry; only generated bindings (this
+command's own output) need to exist on disk.
+
+Go's `github.com/ubiquex/ubx-sdk-go` (`sdk.Stack`, `sdk.Resource`,
+`sdk.Secret`, `sdk.Cross`, `sdk.Intent`, `sdk.Main`, `*sdk.Computed`) is
+not published to a module proxy yet -- unlike TypeScript, a Go program's
+own `go.mod` needs a `require`, and (until publication) a `replace`
+pointing at a real checkout of the runtime, since `go build` has no
+bundled-runtime-injection mechanism the way the TS evaluator's import
+map does.
 
 ## Related
 
-- [`ubx resolve --from-code`](/cli/resolve#authoring-in-typescript) -- evaluating an SDK program that imports these bindings
+- [`ubx resolve --from-code`](/cli/resolve#authoring-in-typescript) -- evaluating an SDK program that imports these bindings, both languages
 - [`.ubx/config`'s `[providers]` table](/cli/config#multi-provider-stacks) -- declaring which providers to generate bindings for
+- [SDK Reference](/sdk) -- the full runtime surface, TypeScript and Go

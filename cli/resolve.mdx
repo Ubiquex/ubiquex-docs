@@ -1,11 +1,12 @@
 ---
 title: "ubx resolve"
-description: "Resolve a typed ubx:intent/v1 file (or a TypeScript SDK program, --from-code) into a draft change proposal -- creates, modifies, and destroys"
+description: "Resolve a typed ubx:intent/v1 file (or a TypeScript/Go SDK program, --from-code) into a draft change proposal -- creates, modifies, and destroys"
 ---
 
 ```text
 ubx resolve <intent-file> (--provider <path> | --source <src> --provider-version <v>) [flags]
 ubx resolve --from-code <entry>.ts [flags]
+ubx resolve --from-code <entry>.go [flags]
 ```
 
 <Note>
@@ -16,8 +17,9 @@ ubx resolve --from-code <entry>.ts [flags]
 </Note>
 
 Resolves a hand-written, machine-shaped [intent file](#the-intent-file) --
-or a [TypeScript SDK program](#authoring-in-typescript),
-`--from-code` -- into a draft `kind:"change"` [proposal](/concepts/proposal)
+or a [TypeScript](#authoring-in-typescript)/[Go](#authoring-in-go) SDK
+program, `--from-code`, dispatched by the entry file's own extension --
+into a draft `kind:"change"` [proposal](/concepts/proposal)
 -- creates, modifies, and destroys. Intra-stack references are checked
 against the [ledger](/concepts/ledger)'s own dependency graph, with real
 cycle detection, and emitted in dependency order; cross-stack references
@@ -52,7 +54,7 @@ which attributes are `Computed` or `Sensitive`.
 
 | Flag | Description |
 | --- | --- |
-| `--from-code string` | evaluate a [TypeScript SDK program](#authoring-in-typescript) instead of reading an intent file (mutually exclusive with the positional argument) |
+| `--from-code string` | evaluate a [TypeScript](#authoring-in-typescript) or [Go](#authoring-in-go) SDK program, dispatched by extension, instead of reading an intent file (mutually exclusive with the positional argument) |
 | `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`) |
 | `--provider string` | path to the provider binary (mutually exclusive with `--source`) |
 | `--source string` | provider source address, e.g. `hashicorp/aws` (mutually exclusive with `--provider`; requires `--provider-version`) |
@@ -249,6 +251,144 @@ filesystem or network access, so it has no way to check whether an
 address already exists in the ledger; expressing `"modify"` intent needs
 real design work this hasn't had yet. Use a hand-written intent file (or
 [`ubx scan`](/cli/scan)'s own drift-generated proposals) for modifies.
+
+## Authoring in Go
+
+`--from-code <entry>.go` evaluates a Go [SDK program](/sdk) instead of
+reading an intent file from disk -- dispatched by the entry file's own
+extension (`.ts` and `.go` share the same `--from-code` flag). Unlike
+TypeScript, which needs a sandboxed *interpreter* (Deno) because the
+runtime executing the program is shared and otherwise capable of
+anything, a Go SDK program is compiled and runs as an ordinary OS
+process -- hermeticity comes from restricting that process itself
+(`sandbox-exec` on macOS, [bubblewrap](https://github.com/containers/bubblewrap)
+on Linux), confirmed empirically, not just documented as a goal. The
+resulting `intent/v1` document is provenance-stamped and resolved through
+the exact same pipeline as TypeScript, a hand-written intent file, or a
+markdown document -- an SDK program is just another producer, regardless
+of language.
+
+First, generate typed bindings for Go (see [`ubx sdk gen
+--lang go`](/cli/sdk-gen)):
+
+```text
+$ ubx sdk gen --lang go --out sdk/generated
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp-aws.go
+```
+
+Then author a program against them. A Go SDK program is its own real Go
+module, requiring `github.com/ubiquex/ubx-sdk-go` (the tiny runtime
+package -- not yet published, so a local `replace` is needed until it
+is):
+
+```go go.mod
+module payments
+
+go 1.23
+
+require github.com/ubiquex/ubx-sdk-go v0.0.0
+```
+
+```go payments.go
+package main
+
+import (
+	sdk "github.com/ubiquex/ubx-sdk-go/runtime"
+
+	generated "payments/sdk/generated"
+)
+
+func main() {
+	sdk.Main(sdk.Stack("payments", func() {
+		sdk.Intent(sdk.IntentInfo{
+			Summary: "Provision a small Postgres RDS instance in the payments stack, modeled on the staging database but downsized for low initial traffic.",
+		})
+
+		sdk.Resource(generated.AwsDbInstance, "payments", generated.AwsDbInstanceConfig{
+			Engine:           "postgres",
+			InstanceClass:    "db.t3.small",
+			AllocatedStorage: 20,
+			DbName:           "payments",
+			Username:         "payments_admin",
+		})
+	}))
+}
+```
+
+```text
+$ ubx resolve --from-code payments.go --ledger-dir . --out resolved.json
+resolved: payments: 1 create(s), 0 modify(ies), 0 destroy(s)
+```
+
+```json
+{
+  "intent": {
+    "summary": "Provision a small Postgres RDS instance in the payments stack, modeled on the staging database but downsized for low initial traffic.",
+    "sources": [
+      {
+        "kind": "document",
+        "ref": "payments.go",
+        "content_hash": "sha256:4fb60e40af94ab09c9bdad31fb1dc8bc284a78de2800bbd8d702adc1f5797a5d"
+      }
+    ]
+  },
+  "delta": {
+    "creates": [
+      {
+        "config": {
+          "allocated_storage": 20,
+          "db_name": "payments",
+          "engine": "postgres",
+          "instance_class": "db.t3.small",
+          "username": "payments_admin"
+        },
+        "name": "payments",
+        "provider": {"source": "hashicorp/aws", "version": "6.54.0"},
+        "stack": "payments",
+        "type": "aws_db_instance"
+      }
+    ]
+  }
+}
+```
+
+The exact same real transcript shown above under [Authoring in
+TypeScript](#authoring-in-typescript) -- `delta.creates[]` is byte-for-
+byte identical, canonicalized, run for real against the real
+`hashicorp/aws@6.54.0` schema. Only `intent.sources` differs, and only
+because it names a different real file -- `payments.go` instead of
+`payments.ts` -- with its own real content hash, exactly the honest
+difference a genuinely independent producer should have.
+
+### `Computed`: wiring one resource's output into another
+
+A `sdk.Resource()` call returns a `*sdk.Computed` handle -- a reference,
+never a real value (nothing exists yet). Go has no equivalent of a JS
+Proxy, so drilling into a nested attribute is an explicit method call
+rather than implicit property access:
+
+```go
+primary := sdk.Resource(generated.AwsDbInstance, "payments", generated.AwsDbInstanceConfig{ /* ... */ })
+
+sdk.Resource(generated.AwsDbInstance, "payments-replica", generated.AwsDbInstanceConfig{
+	InstanceClass:     "db.t3.small",
+	ReplicateSourceDb: primary.Field("id"),
+})
+```
+
+produces the same `$ref` marker TypeScript's own `Computed<T>` produces.
+
+### What Go's `--from-code` can't do (yet)
+
+The same limits as TypeScript: creates only, no `"modify"` (a hermetic,
+sandboxed program has no way to check whether an address already
+exists). On Linux specifically, evaluation requires
+[`bwrap`](https://github.com/containers/bubblewrap) on `PATH` -- `ubx`
+refuses to evaluate unsandboxed rather than silently degrading if it's
+missing, or if the current environment can't create its own namespaces
+(a real, found edge: this can happen inside an already-hardened
+container, e.g. some CI images -- see [the SDK
+guide](/sdk#the-go-evaluator) for the full account).
 
 ## Modifying an already-ledgered resource
 
