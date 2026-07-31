@@ -50,9 +50,9 @@ Given or resolved, `[hash]` is then looked up two ways:
    before this command. Applied immediately, no further confirmation,
    since that acceptance already was the consent moment.
 2. **A plan [`ubx plan`](/cli/plan) saved** at `.ubx/plans/<hash>.json`,
-   if no accepted proposal by that id exists. For **this** path only,
-   the full receipt renders again and a typed `yes` is required before
-   anything is accepted or applied — see
+   if no accepted proposal by that id exists. For **this** path only, a
+   one-line summary (stack, plan age, blast radius) renders and a typed
+   `yes` is required before anything is accepted or applied — see
    [Interactive confirmation](#interactive-confirmation-the-signing-moment)
    below.
 
@@ -83,17 +83,9 @@ and says so:
 
 ```text
 $ ubx ship --provider ./fakeprovider --ledger-dir . --yes
-latest plan for stack playground: 9c6841cfaa32  change  0s old
-Ship  playground · 0s old
-a single widget for the bare-ship demo
-
-  + fake_widget.q1 create
-      name: "playground-test"
-
-delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
-blast radius: +1 ~0 -0
-cost delta: $0/mo
-accepted 9c6841cfaa32… (stack playground) via local plan
+latest plan for stack playground: 1a6c77cfb11a  change  0s old
+Ship  playground · 0s old · +1 create(s) ~0 modify(ies) -0 destroy(s)
+accepted 1a6c77cfb11a… (stack playground) via local plan
 playground.fake_widget.q1
   · pending
   · in_flight                                          0:00
@@ -111,8 +103,8 @@ between them:
 ```text
 $ ubx ship --provider ./fakeprovider --ledger-dir .
 multiple stacks have unshipped plans -- pass --stack, or choose one:
-  [1] 24d53f594fad  networking  change  0s old
-  [2] f71ced7b7f7a  payments  change  1s old
+  [1] 1444f917246a  payments  change  0s old
+  [2] 29508ca55893  networking  change  0s old
 ship: 2 plans span more than one stack -- pass --stack or an explicit hash (non-interactive, refusing to guess)
 ```
 
@@ -123,16 +115,8 @@ which plan is picked, it doesn't skip the "renders, then asks" step:
 
 ```text
 $ ubx ship --provider ./fakeprovider --ledger-dir . --stack payments < /dev/null
-latest plan for stack payments: f71ced7b7f7a  change  1s old
-Ship  payments · 1s old
-payments widget
-
-  + fake_widget.p1 create
-      name: "p1"
-
-delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
-blast radius: +1 ~0 -0
-cost delta: $0/mo
+latest plan for stack payments: 1444f917246a  change  0s old
+Ship  payments · 0s old · +1 create(s) ~0 modify(ies) -0 destroy(s)
 ship: refusing to apply without confirmation: not an interactive terminal -- pass --yes to confirm non-interactively (e.g. in CI/scripts)
 ```
 
@@ -142,47 +126,47 @@ never re-offers it either way it was consumed.
 ## Interactive confirmation: the signing moment
 
 When `[hash]` isn't yet an accepted proposal, `ubx ship` looks for a plan
-[`ubx plan`](/cli/plan) saved locally, renders its full receipt again,
-and — on a real terminal, without `--yes` — requires a typed `yes`
-(terraform's own consent pattern, not `y`/`n`) before `core.Accept` ever
-runs. The prompt **is** the local-tier signing moment:
+[`ubx plan`](/cli/plan) saved locally and — on a real terminal, without
+`--yes` — requires a typed `yes` (terraform's own consent pattern, not
+`y`/`n`) before `core.Accept` ever runs. The prompt **is** the
+local-tier signing moment. It does **not** re-render the full receipt
+`ubx plan` already showed — that already was the review; a one-line
+summary (stack, plan age, blast radius) is enough to confirm this is
+still the plan being signed, without repeating every resource and
+attribute a human already read (a real multi-resource receipt can run
+to pages of formatted JSON under [the v2 receipt format](/cli/plan#plan-receipt-format-exact-from-the-founders-markup-resolved)):
 
 ```text
 $ ubx plan intent.json --provider ./fakeprovider --ledger-dir .
 Plan  sandbox · from intent.json
-a widget and its mirror, for the two-step flow
 
   + fake_widget.primary create
       name: "primary-widget"
-      tags: {"env":"sandbox"}
+      tags:
+      {
+        "env": "sandbox"
+      }
+
   + fake_widget.mirror create
       name: "primary-widget"
-      tags: {"peer_id":{"$computed":{"from":"sandbox.fake_widget.primary.id"}}}
+      tags:
+      {
+        "peer_id": $ref:sandbox.fake_widget.primary.id
+      }
 
 delta: +2 create(s), ~0 modify(ies), -0 destroy(s)
+
 blast radius: +2 ~0 -0
 cost delta: $0/mo
 
-ubx-proposal: 5029378ab740…
-next: ubx ship 5029378ab740
+ubx-proposal: e81f958439b4…
+next: ubx ship e81f958439b4
 
-$ ubx ship 5029378ab740 --provider ./fakeprovider --ledger-dir .
-Ship  sandbox · 9s old
-a widget and its mirror, for the two-step flow
-
-  + fake_widget.primary create
-      name: "primary-widget"
-      tags: {"env":"sandbox"}
-  + fake_widget.mirror create
-      name: "primary-widget"
-      tags: {"peer_id":{"$computed":{"from":"sandbox.fake_widget.primary.id"}}}
-
-delta: +2 create(s), ~0 modify(ies), -0 destroy(s)
-blast radius: +2 ~0 -0
-cost delta: $0/mo
+$ ubx ship e81f958439b4 --provider ./fakeprovider --ledger-dir .
+Ship  sandbox · 20s old · +2 create(s) ~0 modify(ies) -0 destroy(s)
 
 Ship this to sandbox? Only 'yes' accepted: yes
-accepted 5029378ab740… (stack sandbox) via local plan
+accepted e81f958439b4… (stack sandbox) via local plan
 sandbox.fake_widget.primary
   · pending
   · in_flight                                          0:00
@@ -201,18 +185,18 @@ stdin — aborts cleanly, nothing accepted or applied, exit `0` (a
 deliberate abort is not a finding or an error):
 
 ```text
-$ ubx ship 5029378ab740 --provider ./fakeprovider --ledger-dir .
+$ ubx ship e81f958439b4 --provider ./fakeprovider --ledger-dir .
 ...
 Ship this to sandbox? Only 'yes' accepted: nope
 ship aborted -- nothing accepted or applied
 ```
 
-`--yes` skips the prompt for CI/scripts, but still renders the receipt
-first — and a non-TTY without it refuses outright rather than hang
-reading a stdin nobody's watching:
+`--yes` skips the prompt for CI/scripts, but still renders the one-line
+summary first — and a non-TTY without it refuses outright rather than
+hang reading a stdin nobody's watching:
 
 ```text
-$ ubx ship 5029378ab740 --provider ./fakeprovider --ledger-dir . < /dev/null
+$ ubx ship e81f958439b4 --provider ./fakeprovider --ledger-dir . < /dev/null
 ...
 ship: refusing to apply without confirmation: not an interactive terminal -- pass --yes to confirm non-interactively (e.g. in CI/scripts)
 ```
@@ -222,19 +206,26 @@ an ordinary `ubx accept` would have recorded — the prompt is a UX
 addition, not a new acceptance tier:
 
 ```text
-$ ubx why 5029378ab7409a855cd45cfcd794cbeab18f66c793f0ca2dc8a7a08fa1cee307 --ledger-dir .
-proposal 5029378ab740… (change)
+$ ubx why e81f958439b45da169b5d0409a82158883f925091067dd1a8c0ca2a7ddcd7b3a --ledger-dir .
+proposal e81f958439b4… (change)
 stack:  sandbox
 status: accepted
 intent: a widget and its mirror, for the two-step flow
-accepted by [roozbeh] via local at 2026-07-31T00:38:17Z
+accepted by [roozbeh] via local at 2026-07-31T19:25:17Z
 blast radius: +2 ~0 -0
 + fake_widget.primary create
     name: "primary-widget"
-    tags: {"env":"sandbox"}
+    tags:
+    {
+      "env": "sandbox"
+    }
+
 + fake_widget.mirror create
     name: "primary-widget"
-    tags: {"peer_id":{"$computed":{"from":"sandbox.fake_widget.primary.id"}}}
+    tags:
+    {
+      "peer_id": $ref:sandbox.fake_widget.primary.id
+    }
 apply history:
   attempt 1: outcome=applied
     ...
@@ -255,7 +246,6 @@ the interactive prompt even renders (no point asking a human to type
 ```text
 $ ubx plan destroy-intent.json --provider ./fakeprovider --ledger-dir .
 Plan  sandbox · from destroy-intent.json
-decommission the mirror widget
 
   - destroy: sandbox.fake_widget.mirror
     id: "mirror-widget"
@@ -263,6 +253,7 @@ decommission the mirror widget
     tags: {}
 
 delta: +0 create(s), ~0 modify(ies), -1 destroy(s)
+
 blast radius: +0 ~0 -1
 cost delta: $0/mo
 
@@ -280,17 +271,7 @@ destroy](#shipping-a-destroy) below):
 
 ```text
 $ ubx ship 56ebbf77dbcf --provider ./fakeprovider --ledger-dir . --confirm-destroys --yes
-Ship  sandbox · 12s old
-decommission the mirror widget
-
-  - destroy: sandbox.fake_widget.mirror
-    id: "mirror-widget"
-    name: null
-    tags: {}
-
-delta: +0 create(s), ~0 modify(ies), -1 destroy(s)
-blast radius: +0 ~0 -1
-cost delta: $0/mo
+Ship  sandbox · 12s old · +0 create(s) ~0 modify(ies) -1 destroy(s)
 accepted 56ebbf77dbcf… (stack sandbox) via local plan
 sandbox.fake_widget.mirror
   · pending
@@ -371,14 +352,7 @@ New resource found  payments.fake_widget.main-cache
   saved to plan store            next: ubx ship 9ed8d1b720b0
 
 $ ubx ship 9ed8d1b720b0 --provider ./fakeprovider --ledger-dir . --yes
-Ship  payments · 6s old
-adopt existing payments.fake_widget.main-cache into the ledger (discovered by scan)
-
-  + fake_widget.main-cache create
-
-delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
-blast radius: +0 ~0 -0
-cost delta: $0/mo
+Ship  payments · 6s old · +0 create(s) ~0 modify(ies) -0 destroy(s)
 accepted 9ed8d1b720b0… (stack payments) via local plan
 9ed8d1b720b0… (adoption) -- record-only, nothing to execute -- ✓ resolved
 ```
@@ -406,19 +380,12 @@ it — CloudTrail's own delivery window is typically 2-5 minutes, so a
 re-scan shortly afterward may still attribute it for real:
 
 ```text
-$ ubx ship 8a2f4999650f --provider ./fakeprovider --ledger-dir . --yes
-Ship  payments · 13s old
-record drift on payments.fake_widget.main-cache observed outside the ledger
+$ ubx ship 0992e9f7459e --provider ./fakeprovider --ledger-dir . --yes
+Ship  payments · 6s old · +0 create(s) ~0 modify(ies) -0 destroy(s)
+warning: this drift is 6s old and has no recorded attribution (too recent for CloudTrail to have delivered a matching event yet) -- accepting now records it as unattributed permanently; consider re-scanning in a few minutes first
 
-  ~ change: payments.fake_widget.main-cache: tags.env: (absent) -> "staging"
-
-delta: +0 create(s), ~1 modify(ies), -0 destroy(s)
-blast radius: +0 ~0 -0
-cost delta: $0/mo
-warning: this drift is 13s old and has no recorded attribution (too recent for CloudTrail to have delivered a matching event yet) -- accepting now records it as unattributed permanently; consider re-scanning in a few minutes first
-
-accepted 8a2f4999650f… (stack payments) via local plan
-8a2f4999650f… (drift_adopt) -- record-only, nothing to execute -- ✓ resolved
+accepted 0992e9f7459e… (stack payments) via local plan
+0992e9f7459e… (drift_adopt) -- record-only, nothing to execute -- ✓ resolved
 ```
 
 Real, unedited output — advisory only, never blocking: the plan still
@@ -443,6 +410,37 @@ payments.fake_widget.api-cache
 Each resource's live transitions narrate as they happen (UBI-61) — not
 buffered to the end — with elapsed time since that resource's own most
 recent `in_flight` transition.
+
+<Note>
+  **The elapsed time actually ticks (UBI-63).** An ordinary create/modify
+  with no reconcile loop of its own (the fixture above) transitions
+  straight from `in_flight` to a terminal state fast enough that this
+  never shows — but a real call against a real, slower provider can sit
+  `in_flight` for a while with nothing else happening. A background
+  ticker re-renders that one line roughly once a second until a real
+  event supersedes it, rather than sitting frozen at `0:00` until the
+  eventual terminal event finally arrives with the real total. Real,
+  live-verified transcript — an SQS queue's own `DeleteQueue` call
+  against real AWS, genuinely slow this run:
+
+  ```text
+  payments.aws_sqs_queue.ci-notifications
+    · pending
+    · in_flight                                          0:00
+    · in_flight                                          0:01
+    · in_flight                                          0:02
+    ...
+    · in_flight                                          0:41
+    · in_flight                                          0:42
+    · unknown_post_timeout -- provider reported a successful destroy -- verifying via a post-destroy read-back before recording it as destroyed 0:42
+    ⠧ provider reported success -- verifying via read-back (attempt 1/10) 0:42
+    ✓ applied -- confirmed by reconciliation             1:19
+  ```
+
+  On a real terminal the line updates in place (a carriage return); a
+  non-TTY/piped run (every transcript on this page) prints discrete
+  lines instead, since in-place overwrite is a terminal-only concept.
+</Note>
 
 ## Example: idempotent re-run
 

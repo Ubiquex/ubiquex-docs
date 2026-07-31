@@ -617,6 +617,102 @@ A `$computed` value can never be used somewhere the schema requires a
 concrete value -- attempting that is a resolve-time error, not a deferred
 runtime surprise.
 
+### `$ref`/`$cross` embedded inside a JSON-encoded string attribute
+
+Some provider attributes are typed as a plain string but treated as
+nested JSON by the resource itself -- an IAM policy document, a trust
+policy. A `$ref`/`$cross` (or `$secret`/`$computed`/`$ephemeral`) can
+live one level down, inside that string's own decoded structure, and
+`ubx resolve` finds and resolves it there too -- including computing the
+same dependency edge a top-level reference would:
+
+```json
+{
+  "config": {
+    "name": "{\"description\":\"mirrors\",\"target\":{\"$ref\":{\"to\":\"payments.fake_widget.primary.name\"}}}"
+  }
+}
+```
+
+```text
+$ ubx resolve intent-embedded-ref.json --provider ./fakeprovider --ledger-dir .
+resolved: payments: 2 create(s), 0 modify(ies), 0 destroy(s)
+```
+
+```json
+{
+  "config": {
+    "name": "{\"description\":\"mirrors\",\"target\":\"primary\"}"
+  },
+  "depends_on": ["payments.fake_widget.primary"]
+}
+```
+
+Resolved and re-encoded back to a JSON string, byte-for-byte canonical
+(Go's own JSON marshaling already sorts map keys) -- an ordinary string
+that merely happens to parse as JSON but carries no marker anywhere is
+left completely untouched.
+
+### A JSON-embedded ref to a same-batch `Computed` sibling: a template, filled in at ship time
+
+The flagship AWS pattern -- an IAM role's own inline policy naming a
+sibling resource's ARN (a queue, a bucket) created in the very same
+batch, before that sibling has ever actually applied and so before its
+real ARN exists. `ubx resolve` doesn't refuse this: the ref still
+resolves to a `$computed` marker (exactly like the top-level case
+above), still embedded inside the re-serialized string -- the signed
+proposal genuinely carries a **template**:
+
+```json
+{
+  "resources": [
+    {"type": "fake_widget", "name": "primary", "op": "create", "config": {"name": "primary"}},
+    {"type": "fake_widget", "name": "policy-holder", "op": "create", "config": {
+      "name": "{\"Statement\":[{\"Effect\":\"Allow\",\"Resource\":{\"$ref\":{\"to\":\"payments.fake_widget.primary.id\"}}}]}"
+    }}
+  ]
+}
+```
+
+```text
+$ ubx resolve intent-embedded-computed.json --provider ./fakeprovider --ledger-dir .
+resolved: payments: 2 create(s), 0 modify(ies), 0 destroy(s)
+```
+
+```json
+{
+  "config": {
+    "name": "{\"Statement\":[{\"Effect\":\"Allow\",\"Resource\":{\"$computed\":{\"from\":\"payments.fake_widget.primary.id\"}}}]}"
+  },
+  "depends_on": ["payments.fake_widget.primary"]
+}
+```
+
+The embedded `$computed` marker contributes the identical real
+dependency edge a top-level one would (`depends_on` above) -- `ubx ship`
+always ships `primary` first, then fills the real applied value into
+`policy-holder`'s own template in place before its own
+`ApplyResourceChange` call, exactly like it already does for a top-level
+`$computed` marker. See [`ubx ship`'s own create-chain
+example](/cli/ship#a-two-resource-create-chain) for the general
+mechanism this reuses.
+
+<Warning>
+  This templating only ever applies to `$computed` -- a `$secret` marker
+  embedded inside a JSON-encoded string attribute is still always a
+  resolve-time error, no exception: no redaction path exists for a
+  marker buried inside a string attribute the provider schema doesn't
+  itself flag `Sensitive`.
+</Warning>
+
+<Warning>
+  A reference written as a plain string -- `"target": "$ref:payments.fake_widget.primary.name"`,
+  anywhere, top-level or JSON-embedded -- is always a resolve-time error,
+  never silently passed through. The real wire shape is always an
+  object, `{"$ref": {"to": "..."}}`; a string prefixed with `$ref:` (or
+  `$cross:`/`$secret:`/`$computed:`/`$ephemeral:`) is refused outright.
+</Warning>
+
 ## Cross-stack references
 
 `$cross` references a resource in a *different* stack's ledger, addressed

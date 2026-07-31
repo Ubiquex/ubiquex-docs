@@ -1,5 +1,39 @@
 # STATE — ubiquex-docs
 
+## UBI-63 session 2: cli-output-spec v2 -- init/plan/ship receipt format, medium auto-detection (2026-07-31, same session as the code)
+
+Formalized the founder's own rough, uncommitted v2 markup (in the
+`ubiquex` repo's `docs/cli-output-spec.md`) into real docs pages,
+against the actual fixed binary -- every transcript below is real,
+re-captured, not hand-edited from the old ones.
+
+- **`cli/init.mdx`**: every "wrote .ubx/config.X" transcript replaced
+  with the new green "+ ... has been generated successfully" / dim
+  "see ..." two-liner, existing "next:" guidance kept alongside it.
+- **`cli/plan.mdx`**: new "Medium auto-detection" section (bare `ubx
+  plan`, single/multiple/README-excluded cases, all real transcripts);
+  new progress-line prose for `--from-doc`; every receipt example
+  updated for the v2 format (no summary sentence, formatted JSON
+  blocks, `$ref:<address>` display for a resolved `$computed`, bold
+  summary spacing, green+bold footer).
+- **`cli/ship.mdx`**: confirmation transcripts now show the one-line
+  summary instead of the old full-receipt re-render; new real,
+  live-captured ticking-timer transcript (an actual ~80s SQS destroy
+  during the `ubiquex` repo's own live finale, not a fixture).
+- **`cli/terminate.mdx`/`cli/promote.mdx`/`cli/accept.mdx`/
+  `guides/promotion.mdx`/`guides/plan-ship-flow.mdx`**: same v2
+  spacing/footer fixes; several of these were already stale from
+  BEFORE this session (pre-progress-narration output, one fabricated-
+  looking `ubx promote` transcript) and got fully regenerated against
+  the real binary along the way, not just patched for spacing.
+- **`cli/resolve.mdx`**: new section on a JSON-embedded `$ref` to a
+  same-batch `Computed` sibling resolving to a real template (deferred
+  materialization, the `ubiquex` repo's own new capability this
+  session) -- and a `Warning` that `$secret` alone still refuses
+  unconditionally in that position.
+
+`mint validate`/`mint broken-links` clean.
+
 ## UBI-33/34: the SDK -- `ubx sdk gen`, `ubx resolve --from-code` (2026-07-28, same session as the code)
 
 `ubiquex-cli`'s SDK arc ships its first real, user-visible CLI surface

@@ -54,16 +54,33 @@ inputs ([`--from-code`](/cli/plan#flags), `--from-doc`, `--from-diagram`):
 
 ```text
 $ ubx plan intent.json --provider ./fakeprovider --ledger-dir .
-sandbox: a widget and its mirror, for the two-step flow
+Plan  sandbox · from intent.json
+
+  + fake_widget.primary create
+      name: "primary-widget"
+      tags:
+      {
+        "env": "sandbox"
+      }
+
+  + fake_widget.mirror create
+      name: "primary-widget"
+      tags:
+      {
+        "peer_id": $ref:sandbox.fake_widget.primary.id
+      }
+
 delta: +2 create(s), ~0 modify(ies), -0 destroy(s)
+
 blast radius: +2 ~0 -0
 cost delta: $0/mo
 
-plan: .ubx/plans/101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28.json
-ubx-proposal: 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28
+ubx-proposal: e81f958439b4…
+next: ubx ship e81f958439b4
 ```
 
-This is the full receipt: delta, cost, and blast radius, resolved through
+This is the full receipt: every resource and attribute, delta, cost, and
+blast radius, resolved through
 the exact same [`core/resolver.Resolve`](/cli/resolve) the four-verb
 ceremony uses — `mirror`'s reference to `primary`'s schema-`Computed` `id`
 was checked and left as a dependency edge here exactly like it would be
@@ -74,37 +91,61 @@ a colleague, before deciding to ship it.
 ## 2. Ship
 
 ```text
-$ ubx ship 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28 --provider ./fakeprovider --ledger-dir .
-accepted 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28 (stack sandbox) via local plan
-applied: sandbox.fake_widget.primary
-applied: sandbox.fake_widget.mirror
+$ ubx ship e81f958439b4 --provider ./fakeprovider --ledger-dir . --yes
+Ship  sandbox · 20s old · +2 create(s) ~0 modify(ies) -0 destroy(s)
+accepted e81f958439b4… (stack sandbox) via local plan
+sandbox.fake_widget.primary
+  · pending
+  · in_flight                                          0:00
+  ✓ applied                                            0:00
+sandbox.fake_widget.mirror
+  · pending
+  · in_flight                                          0:00
+  ✓ applied                                            0:00
+✓ applied: sandbox.fake_widget.primary
+✓ applied: sandbox.fake_widget.mirror
 2 resource(s), 2 applied, 0 failed, 0 still unknown -- outcome: applied
 ```
 
 No separate `ubx accept` ran — `ubx ship` found the plan, accepted it
 inline (local tier, the exact same mechanism standalone `ubx accept`
-uses), and applied it. [`ubx why`](/cli/why) shows the same
-`acceptance.method: "local"` a standalone `ubx accept` would have
-recorded:
+uses), and applied it. `ubx ship`'s own confirmation shows a one-line
+summary (stack, plan age, blast radius), not the full receipt again —
+that already rendered above, at `ubx plan` time. [`ubx why`](/cli/why)
+shows the same `acceptance.method: "local"` a standalone `ubx accept`
+would have recorded:
 
 ```text
-$ ubx why 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28 --ledger-dir .
-proposal 101fdd6bbdf2119f57afb92ccd903cd29f214cdfc56e76a521ac53c779df7e28 (change)
+$ ubx why e81f958439b45da169b5d0409a82158883f925091067dd1a8c0ca2a7ddcd7b3a --ledger-dir .
+proposal e81f958439b4… (change)
 stack:  sandbox
 status: accepted
 intent: a widget and its mirror, for the two-step flow
-accepted by [operator] via local at 2026-07-29T20:19:18Z
+accepted by [operator] via local at 2026-07-31T19:25:17Z
 blast radius: +2 ~0 -0
++ fake_widget.primary create
+    name: "primary-widget"
+    tags:
+    {
+      "env": "sandbox"
+    }
+
++ fake_widget.mirror create
+    name: "primary-widget"
+    tags:
+    {
+      "peer_id": $ref:sandbox.fake_widget.primary.id
+    }
 apply history:
   attempt 1: outcome=applied
     sandbox.fake_widget.primary:
-      pending at 2026-07-29T20:19:18Z
-      in_flight at 2026-07-29T20:19:18Z
-      applied at 2026-07-29T20:19:18Z
+      pending at 2026-07-31T19:25:17Z
+      in_flight at 2026-07-31T19:25:17Z
+      applied at 2026-07-31T19:25:17Z
     sandbox.fake_widget.mirror:
-      pending at 2026-07-29T20:19:18Z
-      in_flight at 2026-07-29T20:19:18Z
-      applied at 2026-07-29T20:19:18Z
+      pending at 2026-07-31T19:25:17Z
+      in_flight at 2026-07-31T19:25:17Z
+      applied at 2026-07-31T19:25:17Z
 ```
 
 <Note>
@@ -136,19 +177,22 @@ standalone `ubx accept` enforces:
 
 ```text
 $ ubx plan destroy-intent.json --provider ./fakeprovider --ledger-dir .
-sandbox: decommission the mirror widget
+Plan  sandbox · from destroy-intent.json
+
+  - destroy: sandbox.fake_widget.mirror
+    id: "computed-id"
+    name: "primary-widget"
+    tags: {"peer_id":"computed-id"}
+
 delta: +0 create(s), ~0 modify(ies), -1 destroy(s)
+
 blast radius: +0 ~0 -1
 cost delta: $0/mo
-destroy: sandbox.fake_widget.mirror
-  id: "computed-id"
-  name: "primary-widget"
-  tags: {"peer_id":"computed-id"}
 
-plan: .ubx/plans/f0b54b4f80fa74e898d774aade8c5450775c35160cd1fc69d29c3fd0eadf7b2b.json
-ubx-proposal: f0b54b4f80fa74e898d774aade8c5450775c35160cd1fc69d29c3fd0eadf7b2b
+ubx-proposal: bad1930ee146…
+next: ubx ship bad1930ee146
 
-$ ubx ship f0b54b4f80fa74e898d774aade8c5450775c35160cd1fc69d29c3fd0eadf7b2b --provider ./fakeprovider --ledger-dir .
+$ ubx ship bad1930ee146 --provider ./fakeprovider --ledger-dir .
 ship: this proposal has blast_radius.destroys > 0 -- pass --confirm-destroys to accept it
 ```
 

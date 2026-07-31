@@ -74,17 +74,26 @@ Resolved and shipped in `staging/`:
 ```text
 $ cd staging
 $ ubx plan --from-diagram payments.d2 --stack payments --ledger-dir .
-payments: 1 resource(s) authored via payments.d2 for stack "payments"
+Plan  payments · from payments.d2
+
+  + fake_widget.payments-db create
+
 delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
+
 blast radius: +1 ~0 -0
 cost delta: $0/mo
 
-plan: .ubx/plans/2fd3355f7909b21b5774f581a596bd3836ac295d57268de5d3b865ef31155592.json
-ubx-proposal: 2fd3355f7909b21b5774f581a596bd3836ac295d57268de5d3b865ef31155592
+ubx-proposal: 649e5de18a62…
+next: ubx ship 649e5de18a62
 
-$ ubx ship 2fd3355f7909b21b5774f581a596bd3836ac295d57268de5d3b865ef31155592 --ledger-dir .
-accepted 2fd3355f7909b21b5774f581a596bd3836ac295d57268de5d3b865ef31155592 (stack payments) via local plan
-applied: payments.fake_widget.payments-db
+$ ubx ship 649e5de18a62 --ledger-dir . --yes
+Ship  payments · 10s old · +1 create(s) ~0 modify(ies) -0 destroy(s)
+accepted 649e5de18a62… (stack payments) via local plan
+payments.fake_widget.payments-db
+  · pending
+  · in_flight                                          0:00
+  ✓ applied                                            0:00
+✓ applied: payments.fake_widget.payments-db
 1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
 ```
 
@@ -98,22 +107,27 @@ above ran from (see [why this matters](#the-working-directory-matters),
 below):
 
 ```text
-$ ubx promote 2fd3355f7909b21b5774f581a596bd3836ac295d57268de5d3b865ef31155592 \
+$ ubx promote 649e5de18a625885f3a23db0e2042c9d2a156bcbd98dc7adfa56f6630e22c009 \
     --ledger-dir . --to ../prod
-promoted 2fd3355f7909… -> payments (../prod)
-payments: 1 resource(s) authored via payments.d2 for stack "payments"
+promoted 649e5de18a62… -> payments (../prod)
+Plan  payments
+
+  + fake_widget.payments-db create
+
 delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
+
 blast radius: +1 ~0 -0
 cost delta: $0/mo
 
-plan: ../prod/.ubx/plans/5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c.json
-ubx-proposal: 5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c
+plan: ../prod/.ubx/plans/4913f6d0c7f37262b8633cff89b3031d2fac5e659cc5ffa52471aa91e6572d83.json
+ubx-proposal: 4913f6d0c7f37262b8633cff89b3031d2fac5e659cc5ffa52471aa91e6572d83
+next: ubx ship 4913f6d0c7f3
 ```
 
 What just happened, precisely:
 
 1. `ubx promote` read staging's own proposal
-   `2fd3355f7909…`'s `intent.sources`, found its `document` entry
+   `649e5de18a62…`'s `intent.sources`, found its `document` entry
    (`payments.d2`), and re-read that **same file** from disk.
 2. It parsed that diagram again — `diagram.Parse`, the identical,
    deterministic pipeline `ubx propose --from-diagram`/`ubx plan
@@ -123,7 +137,7 @@ What just happened, precisely:
    against `prod/`'s **own** ledger (empty, so far) — a genuinely fresh
    resolve, not a copy of staging's own `delta`.
 4. It appended one additive `intent.sources` entry:
-   `{"kind":"promotion","ref":"2fd3355f7909…","base":"."}` — the
+   `{"kind":"promotion","ref":"649e5de18a62…","base":"."}` — the
    provenance claim. `base` here is `"."`, staging's own `--ledger-dir`
    value (the default git-local store has no separate "stack base"
    concept of its own; a remote `LedgerStore` would show its real
@@ -138,9 +152,14 @@ The saved plan ships into `prod/` exactly like any other `ubx plan`
 output — nothing promotion-specific about this step:
 
 ```text
-$ ubx ship 5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c --ledger-dir ../prod
-accepted 5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c (stack payments) via local plan
-applied: payments.fake_widget.payments-db
+$ ubx ship 4913f6d0c7f37262b8633cff89b3031d2fac5e659cc5ffa52471aa91e6572d83 --ledger-dir ../prod --yes
+Ship  payments · 14s old · +1 create(s) ~0 modify(ies) -0 destroy(s)
+accepted 4913f6d0c7f3… (stack payments) via local plan
+payments.fake_widget.payments-db
+  · pending
+  · in_flight                                          0:00
+  ✓ applied                                            0:00
+✓ applied: payments.fake_widget.payments-db
 1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
 ```
 
@@ -149,30 +168,31 @@ applied: payments.fake_widget.payments-db
 `promotion` source, side by side:
 
 ```text
-$ ubx why 5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c --ledger-dir ../prod
-proposal 5eb6f3b3adb042b46d3409c94403dc311320f606bb119a3d3c8215455d3c6e8c (change)
+$ ubx why 4913f6d0c7f37262b8633cff89b3031d2fac5e659cc5ffa52471aa91e6572d83 --ledger-dir ../prod
+proposal 4913f6d0c7f3… (change)
 stack:  payments
 status: accepted
 intent: 1 resource(s) authored via payments.d2 for stack "payments"
   source: document payments.d2 (content_hash=sha256:c111bf28f4d8d3d14628a8a9e6a557553b0f6144050d5baf448d057ddad5eca9)
-  source: promoted from ./2fd3355f7909…
-accepted by [roozbeh] via local at 2026-07-30T16:44:38Z
+  source: promoted from ./649e5de18a62…
+accepted by [roozbeh] via local at 2026-07-31T19:42:59Z
 blast radius: +1 ~0 -0
++ fake_widget.payments-db create
 apply history:
   attempt 1: outcome=applied
     payments.fake_widget.payments-db:
-      pending at 2026-07-30T16:44:38Z
-      in_flight at 2026-07-30T16:44:38Z
-      applied at 2026-07-30T16:44:38Z
+      pending at 2026-07-31T19:42:59Z
+      in_flight at 2026-07-31T19:42:59Z
+      applied at 2026-07-31T19:43:00Z
 ```
 
-`source: promoted from ./2fd3355f7909…` is the literal rendering
+`source: promoted from ./649e5de18a62…` is the literal rendering
 [`docs/architecture.md`'s own "Environments & promotion"
 design](https://github.com/Ubiquex/ubiquex/blob/main/docs/architecture.md)
 (in the `ubiquex` repo) names: "promoted from staging/8f3c…". A reviewer
 looking at this proposal alone can already tell it was modeled on a real,
 accepted staging proposal, and can go read that proposal directly (`ubx
-why 2fd3355f7909… --ledger-dir staging`) for the full comparison.
+why 649e5de18a62… --ledger-dir staging`) for the full comparison.
 
 ## Evidence, not a pin
 
@@ -214,7 +234,7 @@ guessing:
 
 ```text
 $ cd /
-$ ubx promote 2fd3355f7909b21b5774f581a596bd3836ac295d57268de5d3b865ef31155592 --ledger-dir staging --to prod
+$ ubx promote 649e5de18a625885f3a23db0e2042c9d2a156bcbd98dc7adfa56f6630e22c009 --ledger-dir staging --to prod
 promote: re-resolve payments.d2: open payments.d2: no such file or directory
 ```
 

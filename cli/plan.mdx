@@ -4,8 +4,9 @@ description: "Resolve any medium input into a draft proposal, render its full re
 ---
 
 ```text
+ubx plan [flags]
 ubx plan <intent-file> (--provider <path> | --source <src> --provider-version <v>) [flags]
-ubx plan --from-code <entry>.ts [flags]
+ubx plan --from-code <entry>.ts|.go|.py [flags]
 ubx plan --from-doc <file>.md --stack <stack> [flags]
 ubx plan --from-diagram <file>.d2 --stack <stack> [flags]
 ```
@@ -18,15 +19,27 @@ Exactly one input is required:
 - **an intent file** (the positional argument) — a hand-written
   [`ubx:intent/v1` document](/cli/resolve#the-intent-file), resolved exactly
   like `ubx resolve` would.
-- **`--from-code <entry>.ts`** — a [TypeScript SDK program](/cli/resolve#authoring-in-typescript),
-  evaluated through the same hermetic Deno evaluator `ubx resolve --from-code` uses.
+- **`--from-code <entry>.ts|.go|.py`** — a [SDK program](/cli/resolve#authoring-in-typescript)
+  in TypeScript, Go, or Python, dispatched by extension to the same
+  hermetic evaluator `ubx resolve --from-code` uses for each language.
 - **`--from-doc <file>.md --stack <stack>`** — a markdown authoring document,
   transcribed into an intent draft via the configured [`[intent]` provider adapter](/cli/config#intent)
   exactly like [`ubx propose --from-doc`](/cli/propose), then resolved in the
-  same command.
+  same command. Since the intent-provider call is a real, seconds-long
+  network round trip, a progress line renders before the receipt:
+  ```text
+  drafting via claude:claude-opus-4-8… ✓ · resolving…
+  ```
+  `ubx propose --from-doc` never shows this (it doesn't resolve, so "·
+  resolving…" would be a lie there); parsing a `.d2` diagram or
+  evaluating an SDK program is effectively instant, so neither
+  `--from-diagram` nor `--from-code` shows one either.
 - **`--from-diagram <file>.d2 --stack <stack>`** — a [D2 diagram](/guides/diagram-medium)'s
   own topology, parsed exactly like [`ubx propose --from-diagram`](/cli/propose),
   then resolved in the same command.
+- **bare, no argument or flag** — auto-detects a single medium file in
+  `--ledger-dir` and plans it as if you'd passed the matching flag
+  yourself. See [Medium auto-detection](#medium-auto-detection), below.
 
 Every input resolves through the identical, unmodified
 [`core/resolver.Resolve`](/cli/resolve) every other entry point already
@@ -57,7 +70,7 @@ instead — see [When to use the four-verb ceremony](#when-to-use-the-four-verb-
 
 | Flag | Description |
 | --- | --- |
-| `--from-code string` | evaluate a TypeScript SDK program (`@ubx/sdk`) instead of reading an intent file |
+| `--from-code string` | evaluate a TypeScript (`@ubx/sdk`), Go (`ubx-sdk-go`), or Python (`ubx_sdk`) SDK program, dispatched by extension, instead of reading an intent file |
 | `--from-diagram string` | path to a `.d2` diagram — transcribes its topology into an intent/v1 draft, then resolves it |
 | `--from-doc string` | path to a markdown authoring document — transcribes it into an intent/v1 draft via the configured `[intent]` provider, then resolves it |
 | `--stack string` | target stack name (required with `--from-doc`/`--from-diagram`; the intent-file and `--from-code` inputs already name their own stack) |
@@ -80,6 +93,86 @@ instead — see [When to use the four-verb ceremony](#when-to-use-the-four-verb-
   transcripts) get the identical plain text shown below, and `--json` is
   untouched either way.
 </Note>
+
+## Medium auto-detection
+
+Run `ubx plan` with no positional argument and no `--from-*` flag, and it
+looks for exactly one medium file in `--ledger-dir` (default `.`) and
+plans it automatically — an authoring `.md` doc, a `.d2` diagram, or a
+`.ts`/`.go`/`.py` SDK program:
+
+```text
+$ ls
+widget.ts
+
+$ ubx plan --provider ./fakeprovider
+Plan  sandbox · from widget.ts
+
+  + fake_widget.widget1 create
+      name: "widget1"
+
+delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
+
+blast radius: +1 ~0 -0
+cost delta: $0/mo
+
+ubx-proposal: c49cf3986285…
+next: ubx ship c49cf3986285
+```
+
+A README (or `CHANGELOG.md`/`LICENSE`/`CONTRIBUTING.md`/etc.) sitting
+right next to a real medium is never itself mistaken for one — the
+detection rules skip a fixed, case-insensitive denylist of well-known
+project-meta markdown filenames:
+
+```text
+$ ls
+README.md   widget.ts
+
+$ ubx plan --provider ./fakeprovider
+Plan  sandbox · from widget.ts
+
+  + fake_widget.widget1 create
+      name: "widget1"
+
+delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
+
+blast radius: +1 ~0 -0
+cost delta: $0/mo
+
+ubx-proposal: b07eaf5162c2…
+next: ubx ship b07eaf5162c2
+```
+
+More than one real candidate is never guessed between — a teaching
+error lists each one with its own correct flag:
+
+```text
+$ ls
+platform.md   topology.d2
+
+$ ubx plan
+plan: multiple mediums found: platform.md, topology.d2 -- pick one: ubx plan --from-doc platform.md | ubx plan --from-diagram topology.d2
+```
+
+<Note>
+  A `.ts`/`.go`/`.py` file is only ever a candidate if its own content
+  carries the real SDK import (`"@ubx/sdk"` for TypeScript,
+  `github.com/ubiquex/ubx-sdk-go` for Go, `import ubx_sdk` for Python) —
+  a bare extension match would false-positive on an arbitrary source
+  file sitting in the same directory (a near-certainty for `.go`, since
+  `ubx` itself is a Go module). One consequence worth knowing: a small
+  helper/bindings file that merely *imports types* from `@ubx/sdk`
+  (rather than being the runnable entry point itself) also carries that
+  same import string, so it counts as its own separate candidate too —
+  keep an SDK-authored stack's entry point and its own type bindings in
+  different directories (or pass `--from-code` explicitly) if this
+  happens in practice.
+</Note>
+
+`--from-doc`/`--from-diagram`/`--from-code` remain for explicit
+selection at any time — auto-detection only ever runs when none of them
+(and no positional argument) was given.
 
 ## Example: a two-resource create chain
 
@@ -112,28 +205,42 @@ instead — see [When to use the four-verb ceremony](#when-to-use-the-four-verb-
 ```text
 $ ubx plan intent.json --provider ./fakeprovider --ledger-dir .
 Plan  sandbox · from intent.json
-a widget and its mirror, for the two-step flow
 
   + fake_widget.primary create
       name: "primary-widget"
-      tags: {"env":"sandbox"}
+      tags:
+      {
+        "env": "sandbox"
+      }
+
   + fake_widget.mirror create
       name: "primary-widget"
-      tags: {"peer_id":{"$computed":{"from":"sandbox.fake_widget.primary.id"}}}
+      tags:
+      {
+        "peer_id": $ref:sandbox.fake_widget.primary.id
+      }
 
 delta: +2 create(s), ~0 modify(ies), -0 destroy(s)
+
 blast radius: +2 ~0 -0
 cost delta: $0/mo
 
-ubx-proposal: da98d6e57995…
-next: ubx ship da98d6e57995
+ubx-proposal: afb94ca765bb…
+next: ubx ship afb94ca765bb
 ```
 
 Every resolved config key renders, not just the ones the intent file set
-explicitly — `mirror`'s own `tags.peer_id` shows the literal `$computed`
-marker since it isn't resolved until `primary` actually applies (see
+explicitly — `mirror`'s own `tags.peer_id` shows as `$ref:sandbox.fake_widget.primary.id`
+since it isn't resolved until `primary` actually applies (see
 [`ubx ship`'s own create-chain example](/cli/ship#a-two-resource-create-chain)
-for what it becomes for real). `cost_delta` renders whatever
+for what it becomes for real). This is a **display-only** convention for
+the resolved `$computed` marker underneath — the real wire format for an
+unresolved reference is (and stays) the `{"$ref": {"to": "..."}}` object,
+resolved away before the ledger ever sees it; only the *rendering* of the
+`$computed` marker that reference resolves to borrows this terse
+dotted-address notation, for readability. A JSON-valued attribute (like
+`tags`, a map) renders as a formatted, indented block, never a
+single-line escaped string. `cost_delta` renders whatever
 `core/resolver` already computed — `$0/mo` today, unchanged by this
 command; there's no cost-estimation engine yet. The last two lines are
 the ones that matter for the next step: the hash (short by default —
@@ -153,20 +260,21 @@ get their own red block, rendered first, when there are any:
 ```text
 $ ubx plan --from-diagram topo.d2 --stack payments --neighbor-ledger shared=../shared --ledger-dir .
 Plan  payments · from topo.d2
-1 resource(s) authored via topo.d2 for stack "payments"
 
   + fake_widget.main-widget create
 
 delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
+
 blast radius: +1 ~0 -0
 cost delta: $0/mo
 
 AI defaults — you are signing these:
+
 ◦ resource "payments.fake_widget.main-widget" is drawn with a relationship to external reference "shared.fake_widget.other-widget" -- the diagram medium does not yet emit a wire-level $cross reference for a topology-only edge with no named attribute. Add an explicit $cross reference in the resource's own config by hand if this needs to be enforced structurally.
     affects: payments.fake_widget.main-widget
 
-ubx-proposal: 855a6ebe962f…
-next: ubx ship 855a6ebe962f
+ubx-proposal: 09a63d993039…
+next: ubx ship 09a63d993039
 ```
 
 ## Example: destroys still require confirmation, at ship time
@@ -179,7 +287,6 @@ already applies to `delta.destroys`:
 ```text
 $ ubx plan destroy-intent.json --provider ./fakeprovider --ledger-dir .
 Plan  sandbox · from destroy-intent.json
-decommission the mirror widget
 
   - destroy: sandbox.fake_widget.mirror
     id: "computed-id"
@@ -187,18 +294,19 @@ decommission the mirror widget
     tags: {"peer_id":"computed-id"}
 
 delta: +0 create(s), ~0 modify(ies), -1 destroy(s)
+
 blast radius: +0 ~0 -1
 cost delta: $0/mo
 
-ubx-proposal: d8b202b53291…
-next: ubx ship d8b202b53291
+ubx-proposal: 6ae8d6812bc4…
+next: ubx ship 6ae8d6812bc4
 ```
 
 The confirmation gate itself lives in [`ubx ship`](/cli/ship#shipping-a-destroy),
 at the moment this plan is actually accepted:
 
 ```text
-$ ubx ship d8b202b53291 --provider ./fakeprovider --ledger-dir . --yes
+$ ubx ship 6ae8d6812bc4 --provider ./fakeprovider --ledger-dir . --yes
 ship: this proposal has blast_radius.destroys > 0 -- pass --confirm-destroys to accept it
 ```
 

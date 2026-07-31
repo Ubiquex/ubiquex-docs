@@ -38,16 +38,15 @@ $ ubx scan --provider ./fakeprovider --stack payments --type fake_widget --name 
     --lookup '{"id":"old-widget"}' --ledger-dir . --out adopt.json
 New resource found  payments.fake_widget.old-widget
 
-  adoption      d19422dc16fb     record-only · adopts into the ledger
+  adoption      dd28a22624e9     record-only · adopts into the ledger
 
-  saved to plan store            next: ubx ship d19422dc16fb
+  saved to plan store            next: ubx ship dd28a22624e9
 
 $ ubx accept adopt.json --ledger-dir .
-accepted d19422dc16fb55bac4c5f243b43fa643305e5f1bc9e1a5e0becf48e039e36399 (stack payments)
+accepted dd28a22624e931b167a9f598da17eac476777b44180d149eb8508528679d35d9 (stack payments)
 
 $ ubx terminate payments.fake_widget.old-widget --provider ./fakeprovider --ledger-dir .
 Plan  payments
-terminate payments.fake_widget.old-widget
 
   - destroy: payments.fake_widget.old-widget
     id: "old-widget"
@@ -55,11 +54,12 @@ terminate payments.fake_widget.old-widget
     tags: {}
 
 delta: +0 create(s), ~0 modify(ies), -1 destroy(s)
+
 blast radius: +0 ~0 -1
 cost delta: $0/mo
 
-ubx-proposal: 568574a6b2dd…
-next: ubx ship 568574a6b2dd
+ubx-proposal: 046090bd56b1…
+next: ubx ship 046090bd56b1
 ```
 
 The destroyed resource's full last-known state renders red-led, `- destroy:`,
@@ -76,22 +76,12 @@ are confirmed, the same typed-confirmation gate every `ubx ship` now goes
 through:
 
 ```text
-$ ubx ship 568574a6b2dd --provider ./fakeprovider --ledger-dir .
+$ ubx ship 046090bd56b1 --provider ./fakeprovider --ledger-dir .
 ship: this proposal has blast_radius.destroys > 0 -- pass --confirm-destroys to accept it
 
-$ ubx ship 568574a6b2dd --provider ./fakeprovider --ledger-dir . --confirm-destroys --yes
-Ship  payments · 11s old
-terminate payments.fake_widget.old-widget
-
-  - destroy: payments.fake_widget.old-widget
-    id: "old-widget"
-    name: null
-    tags: {}
-
-delta: +0 create(s), ~0 modify(ies), -1 destroy(s)
-blast radius: +0 ~0 -1
-cost delta: $0/mo
-accepted 568574a6b2dd… (stack payments) via local plan
+$ ubx ship 046090bd56b1 --provider ./fakeprovider --ledger-dir . --confirm-destroys --yes
+Ship  payments · 18s old · +0 create(s) ~0 modify(ies) -1 destroy(s)
+accepted 046090bd56b1… (stack payments) via local plan
 payments.fake_widget.old-widget
   · pending
   · in_flight                                          0:00
@@ -102,21 +92,24 @@ payments.fake_widget.old-widget
 1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
 ```
 
-`Ship` re-renders the same receipt shown at plan time before applying —
-`--yes` is the non-interactive equivalent of typing `yes` at an interactive
-prompt (terraform's own pattern); omit it in a real terminal and `ubx ship`
-prompts for that typed confirmation instead of refusing outright.
+`ubx ship` does **not** re-render the full receipt shown at plan time —
+just a one-line summary (stack, plan age, blast radius) confirming this is
+still the plan being signed, since the full receipt already rendered once,
+above, at `ubx terminate` time. `--yes` is the non-interactive equivalent
+of typing `yes` at an interactive prompt (terraform's own pattern); omit it
+in a real terminal and `ubx ship` prompts for that typed confirmation
+instead of refusing outright.
 
 `ubx why` renders the resulting tombstone the same way it renders any other
 destroy:
 
 ```text
-$ ubx why 568574a6b2ddf1f063c1e7dd7a811bb8ad29e88029095935fe738c46aba49a5e --ledger-dir .
-proposal 568574a6b2dd… (change)
+$ ubx why 046090bd56b1257b4160cec2740c85fb76e3ebdd99e26c4d4f6d2ecd4d808b5a --ledger-dir .
+proposal 046090bd56b1… (change)
 stack:  payments
 status: accepted
 intent: terminate payments.fake_widget.old-widget
-accepted by [roozbeh] via local at 2026-07-31T00:41:02Z
+accepted by [roozbeh] via local at 2026-07-31T19:37:28Z
 blast radius: +0 ~0 -1
 - destroy: payments.fake_widget.old-widget
   id: "old-widget"
@@ -125,12 +118,12 @@ blast radius: +0 ~0 -1
 apply history:
   attempt 1: outcome=applied
     payments.fake_widget.old-widget:
-      pending at 2026-07-31T00:41:02Z
-      in_flight at 2026-07-31T00:41:02Z
-      unknown_post_timeout at 2026-07-31T00:41:02Z -- provider reported a successful destroy -- verifying via a post-destroy read-back before recording it as destroyed
-      applied at 2026-07-31T00:41:02Z -- confirmed by reconciliation (destroyed)
-      reconcile: present_matches at 2026-07-31T00:41:02Z
-      reconcile: destroyed at 2026-07-31T00:41:02Z
+      pending at 2026-07-31T19:37:28Z
+      in_flight at 2026-07-31T19:37:28Z
+      unknown_post_timeout at 2026-07-31T19:37:28Z -- provider reported a successful destroy -- verifying via a post-destroy read-back before recording it as destroyed
+      applied at 2026-07-31T19:37:28Z -- confirmed by reconciliation (destroyed)
+      reconcile: present_matches at 2026-07-31T19:37:28Z
+      reconcile: destroyed at 2026-07-31T19:37:28Z
 ```
 
 The `proposal …` header line truncates to 12 chars + `…` by default, same as
