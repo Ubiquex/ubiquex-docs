@@ -23,9 +23,14 @@ revert-plan` still exists and still never applies anything itself — it's
 what you reach for pre-acceptance, or if you'd rather apply the
 correction through your own tooling; `ubx ship` is what actually does it.
 
-Only `drift_revert` and `change` proposals can be shipped. Every other kind
-is record-only — accepting an `adoption`/`drift_adopt` already is the
-whole action, there's nothing to execute.
+Only `drift_revert` and `change` proposals are actually *executed*.
+`adoption`/`drift_adopt` are record-only — accepting one already is the
+whole action, there's nothing left to run against a real provider. `ubx
+ship` still accepts these the exact same way (the same inline-accept-then-
+confirm flow, or the same already-accepted-in-the-ledger path) — it just
+reports success once acceptance lands, rather than ever reaching for a
+provider at all. See [Shipping a record-only proposal](#shipping-a-record-only-proposal-adoption-drift_adopt),
+below.
 
 ## `[hash]` is optional, and looked up two ways
 
@@ -78,7 +83,7 @@ and says so:
 
 ```text
 $ ubx ship --provider ./fakeprovider --ledger-dir . --yes
-latest plan for stack playground: 097565bc1d92  change  0s old
+latest plan for stack playground: 9c6841cfaa32  change  0s old
 Ship  playground · 0s old
 a single widget for the bare-ship demo
 
@@ -88,7 +93,7 @@ a single widget for the bare-ship demo
 delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
 blast radius: +1 ~0 -0
 cost delta: $0/mo
-accepted 097565bc1d92a138b1a5cfedbd19f2420eb57f99f84bfbadef93c960488afb87 (stack playground) via local plan
+accepted 9c6841cfaa32… (stack playground) via local plan
 playground.fake_widget.q1
   · pending
   · in_flight                                          0:00
@@ -158,12 +163,11 @@ delta: +2 create(s), ~0 modify(ies), -0 destroy(s)
 blast radius: +2 ~0 -0
 cost delta: $0/mo
 
-plan: .ubx/plans/d6989bd449a7c81a993eb3e07ca2d01dce62f259a982be318acaf9db08303d1a.json
-ubx-proposal: d6989bd449a7c81a993eb3e07ca2d01dce62f259a982be318acaf9db08303d1a
-next: ubx ship d6989bd449a7
+ubx-proposal: 5029378ab740…
+next: ubx ship 5029378ab740
 
-$ ubx ship d6989bd449a7 --provider ./fakeprovider --ledger-dir .
-Ship  sandbox · 15s old
+$ ubx ship 5029378ab740 --provider ./fakeprovider --ledger-dir .
+Ship  sandbox · 9s old
 a widget and its mirror, for the two-step flow
 
   + fake_widget.primary create
@@ -178,7 +182,7 @@ blast radius: +2 ~0 -0
 cost delta: $0/mo
 
 Ship this to sandbox? Only 'yes' accepted: yes
-accepted d6989bd449a7c81a993eb3e07ca2d01dce62f259a982be318acaf9db08303d1a (stack sandbox) via local plan
+accepted 5029378ab740… (stack sandbox) via local plan
 sandbox.fake_widget.primary
   · pending
   · in_flight                                          0:00
@@ -197,7 +201,7 @@ stdin — aborts cleanly, nothing accepted or applied, exit `0` (a
 deliberate abort is not a finding or an error):
 
 ```text
-$ ubx ship d6989bd449a7 --provider ./fakeprovider --ledger-dir .
+$ ubx ship 5029378ab740 --provider ./fakeprovider --ledger-dir .
 ...
 Ship this to sandbox? Only 'yes' accepted: nope
 ship aborted -- nothing accepted or applied
@@ -208,7 +212,7 @@ first — and a non-TTY without it refuses outright rather than hang
 reading a stdin nobody's watching:
 
 ```text
-$ ubx ship d6989bd449a7 --provider ./fakeprovider --ledger-dir . < /dev/null
+$ ubx ship 5029378ab740 --provider ./fakeprovider --ledger-dir . < /dev/null
 ...
 ship: refusing to apply without confirmation: not an interactive terminal -- pass --yes to confirm non-interactively (e.g. in CI/scripts)
 ```
@@ -218,13 +222,19 @@ an ordinary `ubx accept` would have recorded — the prompt is a UX
 addition, not a new acceptance tier:
 
 ```text
-$ ubx why d6989bd449a7c81a993eb3e07ca2d01dce62f259a982be318acaf9db08303d1a --ledger-dir .
-proposal d6989bd449a7… (change)
+$ ubx why 5029378ab7409a855cd45cfcd794cbeab18f66c793f0ca2dc8a7a08fa1cee307 --ledger-dir .
+proposal 5029378ab740… (change)
 stack:  sandbox
 status: accepted
 intent: a widget and its mirror, for the two-step flow
-accepted by [roozbeh] via local at 2026-07-30T22:46:41Z
+accepted by [roozbeh] via local at 2026-07-31T00:38:17Z
 blast radius: +2 ~0 -0
++ fake_widget.primary create
+    name: "primary-widget"
+    tags: {"env":"sandbox"}
++ fake_widget.mirror create
+    name: "primary-widget"
+    tags: {"peer_id":{"$computed":{"from":"sandbox.fake_widget.primary.id"}}}
 apply history:
   attempt 1: outcome=applied
     ...
@@ -256,11 +266,10 @@ delta: +0 create(s), ~0 modify(ies), -1 destroy(s)
 blast radius: +0 ~0 -1
 cost delta: $0/mo
 
-plan: .ubx/plans/1c267da1764a5e906a3fb0f5f202cde7ef3d10b634e150433aabab9216f33636.json
-ubx-proposal: 1c267da1764a5e906a3fb0f5f202cde7ef3d10b634e150433aabab9216f33636
-next: ubx ship 1c267da1764a
+ubx-proposal: 56ebbf77dbcf…
+next: ubx ship 56ebbf77dbcf
 
-$ ubx ship 1c267da1764a --provider ./fakeprovider --ledger-dir . --yes
+$ ubx ship 56ebbf77dbcf --provider ./fakeprovider --ledger-dir . --yes
 ship: this proposal has blast_radius.destroys > 0 -- pass --confirm-destroys to accept it
 ```
 
@@ -270,8 +279,8 @@ read-back narration every destroy goes through (see [Shipping a
 destroy](#shipping-a-destroy) below):
 
 ```text
-$ ubx ship 1c267da1764a --provider ./fakeprovider --ledger-dir . --confirm-destroys --yes
-Ship  sandbox · 7s old
+$ ubx ship 56ebbf77dbcf --provider ./fakeprovider --ledger-dir . --confirm-destroys --yes
+Ship  sandbox · 12s old
 decommission the mirror widget
 
   - destroy: sandbox.fake_widget.mirror
@@ -282,7 +291,7 @@ decommission the mirror widget
 delta: +0 create(s), ~0 modify(ies), -1 destroy(s)
 blast radius: +0 ~0 -1
 cost delta: $0/mo
-accepted 1c267da1764a5e906a3fb0f5f202cde7ef3d10b634e150433aabab9216f33636 (stack sandbox) via local plan
+accepted 56ebbf77dbcf… (stack sandbox) via local plan
 sandbox.fake_widget.mirror
   · pending
   · in_flight                                          0:00
@@ -340,6 +349,84 @@ ship: plan file at .ubx/plans/f8e95de5e90ccc94ade76dacda9fbf1d50aadb9cce2d76c246
   ship: --stack is required to open a remote ledger store (.ubx/config's [ledger] store is "s3://ubx-states/acme/prod/", not git) -- a remote store's own per-stack chain means opening one at all requires knowing which stack first
   ```
 </Note>
+
+## Shipping a record-only proposal (adoption/drift_adopt)
+
+An `adoption` (a brand-new resource [`ubx scan`](/cli/scan) has never seen
+before) or a `drift_adopt` (recording a real drift as the new signed
+truth) resolve their *entire* action at acceptance — there's nothing left
+to execute against a real provider. `ubx ship` still accepts these
+through the exact same inline-accept-then-confirm flow as any other
+plan-store hash; it just reports success the moment acceptance lands,
+instead of the confusing "ship only executes drift_revert or change
+proposals" a `ubx ship` on one of these used to print — after already
+accepting it, making a real success look like a failure:
+
+```text
+$ ubx scan --provider ./fakeprovider --stack payments --type fake_widget --name main-cache --lookup '{"name":"main-cache"}' --ledger-dir . --no-attribution
+New resource found  payments.fake_widget.main-cache
+
+  adoption      9ed8d1b720b0     record-only · adopts into the ledger
+
+  saved to plan store            next: ubx ship 9ed8d1b720b0
+
+$ ubx ship 9ed8d1b720b0 --provider ./fakeprovider --ledger-dir . --yes
+Ship  payments · 6s old
+adopt existing payments.fake_widget.main-cache into the ledger (discovered by scan)
+
+  + fake_widget.main-cache create
+
+delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
+blast radius: +0 ~0 -0
+cost delta: $0/mo
+accepted 9ed8d1b720b0… (stack payments) via local plan
+9ed8d1b720b0… (adoption) -- record-only, nothing to execute -- ✓ resolved
+```
+
+Real, unedited output. The interactive confirmation, `--yes`, and
+`--confirm-destroys` double-consent for a destroy-carrying plan all still
+apply identically before this point is ever reached — a record-only
+proposal is never treated as a shortcut around consent, only around
+*execution*, which it never needed in the first place. An **already**
+accepted `adoption`/`drift_adopt` (found directly via its own ledger id,
+not the plan-store fallback) reports the identical success line, since
+the kind check runs the same way regardless of which of `ubx ship`'s two
+lookup paths found it.
+
+### A warning before accepting a recent, unattributed drift_adopt
+
+A `drift_adopt`'s own attribution is a one-shot: [`ubx scan
+--propose`](/cli/scan)'s own CloudTrail lookback either finds a real
+actor or doesn't, and whatever it recorded becomes permanent the moment
+this proposal is accepted — [`ubx blame`](/cli/blame)/[`ubx
+why`](/cli/why) only ever replay it, never re-attempt it later. If the
+drift being adopted is very recent (under 10 minutes since it was
+resolved) and came back unattributed, `ubx ship` warns before accepting
+it — CloudTrail's own delivery window is typically 2-5 minutes, so a
+re-scan shortly afterward may still attribute it for real:
+
+```text
+$ ubx ship 8a2f4999650f --provider ./fakeprovider --ledger-dir . --yes
+Ship  payments · 13s old
+record drift on payments.fake_widget.main-cache observed outside the ledger
+
+  ~ change: payments.fake_widget.main-cache: tags.env: (absent) -> "staging"
+
+delta: +0 create(s), ~1 modify(ies), -0 destroy(s)
+blast radius: +0 ~0 -0
+cost delta: $0/mo
+warning: this drift is 13s old and has no recorded attribution (too recent for CloudTrail to have delivered a matching event yet) -- accepting now records it as unattributed permanently; consider re-scanning in a few minutes first
+
+accepted 8a2f4999650f… (stack payments) via local plan
+8a2f4999650f… (drift_adopt) -- record-only, nothing to execute -- ✓ resolved
+```
+
+Real, unedited output — advisory only, never blocking: the plan still
+ships with `--yes` (or a typed `yes` at the interactive prompt) right
+after the warning. Once the drift is 10 minutes old or older, or already
+carries real attribution, the warning simply doesn't print at all — see
+[`ubx scan`'s own attribution section](/cli/scan#attribution-when-it-comes-back-empty)
+for the display-only half of this same fix.
 
 ## Example: a clean apply
 

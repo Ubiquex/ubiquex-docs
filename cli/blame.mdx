@@ -158,6 +158,37 @@ Blame  conformance.aws_s3_bucket.ubx-states
     attributed to: arn:aws:iam::839333509514:user/roozbeh
 ```
 
+### When attribution came back empty
+
+A `drift_adopt` whose own CloudTrail lookback found nothing (or couldn't
+run at all — denied credentials, no region/project to search in) records
+that outcome, and *why*, at scan-propose time — `blame` renders the
+recorded reason instead of silently showing nothing, exactly as it renders
+a real attributed actor:
+
+```text
+$ ubx blame payments.fake_widget.widget-attr-blame --ledger-dir .
+Blame  payments.fake_widget.widget-attr-blame
+
+▸ 2 attribute(s) · set by 4d05e00a0845… (adoption) · 2026-07-31T00:54:11Z · local
+    id: "computed-id"
+    name: "widget-attr-blame"
+
+▸ 1 attribute(s) · set by d1c637bab016… (drift_adopt) · 2026-07-31T00:54:11Z · local
+    attributed: unattributed (CloudTrail visibility unavailable (denied access or not logged))
+    tags.env: "staging"
+```
+
+Real output shape (captured against a hermetically credential-blanked
+account — see `cli/attribution_surfacing_test.go`'s own
+`TestBlame_SurfacesUnattributedReason`). A recent drift's own
+`delivery_window` reason ("too recent for CloudTrail to have delivered a
+matching event yet") renders the same way — see [`ubx scan`'s own
+attribution section](/cli/scan#attribution-when-it-comes-back-empty) for
+that specific wording, and [`ubx ship`'s own
+warning](/cli/ship#a-warning-before-accepting-a-recent-unattributed-drift_adopt)
+before accepting one this recent.
+
 ## A destroyed address blames its final pre-destroy state
 
 `ubx blame` on a destroyed address doesn't come back empty — it renders a

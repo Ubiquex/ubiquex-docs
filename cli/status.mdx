@@ -142,19 +142,40 @@ clean: payments.fake_widget.api-cache: adoption bdbb0b5098bf… (accepted 2026-0
 
 ### `--drift`, something drifted
 
-A drifted entry now (UBI-61) shows the actual attribute-level diff inline —
-the same before/after rendering [`ubx why`](/cli/why) uses for a `modify` —
-plus a `next:` handoff naming exactly the [`ubx scan`](/cli/scan) invocation
-that resolves it, rather than a bare "drifted" verdict a human has to go
-digging from:
+A drifted entry shows the actual attribute-level diff inline — the same
+before/after rendering [`ubx why`](/cli/why) uses for a `modify` — plus a
+`next:` handoff, rather than a bare "drifted" verdict a human has to go
+digging from. The handoff is just `ubx scan --propose both` now: flag-free
+scan (UBI-49) resolves the stack from the cascade and walks every tracked
+address (this one included) with no `--type`/`--name` needed:
 
 ```text
 $ ubx status --ledger-dir . --drift --provider ./fakeprovider
-drifted: payments.fake_widget.api-cache: adoption e9a99872799a… (accepted 2026-07-30T22:58:15Z)
+drifted: payments.fake_widget.api-cache: adoption a34d77e8c620… (accepted 2026-07-31T00:52:47Z)
     ~ tags.owner: (absent) -> "someone-else"
-    next: ubx scan --propose both --stack payments --type fake_widget --name api-cache
+    next: ubx scan --propose both
 1 resource(s), 1 drifted, 0 unreadable
 ```
+
+If a *prior* drift on this exact address was already adopted (and so
+carries whatever CloudTrail attribution that `scan --propose` cycle
+recorded), a `who:` line surfaces it — explicitly as recorded history, not
+a live attempt for the drift being shown right now (attribution is
+`scan --propose`'s own CloudTrail-lookback job; `status --drift` never runs
+one itself, just to render one line):
+
+```text
+$ ubx status --ledger-dir . --drift --provider ./fakeprovider
+drifted: payments.fake_widget.api-cache: drift_adopt 470ead18a0c2… (accepted 2026-07-31T00:53:11Z)
+    ~ tags.owner: "someone-else" -> "someone-else-again"
+    who: arn:aws:iam::123456789012:user/roozbeh · TagResource · 2026-07-31T00:00:00Z (recorded at drift_adopt)
+    next: ubx scan --propose both
+1 resource(s), 1 drifted, 0 unreadable
+```
+
+No prior adopt at all (the common case for a resource only ever adopted,
+never drifted before) means no `who:` line — omitted entirely, never a
+placeholder.
 
 ### `--drift`, something unreadable
 

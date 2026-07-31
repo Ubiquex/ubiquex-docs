@@ -4,7 +4,8 @@ description: "Compare one resource's live state against the ledger and generate 
 ---
 
 ```text
-ubx scan --stack <name> --type <type> --name <name> (--provider <path> | --source <src> --provider-version <v>) [flags]
+ubx scan --type <type> --name <name> (--provider <path> | --source <src> --provider-version <v>) [flags]
+ubx scan (--provider <path> | --source <src> --provider-version <v>) [flags]
 ubx scan --all --tfstate <path> (--provider <path> | --source <src> --provider-version <v>) [flags]
 ubx scan --discover --tag <key=value> [--tag <key=value> ...] --region <region> --stack <stack> (--provider <path> | --source <src> --provider-version <v>) [flags]
 ```
@@ -20,16 +21,26 @@ generated — an actionable finding, not a failure); `no drift` exits `0`. See
 [Exit codes](/cli/exit-codes) for the full contract, including `--all`'s own
 skipped-resource case.
 
+**`--type`/`--name` are both optional together** — give both to scan one
+resource, or neither to walk every resource this stack's ledger already
+tracks (`--stack`, or its own [`.ubx/config`](/cli/config) default), the
+same fleet `ubx status` already walks read-only. See [Flag-free scan:
+walking the whole fleet](#flag-free-scan-walking-the-whole-fleet), below.
+
 On drift, `ubx scan` also attempts [CloudTrail attribution](/concepts/attribution)
 by default, and can optionally surface the drift as a GitHub issue or pull
-request instead of just printing the proposal.
+request instead of just printing the proposal. See [Attribution: when it
+comes back empty](#attribution-when-it-comes-back-empty) for what renders
+when it doesn't find anything.
 
 Every generated proposal — `new`/`drifted`, `adopt`/`revert`/`both` — is
 saved to the same hash-addressed plan store [`ubx plan`](/cli/plan) writes
 to (`.ubx/plans/<hash>.json`), reported as a card naming its own real,
-ship-able hash. `ubx ship <hash>` (or `ubx accept <hash>`, for a
-`drift_adopt`/`adoption` proposal, which has nothing to apply) picks it up
-directly — no manual file handling required.
+ship-able hash. `ubx ship <hash>` picks it up directly — no manual file
+handling required, and this now applies identically whether the hash names
+an executable `drift_revert`/`change` or a record-only `adoption`/
+`drift_adopt` (which has nothing to execute, only accept — see [`ubx
+ship`'s own section on this](/cli/ship#shipping-a-record-only-proposal-adoption-drift_adopt)).
 
 `--all --tfstate <path>` is a different mode entirely: instead of one
 resource, it walks every resource in a Terraform state file and generates
@@ -46,9 +57,9 @@ discovery](#cloud-side-discovery---discover) below.
 
 | Flag | Description |
 | --- | --- |
-| `--stack string` | stack name the resource belongs to (**required unless `--all`**, where it defaults to the state file's own basename) |
-| `--type string` | resource type, e.g. `aws_s3_bucket` (**required unless `--all`**) |
-| `--name string` | resource name within the stack (**required unless `--all`**) |
+| `--stack string` | stack name the resource(s) belong to (**required unless `--all`**, where it defaults to the state file's own basename; falls back to [`.ubx/config`](/cli/config)'s own `stack` key otherwise) |
+| `--type string` | resource type, e.g. `aws_s3_bucket` — pass both `--type` and `--name` to scan one resource, or **neither** to walk every resource this stack's ledger already tracks |
+| `--name string` | resource name within the stack — pass both `--type` and `--name` to scan one resource, or **neither** to walk every resource this stack's ledger already tracks |
 | `--lookup string` | JSON object identifying the resource to the provider, e.g. `{"id":"..."}` (default `{}`) — see [Resource lookup conventions](/cli/lookup), most types need more than just `id` |
 | `--propose string` | on drift, which resolution(s) to generate: `adopt` (`drift_adopt`), `revert` (`drift_revert`), or `both` (default `adopt`) — no effect on a `new` resource, which always generates `adoption` |
 | `--provider string` | path to the provider binary (mutually exclusive with `--source`) |
@@ -94,9 +105,9 @@ scan is just:
 $ ubx scan --type fake_widget --name api-cache --lookup '{"name":"api-cache","tags":{"env":"prod"}}' --ledger-dir .
 New resource found  payments.fake_widget.api-cache
 
-  adoption      57bdc6c31318     +0 create(s) ~0 modify(ies) -0 destroy(s)
+  adoption      85cff0be45fc     record-only · adopts into the ledger
 
-  saved to plan store            next: ubx ship 57bdc6c31318
+  saved to plan store            next: ubx ship 85cff0be45fc
 ```
 
 An explicit `--stack`/`--provider` still always overrides config — see
@@ -111,12 +122,20 @@ $ ubx scan --provider ./terraform-provider-aws \
     --ledger-dir . --out adopt.json --no-attribution
 New resource found  payments.fake_widget.api-cache2
 
-  adoption      e91bae0a5d36     +0 create(s) ~0 modify(ies) -0 destroy(s)
+  adoption      6268575c1c8f     record-only · adopts into the ledger
 
-  saved to plan store            next: ubx ship e91bae0a5d36
+  saved to plan store            next: ubx ship 6268575c1c8f
 ```
 
 ### A resource that has drifted from the ledger
+
+Accepting the adoption above first (so there's a recorded baseline to drift
+away from), then scanning again against a changed live value:
+
+```text
+$ ubx accept adopt.json --ledger-dir .
+accepted 6268575c1c8fba98e6f9d0b043ac18d162c3d7925c8da4934e580b635e8d6556 (stack payments)
+```
 
 `--out` (or plain `--json`) still writes the full proposal; the plan store
 save happens either way:
@@ -128,15 +147,16 @@ $ ubx scan --provider ./terraform-provider-aws \
     --ledger-dir . --no-attribution --out drift.json
 Drift found  payments.fake_widget.api-cache2
 
-  drift_adopt   4d0988674459     +0 create(s) ~0 modify(ies) -0 destroy(s)
+  drift_adopt   1550523be221     record-only · records reality as signed
+      ~ tags.env: "prod" -> "staging"
 
-  saved to plan store            next: ubx ship 4d0988674459
+  saved to plan store            next: ubx ship 1550523be221
 
 $ cat drift.json
 {
   "schema_version": 2,
   "stack": "payments",
-  "parent": "e91bae0a5d3672b2c48fa33cddfe5bc9350650a38064f5c4cad03c3bf6f3811d",
+  "parent": "6268575c1c8fba98e6f9d0b043ac18d162c3d7925c8da4934e580b635e8d6556",
   "kind": "drift_adopt",
   "intent": {
     "summary": "record drift on payments.fake_widget.api-cache2 observed outside the ledger"
@@ -151,7 +171,7 @@ $ cat drift.json
     ]
   },
   "resolution": {
-    "resolved_at": "2026-07-30T20:46:59Z",
+    "resolved_at": "2026-07-31T00:45:17Z",
     "inputs": [
       {
         "kind": "live_state",
@@ -167,6 +187,10 @@ $ cat drift.json
 }
 ```
 
+The card's own attribute diff (`~ tags.env: "prod" -> "staging"`) is the
+same content `drift.json`'s `delta.modifies` carries — the card is a
+summary, not a separate source of truth.
+
 ### A `Sensitive`-flagged attribute is redacted before it's ever written
 
 Any attribute the provider's own schema flags `Sensitive` — a database
@@ -181,14 +205,14 @@ $ ubx scan --provider ./fakeprovider \
     --ledger-dir . --out secret-adopt.json
 New resource found  payments.fake_secret_resource.payments-secret
 
-  adoption      099d5f8bd0bd     +0 create(s) ~0 modify(ies) -0 destroy(s)
+  adoption      31c417d04f45     record-only · adopts into the ledger
 
-  saved to plan store            next: ubx ship 099d5f8bd0bd
+  saved to plan store            next: ubx ship 31c417d04f45
 ```
 
 ```json
 {
-  "api_key": { "$redacted": { "sha256": "9673efcd1a08ce55a530107616da51679e8adeb59f77440660970fa1042eca18" } },
+  "api_key": { "$redacted": { "sha256": "6744a84efa190a54a8ae8c88843a9de193ea6e4485b1414621ffff99bbb67ccb" } },
   "id": "payments-secret",
   "name": null
 }
@@ -204,6 +228,9 @@ including the per-ledger salt and what losing it means.
 ### After accepting that drift, scanning again matches ("no drift")
 
 ```text
+$ ubx accept drift.json --ledger-dir .
+accepted 1550523be2210ad9953dc0821ea662f1ed9bfde448961d6f23f3b146d3ad0f2c (stack payments)
+
 $ ubx scan --provider ./terraform-provider-aws \
     --stack payments --type fake_widget --name api-cache2 \
     --lookup '{"name":"api-cache2","tags":{"env":"staging"}}' \
@@ -226,9 +253,10 @@ $ ubx scan --provider ./terraform-provider-aws \
     --ledger-dir . --no-attribution --propose revert
 Drift found  payments.fake_widget.api-cache2
 
-  drift_revert  fb29aba9bf9e     +0 create(s) ~1 modify(ies) -0 destroy(s)
+  drift_revert  f78ce81fa3a3     restores the ledger's own recorded state
+      ~ tags.env: "prod" -> "staging"
 
-  saved to plan store            next: ubx ship fb29aba9bf9e
+  saved to plan store            next: ubx ship f78ce81fa3a3
 ```
 
 See [Drift](/concepts/drift#two-resolutions-to-a-drift-adopt-or-revert) for
@@ -246,9 +274,10 @@ $ ubx scan --provider ./terraform-provider-aws \
 opened issue https://github.com/acme/infra/issues/5
 Drift found  payments.fake_widget.widget-surface-issue
 
-  drift_adopt   babf33420d21     +0 create(s) ~0 modify(ies) -0 destroy(s)
+  drift_adopt   ad90fbf505e8     record-only · records reality as signed
+      ~ tags.env: "prod" -> "staging"
 
-  saved to plan store            next: ubx ship babf33420d21
+  saved to plan store            next: ubx ship ad90fbf505e8
 ```
 
 The issue body carries the full receipt: intent, kind, stack, blast radius,
@@ -267,9 +296,10 @@ $ ubx scan --provider ./terraform-provider-aws \
 opened pull request https://github.com/acme/infra/pull/11
 Drift found  payments.fake_widget.widget-surface-pr
 
-  drift_adopt   c7cc4be969eb     +0 create(s) ~0 modify(ies) -0 destroy(s)
+  drift_adopt   0fdb87a74be9     record-only · records reality as signed
+      ~ tags.env: "prod" -> "staging"
 
-  saved to plan store            next: ubx ship c7cc4be969eb
+  saved to plan store            next: ubx ship 0fdb87a74be9
 ```
 
 `pr` mode commits the proposal file to a new `ubx-drift/<stack>-<type>-<name>`
@@ -304,9 +334,9 @@ $ ubx scan --source acme/widget --provider-version 6.54.0 \
     --ledger-dir . --out adopt.json
 New resource found  payments.fake_widget.registry-widget
 
-  adoption      b55e387893ec     +0 create(s) ~0 modify(ies) -0 destroy(s)
+  adoption      c0f04bc33a4d     record-only · adopts into the ledger
 
-  saved to plan store            next: ubx ship b55e387893ec
+  saved to plan store            next: ubx ship c0f04bc33a4d
 ```
 
 Resolved this way, the generated proposal's `resolution.inputs` entry also
@@ -323,7 +353,7 @@ nothing was verified to attribute a checksum to:
         "resource": "payments.fake_widget.registry-widget",
         "observed_hash": "d4691981cdd944e56500f3c323e2f57545fdb84a1991ab786d0d506ea3e50b70",
         "lookup": {"name": "registry-widget", "tags": {"env": "prod"}},
-        "provider_checksum": "sha256:c607bde9226150c02b77fa1f6d63df9e1e8a978409d4fa010bdd1279e38f23fb"
+        "provider_checksum": "sha256:fc5d9d688183560293f24b5b3784378027036053661bef28c38be1273b94dfbd"
       }
     ]
   }
@@ -340,6 +370,86 @@ nothing was verified to attribute a checksum to:
   is configured — it's simply skipped here because the mirror already
   satisfied the request.
 </Note>
+
+### Flag-free scan: walking the whole fleet
+
+Omit both `--type` and `--name` (with `--stack` resolved, by flag or
+[`.ubx/config`](/cli/config)) and `ubx scan` walks every address the
+stack's own ledger already tracks — [`core.Ledger.Fleet`](/concepts/ledger),
+the identical read [`ubx status`](/cli/status) already uses — instead of
+demanding a human name each tracked resource individually. A clean
+resource is silently skipped; each drifted one gets its own card and its
+own saved, ship-able plan, exactly like naming it directly would:
+
+```text
+$ ubx scan --provider ./fakeprovider --stack payments --ledger-dir . --no-attribution
+Drift found  payments.fake_widget.api-cache
+
+  drift_adopt   89d5603ecdcf     record-only · records reality as signed
+      ~ tags.drift: (absent) -> "byhand"
+
+  saved to plan store            next: ubx ship 89d5603ecdcf
+
+Drift found  payments.fake_widget.main-cache
+
+  drift_adopt   e49d3d0e7938     record-only · records reality as signed
+      ~ tags.drift: (absent) -> "byhand"
+
+  saved to plan store            next: ubx ship e49d3d0e7938
+
+2 resource(s) scanned, 2 drifted, 2 proposal(s) saved
+```
+
+Real, unedited output — both tracked resources happened to drift the same
+way here (a shared fixture quirk in this transcript's own setup, not a
+scan limitation), which is why both cards show an identical diff; an
+ordinary fleet walk drifts independently per resource. With nothing
+drifted at all, the walk reports that plainly instead of silence:
+
+```text
+$ ubx scan --provider ./fakeprovider --stack payments --ledger-dir .
+no drift: all 2 resource(s) in stack payments match the ledger
+```
+
+`--type`/`--name` still narrow to one resource exactly as before; only
+`--json`/`--out`/`--out-dir`/`--surface-as` are refused in the flag-free
+form — a fleet walk's own output is N independent cards, not the single
+document or single file those flags assume:
+
+```text
+$ ubx scan --stack payments --json --ledger-dir .
+scan --stack payments: --json is only supported for a single-resource scan -- pass --type and --name to narrow, or use `ubx status --drift --json` for a fleet-wide JSON report
+```
+
+### Attribution: when it comes back empty
+
+A `drift_adopt`'s own [CloudTrail attribution](/concepts/attribution) either
+finds a real actor or doesn't — and until now, "doesn't" rendered exactly
+the same as "never even tried": nothing at all. The card now surfaces
+whichever recorded outcome actually happened, an attributed actor or the
+specific reason attribution came back empty (CloudTrail's own delivery
+window is typically 2-5 minutes, so a drift scanned moments after the real
+change is the common case, not a failure):
+
+```text
+$ ubx scan --provider ./fakeprovider --stack payments --type fake_widget --name main-cache --lookup '{"name":"main-cache","tags":{"env":"staging"}}' --ledger-dir .
+Drift found  payments.fake_widget.main-cache
+
+  drift_adopt   96a21b634272     record-only · records reality as signed
+      ~ tags.env: "prod" -> "staging"
+      attribution: none found yet (too recent for CloudTrail to have delivered a matching event yet) -- re-scan to attribute
+
+  saved to plan store            next: ubx ship 96a21b634272
+```
+
+Real, unedited output. This is display-only — the wire-level
+`cloudtrail_unattributed` source (with its own `reason`) was already being
+recorded before this session; the card (and [`ubx blame`](/cli/blame),
+which renders the identical reason on a group with no attributed actor)
+simply never rendered it. [`ubx ship`](/cli/ship#a-warning-before-accepting-a-recent-unattributed-drift_adopt)
+also warns before accepting a `drift_adopt` this recent with no recorded
+attribution — accepting it locks the unattributed verdict in permanently,
+so a re-scan a few minutes later may still be worth trying first.
 
 ## Kubernetes and Helm
 
@@ -361,7 +471,7 @@ ubx scan --source hashicorp/kubernetes --provider-version 2.35.1 \
 ```text
 New resource found  k8stest.kubernetes_secret_v1.app-secret
 
-  adoption      <shorthash>     +0 create(s) ~0 modify(ies) -0 destroy(s)
+  adoption      <shorthash>     record-only · adopts into the ledger
 
   saved to plan store            next: ubx ship <shorthash>
 ```
