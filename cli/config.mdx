@@ -496,6 +496,7 @@ intent = {
 | `key_ref.env` | the environment variable holding the real API key |
 | `auth` | Gemini's own API-key-vs-Vertex-AI split (`"api_key"` or `"vertex"`) — no Gemini adapter is built yet; this key is reserved |
 | `vertex.project` / `vertex.location` | consulted only when `auth = "vertex"` — reserved alongside it |
+| `show_defaults` | whether [`ubx plan`](/cli/plan)'s receipt renders the full "AI defaults" block, or collapses it to a one-line count (default `true` — shown). See [`show_defaults`](#show_defaults-the-ai-defaults-block), below |
 
 <Warning>
   `key_ref.env` is a reference, never the key itself — the same rule
@@ -525,6 +526,79 @@ intent.adapter = claude                 <- /tmp/repo/.ubx/config.hcl
 intent.key_ref.env = ANTHROPIC_API_KEY  <- /tmp/repo/.ubx/config.hcl
 stack = payments                        <- /tmp/repo/.ubx/config.hcl
 ```
+
+### `show_defaults`: the "AI defaults" block
+
+[`ubx plan`](/cli/plan)'s receipt renders every AI-authored assumption and
+default in full, under an "AI defaults — you are signing these:" header —
+valuable review content, but verbose once you've read the same adapter's
+own judgment calls a dozen times on a familiar stack. `show_defaults`
+(default `true`) trims that repetition without ever hiding the content
+itself:
+
+```hcl
+intent = {
+  show_defaults = false
+}
+```
+
+```text
+$ ubx plan payments.json --provider ./fakeprovider --ledger-dir .
+Plan  demo · from payments.json
+
+  + fake_widget.widget1 create
+      name: "widget1"
+
+delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
+
+blast radius: +1 ~0 -0
+cost delta: $0/mo
+
+Questions (1):
+  - [blocking -- review before accepting] should this widget be public?
+      affects: fake_widget.widget1.public
+2 AI default(s) applied -- ubx plan --show-defaults to review, or see the saved plan file
+
+ubx-proposal: 9fd52efa66c1…
+next: ubx ship 9fd52efa66c1
+```
+
+`--show-defaults`/`--hide-defaults` override `show_defaults` either
+direction for one invocation, without editing config (mutually exclusive
+with each other):
+
+```text
+$ ubx plan payments.json --provider ./fakeprovider --ledger-dir . --show-defaults
+```
+
+renders the full block even with `show_defaults = false` in config; the
+reverse, `--hide-defaults` against the default `true`, collapses it for
+one run without changing anything on disk.
+
+<Warning>
+  **This is a display toggle only, never a content omission** — the full
+  assumption/default text is always in the saved plan file
+  (`.ubx/plans/<hash>.json`) and in the signed proposal itself, regardless
+  of `show_defaults`. Nothing about what `ubx ship` later applies, or what
+  the ledger permanently records, changes because this is `false`.
+
+  **Why the default is `true`, and why that matters**: ambiguity-as-
+  visible-content is this project's own design center (docs/intent-
+  provider.md) — an AI-authored assumption or default is a real
+  interpretive choice a human is being asked to sign off on, not
+  boilerplate. Defaulting to collapsed would mean a first-time or
+  inattentive reviewer silently never sees what they're accepting, on
+  every single plan, until they happen to notice the `--show-defaults`
+  hint. Opt-OUT (an experienced reviewer choosing less repetition once
+  they already trust the pattern) is a legitimate convenience; opt-IN
+  (everyone starts blind unless they know to ask) is not — don't flip this
+  default "for less noise" without re-reading this note.
+
+  **Questions are never collapsed**, even with `show_defaults = false` —
+  a blocking ambiguity (a genuine contradiction, or something the adapter
+  couldn't responsibly guess) is never merely informational the way an
+  assumption or default is, so it always renders in full.
+</Warning>
 
 ## Unknown keys warn, they don't fail
 
