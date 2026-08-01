@@ -1,5 +1,24 @@
 # STATE — ubiquex-docs
 
+## UBI-64: `ubx init --reset-ledger` -- sanctioned fresh start for a broken ledger head (2026-08-01, same session as the code)
+
+New flag, documented same-session per CLAUDE.md's rule, transcripts
+re-captured against the actual fixed binary (`dev+054f16a-dirty`), not
+hand-written:
+
+- **`cli/init.mdx`**: `--reset-ledger` added to the flags table; new
+  "`--reset-ledger`: recovering a broken ledger head" section --
+  real `ubx verify` (missing_parent finding) -> `ubx init
+  --reset-ledger` -> `ubx verify` (intact) transcript, plus the
+  healthy-ledger refusal-without-`--force` transcript. New "Related"
+  link to `ubx verify`.
+- **`cli/verify.mdx`**: new "a broken ledger head" example (the same
+  `missing_parent` finding, now carrying the richer UBI-64 teaching
+  detail instead of a bare "proposal not found"), cross-linked to
+  `ubx init --reset-ledger`. New "Related" link.
+
+`mint validate`/`mint broken-links` clean.
+
 ## UBI-63 session 2: cli-output-spec v2 -- init/plan/ship receipt format, medium auto-detection (2026-07-31, same session as the code)
 
 Formalized the founder's own rough, uncommitted v2 markup (in the

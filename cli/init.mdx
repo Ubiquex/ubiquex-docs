@@ -46,6 +46,7 @@ unless `--force` is given.
 | `--region string` | shorthand for `--provider-config`'s most common key — equivalent to `--provider-config '{"region":"<region>"}'` |
 | `--github-repo string` | default GitHub repository, e.g. `acme/infra` |
 | `--tf-dir string` | default `.tf` directory |
+| `--reset-ledger` | sanctioned fresh start for a broken git-directory ledger: clears the head pointer (`.ubx/ledger.lock`) and any stale plan drafts (`.ubx/plans/`), preserves the redaction salt untouched, never deletes `ledger/proposals` or `ledger/applies`. Ignores every other flag above. Refuses on a ledger whose head still resolves to a real proposal unless `--force` is also given |
 | `-h`, `--help` | help for init |
 
 ## Example: no flags — a minimal, non-interactive run
@@ -368,6 +369,67 @@ registry source here — see `cli/init_test.go`'s own
 `TestInit_OutputImmediatelySupportsPlan_ViaMirror`, which drives exactly
 this sequence and is this claim's own regression test).
 
+## `--reset-ledger`: recovering a broken ledger head
+
+Deleting `ledger/` by hand while leaving `.ubx/` in place — a manual "start
+over" attempt — leaves `.ubx/ledger.lock` pointing at a proposal that no
+longer exists. Every command that walks the chain (`ubx status`, `ubx scan`,
+`ubx ship`, `ubx plan`'s short-hash lookup, ...) then fails; `ubx verify`
+reports it cleanly as a `missing_parent` finding:
+
+```text
+$ ubx verify
+verify: 0 proposal(s) checked
+  4444444444444444444444444444444444444444444444444444444444444444: missing_parent -- the ledger head (.ubx/ledger.lock) references proposal 444444444444…, which does not exist in the ledger store -- the ledger directory may have been deleted or moved -- if this is intentional (starting fresh), remove .ubx/ledger.lock (or run `ubx init --reset-ledger`); if not, restore the ledger files.
+chain: BROKEN (1 finding(s), see above)
+acceptance: 0 re-derived, 0 convenience-tier (local), 0 inconclusive
+verify: 1 chain finding(s), 0 acceptance re-derivation(s) failed -- see above
+```
+
+`ubx init --reset-ledger` is the sanctioned recovery — no more hand-deleting
+`.ubx` internals:
+
+```text
+$ ubx init --reset-ledger
+ledger head cleared, 0 stale plan draft(s) removed at . -- salt preserved untouched
+
+$ ubx verify
+verify: 0 proposal(s) checked
+chain: intact
+acceptance: 0 re-derived, 0 convenience-tier (local), 0 inconclusive
+```
+
+Real, unedited output for both transcripts above. `--reset-ledger` clears
+exactly two things — the head pointer and any stale `.ubx/plans/` drafts
+(each pinned to a `parent` this reset is about to make stale) — and
+deliberately leaves three untouched: `.ubx/salt` (still needed to keep any
+`$redacted` markers in whatever `ledger/proposals` files remain on disk
+meaningful), plus `ledger/proposals` and `ledger/applies` themselves — real
+accepted history is never deleted, only orphaned (unreachable from a fresh,
+empty head).
+
+<Warning>
+  `--reset-ledger` refuses on a **healthy** ledger — one whose head still
+  resolves to a real, readable proposal — since resetting it would silently
+  orphan real history:
+
+  ```text
+  $ ubx init --reset-ledger
+  init --reset-ledger: the ledger head resolves to a real, readable proposal -- this looks like a healthy ledger, not a broken one; resetting it would orphan its real history (the proposal files themselves aren't deleted, but nothing will chain to them from a fresh head again). Re-run with --force if you really mean to start over, or run `ubx verify` first to confirm whether the chain is actually broken
+  ```
+
+  Pass `--force` once you've confirmed (e.g. via `ubx verify`) that starting
+  over is genuinely what you want.
+</Warning>
+
+Scoped to git-directory ledgers only, not a remote `[ledger]` store — a
+remote store is a shared bucket nobody hand-deletes the internals of the
+way a local `.ubx/` directory invites; recovering one means restoring the
+missing proposal objects from wherever that store's own backups live, not
+a local CLI command.
+
 ## Related
 
+- [`ubx verify`](/cli/verify) — reports a broken ledger head as a
+  `missing_parent` finding; `--reset-ledger` above is its sanctioned fix
 - [`.ubx/config`](/cli/config) — the full format reference, cascade rules, provenance (`ubx config`), and precedence

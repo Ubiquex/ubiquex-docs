@@ -127,6 +127,30 @@ Real, unedited output. Exit code `1` — a real, actionable finding.
   that changed.
 </Warning>
 
+## Example: a broken ledger head
+
+Deleting `ledger/` by hand while leaving `.ubx/` in place — a manual
+"start over" attempt — leaves `.ubx/ledger.lock` pointing at a proposal
+that no longer exists. `ubx verify` reports it as a `missing_parent`
+finding naming the dangling id, with a teaching detail rather than a bare
+"proposal not found":
+
+```text
+$ ubx verify
+verify: 0 proposal(s) checked
+  4444444444444444444444444444444444444444444444444444444444444444: missing_parent -- the ledger head (.ubx/ledger.lock) references proposal 444444444444…, which does not exist in the ledger store -- the ledger directory may have been deleted or moved -- if this is intentional (starting fresh), remove .ubx/ledger.lock (or run `ubx init --reset-ledger`); if not, restore the ledger files.
+chain: BROKEN (1 finding(s), see above)
+acceptance: 0 re-derived, 0 convenience-tier (local), 0 inconclusive
+verify: 1 chain finding(s), 0 acceptance re-derivation(s) failed -- see above
+```
+
+Real, unedited output. This is also the one finding other, fold-touching
+commands (`ubx status`, `ubx scan`, `ubx ship`, ...) hit and fail on
+directly if the head is broken — `ubx verify` is the command that turns it
+into a clean, offline diagnosis instead of a crash. See
+[`ubx init --reset-ledger`](/cli/init#reset-ledger-recovering-a-broken-ledger-head)
+for the sanctioned fix.
+
 ## Exit codes
 
 Every exit code follows the same contract every other `ubx` verb does —
@@ -138,6 +162,9 @@ conflated into the same exit code — see [Exit codes](/cli/exit-codes).
 
 ## Related
 
+- [`ubx init`](/cli/init#reset-ledger-recovering-a-broken-ledger-head) —
+  `--reset-ledger`, the sanctioned fresh start for a `missing_parent`
+  finding at the head
 - [`ubx why`](/cli/why) — `--verify-acceptance`, the single-proposal
   version of the `pr_merge` re-derivation `ubx verify` runs across the
   whole chain
