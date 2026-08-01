@@ -83,12 +83,10 @@ and says so:
 
 ```text
 $ ubx ship --provider ./fakeprovider --ledger-dir . --yes
-latest plan for stack playground: 1a6c77cfb11a  change  0s old
-Ship  playground · 0s old · +1 create(s) ~0 modify(ies) -0 destroy(s)
-accepted 1a6c77cfb11a… (stack playground) via local plan
+latest plan for stack playground: 21aea70a8ff6  change  7s old
+Ship  playground · 7s old · +1 create(s) ~0 modify(ies) -0 destroy(s)
+accepted 21aea70a8ff6… (stack playground) via local plan
 playground.fake_widget.q1
-  · pending
-  · in_flight                                          0:00
   ✓ applied                                            0:00
 ✓ applied: playground.fake_widget.q1
 1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
@@ -159,33 +157,34 @@ delta: +2 create(s), ~0 modify(ies), -0 destroy(s)
 blast radius: +2 ~0 -0
 cost delta: $0/mo
 
-ubx-proposal: e81f958439b4…
-next: ubx ship e81f958439b4
+ubx-proposal: 0daf78eb087e…
+next: ubx ship 0daf78eb087e
 
-$ ubx ship e81f958439b4 --provider ./fakeprovider --ledger-dir .
-Ship  sandbox · 20s old · +2 create(s) ~0 modify(ies) -0 destroy(s)
+$ ubx ship 0daf78eb087e --provider ./fakeprovider --ledger-dir .
+Ship  sandbox · 0s old · +2 create(s) ~0 modify(ies) -0 destroy(s)
 
 Ship this to sandbox? Only 'yes' accepted: yes
-accepted e81f958439b4… (stack sandbox) via local plan
+accepted 0daf78eb087e… (stack sandbox) via local plan
 sandbox.fake_widget.primary
-  · pending
-  · in_flight                                          0:00
   ✓ applied                                            0:00
+
 sandbox.fake_widget.mirror
-  · pending
-  · in_flight                                          0:00
   ✓ applied                                            0:00
 ✓ applied: sandbox.fake_widget.primary
 ✓ applied: sandbox.fake_widget.mirror
 2 resource(s), 2 applied, 0 failed, 0 still unknown -- outcome: applied
 ```
 
+Each resource's own progress block is followed by a blank line, so a
+multi-resource ship reads as clearly separated blocks rather than every
+resource's transitions running together.
+
 Typing anything else — or `--yes` never given on a non-interactive
 stdin — aborts cleanly, nothing accepted or applied, exit `0` (a
 deliberate abort is not a finding or an error):
 
 ```text
-$ ubx ship e81f958439b4 --provider ./fakeprovider --ledger-dir .
+$ ubx ship 0daf78eb087e --provider ./fakeprovider --ledger-dir .
 ...
 Ship this to sandbox? Only 'yes' accepted: nope
 ship aborted -- nothing accepted or applied
@@ -196,22 +195,26 @@ summary first — and a non-TTY without it refuses outright rather than
 hang reading a stdin nobody's watching:
 
 ```text
-$ ubx ship e81f958439b4 --provider ./fakeprovider --ledger-dir . < /dev/null
+$ ubx ship 0daf78eb087e --provider ./fakeprovider --ledger-dir . < /dev/null
 ...
 ship: refusing to apply without confirmation: not an interactive terminal -- pass --yes to confirm non-interactively (e.g. in CI/scripts)
 ```
 
 [`ubx why`](/cli/why) shows exactly the same `acceptance.method: "local"`
 an ordinary `ubx accept` would have recorded — the prompt is a UX
-addition, not a new acceptance tier:
+addition, not a new acceptance tier. Its own apply-history transitions
+still name every real state (`pending`/`in_flight`/`applied`) in full —
+that's the permanent historical record, unrelated to `ubx ship`'s own
+live progress narration, which is display-only and never touches what
+gets recorded:
 
 ```text
-$ ubx why e81f958439b45da169b5d0409a82158883f925091067dd1a8c0ca2a7ddcd7b3a --ledger-dir .
-proposal e81f958439b4… (change)
+$ ubx why 0daf78eb087ef1d6918887d8a7b66d6920c55448fdc6c7b45e2316ee5fde55e9 --ledger-dir .
+proposal 0daf78eb087e… (change)
 stack:  sandbox
 status: accepted
-intent: a widget and its mirror, for the two-step flow
-accepted by [roozbeh] via local at 2026-07-31T19:25:17Z
+intent: two widgets, one referencing the other
+accepted by [roozbeh] via local at 2026-08-01T20:58:16Z
 blast radius: +2 ~0 -0
 + fake_widget.primary create
     name: "primary-widget"
@@ -245,7 +248,7 @@ the interactive prompt even renders (no point asking a human to type
 
 ```text
 $ ubx plan destroy-intent.json --provider ./fakeprovider --ledger-dir .
-Plan  sandbox · from destroy-intent.json
+Plan  sandbox
 
   - destroy: sandbox.fake_widget.mirror
     id: "mirror-widget"
@@ -257,28 +260,28 @@ delta: +0 create(s), ~0 modify(ies), -1 destroy(s)
 blast radius: +0 ~0 -1
 cost delta: $0/mo
 
-ubx-proposal: 56ebbf77dbcf…
-next: ubx ship 56ebbf77dbcf
+ubx-proposal: 8bf90696be84…
+next: ubx ship 8bf90696be84
 
-$ ubx ship 56ebbf77dbcf --provider ./fakeprovider --ledger-dir . --yes
+$ ubx ship 8bf90696be84 --provider ./fakeprovider --ledger-dir . --yes
 ship: this proposal has blast_radius.destroys > 0 -- pass --confirm-destroys to accept it
 ```
 
 With `--confirm-destroys` (and `--yes`, since this transcript is
 non-interactive), the destroy proceeds — including the mandatory
 read-back narration every destroy goes through (see [Shipping a
-destroy](#shipping-a-destroy) below):
+destroy](#shipping-a-destroy) below). `pending`/`in_flight` never get
+their own line (sub-second scaffolding, not worth a human's attention on
+the happy path) — the read-back verification is the one line that
+matters, and it's the one line shown:
 
 ```text
-$ ubx ship 56ebbf77dbcf --provider ./fakeprovider --ledger-dir . --confirm-destroys --yes
-Ship  sandbox · 12s old · +0 create(s) ~0 modify(ies) -1 destroy(s)
-accepted 56ebbf77dbcf… (stack sandbox) via local plan
+$ ubx ship 8bf90696be84 --provider ./fakeprovider --ledger-dir . --confirm-destroys --yes
+Ship  sandbox · 6s old · +0 create(s) ~0 modify(ies) -1 destroy(s)
+accepted 8bf90696be84… (stack sandbox) via local plan
 sandbox.fake_widget.mirror
-  · pending
-  · in_flight                                          0:00
-  · unknown_post_timeout -- provider reported a successful destroy -- verifying via a post-destroy read-back before recording it as destroyed 0:00
   ⠧ provider reported success -- verifying via read-back (attempt 1/10) 0:00
-  ✓ applied -- confirmed by reconciliation             0:00
+  ✓ applied · confirmed by reconciliation              0:00
 ✓ applied: sandbox.fake_widget.mirror
 1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
 ```
@@ -398,10 +401,8 @@ for the display-only half of this same fix.
 ## Example: a clean apply
 
 ```text
-$ ubx ship b5eb9fe17bacbba2716131caaee634b022ea6368a0d71c94613e51cbe1aba22c --provider ./fakeprovider
+$ ubx ship fe4267f596bd34b2c8dc4eabe2df5e95deafd51368700e2716920317ca73d894 --provider ./fakeprovider
 payments.fake_widget.api-cache
-  · pending
-  · in_flight                                          0:00
   ✓ applied                                            0:00
 ✓ applied: payments.fake_widget.api-cache
 1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
@@ -409,37 +410,50 @@ payments.fake_widget.api-cache
 
 Each resource's live transitions narrate as they happen (UBI-61) — not
 buffered to the end — with elapsed time since that resource's own most
-recent `in_flight` transition.
+recent transition into a live phase. `pending`/`in_flight` never get their
+own line (UBI-70): they're sub-second scaffolding on the happy path, not
+something worth a human's attention.
 
 <Note>
-  **The elapsed time actually ticks (UBI-63).** An ordinary create/modify
-  with no reconcile loop of its own (the fixture above) transitions
-  straight from `in_flight` to a terminal state fast enough that this
-  never shows — but a real call against a real, slower provider can sit
-  `in_flight` for a while with nothing else happening. A background
-  ticker re-renders that one line roughly once a second until a real
-  event supersedes it, rather than sitting frozen at `0:00` until the
-  eventual terminal event finally arrives with the real total. Real,
-  live-verified transcript — an SQS queue's own `DeleteQueue` call
-  against real AWS, genuinely slow this run:
+  **The elapsed time actually ticks (UBI-63/UBI-70).** A real call against
+  a real, slower provider (or a read-back verification loop that needs
+  several attempts, each with real backoff between them) can take a while
+  with nothing new to report. On a real terminal, the raw provider-call
+  wait shows one live "shipping" line, and the read-back verification wait
+  shows one live "verifying via read-back (attempt N/M)" line — both
+  re-rendered roughly once a second, in place (a carriage return), rather
+  than sitting frozen until the eventual terminal event finally arrives
+  with the real total. Errors along the way still get their own permanent
+  line — the noise cut is about the happy path repeating itself, never
+  about hiding a real problem. Real, unedited transcript — a destroy
+  whose read-back keeps finding the resource present through the full
+  10-attempt retry budget (`FAKEPROVIDER_APPLY_MODE` unset, the fixture's
+  own default "provider claims success but doesn't actually delete
+  anything" mode, the non-TTY/piped capture every transcript on this page
+  uses — each real attempt still gets its own discrete line, in-place
+  overwrite being a terminal-only concept a log file has no use for):
 
   ```text
-  payments.aws_sqs_queue.ci-notifications
-    · pending
-    · in_flight                                          0:00
-    · in_flight                                          0:01
-    · in_flight                                          0:02
-    ...
-    · in_flight                                          0:41
-    · in_flight                                          0:42
-    · unknown_post_timeout -- provider reported a successful destroy -- verifying via a post-destroy read-back before recording it as destroyed 0:42
-    ⠧ provider reported success -- verifying via read-back (attempt 1/10) 0:42
-    ✓ applied -- confirmed by reconciliation             1:19
+  payments.fake_widget.ci-notifications
+    ⠧ provider reported success -- verifying via read-back (attempt 1/10) 0:00
+    ⠧ provider reported success -- verifying via read-back (attempt 2/10) 0:00
+    ⠧ provider reported success -- verifying via read-back (attempt 3/10) 0:00
+    ⠧ provider reported success -- verifying via read-back (attempt 4/10) 0:00
+    ⠧ provider reported success -- verifying via read-back (attempt 5/10) 0:01
+    ⠧ provider reported success -- verifying via read-back (attempt 6/10) 0:03
+    ⠧ provider reported success -- verifying via read-back (attempt 7/10) 0:08
+    ⠧ provider reported success -- verifying via read-back (attempt 8/10) 0:18
+    ⠧ provider reported success -- verifying via read-back (attempt 9/10) 0:33
+    ⠧ provider reported success -- verifying via read-back (attempt 10/10) 0:48
+    ! the provider reported a successful destroy, but a post-destroy read-back found the resource still present after the full retry budget -- the delete never actually happened
+    ✗ failed · provider reported success but a post-destroy read-back found the resource still present 0:48
   ```
 
-  On a real terminal the line updates in place (a carriage return); a
-  non-TTY/piped run (every transcript on this page) prints discrete
-  lines instead, since in-place overwrite is a terminal-only concept.
+  On a real terminal, a slow raw provider call or a between-attempts wait
+  during verification instead shows ONE continuously-updating line each,
+  never a flood of near-duplicate lines — see [Shipping a
+  destroy](#shipping-a-destroy) below for what this exact scenario's own
+  full ship report looks like.
 </Note>
 
 ## Example: idempotent re-run
@@ -462,15 +476,20 @@ A real, structured error from the provider (not a timeout or transport
 failure) ends that resource's attempt immediately — never silently retried:
 
 ```text
-$ ubx ship 8a81cba581fa9bed98728e41ca5daa4dd920695645b152cd55162587a0552762 --provider ./fakeprovider
+$ ubx ship 66da902facb213b8a30fc26d1dfb6ad0b79777eb4c4f48d94c36c095b25f886a --provider ./fakeprovider
 payments.fake_widget.api-cache
-  · pending
-  · in_flight                                          0:00
+  ! provider returned 1 diagnostic error(s): invalid attribute value: fakeprovider: simulated terminal diagnostic
   ✗ failed                                             0:00
 ✗ failed: payments.fake_widget.api-cache
-  terminal: provider returned 1 diagnostic error(s): invalid attribute value: ...
+  terminal: provider returned 1 diagnostic error(s): invalid attribute value: fakeprovider: simulated terminal diagnostic
 1 resource(s), 0 applied, 1 failed, 0 still unknown -- outcome: failed
 ```
+
+The error gets its own line the moment it happens (UBI-70) — not just at
+the very end, once every other resource in the whole ship run has also
+finished. It's the same underlying message `ubx ship`'s own trailing
+per-resource report (`terminal: ...`) already showed; now it's visible
+live too.
 
 ## Example: a redacted restore target is declined, not applied
 
@@ -483,7 +502,7 @@ manual-reconciliation path:
 ```text
 $ ubx ship 59273c05330df824626f425cc9760f53cf8783367784fa4622688be469dec9ee --provider ./fakeprovider
 payments.fake_widget.secret-box
-  · pending
+  ! declined: after value(s) at master_password are redacted -- the ledger holds a salted hash, not the real secret material, and ubx will never construct a live apply from it; use `ubx revert-plan` for this resource's manual reconciliation steps instead
 ✓ pending: payments.fake_widget.secret-box
   terminal: declined: after value(s) at master_password are redacted -- the ledger holds a salted hash, not the real secret material, and ubx will never construct a live apply from it; use `ubx revert-plan` for this resource's manual reconciliation steps instead
 1 resource(s), 0 applied, 1 failed, 0 still unknown -- outcome: failed
@@ -503,14 +522,11 @@ and its schema-`Computed` `id` (left as `$computed` at resolve time,
 substituted with the real applied value mid-walk):
 
 ```text
-$ ubx ship 3e8172a8e771a13d4e4362d593cb0e9391804f3dc3fa70459cfbd2cc639d7934 --provider ./fakeprovider
+$ ubx ship 7972315f4b246337388616c97a04e67947e0ab85e3c815ea7ab1d5d7fa0cf800 --provider ./fakeprovider
 payments.fake_widget.api-cache
-  · pending
-  · in_flight                                          0:00
   ✓ applied                                            0:00
+
 payments.fake_widget.api-cache-mirror
-  · pending
-  · in_flight                                          0:00
   ✓ applied                                            0:00
 ✓ applied: payments.fake_widget.api-cache
 ✓ applied: payments.fake_widget.api-cache-mirror
@@ -519,20 +535,25 @@ payments.fake_widget.api-cache-mirror
 
 `api-cache` ships first (nothing depends on it being ordered any other
 way); `api-cache-mirror` is never even attempted until `api-cache` reaches
-`applied` — [`ubx why`](/cli/why) shows both:
+`applied` — [`ubx why`](/cli/why) shows both, including the full
+`pending`/`in_flight`/`applied` transition history that's the permanent
+record (`ubx ship`'s own live narration above is a display-only summary of
+this same history, not a second source of truth — see [the noise-cut
+note](#example-a-clean-apply) above for why `pending`/`in_flight` don't
+get their own line there):
 
 ```text
-$ ubx why 3e8172a8e771a13d4e4362d593cb0e9391804f3dc3fa70459cfbd2cc639d7934
+$ ubx why 7972315f4b246337388616c97a04e67947e0ab85e3c815ea7ab1d5d7fa0cf800
 apply history:
   attempt 1: outcome=applied
     payments.fake_widget.api-cache:
-      pending at 2026-07-30T22:53:08Z
-      in_flight at 2026-07-30T22:53:08Z
-      applied at 2026-07-30T22:53:08Z
+      pending at 2026-08-01T21:04:24Z
+      in_flight at 2026-08-01T21:04:24Z
+      applied at 2026-08-01T21:04:24Z
     payments.fake_widget.api-cache-mirror:
-      pending at 2026-07-30T22:53:08Z
-      in_flight at 2026-07-30T22:53:08Z
-      applied at 2026-07-30T22:53:08Z
+      pending at 2026-08-01T21:04:24Z
+      in_flight at 2026-08-01T21:04:24Z
+      applied at 2026-08-01T21:04:24Z
 ```
 
 <Note>
@@ -555,13 +576,13 @@ A resource whose dependency hasn't applied yet is never attempted —
 blocked with a named reason, not silently skipped or guessed at:
 
 ```text
-$ ubx ship 7cdb36dce40f6fd8b9cc2ace0a85ec24826cb084d81e1c7a7b5f75df3261749c --provider ./fakeprovider
+$ ubx ship b2d5f5d1c7f5b6d15ebbadcfea64ee96b77af41008f4022c03c678671124bc51 --provider ./fakeprovider
 payments.fake_widget.primary
-  · pending
-  · in_flight                                          0:00
+  ! provider returned 1 diagnostic error(s): invalid attribute value: fakeprovider: simulated terminal diagnostic
   ✗ failed                                             0:00
+
 payments.fake_widget.mirror
-  · pending
+  ! blocked: dependency payments.fake_widget.primary has not applied -- refusing to ship a resource ahead of what it depends on
 ✗ failed: payments.fake_widget.primary
   terminal: provider returned 1 diagnostic error(s): invalid attribute value: fakeprovider: simulated terminal diagnostic
 ✓ pending: payments.fake_widget.mirror
@@ -608,23 +629,25 @@ already gone is a low-friction success, never a refusal (there's nothing
 left to lose):
 
 ```text
-$ ubx ship ca59cd2a5d1477a458bc5ec561074ebcaf1be5debc7b593fce0af853dd3532bf --provider ./fakeprovider
+$ ubx ship f015f72fb1d50e812c561bf6f2b3c9094db2f5608ce0aed319c4151d9253ad33 --provider ./fakeprovider
 payments.fake_widget.old-widget
-  · pending
-  · in_flight                                          0:00
-  · unknown_post_timeout -- provider reported a successful destroy -- verifying via a post-destroy read-back before recording it as destroyed 0:00
   ⠧ provider reported success -- verifying via read-back (attempt 1/10) 0:00
-  ✓ applied -- confirmed by reconciliation             0:00
+  ✓ applied · confirmed by reconciliation              0:00
 ✓ applied: payments.fake_widget.old-widget
 1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
 ```
 
-`--json` shows the two-step reconciliation this precheck-then-confirm
-shape actually produces -- `present_matches` (the live re-read, right
-before the destroy call) followed by `destroyed` (the confirmation after):
+`pending`/`in_flight`/`unknown_post_timeout` never get their own line
+(UBI-70) — they're the sub-second pivot into verification, which the
+read-back line immediately following already narrates; the full
+transition history is still recorded, just not narrated one line at a
+time. `--json` shows it in full — the two-step reconciliation this
+precheck-then-confirm shape actually produces, `present_matches` (the live
+re-read, right before the destroy call) followed by `destroyed` (the
+confirmation after):
 
 ```text
-$ ubx ship ca59cd2a5d1477a458bc5ec561074ebcaf1be5debc7b593fce0af853dd3532bf --provider ./fakeprovider --json
+$ ubx ship f015f72fb1d50e812c561bf6f2b3c9094db2f5608ce0aed319c4151d9253ad33 --provider ./fakeprovider --json
 ```
 ```json
 {
@@ -633,14 +656,14 @@ $ ubx ship ca59cd2a5d1477a458bc5ec561074ebcaf1be5debc7b593fce0af853dd3532bf --pr
       {
         "address": {"stack": "payments", "type": "fake_widget", "name": "old-widget"},
         "transitions": [
-          {"state": "pending", "at": "2026-07-30T22:54:10Z"},
-          {"state": "in_flight", "at": "2026-07-30T22:54:10Z"},
-          {"state": "unknown_post_timeout", "at": "2026-07-30T22:54:10Z", "detail": "provider reported a successful destroy -- verifying via a post-destroy read-back before recording it as destroyed"},
-          {"state": "applied", "at": "2026-07-30T22:54:10Z", "detail": "confirmed by reconciliation"}
+          {"state": "pending", "at": "2026-08-01T21:05:49Z"},
+          {"state": "in_flight", "at": "2026-08-01T21:05:49Z"},
+          {"state": "unknown_post_timeout", "at": "2026-08-01T21:05:49Z", "detail": "provider reported a successful destroy -- verifying via a post-destroy read-back before recording it as destroyed"},
+          {"state": "applied", "at": "2026-08-01T21:05:49Z", "detail": "confirmed by reconciliation"}
         ],
         "reconciliation": [
-          {"at": "2026-07-30T22:54:10Z", "outcome": "present_matches"},
-          {"at": "2026-07-30T22:54:10Z", "outcome": "destroyed"}
+          {"at": "2026-08-01T21:05:49Z", "outcome": "present_matches"},
+          {"at": "2026-08-01T21:05:49Z", "outcome": "destroyed"}
         ]
       }
     ],
@@ -695,9 +718,9 @@ reviewed defeats the whole reason `delta.destroys[].state` is carried
 inline in the proposal:
 
 ```text
-$ ubx ship 825dc3a2813a13ae5566674947132bec3b220ef9a7d662c04cf26b4c8e53d6f7 --provider ./fakeprovider
+$ ubx ship ea33959119167362358dd69dadbe0cdb6b3b478262a95f28b99438531a2eb655 --provider ./fakeprovider
 payments.fake_widget.solo-widget
-  · pending
+  ! destroy target drifted since it was signed away -- refusing to destroy state that was never reviewed
 ✓ pending: payments.fake_widget.solo-widget
   terminal: destroy target drifted since it was signed away -- refusing to destroy state that was never reviewed
 1 resource(s), 0 applied, 1 failed, 0 still unknown -- outcome: failed
@@ -713,14 +736,11 @@ left to lose that the operator didn't already implicitly ask to lose:
 ```text
 $ ubx ship c1ec92deb14fec35307dfb53003ca40c50eee780a3c81f12b041228dca4cc4d6 --provider ./fakeprovider
 payments.fake_widget.widget-a
-  · pending
-  · in_flight                                          0:00
-  · unknown_post_timeout -- provider reported a successful destroy -- verifying via a post-destroy read-back before recording it as destroyed 0:00
   ⠧ provider reported success -- verifying via read-back (attempt 1/10) 0:00
-  ✓ applied -- confirmed by reconciliation             0:00
+  ✓ applied · confirmed by reconciliation              0:00
+
 payments.fake_widget.widget-b
-  · pending
-  ✓ applied -- already absent before this attempt
+  ✓ applied · already absent before this attempt        0:00
 ✓ applied: payments.fake_widget.widget-a
 ✓ applied: payments.fake_widget.widget-b
 2 resource(s), 2 applied, 0 failed, 0 still unknown -- outcome: applied
@@ -812,7 +832,7 @@ already-fine provider:
 ```text
 $ ubx ship 9d6ca60737a559cf70cbec555674ae6e31fd60e44c5fd28f34e924cfe0fb44ed --ledger-dir . --yes
 payments.fake_widget.main
-  · pending
+  ! provider unavailable: provider "hashicorp/aws" is pinned to 6.61.0 in this stack's [providers] config, but this proposal recorded 6.60.0 -- re-resolve against the current config
 ✓ pending: payments.fake_widget.main
   terminal: provider unavailable: provider "hashicorp/aws" is pinned to 6.61.0 in this stack's [providers] config, but this proposal recorded 6.60.0 -- re-resolve against the current config
 1 resource(s), 0 applied, 1 failed, 0 still unknown -- outcome: failed

@@ -25,7 +25,11 @@ capability with a default:
   every resource, re-reads its live state using that resource's own recorded
   [lookup key](/cli/lookup) — nothing needs to be re-supplied, since it was
   already persisted in the ledger for exactly this reason. Classifies each
-  resource as `clean`, `drifted`, or `unreadable`.
+  resource as `clean`, `drifted`, or `unreadable`. A `clean` resource's own
+  line is hidden by default (UBI-71) — a header names how many of the
+  fleet drifted, `drifted`/`unreadable` resources still render in full, and
+  a trailing count covers however many `clean` ones were hidden; `--all`
+  shows every resource's own line regardless of classification.
 
 ## Flags
 
@@ -33,6 +37,7 @@ capability with a default:
 | --- | --- |
 | `--stack string` | restrict the report to one stack (default: every stack the ledger holds) |
 | `--drift` | also compare each resource against live state (requires `--provider`, or `--source`+`--provider-version`) |
+| `--all` | with `--drift`, also show each clean resource's own line (hidden by default); no effect without `--drift` or with `--json` |
 | `--provider string` | path to the provider binary (mutually exclusive with `--source`; only used with `--drift`) |
 | `--source string` | provider source address, e.g. `hashicorp/aws` (mutually exclusive with `--provider`; requires `--provider-version`; only used with `--drift`) |
 | `--provider-version string` | explicit provider version to acquire (required with `--source`; only used with `--drift`) |
@@ -51,6 +56,20 @@ With a [`.ubx/config`](/cli/config) in place supplying `[provider]`/
 
 ```text
 $ ubx status --ledger-dir . --drift
+Drift  0 of 1 resource(s) drifted
+
+1 clean (--all to show)
+1 resource(s), 0 drifted, 0 unreadable
+```
+
+A clean resource's own line is hidden by default (UBI-71) — noise on a
+mostly- or entirely-clean fleet, collapsed to that one trailing count
+instead. `--all` brings every resource's own line back:
+
+```text
+$ ubx status --ledger-dir . --drift --all
+Drift  0 of 1 resource(s) drifted
+
 clean: payments.fake_widget.api-cache: adoption a28700b248d3… (accepted 2026-07-16T18:29:29Z)
 1 resource(s), 0 drifted, 0 unreadable
 ```
@@ -135,8 +154,21 @@ payments.fake_widget.api-cache: adoption bdbb0b5098bf… (accepted 2026-07-16T16
 
 ```text
 $ ubx status --ledger-dir . --drift --provider ./terraform-provider-aws
-clean: network.fake_widget.main-vpc: adoption 7d8d5792e06c… (accepted 2026-07-16T16:54:45Z)
-clean: payments.fake_widget.api-cache: adoption bdbb0b5098bf… (accepted 2026-07-16T16:54:45Z)
+Drift  0 of 2 resource(s) drifted
+
+2 clean (--all to show)
+2 resource(s), 0 drifted, 0 unreadable
+```
+
+`--all` shows the per-resource `clean:` line the pre-UBI-71 default
+always did:
+
+```text
+$ ubx status --ledger-dir . --drift --provider ./terraform-provider-aws --all
+Drift  0 of 2 resource(s) drifted
+
+clean: network.fake_widget.main-vpc: adoption e308f03836c7… (accepted 2026-08-01T21:08:11Z)
+clean: payments.fake_widget.api-cache: adoption b326c63ecc48… (accepted 2026-08-01T21:08:11Z)
 2 resource(s), 0 drifted, 0 unreadable
 ```
 
@@ -151,11 +183,17 @@ address (this one included) with no `--type`/`--name` needed:
 
 ```text
 $ ubx status --ledger-dir . --drift --provider ./fakeprovider
-drifted: payments.fake_widget.api-cache: adoption a34d77e8c620… (accepted 2026-07-31T00:52:47Z)
+Drift  1 of 1 resource(s) drifted
+
+drifted: payments.fake_widget.api-cache: adoption 4b695772e6a3… (accepted 2026-08-01T21:08:55Z)
     ~ tags.owner: (absent) -> "someone-else"
     next: ubx scan --propose both
 1 resource(s), 1 drifted, 0 unreadable
 ```
+
+A drifted (or unreadable) resource is never hidden, `--all` or not — only
+a `clean` classification collapses by default (see [`--drift`, all
+clean](#--drift-all-clean) above).
 
 If a *prior* drift on this exact address was already adopted (and so
 carries whatever CloudTrail attribution that `scan --propose` cycle
@@ -166,7 +204,9 @@ one itself, just to render one line):
 
 ```text
 $ ubx status --ledger-dir . --drift --provider ./fakeprovider
-drifted: payments.fake_widget.api-cache: drift_adopt 470ead18a0c2… (accepted 2026-07-31T00:53:11Z)
+Drift  1 of 1 resource(s) drifted
+
+drifted: payments.fake_widget.api-cache: drift_adopt 70ee786027ad… (accepted 2026-08-01T21:09:10Z)
     ~ tags.owner: "someone-else" -> "someone-else-again"
     who: arn:aws:iam::123456789012:user/roozbeh · TagResource · 2026-07-31T00:00:00Z (recorded at drift_adopt)
     next: ubx scan --propose both
@@ -187,6 +227,21 @@ report:
 
 ```text
 $ ubx status --ledger-dir . --drift --provider ./terraform-provider-aws
+Drift  0 of 3 resource(s) drifted
+
+unreadable: payments.fake_widget.legacy-widget: adoption 98d37e766f62… (accepted 2026-07-16T16:55:30Z) -- no lookup key recorded for this resource (authored before the resolution.inputs lookup amendment, or never had one)
+2 clean (--all to show)
+3 resource(s), 0 drifted, 1 unreadable
+```
+
+`unreadable` (like `drifted`) is never hidden — only the two `clean`
+resources collapse into the trailing count. `--all` shows every line,
+exactly as the pre-UBI-71 default always did:
+
+```text
+$ ubx status --ledger-dir . --drift --provider ./terraform-provider-aws --all
+Drift  0 of 3 resource(s) drifted
+
 clean: network.fake_widget.main-vpc: adoption 7d8d5792e06c… (accepted 2026-07-16T16:54:45Z)
 clean: payments.fake_widget.api-cache: adoption bdbb0b5098bf… (accepted 2026-07-16T16:54:45Z)
 unreadable: payments.fake_widget.legacy-widget: adoption 98d37e766f62… (accepted 2026-07-16T16:55:30Z) -- no lookup key recorded for this resource (authored before the resolution.inputs lookup amendment, or never had one)
@@ -208,8 +263,9 @@ launched, lazily, once each -- never one launch per resource:
 
 ```text
 $ ubx status --ledger-dir . --drift
-clean: payments.aws_db_instance.main: adoption b4734afddffb… (accepted 2026-07-18T12:58:38Z)
-clean: payments.helm_release.app: adoption 920f73b8bf6e… (accepted 2026-07-18T12:58:38Z)
+Drift  0 of 2 resource(s) drifted
+
+2 clean (--all to show)
 2 resource(s), 0 drifted, 0 unreadable
 ```
 
@@ -220,10 +276,12 @@ real out-of-band change against either is caught exactly like the
 single-provider case (each drifted line also renders its own attribute
 diff and `next:` handoff, exactly like the single-provider example
 above -- omitted here since the two providers involved aren't the
-fakeprovider fixture):
+fakeprovider fixture; a drifted resource is never hidden, `--all` or not):
 
 ```text
 $ ubx status --ledger-dir . --drift
+Drift  2 of 2 resource(s) drifted
+
 drifted: payments.aws_db_instance.main: adoption b4734afddffb… (accepted 2026-07-18T12:58:38Z)
 drifted: payments.helm_release.app: adoption 920f73b8bf6e… (accepted 2026-07-18T12:58:38Z)
 2 resource(s), 2 drifted, 0 unreadable
