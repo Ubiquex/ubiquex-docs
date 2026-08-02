@@ -206,6 +206,86 @@ hand-written intent file, or a resource authored via [the SDK](/sdk) or [the
 md medium](/guides/md-medium), remains how you express a real `$cross`
 reference today.
 
+## `ubx_required`: supplying a Required attribute a diagram can't express
+
+Some resource types have an attribute their real provider schema marks
+**Required** that no topology signal could ever express — an IAM role's
+own trust policy, an ECR repository's own name. Before this existed,
+that gap was invisible until real infrastructure rejected it mid-apply
+(or, since a resolve-time check now catches it earlier — see [`ubx
+resolve`](/cli/resolve#a-resources-config-is-missing-a-value-for-a-required-attribute)
+— until the diagram simply refused to resolve at all, with no way
+forward except abandoning it for a hand-written file or [the md
+medium](/guides/md-medium)).
+
+A node can carry a value for exactly this class of attribute directly,
+via a `ubx_required.<attr>` key — D2's own dotted-path shorthand for a
+nested map:
+
+```d2 role.d2
+classes: {
+  aws_iam_role: {}
+}
+role: "ci-runner-v13" {
+  class: aws_iam_role
+  ubx_required.assume_role_policy: |md
+    {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "ecs-tasks.amazonaws.com"}, "Action": "sts:AssumeRole"}]}
+  |
+}
+```
+
+```text
+$ ubx propose --from-diagram role.d2 --stack payments --out role.intent.json
+no assumptions, defaults, or open questions -- the document was unambiguous.
+wrote draft: role.intent.json
+```
+
+```json role.intent.json
+{
+  "resources": [
+    {
+      "type": "aws_iam_role",
+      "name": "ci-runner-v13",
+      "op": "create",
+      "config": {
+        "assume_role_policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Principal\": {\"Service\": \"ecs-tasks.amazonaws.com\"}, \"Action\": \"sts:AssumeRole\"}]}"
+      }
+    }
+  ]
+}
+```
+
+Real, unedited output against the real, pinned `hashicorp/aws@6.54.0`
+schema — `ubx resolve role.intent.json` on it now succeeds with zero
+missing-required-attribute refusal, pure diagram authoring, no
+enrichment step needed.
+
+A JSON-valued attribute like `assume_role_policy` is authored via D2's
+own `|md ... |` block-string syntax (a plain scalar, like a name or an
+ARN, is just `ubx_required.<attr>: "value"`, no block needed) — either
+way, the value lands in `config` as a JSON **string**, matching the real
+provider schema's own wire type for every attribute this escape hatch is
+meant for (an IAM policy document is a string whose own content happens
+to be JSON text, not a nested JSON object attribute).
+
+<Warning>
+  **This is not a general attribute-authoring mechanism.** `ubx_required`
+  accepts a value for an attribute ONLY when the real provider schema
+  marks it Required — everything else stays topology-only, the founding
+  rule at the top of this guide, unchanged. Naming anything else is
+  refused immediately, at parse time:
+
+  ```text
+  $ ubx propose --from-diagram role-bad.d2 --stack payments
+  propose --from-diagram: diagram: role: ubx_required.description: "description" is not a required attribute on aws_iam_role -- use --from-doc or an SDK program to set optional attributes
+  ```
+
+  For everything ubx_required doesn't cover — genuinely optional
+  attributes, ones you actually want to set on purpose — use [the md
+  medium](/guides/md-medium) or [the SDK](/sdk) instead, exactly as the
+  error says.
+</Warning>
+
 ## What happens next
 
 `ubx propose --from-diagram` stops at the draft, on purpose — the exact

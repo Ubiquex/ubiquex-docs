@@ -990,6 +990,32 @@ by an AI adapter (see [`ubx propose --from-doc`](/cli/propose) and
   and a decoded config to check it against.
 </Note>
 
+### A resource's config is missing a value for a Required attribute
+
+The mirror image of the check above: every attribute the real provider
+schema marks **Required** must actually have a value somewhere in
+`config` -- checked the same way, at the same point, against the same
+schema. This is what [the diagram medium](/guides/diagram-medium) hits
+constantly (its own topology-only design structurally can't express a
+non-topology attribute like an IAM role's trust policy at all), but the
+check itself has no idea where the intent file came from -- a
+hand-written file or an SDK program missing a required field is refused
+identically:
+
+```text
+$ ubx resolve role-incomplete.intent.json --ledger-dir .
+resolve: resolve: missing required attribute: payments.aws_iam_role.ci-runner-v13: config has no value for required attribute "assume_role_policy" on aws_iam_role -- a medium that structurally can't express this attribute (e.g. the diagram medium's own topology-only design) needs it filled in some other way: a hand-edited plan file, or authoring this resource via a different medium (--from-doc, an SDK program, or a hand-written intent file) instead
+```
+
+Never reaches ship: this used to be discoverable only when a real
+`ApplyResourceChange` call rejected the incomplete config, potentially
+after other resources in the same batch had already applied. Every
+missing attribute across the whole intent file is reported at once, the
+same "collect everything, one refusal" discipline the unrecognized-key
+check above uses. For the diagram medium specifically, see [`ubx_required`](/guides/diagram-medium#ubx_required-supplying-a-required-attribute-a-diagram-cant-express)
+-- a narrow escape hatch for supplying exactly this class of value
+directly on a node, without abandoning the diagram entirely.
+
 <Note>
   `ubx resolve` runs its whole resolution twice internally and compares the
   two results byte-for-byte, hard-failing on any divergence rather than
