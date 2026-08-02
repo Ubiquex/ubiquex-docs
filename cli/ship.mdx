@@ -659,9 +659,36 @@ $ ubx why 77aea682649c06029d44454cc3308c7ecec229d88d44023773fb39c2a9b1cb87
       reconcile: applied at 2026-08-02T19:03:27Z -- dependency became visible, retry succeeded
 ```
 
-If the dependency never becomes visible within the full retry budget, the
-create fails terminally with the provider's own original diagnostic —
-never a silent hang, and never a different, invented error in its place.
+Real propagation lag resolves in low single-digit seconds — so `ubx ship`
+doesn't wait out the full ~64-second budget to find out a dependency will
+never become visible at all (most commonly: the reference was authored
+against an assumed identity that doesn't match what the dependency
+actually shipped as, a permanent mismatch no amount of retrying can fix).
+Once elapsed retry time clearly exceeds realistic lag with zero change in
+outcome, `ubx ship` gives up early — around 19 seconds, not 64 — with an
+honest message rather than grinding out the remaining budget:
+
+```text
+$ ubx ship 5a5f219593e37c6e4255cc5a092aaa4b4015c97e7f9f9f14f647023de420d986 --provider ./fakeprovider
+  ✓ payments.fake_widget.api-cache       : shipped                                            0:00
+
+  ⠋ payments.fake_widget.api-cache-mirror: dependency just shipped -- retrying to allow for provider propagation lag (attempt 1/10) 0:00
+  ⠙ payments.fake_widget.api-cache-mirror: dependency just shipped -- retrying to allow for provider propagation lag (attempt 2/10) 0:00
+  ⠹ payments.fake_widget.api-cache-mirror: dependency just shipped -- retrying to allow for provider propagation lag (attempt 3/10) 0:00
+  ⠸ payments.fake_widget.api-cache-mirror: dependency just shipped -- retrying to allow for provider propagation lag (attempt 4/10) 0:00
+  ⠼ payments.fake_widget.api-cache-mirror: dependency just shipped -- retrying to allow for provider propagation lag (attempt 5/10) 0:01
+  ⠴ payments.fake_widget.api-cache-mirror: dependency just shipped -- retrying to allow for provider propagation lag (attempt 6/10) 0:03
+  ⠦ payments.fake_widget.api-cache-mirror: dependency just shipped -- retrying to allow for provider propagation lag (attempt 7/10) 0:08
+  ! payments.fake_widget.api-cache-mirror: 18.75s of retrying produced zero change in outcome (real provider propagation lag resolves in low single-digit seconds) -- this does not appear to exist and may never have been created under the identity referenced; verify the reference actually matches the shipped dependency's real assigned name/id, not an assumed one: provider returned 1 diagnostic error(s): NoSuchEntity: ...
+  ✗ payments.fake_widget.api-cache-mirror: failed                                             0:18
+
+2 resource(s), 1 shipped, 1 failed, 0 still unknown -- outcome: partially_shipped
+ship: partially_applied (see above)
+```
+
+The original provider diagnostic is never discarded — it's wrapped inside
+the honest message (`ubx why` shows both), never a silent hang and never
+a different, invented error in its place.
 
 ## Shipping a destroy
 
