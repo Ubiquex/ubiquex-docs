@@ -616,6 +616,53 @@ never loses the value the second one needs.
   for the full behavior.
 </Note>
 
+### A dependent create outrunning its own dependency's visibility
+
+A real cloud provider's own successful create of a resource doesn't
+guarantee that resource is *immediately* visible to another call that
+references it — AWS IAM is the well-documented case: `CreateRole` can
+return success before the role is visible to a subsequent
+`AttachRolePolicy` call, even though nothing about `ubx`'s own dependency
+ordering was wrong (the role really did ship first). `ubx ship` retries a
+dependent's own create through the identical backoff budget the
+[post-destroy read-back](#a-provider-that-reports-success-without-it-being-true)
+below already uses (~64 seconds, escalating), narrowly scoped: only when
+the failure names an already-shipped same-batch dependency and looks
+not-found-shaped ("not found," "does not exist," "no such," "cannot be
+found," and close variants) — a real, permanent failure (a bad ARN, an
+invalid policy document) still fails immediately, unretried, exactly as
+before this existed.
+
+```text
+$ ubx ship 77aea682649c06029d44454cc3308c7ecec229d88d44023773fb39c2a9b1cb87 --provider ./fakeprovider
+  ✓ payments.fake_widget.api-cache       : shipped                                            0:00
+
+  ⠋ payments.fake_widget.api-cache-mirror: dependency just shipped -- retrying to allow for provider propagation lag (attempt 1/10) 0:00
+  ⠙ payments.fake_widget.api-cache-mirror: dependency just shipped -- retrying to allow for provider propagation lag (attempt 2/10) 0:00
+  ✓ payments.fake_widget.api-cache-mirror: shipped                                            0:00
+
+2 resource(s), 2 shipped, 0 failed, 0 still unknown -- outcome: shipped
+```
+
+Every retry is logged to `ubx why`'s own reconciliation trail, the same
+way a destroy's read-back attempts are:
+
+```text
+$ ubx why 77aea682649c06029d44454cc3308c7ecec229d88d44023773fb39c2a9b1cb87
+...
+    payments.fake_widget.api-cache-mirror:
+      pending at 2026-08-02T19:03:27Z
+      in_flight at 2026-08-02T19:03:27Z
+      shipped at 2026-08-02T19:03:27Z
+      reconcile: inconclusive at 2026-08-02T19:03:27Z -- references a same-batch dependency that just shipped -- retrying to allow for real propagation lag (AWS IAM's own well-documented eventual-consistency window, UBI-92): provider returned 1 diagnostic error(s): NoSuchEntity: ...
+      reconcile: inconclusive at 2026-08-02T19:03:27Z -- provider returned 1 diagnostic error(s): NoSuchEntity: ...
+      reconcile: applied at 2026-08-02T19:03:27Z -- dependency became visible, retry succeeded
+```
+
+If the dependency never becomes visible within the full retry budget, the
+create fails terminally with the provider's own original diagnostic —
+never a silent hang, and never a different, invented error in its place.
+
 ## Shipping a destroy
 
 A `change` proposal's `delta.destroys` ([`ubx resolve`'s own "Destroying a
