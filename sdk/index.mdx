@@ -14,25 +14,30 @@ hermetic evaluator](#the-python-evaluator) below), so there's no
 separate install step: generate bindings, write a program, resolve it.
 
 ```bash
-ubx sdk gen --out sdk/generated               # TypeScript (default)
+ubx sdk gen --out sdk/generated               # TypeScript (default) -> sdk/generated/ts/<source>/
 ubx resolve --from-code payments.ts --out change.prop.json
 ubx accept change.prop.json
 ubx ship <proposal-id>
 ```
 
 ```bash
-ubx sdk gen --lang go --out sdk/generated     # Go
+ubx sdk gen --lang go --out sdk/generated     # Go -> sdk/generated/go/<source>/
 ubx resolve --from-code payments.go --out change.prop.json
 ubx accept change.prop.json
 ubx ship <proposal-id>
 ```
 
 ```bash
-ubx sdk gen --lang py --out sdk/generated     # Python
+ubx sdk gen --lang py --out sdk/generated     # Python -> sdk/generated/py/<source>/
 ubx resolve --from-code payments.py --out change.prop.json
 ubx accept change.prop.json
 ubx ship <proposal-id>
 ```
+
+Each language writes a repo-shaped tree (own manifest, one directory per
+AWS-service boundary, `--lang` its own path segment so all three can
+share one `--out` without colliding) -- see [`ubx sdk
+gen`](/cli/sdk-gen) for the full shape.
 
 ## TypeScript
 
@@ -42,12 +47,12 @@ A program's entire vocabulary is five functions and one type:
 
 ```typescript payments.ts
 import { intent, resource, stack } from "@ubx/sdk";
-import { AwsDbInstance } from "./sdk/generated/hashicorp-aws.ts";
+import { Instance } from "./sdk/generated/ts/hashicorp-aws/db/instance.ts";
 
 export default stack("payments", () => {
   intent({ summary: "provision the payments database" });
 
-  resource(AwsDbInstance, "payments", {
+  resource(Instance, "payments", {
     engine: "postgres",
     instanceClass: "db.t3.small",
     allocatedStorage: 20,
@@ -92,7 +97,7 @@ full command reference; the short version:
 
 ```text
 $ ubx sdk gen --out sdk/generated
-generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp-aws.ts
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/ts/hashicorp-aws
 ```
 
 Generated files are meant to be committed to git, like any other
@@ -126,14 +131,14 @@ package main
 import (
 	sdk "github.com/ubiquex/ubx-sdk-go/runtime"
 
-	generated "payments/sdk/generated"
+	db "github.com/ubiquex/ubx-sdk-aws/db"
 )
 
 func main() {
 	sdk.Main(sdk.Stack("payments", func() {
 		sdk.Intent(sdk.IntentInfo{Summary: "provision the payments database"})
 
-		sdk.Resource(generated.AwsDbInstance, "payments", generated.AwsDbInstanceConfig{
+		sdk.Resource(db.Instance, "payments", db.InstanceConfig{
 			Engine:           "postgres",
 			InstanceClass:    "db.t3.small",
 			AllocatedStorage: 20,
@@ -170,14 +175,18 @@ func main() {
 
 ```text
 $ ubx sdk gen --lang go --out sdk/generated
-generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp-aws.go
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/go/hashicorp-aws
 ```
 
-Real bindings, real config struct per resource type, plus a runtime
+A repo-shaped tree -- its own `go.mod` (module
+`github.com/ubiquex/ubx-sdk-aws`), one package per AWS-service boundary,
+real bindings, real config struct per resource type, plus a runtime
 descriptor:
 
-```go sdk/generated/hashicorp-aws.go (excerpt)
-type AwsDbInstanceConfig struct {
+```go sdk/generated/go/hashicorp-aws/db/instance.go (excerpt)
+package db
+
+type InstanceConfig struct {
 	AllocatedStorage any
 	DbName           any
 	Engine           any
@@ -186,7 +195,7 @@ type AwsDbInstanceConfig struct {
 	// ...every other real aws_db_instance settable attribute
 }
 
-var AwsDbInstance = sdk.ResourceBinding{
+var Instance = sdk.ResourceBinding{
 	WireType: "aws_db_instance",
 	Fields: sdk.FieldMap{
 		"AllocatedStorage": sdk.FieldSpec{WireName: "allocated_storage"},
@@ -201,7 +210,11 @@ reference, or a `sdk.Secret`/`sdk.Cross` marker) -- unlike TypeScript's
 generated `Config`/`Attrs` interface pair, there's no separate `Attrs`
 type at all: Go's `Computed` has no static per-field shape (`.Field(name)`
 works the same regardless), so there's nothing for a generated `Attrs`
-type to describe.
+type to describe. Your own program's `go.mod` needs a `require`+`replace`
+pointing at the generated directory, the same local-checkout pattern the
+runtime itself needs (see [`ubx sdk gen`'s own "No runtime package is
+published yet"](/cli/sdk-gen#no-runtime-package-is-published-yet)) --
+neither is published anywhere yet.
 
 ### The hermetic evaluator {#the-go-evaluator}
 
@@ -242,12 +255,12 @@ place of `Computed<T>`:
 
 ```python payments.py
 import ubx_sdk as sdk
-from sdk.generated.hashicorp_aws import AwsDbInstance, AwsDbInstanceConfig
+from db.instance import Instance, InstanceConfig
 
 
 def describe():
     sdk.intent("provision the payments database")
-    sdk.resource(AwsDbInstance, "payments", AwsDbInstanceConfig(
+    sdk.resource(Instance, "payments", InstanceConfig(
         engine="postgres",
         instance_class="db.t3.small",
         allocated_storage=20,
@@ -289,15 +302,16 @@ if __name__ == "__main__":
 
 ```text
 $ ubx sdk gen --lang py --out sdk/generated
-generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp_aws.py
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/py/hashicorp-aws
 ```
 
-Real bindings, real `@dataclass` per resource type, plus a runtime
-descriptor:
+A repo-shaped tree -- its own `pyproject.toml` (name `ubx-sdk-aws`), one
+real Python package per AWS-service boundary (`__init__.py` and all),
+real `@dataclass` per resource type, plus a runtime descriptor:
 
-```python sdk/generated/hashicorp_aws.py (excerpt)
+```python sdk/generated/py/hashicorp-aws/db/instance.py (excerpt)
 @dataclasses.dataclass
-class AwsDbInstanceConfig:
+class InstanceConfig:
     allocated_storage: Any = None
     db_name: Any = None
     engine: Any = None
@@ -305,7 +319,7 @@ class AwsDbInstanceConfig:
     username: Any = None
     # ...every other real aws_db_instance settable attribute
 
-AwsDbInstance = sdk.ResourceBinding(
+Instance = sdk.ResourceBinding(
     wire_type="aws_db_instance",
     fields={
         "allocated_storage": sdk.FieldSpec(wire_name="allocated_storage"),
@@ -321,9 +335,13 @@ generates against is already lowercase-with-underscores -- already a
 valid Python identifier verbatim. The one real exception is a wire name
 that collides with a Python keyword (e.g. a field literally named
 `class`), closed with a trailing underscore (`class_`), the same
-convention generated protobuf/thrift bindings already use. No separate
-`Attrs` type, for the same reason Go has none: `Computed` has no static
-per-field shape.
+convention generated protobuf/thrift bindings already use -- applied at
+the service-directory level too (a real, live-verified case: AWS's own
+`lambda` service becomes `lambda_/`, since `lambda` is a Python
+keyword). No separate `Attrs` type, for the same reason Go has none:
+`Computed` has no static per-field shape. Put the generated repo's own
+root (`sdk/generated/py/hashicorp-aws`) on `PYTHONPATH` to import its
+service packages directly.
 
 ### The hermetic evaluator {#the-python-evaluator}
 

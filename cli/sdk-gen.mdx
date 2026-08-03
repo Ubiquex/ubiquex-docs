@@ -11,17 +11,31 @@ Reads `.ubx/config`'s own [`[providers]` table](/cli/config#multi-provider-stack
 (the same source of truth [`ubx resolve`](/cli/resolve)/[`ubx ship`](/cli/ship)
 already read), acquires each declared provider's real binary at its pinned
 version, dumps its real schema (no `Configure`, no credentials needed -- a
-pure local gRPC call against the launched binary), and writes idiomatic
-bindings under `--out`, in the language named by `--lang` (`ts`, the
-default, `go`, or `py`), whose generated field map maps back to the
-provider's real wire attribute names at evaluation time.
+pure local gRPC call against the launched binary), and writes a
+**repo-shaped tree** of idiomatic bindings under `--out/<lang>/`, in the
+language named by `--lang` (`ts`, the default, `go`, or `py`), whose
+generated field map maps back to the provider's real wire attribute names
+at evaluation time.
 
-`--lang ts`/`--lang py` write one flat file per provider source.
-`--lang go` writes a **repo-shaped tree** per provider source instead --
-its own `go.mod`, one package per AWS-service boundary -- see
-[Example: Go](#example-go) below; a flat single-file/single-package shape
-cannot compile at real full-provider scale (a genuine Go compiler
-limit, unrelated to naming).
+Every language writes the same shape: `--out/<lang>/<source-sanitized>/`,
+its own manifest stub (`package.json` for TS, `go.mod` for Go,
+`pyproject.toml` for Python), one directory per AWS-service boundary
+derived from each resource type's own wire name (`aws_ecr_*` → `ecr`,
+`aws_iam_*` → `iam`, ...), one file per resource type. `--lang` is its
+own path segment specifically so generating multiple languages against
+the same `--out` never interleaves their manifests/source trees into one
+directory.
+
+<Note>
+  Go specifically also *requires* this shape to compile at all: a flat
+  single-file/single-package layout hits a real Go compiler limit
+  (`internal compiler error: NewBulk too big`) once a package holds
+  enough of a real provider's 1,682 types' worth of declarations,
+  unrelated to naming. TypeScript's `deno check` and a real Python
+  `import` do NOT hit an equivalent limit -- checked directly, not
+  assumed -- but write the same repo-shaped structure anyway, for
+  reviewability and consistency across languages.
+</Note>
 
 Always regenerates from the exact config-pinned version's real,
 freshly-acquired schema -- never a stale cache from a different version.
@@ -41,13 +55,43 @@ pinned version in `[providers]`.
 | Flag | Description |
 | --- | --- |
 | `--lang string` | target language for generated bindings: `ts`, `go`, or `py` (default `ts`) |
-| `--out string` | directory to write generated bindings into -- one file per declared provider source for `--lang ts`/`--lang py`; a repo-shaped tree (own `go.mod`, one package per AWS-service boundary) per provider source for `--lang go` (default `sdk/generated`) |
+| `--out string` | root directory for the generated repo-shaped tree(s), one per `--lang` under `<out>/<lang>/<source-sanitized>/` (default `sdk/generated`) |
 | `--timeout duration` | timeout for launching each provider and fetching its schema -- applied **per provider**, not once for the whole command (default `1m0s`) |
 | `-h`, `--help` | help for gen |
 
-With `--lang py`, filenames use underscores rather than TypeScript/Go's
-hyphenated convention (`hashicorp_aws.py`, not `hashicorp-aws.py`) --
-Python module names can't contain a hyphen.
+Every generated type name drops the redundant `Aws<Service>` prefix,
+since the directory already encodes provider+service -- `ecr.Repository`,
+never `generated.AwsEcrRepository` -- identically across all three
+languages. The runtime binding's own wire type (`wireType`/`WireType`/
+`wire_type`) always carries the real, full, unshortened wire type string
+(`"aws_ecr_repository"`), regardless of what the identifier dropped.
+
+<Note>
+  The AWS-service boundary is derived mechanically from each wire type's
+  own name (`<provider>_<service>_<local...>`), not from a hand-curated
+  AWS-service taxonomy -- `ubx sdk gen` stays fully offline, with no
+  network-fetched taxonomy lookup. This is exact for services that always
+  carry an explicit prefix in their wire names (`ecr`, `iam`, `sqs`, ...)
+  but not a faithful reproduction of AWS's own real service grouping for
+  a subset of EC2/VPC "core" resources whose wire names predate that
+  convention (`aws_vpc`, `aws_instance`, `aws_subnet`, and similar) --
+  these land in their own small package (e.g. Go's `vpc.Vpc`) rather than
+  a single curated `ec2` package. See the [SDK Reference](/sdk) for the
+  full account.
+</Note>
+
+A service or resource name that collides with the target language's own
+reserved words is escaped with a trailing underscore, checked separately
+per language (not assumed to transfer from one language to another):
+
+- **Go**: a real language keyword (`default` → `default_/`) or a name
+  the `go` tool itself treats specially (`main` → `main_/`, since a
+  package literally named `main` is treated as a command).
+- **Python**: a real language keyword -- `lambda` is both a Python
+  keyword and a real 20-type AWS service, so it becomes `lambda_/`.
+- **TypeScript**: no escaping needed at all -- ES module resolution is
+  purely string-based, so a directory literally named `default/`,
+  `main/`, or `lambda/` is unremarkable to Deno.
 
 ## Example: TypeScript
 
@@ -58,64 +102,80 @@ Python module names can't contain a hyphen.
 
 ```text
 $ ubx sdk gen --out sdk/generated
-generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp-aws.ts
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/ts/hashicorp-aws
 ```
 
-One file per source, named `<source-with-slashes-replaced-by-dashes>.ts`.
+```text sdk/generated/ts/hashicorp-aws/ (excerpt)
+package.json                        # name "@ubx/sdk-aws"
+ecr/
+  doc.ts                            # banner + __ubxSourceProvenance (once per directory)
+  repository.ts
+  repository_policy.ts
+  lifecycle_policy.ts
+  ...
+iam/
+  doc.ts
+  role.ts
+  role_policy_attachment.ts
+  ...
+```
+
 Each resource type gets a `Config` interface (settable fields), an `Attrs`
 interface (every field, including computed-only ones like `id`/`arn`), and
 a runtime binding object a program passes to `resource()`:
 
-```typescript sdk/generated/hashicorp-aws.ts (excerpt)
-export interface AwsDbInstanceConfig {
-  allocatedStorage?: number | Computed<number>;
-  dbName?: string | Computed<string>;
-  engine?: string | Computed<string>;
-  instanceClass: string | Computed<string>;
-  username?: string | Computed<string>;
-  // ...every other real aws_db_instance attribute
+```typescript sdk/generated/ts/hashicorp-aws/ecr/repository.ts (excerpt)
+export interface RepositoryConfig {
+  forceDelete?: boolean | Computed<boolean>;
+  imageTagMutability?: string | Computed<string>;
+  name: string | Computed<string>;
+  // ...every other real aws_ecr_repository settable attribute
 }
 
-export interface AwsDbInstanceAttrs {
-  id: string;
+export interface RepositoryAttrs {
   arn: string;
+  id: string;
   // ...every field, plain types -- Computed<T> wrapping happens once,
   // generically, when a resource() call returns a handle
 }
 
-export const AwsDbInstance: ResourceBinding<AwsDbInstanceConfig, AwsDbInstanceAttrs> = {
-  wireType: "aws_db_instance",
-  fields: { allocatedStorage: "allocated_storage", dbName: "db_name", /* ... */ },
+export const Repository: ResourceBinding<RepositoryConfig, RepositoryAttrs> = {
+  wireType: "aws_ecr_repository",
+  fields: {
+    forceDelete: "force_delete",
+    imageTagMutability: "image_tag_mutability",
+    name: "name",
+    // ...
+  },
 };
 ```
 
 A field is only ever settable in `Config` if the real schema marks it
 `Required` or `Optional` -- a pure output attribute like `id` never
-appears there, only in `Attrs`.
+appears there, only in `Attrs`. A program imports the specific resource
+file it needs:
+
+```typescript
+import { resource } from "@ubx/sdk";
+import { Repository } from "./generated/ts/hashicorp-aws/ecr/repository.ts";
+
+resource(Repository, "app-images", { name: "app-images" });
+```
 
 ## Example: Go
 
 ```text
 $ ubx sdk gen --lang go --out sdk/generated
-generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp-aws
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/go/hashicorp-aws
 ```
 
-Unlike TypeScript/Python, `--lang go` writes a **repo-shaped tree**, one
-per provider source, not a single file -- a flat single-package shape
-cannot compile at real full-provider scale (`go build` hits a real Go
-compiler limit -- "internal compiler error: NewBulk too big" -- once a
-single package holds enough of a real provider's 1,682 types' worth of
-declarations; unrelated to naming). The tree is structured, and named,
-after [Pulumi's own real repo+package convention](https://github.com/pulumi/pulumi-aws):
-its own `go.mod` stub, one Go package per AWS-service boundary derived
-mechanically from each resource type's own wire name (`aws_ecr_*` →
-`ecr`, `aws_iam_*` → `iam`, ...), one file per resource type within its
-own service package:
+The tree is structured, and named, after
+[Pulumi's own real repo+package convention](https://github.com/pulumi/pulumi-aws):
 
-```text sdk/generated/hashicorp-aws/ (excerpt)
-go.mod                              # module github.com/ubiquex/ubx-sdk-aws
+```text sdk/generated/go/hashicorp-aws/ (excerpt)
+go.mod                               # module github.com/ubiquex/ubx-sdk-aws
 ecr/
-  doc.go                            # package banner + SourceProvenance (once per package)
+  doc.go                             # package banner + SourceProvenance (once per package)
   repository.go
   repository_policy.go
   lifecycle_policy.go
@@ -127,15 +187,11 @@ iam/
   ...
 ```
 
-Every generated type name drops the redundant `Aws<Service>` prefix,
-since the import path already encodes provider+service -- `ecr.Repository`,
-never `generated.AwsEcrRepository`. Each resource type gets a `Config`
-struct (settable fields, every field typed `any`) and a runtime binding
-value a program passes to `sdk.Resource()`; `WireType` always carries the
-real, full, unshortened wire type string, regardless of what the Go
-identifier dropped:
+Each resource type gets a `Config` struct (settable fields, every field
+typed `any`) and a runtime binding value a program passes to
+`sdk.Resource()`:
 
-```go sdk/generated/hashicorp-aws/ecr/repository.go (excerpt)
+```go sdk/generated/go/hashicorp-aws/ecr/repository.go (excerpt)
 package ecr
 
 type RepositoryConfig struct {
@@ -172,50 +228,48 @@ sdk.Resource(ecr.Repository, "app-images", ecr.RepositoryConfig{
 No separate `Attrs` type, unlike TypeScript -- Go's `Computed` has no
 static per-field shape (`.Field(name)` drills in dynamically regardless
 of what it's addressing), so there's nothing for a generated `Attrs`
-type to describe. A field is only ever settable in `Config` if the real
-schema marks it `Required` or `Optional`, the same rule as TypeScript.
-
-<Note>
-  The AWS-service boundary is derived mechanically from each wire type's
-  own name (`<provider>_<service>_<local...>`), not from a hand-curated
-  AWS-service taxonomy -- `ubx sdk gen` stays fully offline, with no
-  network-fetched taxonomy lookup. This is exact for services that always
-  carry an explicit prefix in their wire names (`ecr`, `iam`, `sqs`, ...)
-  but not a faithful reproduction of AWS's own real service grouping for
-  a subset of EC2/VPC "core" resources whose wire names predate that
-  convention (`aws_vpc`, `aws_instance`, `aws_subnet`, and similar) --
-  these land in their own small package (`vpc.Vpc`, not grouped under a
-  single curated `ec2` package). See the [SDK Reference](/sdk) for the
-  full account.
-</Note>
+type to describe.
 
 ## Example: Python
 
 ```text
 $ ubx sdk gen --lang py --out sdk/generated
-generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp_aws.py
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/py/hashicorp-aws
 ```
 
-One file per source, named `<source-with-slashes-and-hyphens-replaced-by-underscores>.py`.
+```text sdk/generated/py/hashicorp-aws/ (excerpt)
+pyproject.toml                      # name "ubx-sdk-aws"
+ecr/
+  __init__.py                       # Python's own real package marker; banner + SOURCE_PROVENANCE
+  repository.py
+  repository_policy.py
+  lifecycle_policy.py
+  ...
+iam/
+  __init__.py
+  role.py
+  role_policy_attachment.py
+  ...
+```
+
 Each resource type gets a `@dataclass` Config class (settable fields,
 every field typed `Any`) and a runtime binding value a program passes to
 `sdk.resource()`:
 
-```python sdk/generated/hashicorp_aws.py (excerpt)
+```python sdk/generated/py/hashicorp-aws/ecr/repository.py (excerpt)
 @dataclasses.dataclass
-class AwsDbInstanceConfig:
-    allocated_storage: Any = None
-    db_name: Any = None
-    engine: Any = None
-    instance_class: Any = None
-    username: Any = None
-    # ...every other real aws_db_instance settable attribute
+class RepositoryConfig:
+    force_delete: Any = None
+    image_tag_mutability: Any = None
+    name: Any = None
+    # ...every other real aws_ecr_repository settable attribute
 
-AwsDbInstance = sdk.ResourceBinding(
-    wire_type="aws_db_instance",
+Repository = sdk.ResourceBinding(
+    wire_type="aws_ecr_repository",
     fields={
-        "allocated_storage": sdk.FieldSpec(wire_name="allocated_storage"),
-        "db_name": sdk.FieldSpec(wire_name="db_name"),
+        "force_delete": sdk.FieldSpec(wire_name="force_delete"),
+        "image_tag_mutability": sdk.FieldSpec(wire_name="image_tag_mutability"),
+        "name": sdk.FieldSpec(wire_name="name"),
         # ...
     },
 )
@@ -226,8 +280,18 @@ TypeScript's camelCase or Go's PascalCase -- every real provider wire
 name this project generates against is already a valid Python
 identifier verbatim (lowercase-with-underscores). The one real exception
 is a wire name that collides with a Python keyword (e.g. a field
-literally named `class`), closed with a trailing underscore (`class_`).
-No separate `Attrs` type, same reasoning as Go's.
+literally named `class`), closed with a trailing underscore (`class_`) --
+the same convention `lambda_`, above, uses at the service-directory
+level. No separate `Attrs` type, same reasoning as Go's. A program
+imports the specific service package it needs (`PYTHONPATH` including
+`sdk/generated/py/hashicorp-aws` itself):
+
+```python
+from ecr.repository import Repository, RepositoryConfig
+import ubx_sdk as sdk
+
+sdk.resource(Repository, "app-images", RepositoryConfig(name="app-images"))
+```
 
 ## Offline after generation
 
@@ -253,7 +317,11 @@ TypeScript's `@ubx/sdk` (`stack`, `resource`, `secret`, `cross`,
 directly inside the `ubx` binary and made available to the evaluator
 automatically. You don't need to `npm install` anything for `ubx resolve
 --from-code` to work with a `.ts` entry; only generated bindings (this
-command's own output) need to exist on disk.
+command's own output) need to exist on disk. The generated bindings
+tree's own `package.json` (name `@ubx/sdk-aws` and so on) isn't
+published to npm either -- it's a repo-*shaped* local directory (ready
+to become its own real repo), not a real published package; whether/how
+it becomes one is left entirely to you (or CI).
 
 Go's `github.com/ubiquex/ubx-sdk-go` (`sdk.Stack`, `sdk.Resource`,
 `sdk.Secret`, `sdk.Cross`, `sdk.Intent`, `sdk.Main`, `*sdk.Computed`) is
@@ -273,7 +341,9 @@ Python's `ubx_sdk` (`sdk.stack`, `sdk.resource`, `sdk.secret`,
 PyPI yet either -- like TypeScript's, it's embedded inside the `ubx`
 binary and made available to the evaluator automatically; you don't need
 `pip install` anything for `ubx resolve --from-code` to work with a
-`.py` entry.
+`.py` entry. The generated bindings tree's own `pyproject.toml` (name
+`ubx-sdk-aws` and so on) isn't published to PyPI either, same posture as
+Go/TS's own generated manifests.
 
 ## Related
 
