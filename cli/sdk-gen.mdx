@@ -11,11 +11,17 @@ Reads `.ubx/config`'s own [`[providers]` table](/cli/config#multi-provider-stack
 (the same source of truth [`ubx resolve`](/cli/resolve)/[`ubx ship`](/cli/ship)
 already read), acquires each declared provider's real binary at its pinned
 version, dumps its real schema (no `Configure`, no credentials needed -- a
-pure local gRPC call against the launched binary), and writes one file
-per provider source under `--out`, in the language named by `--lang`
-(`ts`, the default, `go`, or `py`): idiomatic bindings whose generated
-field map maps back to the provider's real wire attribute names at
-evaluation time.
+pure local gRPC call against the launched binary), and writes idiomatic
+bindings under `--out`, in the language named by `--lang` (`ts`, the
+default, `go`, or `py`), whose generated field map maps back to the
+provider's real wire attribute names at evaluation time.
+
+`--lang ts`/`--lang py` write one flat file per provider source.
+`--lang go` writes a **repo-shaped tree** per provider source instead --
+its own `go.mod`, one package per AWS-service boundary -- see
+[Example: Go](#example-go) below; a flat single-file/single-package shape
+cannot compile at real full-provider scale (a genuine Go compiler
+limit, unrelated to naming).
 
 Always regenerates from the exact config-pinned version's real,
 freshly-acquired schema -- never a stale cache from a different version.
@@ -35,15 +41,9 @@ pinned version in `[providers]`.
 | Flag | Description |
 | --- | --- |
 | `--lang string` | target language for generated bindings: `ts`, `go`, or `py` (default `ts`) |
-| `--out string` | directory to write generated bindings into, one file per declared provider source (default `sdk/generated`) |
+| `--out string` | directory to write generated bindings into -- one file per declared provider source for `--lang ts`/`--lang py`; a repo-shaped tree (own `go.mod`, one package per AWS-service boundary) per provider source for `--lang go` (default `sdk/generated`) |
 | `--timeout duration` | timeout for launching each provider and fetching its schema -- applied **per provider**, not once for the whole command (default `1m0s`) |
 | `-h`, `--help` | help for gen |
-
-Every provider source generated into the same `--out` directory with
-`--lang go` shares one Go package -- Go requires one package per
-directory, unlike TypeScript where each file is its own module
-regardless of directory. The package name is derived from `--out`'s own
-final path component (`sdk/generated` → `package generated`).
 
 With `--lang py`, filenames use underscores rather than TypeScript/Go's
 hyphenated convention (`hashicorp_aws.py`, not `hashicorp-aws.py`) --
@@ -97,32 +97,76 @@ appears there, only in `Attrs`.
 
 ```text
 $ ubx sdk gen --lang go --out sdk/generated
-generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp-aws.go
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp-aws
 ```
 
-One file per source, named `<source-with-slashes-replaced-by-dashes>.go`.
-Each resource type gets a `Config` struct (settable fields, every field
-typed `any`) and a runtime binding value a program passes to
-`sdk.Resource()`:
+Unlike TypeScript/Python, `--lang go` writes a **repo-shaped tree**, one
+per provider source, not a single file -- a flat single-package shape
+cannot compile at real full-provider scale (`go build` hits a real Go
+compiler limit -- "internal compiler error: NewBulk too big" -- once a
+single package holds enough of a real provider's 1,682 types' worth of
+declarations; unrelated to naming). The tree is structured, and named,
+after [Pulumi's own real repo+package convention](https://github.com/pulumi/pulumi-aws):
+its own `go.mod` stub, one Go package per AWS-service boundary derived
+mechanically from each resource type's own wire name (`aws_ecr_*` →
+`ecr`, `aws_iam_*` → `iam`, ...), one file per resource type within its
+own service package:
 
-```go sdk/generated/hashicorp-aws.go (excerpt)
-type AwsDbInstanceConfig struct {
-	AllocatedStorage any
-	DbName           any
-	Engine           any
-	InstanceClass    any
-	Username         any
-	// ...every other real aws_db_instance settable attribute
+```text sdk/generated/hashicorp-aws/ (excerpt)
+go.mod                              # module github.com/ubiquex/ubx-sdk-aws
+ecr/
+  doc.go                            # package banner + SourceProvenance (once per package)
+  repository.go
+  repository_policy.go
+  lifecycle_policy.go
+  ...
+iam/
+  doc.go
+  role.go
+  role_policy_attachment.go
+  ...
+```
+
+Every generated type name drops the redundant `Aws<Service>` prefix,
+since the import path already encodes provider+service -- `ecr.Repository`,
+never `generated.AwsEcrRepository`. Each resource type gets a `Config`
+struct (settable fields, every field typed `any`) and a runtime binding
+value a program passes to `sdk.Resource()`; `WireType` always carries the
+real, full, unshortened wire type string, regardless of what the Go
+identifier dropped:
+
+```go sdk/generated/hashicorp-aws/ecr/repository.go (excerpt)
+package ecr
+
+type RepositoryConfig struct {
+	ForceDelete         any
+	ImageTagMutability   any
+	Name                 any
+	// ...every other real aws_ecr_repository settable attribute
 }
 
-var AwsDbInstance = sdk.ResourceBinding{
-	WireType: "aws_db_instance",
+var Repository = sdk.ResourceBinding{
+	WireType: "aws_ecr_repository",
 	Fields: sdk.FieldMap{
-		"AllocatedStorage": sdk.FieldSpec{WireName: "allocated_storage"},
-		"DbName":           sdk.FieldSpec{WireName: "db_name"},
+		"ForceDelete":        sdk.FieldSpec{WireName: "force_delete"},
+		"ImageTagMutability": sdk.FieldSpec{WireName: "image_tag_mutability"},
+		"Name":               sdk.FieldSpec{WireName: "name"},
 		// ...
 	},
 }
+```
+
+A program imports the specific service package it needs:
+
+```go
+import (
+	sdk "github.com/ubiquex/ubx-sdk-go/runtime"
+	ecr "github.com/ubiquex/ubx-sdk-aws/ecr"
+)
+
+sdk.Resource(ecr.Repository, "app-images", ecr.RepositoryConfig{
+	Name: "app-images",
+})
 ```
 
 No separate `Attrs` type, unlike TypeScript -- Go's `Computed` has no
@@ -130,6 +174,20 @@ static per-field shape (`.Field(name)` drills in dynamically regardless
 of what it's addressing), so there's nothing for a generated `Attrs`
 type to describe. A field is only ever settable in `Config` if the real
 schema marks it `Required` or `Optional`, the same rule as TypeScript.
+
+<Note>
+  The AWS-service boundary is derived mechanically from each wire type's
+  own name (`<provider>_<service>_<local...>`), not from a hand-curated
+  AWS-service taxonomy -- `ubx sdk gen` stays fully offline, with no
+  network-fetched taxonomy lookup. This is exact for services that always
+  carry an explicit prefix in their wire names (`ecr`, `iam`, `sqs`, ...)
+  but not a faithful reproduction of AWS's own real service grouping for
+  a subset of EC2/VPC "core" resources whose wire names predate that
+  convention (`aws_vpc`, `aws_instance`, `aws_subnet`, and similar) --
+  these land in their own small package (`vpc.Vpc`, not grouped under a
+  single curated `ec2` package). See the [SDK Reference](/sdk) for the
+  full account.
+</Note>
 
 ## Example: Python
 
@@ -203,7 +261,12 @@ not published to a module proxy yet -- unlike TypeScript, a Go program's
 own `go.mod` needs a `require`, and (until publication) a `replace`
 pointing at a real checkout of the runtime, since `go build` has no
 bundled-runtime-injection mechanism the way the TS evaluator's import
-map does.
+map does. The generated bindings repo itself (`github.com/ubiquex/ubx-sdk-aws`
+and so on) isn't published anywhere either -- `--lang go`'s own `--out`
+writes a repo-*shaped* local directory (import-path-compatible, its own
+`go.mod` stub), not a real pushed repo; whether/how it becomes one is
+left entirely to you (or CI), the same posture as any other generated
+code being reviewable before it's committed.
 
 Python's `ubx_sdk` (`sdk.stack`, `sdk.resource`, `sdk.secret`,
 `sdk.cross`, `sdk.intent`, `sdk.run`, `sdk.Computed`) is not published to
