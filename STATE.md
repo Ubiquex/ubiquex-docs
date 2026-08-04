@@ -1,5 +1,86 @@
 # STATE — ubiquex-docs
 
+## UBI-82: docs debt closed -- 149 apply/applied hits across 14 pages, swept and re-verified (2026-08-04)
+
+Closes the UBI-75/76/77/78/79 docs-debt entry (`ubiquex` repo's own
+STATE.md "Docs debt" section) -- the precise 14-page/149-hit breakdown
+was pulled from that record (commit ccf4540) rather than re-grepped from
+scratch, per the ticket's own instruction.
+
+**Method, per the ticket's own fork**: PROSE (headers, descriptions,
+non-transcript text) swept directly, apply/applied → ship/shipped, no
+live verification needed -- except where "apply"/"applied" was ordinary
+English ("these flags don't apply to X," Terraform's own real `apply`
+verb, gcloud's own real flag name) or a deliberately out-of-scope
+concept/field name (`core.ApplyRecord`, `--json`'s `apply_record`/
+`applies`/`already_applied` fields, the real `ApplyResourceChange` RPC
+name) -- all correctly left alone, matching UBI-79's own original
+judgment-call precedent. TRANSCRIPTS: every fakeprovider-sourced one was
+actually re-run against a freshly rebuilt `./ubx` + `fakeprovider` (13 of
+14 pages needed this; `status.mdx` had zero real hits, all three were
+ordinary English) and re-captured verbatim -- not hand-translated. Real
+AWS/GCP-labeled transcripts (`ship.mdx`'s UBI-27 create-chain note,
+`create-flow.mdx`, `multi-provider-flow.mdx`, and the three real
+apply-history transcripts on `why.mdx`) were left byte-for-byte
+untouched with an honest, dated `<Note>` explaining why (CLAUDE.md
+forbids an agent from running `ubx ship` against real cloud for routine
+re-verification) -- never silently re-derived or hand-edited to just
+swap words.
+
+**A real, current gap found live, not fixed here (docs-only session,
+this string lives in `ubiquex`'s own `core/executor/ship.go`, not a doc
+file)**: two UBI-79 misses in the actual CLI, both flagged in-place with
+a `<Warning>` on `cli/ship.mdx` rather than silently worked around --
+the redacted-restore-declined message still says "ubx will never
+construct a live **apply** from it," and the blocked-dependency message
+still says "has not **applied**." Both captured verbatim, exactly what
+the current binary really prints. Worth a small follow-up ticket in
+`ubiquex`.
+
+**A second, larger finding beyond apply/applied's own scope, absorbed
+naturally rather than left half-fixed**: every fakeprovider transcript
+re-captured live also picked up UBI-88's own later `modify(ies)`/
+`destroy(s)` → `change(s)`/`terminate(s)` rename (a separate, already-
+shipped vocabulary change this ticket never asked for) -- since "capture
+the current binary's real output" is what re-running actually means, and
+leaving the OLD delta wording in a freshly re-captured transcript would
+have reintroduced exactly the kind of doc/binary mismatch this whole
+session exists to close. Also picked up along the way, each confirmed
+live before touching the doc: `ship.mdx`'s per-resource live-progress
+format is now one address-prefixed inline line, not a separate header
+line + trailing `terminal: ...` summary (UBI-75, already shipped, docs
+hadn't caught up); a stray `Error: ` prefix on two `destroy-flow.mdx`
+refusal transcripts that the real binary no longer prints (cobra's
+`SilenceErrors`); `--json`'s real destroy-record shape gained a `lookup`
+field the docs didn't show; `terminate.mdx`/`ship.mdx` gained the
+`--confirm-terminate` flag documentation UBI-77 shipped but never got
+written up here.
+
+**Real, live-verified captures, not fabricated**: every fakeprovider
+transcript is a genuine `./ubx`/`fakeprovider` run this session (real
+hashes, real timestamps) -- including a real, non-cloud, no-billing
+`hashicorp/random` provider acquisition (`ship.mdx`'s multi-provider
+pin-mismatch example) to avoid either fabricating that scenario or
+touching real AWS. Two narrow exceptions, both disclosed inline with
+their own `<Note>`/`<Warning>`: `ship.mdx`/`destroy-flow.mdx`'s
+"already-gone" two-resource destroy example (`fake_widget`'s own
+schema-`Computed` `id` is the same literal `"computed-id"` for every
+instance, so two resources in one batch can't independently be "one
+present, one already gone" through this fixture -- verified from source
+instead, the identical rendering path confirmed live everywhere else on
+the same page) and the equivalent multi-provider pin-mismatch summary
+line's `partially_shipped`/`partially_applied` split-vocabulary
+cross-reference.
+
+`mint validate`/`mint broken-links` both pass clean. Full page list:
+`cli/ship.mdx` (the biggest, ~30 transcripts), `cli/why.mdx`,
+`guides/create-flow.mdx`, `guides/destroy-flow.mdx`,
+`guides/plan-ship-flow.mdx`, `guides/multi-provider-flow.mdx`,
+`cli/promote.mdx`, `cli/terminate.mdx`, `guides/promotion.mdx`,
+`cli/status.mdx` (reviewed, zero changes needed), `cli/writeback.mdx`,
+`cli/scan.mdx`, `cli/plan.mdx`, `cli/revert-plan.mdx`. No debt carried
+forward from this ticket.
+
 ## UBI-64: `ubx init --reset-ledger` -- sanctioned fresh start for a broken ledger head (2026-08-01, same session as the code)
 
 New flag, documented same-session per CLAUDE.md's rule, transcripts

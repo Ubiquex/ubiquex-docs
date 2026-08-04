@@ -66,8 +66,15 @@ classes: {
 }
 r0: "payments-db" {
   class: fake_widget
+  ubx_required.name: "payments-db"
 }
 ```
+
+<Note>
+  `ubx_required.name` supplies `fake_widget`'s own Required `name`
+  attribute — a D2 diagram's topology-only design has no other way to
+  express it (see [`ubx_required`](/guides/diagram-medium#ubx_required-supplying-a-required-attribute-a-diagram-cant-express)).
+</Note>
 
 Resolved and shipped in `staging/`:
 
@@ -77,22 +84,22 @@ $ ubx plan --from-diagram payments.d2 --stack payments --ledger-dir .
 Plan  payments · from payments.d2
 
   + fake_widget.payments-db create
+      name: "payments-db"
 
-delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
+delta: +1 create(s), ~0 change(s), -0 terminate(s)
 
 blast radius: +1 ~0 -0
 cost delta: $0/mo
 
-ubx-proposal: 649e5de18a62…
-next: ubx ship 649e5de18a62
+ubx-proposal: cc1ea0d4221c…
+next: ubx ship cc1ea0d4221c
 
-$ ubx ship 649e5de18a62 --ledger-dir . --yes
-Ship  payments · 10s old · +1 create(s) ~0 modify(ies) -0 destroy(s)
-accepted 649e5de18a62… (stack payments) via local plan
-payments.fake_widget.payments-db
-  ✓ applied                                            0:00
-✓ applied: payments.fake_widget.payments-db
-1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+$ ubx ship cc1ea0d4221c --ledger-dir . --yes
+Ship  payments · 11s old · +1 create(s) ~0 change(s) -0 terminate(s)
+accepted cc1ea0d4221c… (stack payments) via local plan
+  ✓ payments.fake_widget.payments-db: shipped                                            0:00
+
+1 resource(s), 1 shipped, 0 failed, 0 still unknown -- outcome: shipped
 ```
 
 `payments-db` now genuinely exists (against the hermetic fake provider)
@@ -105,27 +112,28 @@ above ran from (see [why this matters](#the-working-directory-matters),
 below):
 
 ```text
-$ ubx promote 649e5de18a625885f3a23db0e2042c9d2a156bcbd98dc7adfa56f6630e22c009 \
+$ ubx promote cc1ea0d4221c6d63394b31ffee70cb20f6ad8f010bb24190f7854f31c00edf67 \
     --ledger-dir . --to ../prod
-promoted 649e5de18a62… -> payments (../prod)
+promoted cc1ea0d4221c… -> payments (../prod)
 Plan  payments
 
   + fake_widget.payments-db create
+      name: "payments-db"
 
-delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
+delta: +1 create(s), ~0 change(s), -0 terminate(s)
 
 blast radius: +1 ~0 -0
 cost delta: $0/mo
 
-plan: ../prod/.ubx/plans/4913f6d0c7f37262b8633cff89b3031d2fac5e659cc5ffa52471aa91e6572d83.json
-ubx-proposal: 4913f6d0c7f37262b8633cff89b3031d2fac5e659cc5ffa52471aa91e6572d83
-next: ubx ship 4913f6d0c7f3
+plan: ../prod/.ubx/plans/1d63fc4b4c8f2f9871b3cd2f6426870c67594790af93df9e5ce61ae851ba6688.json
+ubx-proposal: 1d63fc4b4c8f2f9871b3cd2f6426870c67594790af93df9e5ce61ae851ba6688
+next: ubx ship 1d63fc4b4c8f
 ```
 
 What just happened, precisely:
 
 1. `ubx promote` read staging's own proposal
-   `649e5de18a62…`'s `intent.sources`, found its `document` entry
+   `cc1ea0d4221c…`'s `intent.sources`, found its `document` entry
    (`payments.d2`), and re-read that **same file** from disk.
 2. It parsed that diagram again — `diagram.Parse`, the identical,
    deterministic pipeline `ubx propose --from-diagram`/`ubx plan
@@ -135,7 +143,7 @@ What just happened, precisely:
    against `prod/`'s **own** ledger (empty, so far) — a genuinely fresh
    resolve, not a copy of staging's own `delta`.
 4. It appended one additive `intent.sources` entry:
-   `{"kind":"promotion","ref":"649e5de18a62…","base":"."}` — the
+   `{"kind":"promotion","ref":"cc1ea0d4221c…","base":"."}` — the
    provenance claim. `base` here is `"."`, staging's own `--ledger-dir`
    value (the default git-local store has no separate "stack base"
    concept of its own; a remote `LedgerStore` would show its real
@@ -150,13 +158,12 @@ The saved plan ships into `prod/` exactly like any other `ubx plan`
 output — nothing promotion-specific about this step:
 
 ```text
-$ ubx ship 4913f6d0c7f37262b8633cff89b3031d2fac5e659cc5ffa52471aa91e6572d83 --ledger-dir ../prod --yes
-Ship  payments · 14s old · +1 create(s) ~0 modify(ies) -0 destroy(s)
-accepted 4913f6d0c7f3… (stack payments) via local plan
-payments.fake_widget.payments-db
-  ✓ applied                                            0:00
-✓ applied: payments.fake_widget.payments-db
-1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+$ ubx ship 1d63fc4b4c8f2f9871b3cd2f6426870c67594790af93df9e5ce61ae851ba6688 --ledger-dir ../prod --yes
+Ship  payments · 9s old · +1 create(s) ~0 change(s) -0 terminate(s)
+accepted 1d63fc4b4c8f… (stack payments) via local plan
+  ✓ payments.fake_widget.payments-db: shipped                                            0:00
+
+1 resource(s), 1 shipped, 0 failed, 0 still unknown -- outcome: shipped
 ```
 
 `ubx why` on the resulting id renders the full trail — the fresh
@@ -164,31 +171,32 @@ payments.fake_widget.payments-db
 `promotion` source, side by side:
 
 ```text
-$ ubx why 4913f6d0c7f37262b8633cff89b3031d2fac5e659cc5ffa52471aa91e6572d83 --ledger-dir ../prod
-proposal 4913f6d0c7f3… (change)
+$ ubx why 1d63fc4b4c8f2f9871b3cd2f6426870c67594790af93df9e5ce61ae851ba6688 --ledger-dir ../prod
+proposal 1d63fc4b4c8f… (change)
 stack:  payments
 status: accepted
 intent: 1 resource(s) authored via payments.d2 for stack "payments"
-  source: document payments.d2 (content_hash=sha256:c111bf28f4d8d3d14628a8a9e6a557553b0f6144050d5baf448d057ddad5eca9)
-  source: promoted from ./649e5de18a62…
-accepted by [roozbeh] via local at 2026-07-31T19:42:59Z
+  source: document payments.d2 (content_hash=sha256:8e7bc5362752f31e7c0222ac572043112ad60e146f5a9710a6f9fedf5f434c70)
+  source: promoted from ./cc1ea0d4221c…
+accepted by [roozbeh] via local at 2026-08-04T16:14:26Z
 blast radius: +1 ~0 -0
 + fake_widget.payments-db create
-apply history:
-  attempt 1: outcome=applied
+    name: "payments-db"
+ship history:
+  attempt 1: outcome=shipped
     payments.fake_widget.payments-db:
-      pending at 2026-07-31T19:42:59Z
-      in_flight at 2026-07-31T19:42:59Z
-      applied at 2026-07-31T19:43:00Z
+      pending at 2026-08-04T16:14:26Z
+      in_flight at 2026-08-04T16:14:26Z
+      shipped at 2026-08-04T16:14:26Z
 ```
 
-`source: promoted from ./649e5de18a62…` is the literal rendering
+`source: promoted from ./cc1ea0d4221c…` is the literal rendering
 [`docs/architecture.md`'s own "Environments & promotion"
 design](https://github.com/Ubiquex/ubiquex/blob/main/docs/architecture.md)
 (in the `ubiquex` repo) names: "promoted from staging/8f3c…". A reviewer
 looking at this proposal alone can already tell it was modeled on a real,
 accepted staging proposal, and can go read that proposal directly (`ubx
-why 649e5de18a62… --ledger-dir staging`) for the full comparison.
+why cc1ea0d4221c… --ledger-dir staging`) for the full comparison.
 
 ## Evidence, not a pin
 
@@ -230,7 +238,7 @@ guessing:
 
 ```text
 $ cd /
-$ ubx promote 649e5de18a625885f3a23db0e2042c9d2a156bcbd98dc7adfa56f6630e22c009 --ledger-dir staging --to prod
+$ ubx promote cc1ea0d4221c6d63394b31ffee70cb20f6ad8f010bb24190f7854f31c00edf67 --ledger-dir staging --to prod
 promote: re-resolve payments.d2: open payments.d2: no such file or directory
 ```
 

@@ -24,7 +24,7 @@ duplicate/missing-target, and no-recorded-lookup checks a hand-written
 `destroys[]` intent file already gets.
 
 Like [`ubx plan`](/cli/plan), this command **never touches a ledger** —
-nothing is accepted or applied here. The full receipt renders for review (the
+nothing is accepted or shipped here. The full receipt renders for review (the
 destroyed resource's own last-known state, per the full-state-at-review
 requirement drift review already follows), and the resolved-but-unaccepted
 proposal is saved to `.ubx/plans/<hash>.json`, ready for `ubx ship <hash>`.
@@ -38,55 +38,55 @@ $ ubx scan --provider ./fakeprovider --stack payments --type fake_widget --name 
     --lookup '{"id":"old-widget"}' --ledger-dir . --out adopt.json
 New resource found  payments.fake_widget.old-widget
 
-  adoption      dd28a22624e9     record-only · adopts into the ledger
+  adoption      37c3794c53b1     record-only · adopts into the ledger
 
-  saved to plan store            next: ubx ship dd28a22624e9
+  saved to plan store            next: ubx ship 37c3794c53b1
 
 $ ubx accept adopt.json --ledger-dir .
-accepted dd28a22624e931b167a9f598da17eac476777b44180d149eb8508528679d35d9 (stack payments)
+accepted 37c3794c53b119fe929ebc2b4c497fd95caa61a81ed42365f5427795ffe11773 (stack payments)
 
 $ ubx terminate payments.fake_widget.old-widget --provider ./fakeprovider --ledger-dir .
 Plan  payments
 
-  - destroy: payments.fake_widget.old-widget
-    id: "old-widget"
-    name: null
-    tags: {}
+  - payments.fake_widget.old-widget destroy
+      id: "old-widget"
+      name: null
+      tags: {}
 
-delta: +0 create(s), ~0 modify(ies), -1 destroy(s)
+delta: +0 create(s), ~0 change(s), -1 terminate(s)
 
 blast radius: +0 ~0 -1
 cost delta: $0/mo
 
-ubx-proposal: 046090bd56b1…
-next: ubx ship 046090bd56b1
+ubx-proposal: cd31448e1d90…
+next: ubx ship cd31448e1d90 --confirm-terminate
 ```
 
-The destroyed resource's full last-known state renders red-led, `- destroy:`,
-the same `+`/`~`/`-` create/modify/destroy verb-coloring
-[`ubx plan`](/cli/plan)/[`ubx ship`](/cli/ship) use everywhere a delta
-renders — and, per the compact-JSON rule every receipt follows, a nested
-value like `tags` always renders on one line, never re-indented from
-whatever whitespace happened to be in a saved plan file on disk.
+The destroyed resource's full last-known state renders red-led,
+`- <address> destroy`, the same `+`/`~`/`-` create/modify/destroy
+verb-coloring [`ubx plan`](/cli/plan)/[`ubx ship`](/cli/ship) use
+everywhere a delta renders — and, per the compact-JSON rule every receipt
+follows, a nested value like `tags` always renders as its own formatted
+block, never a raw escaped string.
 
 `ubx ship` still enforces the standard double consent for anything with
 `blast_radius.destroys > 0` — a bare `ubx ship <hash>` refuses, and (UBI-62)
-a non-interactive shell also needs `--yes` to actually apply once destroys
-are confirmed, the same typed-confirmation gate every `ubx ship` now goes
-through:
+a non-interactive shell also needs `--yes` to actually ship once destroys
+are confirmed (`--confirm-destroys`, or its `--confirm-terminate` alias —
+the `next:` hint above always shows this spelling, UBI-77), the same
+typed-confirmation gate every `ubx ship` now goes through:
 
 ```text
-$ ubx ship 046090bd56b1 --provider ./fakeprovider --ledger-dir .
+$ ubx ship cd31448e1d90 --provider ./fakeprovider --ledger-dir .
 ship: this proposal has blast_radius.destroys > 0 -- pass --confirm-destroys to accept it
 
-$ ubx ship 046090bd56b1 --provider ./fakeprovider --ledger-dir . --confirm-destroys --yes
-Ship  payments · 18s old · +0 create(s) ~0 modify(ies) -1 destroy(s)
-accepted 046090bd56b1… (stack payments) via local plan
-payments.fake_widget.old-widget
-  ⠧ provider reported success -- verifying via read-back (attempt 1/10) 0:00
-  ✓ applied · confirmed by reconciliation              0:00
-✓ applied: payments.fake_widget.old-widget
-1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+$ ubx ship cd31448e1d90 --provider ./fakeprovider --ledger-dir . --confirm-terminate --yes
+Ship  payments · 8s old · +0 create(s) ~0 change(s) -1 terminate(s)
+accepted cd31448e1d90… (stack payments) via local plan
+  ⠋ payments.fake_widget.old-widget: provider reported success -- verifying via read-back (attempt 1/10) 0:00
+  ✓ payments.fake_widget.old-widget: shipped · confirmed by reconciliation              0:00
+
+1 resource(s), 1 shipped, 0 failed, 0 still unknown -- outcome: shipped
 ```
 
 `ubx ship` does **not** re-render the full receipt shown at plan time —
@@ -101,26 +101,26 @@ instead of refusing outright.
 destroy:
 
 ```text
-$ ubx why 046090bd56b1257b4160cec2740c85fb76e3ebdd99e26c4d4f6d2ecd4d808b5a --ledger-dir .
-proposal 046090bd56b1… (change)
+$ ubx why cd31448e1d906cf96186e3e24bfe226a38a8ad8f5eeef383645731994dfc9633 --ledger-dir .
+proposal cd31448e1d90… (change)
 stack:  payments
 status: accepted
 intent: terminate payments.fake_widget.old-widget
-accepted by [roozbeh] via local at 2026-07-31T19:37:28Z
+accepted by [roozbeh] via local at 2026-08-04T16:18:51Z
 blast radius: +0 ~0 -1
-- destroy: payments.fake_widget.old-widget
-  id: "old-widget"
-  name: null
-  tags: {}
-apply history:
-  attempt 1: outcome=applied
+- payments.fake_widget.old-widget destroy
+    id: "old-widget"
+    name: null
+    tags: {}
+ship history:
+  attempt 1: outcome=shipped
     payments.fake_widget.old-widget:
-      pending at 2026-07-31T19:37:28Z
-      in_flight at 2026-07-31T19:37:28Z
-      unknown_post_timeout at 2026-07-31T19:37:28Z -- provider reported a successful destroy -- verifying via a post-destroy read-back before recording it as destroyed
-      applied at 2026-07-31T19:37:28Z -- confirmed by reconciliation (destroyed)
-      reconcile: present_matches at 2026-07-31T19:37:28Z
-      reconcile: destroyed at 2026-07-31T19:37:28Z
+      pending at 2026-08-04T16:18:51Z
+      in_flight at 2026-08-04T16:18:51Z
+      unknown_post_timeout at 2026-08-04T16:18:51Z -- provider reported a successful destroy -- verifying via a post-destroy read-back before recording it as destroyed
+      shipped at 2026-08-04T16:18:51Z -- confirmed by reconciliation (destroyed)
+      reconcile: present_matches at 2026-08-04T16:18:51Z
+      reconcile: destroyed at 2026-08-04T16:18:51Z
 ```
 
 The `proposal …` header line truncates to 12 chars + `…` by default, same as
@@ -180,8 +180,8 @@ destroy: there is no "ubx destroy" -- use "ubx terminate" (same destroys[] machi
 
 ## Related
 
-- [`ubx ship`](/cli/ship) — accepting (`--confirm-destroys`) and applying the plan `ubx terminate` saves
+- [`ubx ship`](/cli/ship) — accepting (`--confirm-destroys`) and shipping the plan `ubx terminate` saves
 - [`ubx plan`](/cli/plan) — the same resolve pipeline `ubx terminate` reuses, for every other kind of change
-- [`ubx why`](/cli/why) — rendering the resulting destroy's own apply history
+- [`ubx why`](/cli/why) — rendering the resulting destroy's own ship history
 - [`ubx scan`](/cli/scan) — generating `drift_adopt`/`drift_revert` proposals for resources that drifted rather than ones you want gone
 - [Proposal](/concepts/proposal) — the `destroys[]` shape this command produces

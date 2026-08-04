@@ -1,6 +1,6 @@
 ---
 title: "ubx ship"
-description: "Accept (local tier, if needed) and execute a drift_revert or change proposal against live cloud -- the only command that applies"
+description: "Accept (local tier, if needed) and execute a drift_revert or change proposal against live cloud -- the only command that ships"
 ---
 
 ```text
@@ -13,14 +13,14 @@ proposal: for a `drift_revert`, restores the resource's live state to
 match the ledger's recorded truth; for a `change`, creates, modifies, and
 destroys resources for real, in one combined dependency order
 (creates/modifies forward, destroys reversed), feeding each resource's
-real applied output into any sibling still carrying a `$computed` marker
+real shipped output into any sibling still carrying a `$computed` marker
 pointing at it. **This is the one `ubx` command that changes real
 infrastructure** — [`ubx accept`](/cli/accept), [`ubx why`](/cli/why),
 [`ubx status`](/cli/status), [`ubx scan`](/cli/scan),
 [`ubx resolve`](/cli/resolve), [`ubx plan`](/cli/plan), and
 [`ubx revert-plan`](/cli/revert-plan) only ever read or record. `ubx
-revert-plan` still exists and still never applies anything itself — it's
-what you reach for pre-acceptance, or if you'd rather apply the
+revert-plan` still exists and still never ships anything itself — it's
+what you reach for pre-acceptance, or if you'd rather make the
 correction through your own tooling; `ubx ship` is what actually does it.
 
 Only `drift_revert` and `change` proposals are actually *executed*.
@@ -47,12 +47,12 @@ Given or resolved, `[hash]` is then looked up two ways:
 1. **An already-accepted proposal id** in this stack's ledger — the
    four-verb ceremony's own path: [`ubx accept`](/cli/accept) (local or
    [`--from-merge`](/cli/accept#pr-merge-acceptance)) ran separately,
-   before this command. Applied immediately, no further confirmation,
+   before this command. Shipped immediately, no further confirmation,
    since that acceptance already was the consent moment.
 2. **A plan [`ubx plan`](/cli/plan) saved** at `.ubx/plans/<hash>.json`,
    if no accepted proposal by that id exists. For **this** path only, a
    one-line summary (stack, plan age, blast radius) renders and a typed
-   `yes` is required before anything is accepted or applied — see
+   `yes` is required before anything is accepted or shipped — see
    [Interactive confirmation](#interactive-confirmation-the-signing-moment)
    below.
 
@@ -63,6 +63,7 @@ Given or resolved, `[hash]` is then looked up two ways:
 | `--ledger-dir string` | root directory containing `ledger/` and `.ubx/` (default `.`); unused if `.ubx/config`'s `[ledger]` names a remote store |
 | `--stack string` | which stack's ledger to open — required only when `.ubx/config`'s `[ledger]` `store` is a remote store (a bare hash carries no stack of its own); also which stack's plans are considered for a bare `ubx ship` with no hash |
 | `--confirm-destroys` | required for [inline acceptance](#interactive-confirmation-the-signing-moment) of any plan with `blast_radius.destroys > 0`; unused when `<hash>` is already an accepted proposal, since that confirmation already happened at its own accept time |
+| `--confirm-terminate` | alias for `--confirm-destroys` (UBI-77) — the spelling `ubx terminate`'s own `next:` hint shows, since that's the verb a human actually typed; either flag satisfies both |
 | `--yes` | skip the interactive "type yes" confirmation for inline local-tier acceptance (for CI/scripts) — the receipt still renders; required on a non-TTY, which never prompts |
 | `--full-hashes` | render every hash in full instead of the default 12-char short form |
 | `--provider string` | path to the provider binary (mutually exclusive with `--source`) |
@@ -83,13 +84,12 @@ and says so:
 
 ```text
 $ ubx ship --provider ./fakeprovider --ledger-dir . --yes
-latest plan for stack playground: 21aea70a8ff6  change  7s old
-Ship  playground · 7s old · +1 create(s) ~0 modify(ies) -0 destroy(s)
-accepted 21aea70a8ff6… (stack playground) via local plan
-playground.fake_widget.q1
-  ✓ applied                                            0:00
-✓ applied: playground.fake_widget.q1
-1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+latest plan for stack playground: 74adc2cd40de  change  45s old
+Ship  playground · 45s old · +1 create(s) ~0 change(s) -0 terminate(s)
+accepted 74adc2cd40de… (stack playground) via local plan
+  ✓ playground.fake_widget.q1: shipped                                            0:00
+
+1 resource(s), 1 shipped, 0 failed, 0 still unknown -- outcome: shipped
 ```
 
 `.ubx/plans/` is not stack-namespaced — it's a flat, content-hash-keyed
@@ -101,8 +101,8 @@ between them:
 ```text
 $ ubx ship --provider ./fakeprovider --ledger-dir .
 multiple stacks have unshipped plans -- pass --stack, or choose one:
-  [1] 1444f917246a  payments  change  0s old
-  [2] 29508ca55893  networking  change  0s old
+  [1] 5f89d25fc10c  payments  change  0s old
+  [2] d337cf733b71  networking  change  0s old
 ship: 2 plans span more than one stack -- pass --stack or an explicit hash (non-interactive, refusing to guess)
 ```
 
@@ -113,9 +113,9 @@ which plan is picked, it doesn't skip the "renders, then asks" step:
 
 ```text
 $ ubx ship --provider ./fakeprovider --ledger-dir . --stack payments < /dev/null
-latest plan for stack payments: 1444f917246a  change  0s old
-Ship  payments · 0s old · +1 create(s) ~0 modify(ies) -0 destroy(s)
-ship: refusing to apply without confirmation: not an interactive terminal -- pass --yes to confirm non-interactively (e.g. in CI/scripts)
+latest plan for stack payments: 5f89d25fc10c  change  6s old
+Ship  payments · 6s old · +1 create(s) ~0 change(s) -0 terminate(s)
+ship: refusing to ship without confirmation: not an interactive terminal -- pass --yes to confirm non-interactively (e.g. in CI/scripts)
 ```
 
 A shipped or accepted plan is pruned from `.ubx/plans/` so "latest"
@@ -136,7 +136,7 @@ to pages of formatted JSON under [the v2 receipt format](/cli/plan#plan-receipt-
 
 ```text
 $ ubx plan intent.json --provider ./fakeprovider --ledger-dir .
-Plan  sandbox · from intent.json
+Plan  sandbox4 · from intent.json
 
   + fake_widget.primary create
       name: "primary-widget"
@@ -149,30 +149,27 @@ Plan  sandbox · from intent.json
       name: "primary-widget"
       tags:
       {
-        "peer_id": $ref:sandbox.fake_widget.primary.id
+        "peer_id": $ref:sandbox4.fake_widget.primary.id
       }
 
-delta: +2 create(s), ~0 modify(ies), -0 destroy(s)
+delta: +2 create(s), ~0 change(s), -0 terminate(s)
 
 blast radius: +2 ~0 -0
 cost delta: $0/mo
 
-ubx-proposal: 0daf78eb087e…
-next: ubx ship 0daf78eb087e
+ubx-proposal: 9b81fb392ad7…
+next: ubx ship 9b81fb392ad7
 
-$ ubx ship 0daf78eb087e --provider ./fakeprovider --ledger-dir .
-Ship  sandbox · 0s old · +2 create(s) ~0 modify(ies) -0 destroy(s)
+$ ubx ship 9b81fb392ad7 --provider ./fakeprovider --ledger-dir .
+Ship  sandbox4 · 7s old · +2 create(s) ~0 change(s) -0 terminate(s)
 
-Ship this to sandbox? Only 'yes' accepted: yes
-accepted 0daf78eb087e… (stack sandbox) via local plan
-sandbox.fake_widget.primary
-  ✓ applied                                            0:00
+Ship this to sandbox4? Only 'yes' accepted: yes
+accepted 9b81fb392ad7… (stack sandbox4) via local plan
+  ✓ sandbox4.fake_widget.primary: shipped                                            0:00
 
-sandbox.fake_widget.mirror
-  ✓ applied                                            0:00
-✓ applied: sandbox.fake_widget.primary
-✓ applied: sandbox.fake_widget.mirror
-2 resource(s), 2 applied, 0 failed, 0 still unknown -- outcome: applied
+  ✓ sandbox4.fake_widget.mirror : shipped                                            0:00
+
+2 resource(s), 2 shipped, 0 failed, 0 still unknown -- outcome: shipped
 ```
 
 Each resource's own progress block is followed by a blank line, so a
@@ -180,14 +177,14 @@ multi-resource ship reads as clearly separated blocks rather than every
 resource's transitions running together.
 
 Typing anything else — or `--yes` never given on a non-interactive
-stdin — aborts cleanly, nothing accepted or applied, exit `0` (a
+stdin — aborts cleanly, nothing accepted or shipped, exit `0` (a
 deliberate abort is not a finding or an error):
 
 ```text
-$ ubx ship 0daf78eb087e --provider ./fakeprovider --ledger-dir .
+$ ubx ship 754a67b0d886 --provider ./fakeprovider --ledger-dir .
 ...
-Ship this to sandbox? Only 'yes' accepted: nope
-ship aborted -- nothing accepted or applied
+Ship this to sandbox3? Only 'yes' accepted: nope
+ship aborted -- nothing accepted or shipped
 ```
 
 `--yes` skips the prompt for CI/scripts, but still renders the one-line
@@ -195,26 +192,26 @@ summary first — and a non-TTY without it refuses outright rather than
 hang reading a stdin nobody's watching:
 
 ```text
-$ ubx ship 0daf78eb087e --provider ./fakeprovider --ledger-dir . < /dev/null
+$ ubx ship 754a67b0d886 --provider ./fakeprovider --ledger-dir . < /dev/null
 ...
-ship: refusing to apply without confirmation: not an interactive terminal -- pass --yes to confirm non-interactively (e.g. in CI/scripts)
+ship: refusing to ship without confirmation: not an interactive terminal -- pass --yes to confirm non-interactively (e.g. in CI/scripts)
 ```
 
 [`ubx why`](/cli/why) shows exactly the same `acceptance.method: "local"`
 an ordinary `ubx accept` would have recorded — the prompt is a UX
-addition, not a new acceptance tier. Its own apply-history transitions
-still name every real state (`pending`/`in_flight`/`applied`) in full —
+addition, not a new acceptance tier. Its own ship-history transitions
+still name every real state (`pending`/`in_flight`/`shipped`) in full —
 that's the permanent historical record, unrelated to `ubx ship`'s own
 live progress narration, which is display-only and never touches what
 gets recorded:
 
 ```text
-$ ubx why 0daf78eb087ef1d6918887d8a7b66d6920c55448fdc6c7b45e2316ee5fde55e9 --ledger-dir .
-proposal 0daf78eb087e… (change)
-stack:  sandbox
+$ ubx why 9a6fcc02288afc961063eeccbdb99e56cb4ada43ee363a291e47463a715cc1b7 --ledger-dir .
+proposal 9a6fcc02288a… (change)
+stack:  sandbox2
 status: accepted
 intent: two widgets, one referencing the other
-accepted by [roozbeh] via local at 2026-08-01T20:58:16Z
+accepted by [roozbeh] via local at 2026-08-04T15:28:31Z
 blast radius: +2 ~0 -0
 + fake_widget.primary create
     name: "primary-widget"
@@ -227,10 +224,10 @@ blast radius: +2 ~0 -0
     name: "primary-widget"
     tags:
     {
-      "peer_id": $ref:sandbox.fake_widget.primary.id
+      "peer_id": $ref:sandbox2.fake_widget.primary.id
     }
-apply history:
-  attempt 1: outcome=applied
+ship history:
+  attempt 1: outcome=shipped
     ...
 ```
 
@@ -248,42 +245,42 @@ the interactive prompt even renders (no point asking a human to type
 
 ```text
 $ ubx plan destroy-intent.json --provider ./fakeprovider --ledger-dir .
-Plan  sandbox
+Plan  sandbox5 · from destroy-intent.json
 
-  - destroy: sandbox.fake_widget.mirror
-    id: "mirror-widget"
-    name: null
-    tags: {}
+  - sandbox5.fake_widget.mirror destroy
+      id: "computed-id"
+      name: "mirror-widget"
+      tags: {}
 
-delta: +0 create(s), ~0 modify(ies), -1 destroy(s)
+delta: +0 create(s), ~0 change(s), -1 terminate(s)
 
 blast radius: +0 ~0 -1
 cost delta: $0/mo
 
-ubx-proposal: 8bf90696be84…
-next: ubx ship 8bf90696be84
+ubx-proposal: 204dfcae957e…
+next: ubx ship 204dfcae957e --confirm-terminate
 
-$ ubx ship 8bf90696be84 --provider ./fakeprovider --ledger-dir . --yes
+$ ubx ship 204dfcae957e --provider ./fakeprovider --ledger-dir . --yes
 ship: this proposal has blast_radius.destroys > 0 -- pass --confirm-destroys to accept it
 ```
 
-With `--confirm-destroys` (and `--yes`, since this transcript is
-non-interactive), the destroy proceeds — including the mandatory
-read-back narration every destroy goes through (see [Shipping a
-destroy](#shipping-a-destroy) below). `pending`/`in_flight` never get
-their own line (sub-second scaffolding, not worth a human's attention on
-the happy path) — the read-back verification is the one line that
-matters, and it's the one line shown:
+With `--confirm-destroys` (or its `--confirm-terminate` alias — the
+`next:` hint above always shows this spelling, UBI-77) and `--yes`
+(since this transcript is non-interactive), the destroy proceeds —
+including the mandatory read-back narration every destroy goes through
+(see [Shipping a destroy](#shipping-a-destroy) below). `pending`/
+`in_flight` never get their own line (sub-second scaffolding, not worth
+a human's attention on the happy path) — the read-back verification is
+the one line that matters, and it's the one line shown:
 
 ```text
-$ ubx ship 8bf90696be84 --provider ./fakeprovider --ledger-dir . --confirm-destroys --yes
-Ship  sandbox · 6s old · +0 create(s) ~0 modify(ies) -1 destroy(s)
-accepted 8bf90696be84… (stack sandbox) via local plan
-sandbox.fake_widget.mirror
-  ⠧ provider reported success -- verifying via read-back (attempt 1/10) 0:00
-  ✓ applied · confirmed by reconciliation              0:00
-✓ applied: sandbox.fake_widget.mirror
-1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+$ ubx ship 204dfcae957e --provider ./fakeprovider --ledger-dir . --confirm-terminate --yes
+Ship  sandbox5 · 15s old · +0 create(s) ~0 change(s) -1 terminate(s)
+accepted 204dfcae957e… (stack sandbox5) via local plan
+  ⠋ sandbox5.fake_widget.mirror: provider reported success -- verifying via read-back (attempt 1/10) 0:00
+  ✓ sandbox5.fake_widget.mirror: shipped · confirmed by reconciliation              0:00
+
+1 resource(s), 1 shipped, 0 failed, 0 still unknown -- outcome: shipped
 ```
 
 A stale cross-stack pin ([`resolver.VerifyPins`](/cli/resolve#cross-stack-references))
@@ -350,14 +347,14 @@ accepting it, making a real success look like a failure:
 $ ubx scan --provider ./fakeprovider --stack payments --type fake_widget --name main-cache --lookup '{"name":"main-cache"}' --ledger-dir . --no-attribution
 New resource found  payments.fake_widget.main-cache
 
-  adoption      9ed8d1b720b0     record-only · adopts into the ledger
+  adoption      f8d9517ad2f3     record-only · adopts into the ledger
 
-  saved to plan store            next: ubx ship 9ed8d1b720b0
+  saved to plan store            next: ubx ship f8d9517ad2f3
 
-$ ubx ship 9ed8d1b720b0 --provider ./fakeprovider --ledger-dir . --yes
-Ship  payments · 6s old · +0 create(s) ~0 modify(ies) -0 destroy(s)
-accepted 9ed8d1b720b0… (stack payments) via local plan
-9ed8d1b720b0… (adoption) -- record-only, nothing to execute -- ✓ resolved
+$ ubx ship f8d9517ad2f3 --provider ./fakeprovider --ledger-dir . --yes
+Ship  payments · 8s old · +0 create(s) ~0 change(s) -0 terminate(s)
+accepted f8d9517ad2f3… (stack payments) via local plan
+f8d9517ad2f3… (adoption) -- record-only, nothing to execute -- ✓ resolved
 ```
 
 Real, unedited output. The interactive confirmation, `--yes`, and
@@ -383,12 +380,12 @@ it — CloudTrail's own delivery window is typically 2-5 minutes, so a
 re-scan shortly afterward may still attribute it for real:
 
 ```text
-$ ubx ship 0992e9f7459e --provider ./fakeprovider --ledger-dir . --yes
-Ship  payments · 6s old · +0 create(s) ~0 modify(ies) -0 destroy(s)
-warning: this drift is 6s old and has no recorded attribution (too recent for CloudTrail to have delivered a matching event yet) -- accepting now records it as unattributed permanently; consider re-scanning in a few minutes first
+$ ubx ship 03a6e26c4075 --provider ./fakeprovider --ledger-dir . --yes
+Ship  payments · 7s old · +0 create(s) ~0 change(s) -0 terminate(s)
+warning: this drift is 7s old and has no recorded attribution (too recent for CloudTrail to have delivered a matching event yet) -- accepting now records it as unattributed permanently; consider re-scanning in a few minutes first
 
-accepted 0992e9f7459e… (stack payments) via local plan
-0992e9f7459e… (drift_adopt) -- record-only, nothing to execute -- ✓ resolved
+accepted 03a6e26c4075… (stack payments) via local plan
+03a6e26c4075… (drift_adopt) -- record-only, nothing to execute -- ✓ resolved
 ```
 
 Real, unedited output — advisory only, never blocking: the plan still
@@ -398,14 +395,13 @@ carries real attribution, the warning simply doesn't print at all — see
 [`ubx scan`'s own attribution section](/cli/scan#attribution-when-it-comes-back-empty)
 for the display-only half of this same fix.
 
-## Example: a clean apply
+## Example: a clean ship
 
 ```text
-$ ubx ship fe4267f596bd34b2c8dc4eabe2df5e95deafd51368700e2716920317ca73d894 --provider ./fakeprovider
-payments.fake_widget.api-cache
-  ✓ applied                                            0:00
-✓ applied: payments.fake_widget.api-cache
-1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+$ ubx ship 817770a30b9708da1907de1af22cc5a18fcf28549d0fc4d96a828b28de3e60ab --provider ./fakeprovider
+  ✓ payments.fake_widget.api-cache2: shipped                                            0:00
+
+1 resource(s), 1 shipped, 0 failed, 0 still unknown -- outcome: shipped
 ```
 
 Each resource's live transitions narrate as they happen (UBI-61) — not
@@ -427,26 +423,30 @@ something worth a human's attention.
   line — the noise cut is about the happy path repeating itself, never
   about hiding a real problem. Real, unedited transcript — a destroy
   whose read-back keeps finding the resource present through the full
-  10-attempt retry budget (`FAKEPROVIDER_APPLY_MODE` unset, the fixture's
-  own default "provider claims success but doesn't actually delete
-  anything" mode, the non-TTY/piped capture every transcript on this page
-  uses — each real attempt still gets its own discrete line, in-place
-  overwrite being a terminal-only concept a log file has no use for):
+  10-attempt retry budget (`FAKEPROVIDER_APPLY_MODE=lying-destroy`, the
+  fixture's dedicated "provider claims success but doesn't actually
+  delete anything" mode — checked directly against the current fixture
+  before writing this: the fixture's own DEFAULT mode, `FAKEPROVIDER_APPLY_MODE`
+  left unset, actually completes a destroy correctly, so `lying-destroy`
+  is the one that reproduces this scenario, not the unset default this
+  page previously named. The non-TTY/piped capture every transcript on
+  this page uses — each real attempt still gets its own discrete line,
+  in-place overwrite being a terminal-only concept a log file has no use
+  for):
 
   ```text
-  payments.fake_widget.ci-notifications
-    ⠧ provider reported success -- verifying via read-back (attempt 1/10) 0:00
-    ⠧ provider reported success -- verifying via read-back (attempt 2/10) 0:00
-    ⠧ provider reported success -- verifying via read-back (attempt 3/10) 0:00
-    ⠧ provider reported success -- verifying via read-back (attempt 4/10) 0:00
-    ⠧ provider reported success -- verifying via read-back (attempt 5/10) 0:01
-    ⠧ provider reported success -- verifying via read-back (attempt 6/10) 0:03
-    ⠧ provider reported success -- verifying via read-back (attempt 7/10) 0:08
-    ⠧ provider reported success -- verifying via read-back (attempt 8/10) 0:18
-    ⠧ provider reported success -- verifying via read-back (attempt 9/10) 0:33
-    ⠧ provider reported success -- verifying via read-back (attempt 10/10) 0:48
-    ! the provider reported a successful destroy, but a post-destroy read-back found the resource still present after the full retry budget -- the delete never actually happened
-    ✗ failed · provider reported success but a post-destroy read-back found the resource still present 0:48
+  ⠋ payments.fake_widget.ci-notifications: provider reported success -- verifying via read-back (attempt 1/10) 0:00
+  ⠙ payments.fake_widget.ci-notifications: provider reported success -- verifying via read-back (attempt 2/10) 0:00
+  ⠹ payments.fake_widget.ci-notifications: provider reported success -- verifying via read-back (attempt 3/10) 0:00
+  ⠸ payments.fake_widget.ci-notifications: provider reported success -- verifying via read-back (attempt 4/10) 0:00
+  ⠼ payments.fake_widget.ci-notifications: provider reported success -- verifying via read-back (attempt 5/10) 0:01
+  ⠴ payments.fake_widget.ci-notifications: provider reported success -- verifying via read-back (attempt 6/10) 0:03
+  ⠦ payments.fake_widget.ci-notifications: provider reported success -- verifying via read-back (attempt 7/10) 0:08
+  ⠧ payments.fake_widget.ci-notifications: provider reported success -- verifying via read-back (attempt 8/10) 0:18
+  ⠇ payments.fake_widget.ci-notifications: provider reported success -- verifying via read-back (attempt 9/10) 0:33
+  ⠏ payments.fake_widget.ci-notifications: provider reported success -- verifying via read-back (attempt 10/10) 0:48
+  ! payments.fake_widget.ci-notifications: the provider reported a successful destroy, but a post-destroy read-back found the resource still present after the full retry budget -- the delete never actually happened
+  ✗ payments.fake_widget.ci-notifications: failed · provider reported success but a post-destroy read-back found the resource still present 0:48
   ```
 
   On a real terminal, a slow raw provider call or a between-attempts wait
@@ -463,8 +463,8 @@ Every resource already `applied` in a prior attempt is skipped — re-running
 not an empty response:
 
 ```text
-$ ubx ship 8fa7a1498d41886a0f68138539d05876deee940a94edbac912c947d2529de56f --provider ./terraform-provider-aws
-8fa7a1498d41886a0f68138539d05876deee940a94edbac912c947d2529de56f: already fully applied -- nothing to do
+$ ubx ship 9a6fcc02288afc961063eeccbdb99e56cb4ada43ee363a291e47463a715cc1b7 --provider ./fakeprovider --ledger-dir .
+9a6fcc02288afc961063eeccbdb99e56cb4ada43ee363a291e47463a715cc1b7: already fully shipped -- nothing to do
 ```
 
 This is exit `0`, and writes no new [apply record](/concepts/apply-record)
@@ -476,37 +476,57 @@ A real, structured error from the provider (not a timeout or transport
 failure) ends that resource's attempt immediately — never silently retried:
 
 ```text
-$ ubx ship 66da902facb213b8a30fc26d1dfb6ad0b79777eb4c4f48d94c36c095b25f886a --provider ./fakeprovider
-payments.fake_widget.api-cache
-  ! provider returned 1 diagnostic error(s): invalid attribute value: fakeprovider: simulated terminal diagnostic
-  ✗ failed                                             0:00
-✗ failed: payments.fake_widget.api-cache
-  terminal: provider returned 1 diagnostic error(s): invalid attribute value: fakeprovider: simulated terminal diagnostic
-1 resource(s), 0 applied, 1 failed, 0 still unknown -- outcome: failed
+$ ubx ship fef59cd0c9430e6ebe5dcbc685910ea7fbd26fdaf8284d5b2fe05851a030d5ba --provider ./fakeprovider
+Ship  payments · 7s old · +1 create(s) ~0 change(s) -0 terminate(s)
+accepted fef59cd0c943… (stack payments) via local plan
+  ! payments.fake_widget.api-cache-reject: provider returned 1 diagnostic error(s): invalid attribute value: fakeprovider: simulated terminal diagnostic
+  ✗ payments.fake_widget.api-cache-reject: failed                                             0:00
+
+1 resource(s), 0 shipped, 1 failed, 0 still unknown -- outcome: failed
+ship: failed (see above)
 ```
 
 The error gets its own line the moment it happens (UBI-70) — not just at
 the very end, once every other resource in the whole ship run has also
-finished. It's the same underlying message `ubx ship`'s own trailing
-per-resource report (`terminal: ...`) already showed; now it's visible
-live too.
+finished. `ubx ship`'s own trailing report no longer repeats it a second
+time as a separate `terminal: ...` line the way it once did — the live
+line above is now the only rendering of it; [`ubx why`](/cli/why) still
+records the identical detail permanently, as `error (terminal): ...` on
+that resource's own transition history.
 
-## Example: a redacted restore target is declined, not applied
+## Example: a redacted restore target is declined, not shipped
 
 A `drift_revert` whose restore value is itself a [`$redacted`](/concepts/secrets)
 marker — the ledger holds a salted hash, never the real material — is
-declined outright. `ubx ship` will never construct a live apply from it, on
-this run or any future one; the message points at `ubx revert-plan`'s own
-manual-reconciliation path:
+declined outright. `ubx ship` will never construct a live shipment from
+it, on this run or any future one; the message points at `ubx
+revert-plan`'s own manual-reconciliation path:
 
 ```text
-$ ubx ship 59273c05330df824626f425cc9760f53cf8783367784fa4622688be469dec9ee --provider ./fakeprovider
-payments.fake_widget.secret-box
-  ! declined: after value(s) at master_password are redacted -- the ledger holds a salted hash, not the real secret material, and ubx will never construct a live apply from it; use `ubx revert-plan` for this resource's manual reconciliation steps instead
-✓ pending: payments.fake_widget.secret-box
-  terminal: declined: after value(s) at master_password are redacted -- the ledger holds a salted hash, not the real secret material, and ubx will never construct a live apply from it; use `ubx revert-plan` for this resource's manual reconciliation steps instead
-1 resource(s), 0 applied, 1 failed, 0 still unknown -- outcome: failed
+$ ubx ship 8eb9596d46ee --provider ./fakeprovider --ledger-dir . --yes
+Ship  payments · 8s old · +0 create(s) ~1 change(s) -0 terminate(s)
+accepted 8eb9596d46ee… (stack payments) via local plan
+  ! payments.fake_secret_resource.secret-box: declined: after value(s) at api_key are redacted -- the ledger holds a salted hash, not the real secret material, and ubx will never construct a live apply from it; use `ubx revert-plan` for this resource's manual reconciliation steps instead
+
+1 resource(s), 0 shipped, 1 failed, 0 still unknown -- outcome: failed
+ship: failed (see above)
 ```
+
+<Warning>
+  **A real, current gap found while re-verifying this page (UBI-82), not
+  fixed here — this is a docs-only sweep, and this string lives in
+  `core/executor/ship.go`, not a doc file.** The declined-redacted
+  message above still literally says "ubx will never construct a live
+  **apply** from it" — one of two places the real UBI-79 vocabulary sweep
+  missed (the other is the blocked-dependency message under [Shipping a
+  `change` proposal](#shipping-a-change-proposal-a-real-create-chain)
+  below): both use "apply" as a noun for "a live ship/execution," the
+  shipping-domain sense the sweep targeted everywhere else, not the
+  ordinary-English "these flags don't apply to X" sense it correctly left
+  alone. Captured verbatim, exactly what the current binary really prints
+  — not hand-edited to say "ship" instead, which would misrepresent real
+  output as something it isn't. Worth a small follow-up ticket.
+</Warning>
 
 This is permanent, not transient: the same proposal declines identically on
 every future `ubx ship` re-run, since the redacted value never changes. The
@@ -519,41 +539,38 @@ A `change` proposal ([`ubx resolve`](/cli/resolve)'s own output) is shipped
 the same way — creates and modifies together, in real dependency order.
 Here `api-cache-mirror` cross-references `api-cache`'s `name` (concrete)
 and its schema-`Computed` `id` (left as `$computed` at resolve time,
-substituted with the real applied value mid-walk):
+substituted with the real shipped value mid-walk):
 
 ```text
-$ ubx ship 7972315f4b246337388616c97a04e67947e0ab85e3c815ea7ab1d5d7fa0cf800 --provider ./fakeprovider
-payments.fake_widget.api-cache
-  ✓ applied                                            0:00
+$ ubx ship d474dca70e755c0f715ef994ca2dc7a0fc654e4ff876a2fa6b13f5d59231a409 --provider ./fakeprovider
+  ✓ payments.fake_widget.api-cache-c       : shipped                                            0:00
 
-payments.fake_widget.api-cache-mirror
-  ✓ applied                                            0:00
-✓ applied: payments.fake_widget.api-cache
-✓ applied: payments.fake_widget.api-cache-mirror
-2 resource(s), 2 applied, 0 failed, 0 still unknown -- outcome: applied
+  ✓ payments.fake_widget.api-cache-c-mirror: shipped                                            0:00
+
+2 resource(s), 2 shipped, 0 failed, 0 still unknown -- outcome: shipped
 ```
 
-`api-cache` ships first (nothing depends on it being ordered any other
-way); `api-cache-mirror` is never even attempted until `api-cache` reaches
-`applied` — [`ubx why`](/cli/why) shows both, including the full
-`pending`/`in_flight`/`applied` transition history that's the permanent
+`api-cache-c` ships first (nothing depends on it being ordered any other
+way); `api-cache-c-mirror` is never even attempted until `api-cache-c`
+reaches `shipped` — [`ubx why`](/cli/why) shows both, including the full
+`pending`/`in_flight`/`shipped` transition history that's the permanent
 record (`ubx ship`'s own live narration above is a display-only summary of
 this same history, not a second source of truth — see [the noise-cut
-note](#example-a-clean-apply) above for why `pending`/`in_flight` don't
+note](#example-a-clean-ship) above for why `pending`/`in_flight` don't
 get their own line there):
 
 ```text
-$ ubx why 7972315f4b246337388616c97a04e67947e0ab85e3c815ea7ab1d5d7fa0cf800
-apply history:
-  attempt 1: outcome=applied
-    payments.fake_widget.api-cache:
-      pending at 2026-08-01T21:04:24Z
-      in_flight at 2026-08-01T21:04:24Z
-      applied at 2026-08-01T21:04:24Z
-    payments.fake_widget.api-cache-mirror:
-      pending at 2026-08-01T21:04:24Z
-      in_flight at 2026-08-01T21:04:24Z
-      applied at 2026-08-01T21:04:24Z
+$ ubx why d474dca70e755c0f715ef994ca2dc7a0fc654e4ff876a2fa6b13f5d59231a409
+ship history:
+  attempt 1: outcome=shipped
+    payments.fake_widget.api-cache-c:
+      pending at 2026-08-04T15:42:47Z
+      in_flight at 2026-08-04T15:42:47Z
+      shipped at 2026-08-04T15:42:47Z
+    payments.fake_widget.api-cache-c-mirror:
+      pending at 2026-08-04T15:42:47Z
+      in_flight at 2026-08-04T15:42:47Z
+      shipped at 2026-08-04T15:42:47Z
 ```
 
 <Note>
@@ -561,7 +578,7 @@ apply history:
   two-resource create chain (`aws_sqs_queue` + `aws_sqs_queue_policy`,
   the policy's `queue_url` only known once the queue itself exists),
   shipped for real, killed with a real `kill -9` between the queue
-  applying and the policy starting, and correctly recovered on re-run —
+  shipping and the policy starting, and correctly recovered on re-run —
   the dependent completed using the queue's REAL recorded output, never
   re-creating the queue or losing the value. See
   docs/reliability-report.md's own UBI-27 section (in the `ubiquex`
@@ -572,43 +589,54 @@ apply history:
   a clean configuration failure).
 </Note>
 
-A resource whose dependency hasn't applied yet is never attempted —
+A resource whose dependency hasn't shipped yet is never attempted —
 blocked with a named reason, not silently skipped or guessed at:
 
 ```text
-$ ubx ship b2d5f5d1c7f5b6d15ebbadcfea64ee96b77af41008f4022c03c678671124bc51 --provider ./fakeprovider
-payments.fake_widget.primary
-  ! provider returned 1 diagnostic error(s): invalid attribute value: fakeprovider: simulated terminal diagnostic
-  ✗ failed                                             0:00
+$ ubx ship c60fea14c00d --provider ./fakeprovider --ledger-dir . --yes
+Ship  payments · 13s old · +2 create(s) ~0 change(s) -0 terminate(s)
+accepted c60fea14c00d… (stack payments) via local plan
+  ! payments.fake_widget.primary-b: provider returned 1 diagnostic error(s): invalid attribute value: fakeprovider: simulated terminal diagnostic
+  ✗ payments.fake_widget.primary-b: failed                                             0:00
 
-payments.fake_widget.mirror
-  ! blocked: dependency payments.fake_widget.primary has not applied -- refusing to ship a resource ahead of what it depends on
-✗ failed: payments.fake_widget.primary
-  terminal: provider returned 1 diagnostic error(s): invalid attribute value: fakeprovider: simulated terminal diagnostic
-✓ pending: payments.fake_widget.mirror
-  terminal: blocked: dependency payments.fake_widget.primary has not applied -- refusing to ship a resource ahead of what it depends on
-2 resource(s), 0 applied, 2 failed, 0 still unknown -- outcome: failed
+  ! payments.fake_widget.mirror-b : blocked: dependency payments.fake_widget.primary-b has not applied -- refusing to ship a resource ahead of what it depends on
+
+2 resource(s), 0 shipped, 2 failed, 0 still unknown -- outcome: failed
+ship: failed (see above)
 ```
 
+<Warning>
+  **A second real, current "apply" leftover, same finding as the
+  redacted-restore message above** — the blocked line still literally
+  says "has not **applied**," not "has not shipped." Captured verbatim
+  from the real current binary, not hand-translated; this is a genuine
+  gap in the original UBI-79 sweep (in `core/executor/ship.go`), not a
+  docs staleness issue, so it's flagged here rather than silently fixed
+  or silently hidden.
+</Warning>
+
 <Note>
-  `mirror`'s own line leads green (`✓ pending:`) even though it counts
-  toward the `2 failed` outcome — the glyph reflects `LastState()`
-  (`pending`, since a blocked resource never transitions to `failed`
-  itself), not the overall outcome. A pre-existing asymmetry, not
-  something this session's color pass introduced or papered over; worth
-  a future look; see STATE.md.
+  `mirror-b`'s own line no longer gets a separate terminal-state glyph
+  line at all (UBI-75's later inline-address format folds what used to
+  be two lines — a live `!` narration line and a trailing `✓ pending:`/
+  `✗ failed:` summary line — into the one `!`/`✗` line shown above) — so
+  the asymmetry this page used to flag here (`mirror`'s own trailing line
+  leading green despite counting toward the failed outcome) no longer has
+  a surface to appear on; not re-verified as fixed at the `LastState()`
+  level itself, just confirmed the specific rendering gap this note
+  described is gone.
 </Note>
 
-Killed and re-run, a `change` proposal's already-applied resources are
+Killed and re-run, a `change` proposal's already-shipped resources are
 recognized exactly like a `drift_revert`'s (idempotency, above) — with one
-addition: a still-pending dependent recovers its dependency's real applied
+addition: a still-pending dependent recovers its dependency's real shipped
 output from the ledger's own history, not just from what the current
 `ubx ship` invocation itself computed, so a kill between two resources
 never loses the value the second one needs.
 
 <Note>
   A `partially_applied` outcome (some resources of a multi-resource revert
-  applied, others not — most commonly because reality drifted a *second*
+  shipped, others not — most commonly because reality drifted a *second*
   time between acceptance and shipping) is exercised by the hermetic
   adversarial test suite rather than shown here as its own transcript; the
   mechanism is the same "outcome" field, just a third value alongside
@@ -703,12 +731,11 @@ already gone is a low-friction success, never a refusal (there's nothing
 left to lose):
 
 ```text
-$ ubx ship f015f72fb1d50e812c561bf6f2b3c9094db2f5608ce0aed319c4151d9253ad33 --provider ./fakeprovider
-payments.fake_widget.old-widget
-  ⠧ provider reported success -- verifying via read-back (attempt 1/10) 0:00
-  ✓ applied · confirmed by reconciliation              0:00
-✓ applied: payments.fake_widget.old-widget
-1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+$ ubx ship 28c3158d6c061bb9f0cfbaf78ef23498668eca7b64f2a79a4c83f771d4383e04 --provider ./fakeprovider
+  ⠋ sandbox9.fake_widget.old-widget: provider reported success -- verifying via read-back (attempt 1/10) 0:00
+  ✓ sandbox9.fake_widget.old-widget: shipped · confirmed by reconciliation              0:00
+
+1 resource(s), 1 shipped, 0 failed, 0 still unknown -- outcome: shipped
 ```
 
 `pending`/`in_flight`/`unknown_post_timeout` never get their own line
@@ -718,35 +745,70 @@ transition history is still recorded, just not narrated one line at a
 time. `--json` shows it in full — the two-step reconciliation this
 precheck-then-confirm shape actually produces, `present_matches` (the live
 re-read, right before the destroy call) followed by `destroyed` (the
-confirmation after):
+confirmation after). Real, current `--json` output — the resource-state
+enum values themselves (`"applied"`, not `"shipped"`) stay untouched by
+the vocabulary sweep, exactly like every other `--json` surface on this
+site (UBI-79's own explicit scope decision: `--json` is the real, sealed
+ledger record, never redisplayed):
 
 ```text
-$ ubx ship f015f72fb1d50e812c561bf6f2b3c9094db2f5608ce0aed319c4151d9253ad33 --provider ./fakeprovider --json
+$ ubx ship 28c3158d6c061bb9f0cfbaf78ef23498668eca7b64f2a79a4c83f771d4383e04 --provider ./fakeprovider --json
 ```
 ```json
 {
+  "format": 1,
   "apply_record": {
+    "schema_version": 1,
+    "id": "ccada2ff16cd711d599385bdc59a7bd8ae4b8660111d5d9391d28d3d65dc60d2",
+    "proposal": "28c3158d6c061bb9f0cfbaf78ef23498668eca7b64f2a79a4c83f771d4383e04",
+    "parent": "",
+    "attempt": 1,
     "resources": [
       {
-        "address": {"stack": "payments", "type": "fake_widget", "name": "old-widget"},
+        "address": {"stack": "sandbox9", "type": "fake_widget", "name": "old-widget"},
         "transitions": [
-          {"state": "pending", "at": "2026-08-01T21:05:49Z"},
-          {"state": "in_flight", "at": "2026-08-01T21:05:49Z"},
-          {"state": "unknown_post_timeout", "at": "2026-08-01T21:05:49Z", "detail": "provider reported a successful destroy -- verifying via a post-destroy read-back before recording it as destroyed"},
-          {"state": "applied", "at": "2026-08-01T21:05:49Z", "detail": "confirmed by reconciliation"}
+          {"state": "pending", "at": "2026-08-04T15:35:40Z"},
+          {"state": "in_flight", "at": "2026-08-04T15:35:40Z"},
+          {"state": "unknown_post_timeout", "at": "2026-08-04T15:35:40Z", "detail": "provider reported a successful destroy -- verifying via a post-destroy read-back before recording it as destroyed"},
+          {"state": "applied", "at": "2026-08-04T15:35:40Z", "detail": "confirmed by reconciliation"}
         ],
         "reconciliation": [
-          {"at": "2026-08-01T21:05:49Z", "outcome": "present_matches"},
-          {"at": "2026-08-01T21:05:49Z", "outcome": "destroyed"}
+          {"at": "2026-08-04T15:35:40Z", "outcome": "present_matches"},
+          {"at": "2026-08-04T15:35:40Z", "outcome": "destroyed"}
         ]
       }
     ],
-    "summary": {"outcome": "applied", "resources_applied": 1, "resources_failed": 0, "resources_still_unknown": 0}
+    "summary": {
+      "outcome": "applied",
+      "started_at": "2026-08-04T15:35:40Z",
+      "finished_at": "2026-08-04T15:35:40Z",
+      "resources_applied": 1,
+      "resources_failed": 0,
+      "resources_still_unknown": 0
+    }
   }
 }
 ```
 
 ### A provider that reports success without it being true
+
+<Note>
+  **Historical transcript, predates the ship/shipped vocabulary sweep
+  (UBI-79) — left exactly as originally captured, not hand-edited
+  (UBI-82, 2026-08-04).** This is real output from a real, live GCP
+  investigation (`terraform-provider-google` against a real
+  `google_pubsub_topic`, docs/reliability-report.md's own UBI-27/UBI-44
+  chapters in the `ubiquex` repo) — CLAUDE.md's own standing rule forbids
+  an agent from running `ubx ship` against real cloud for routine
+  verification, so this transcript's own literal wording below (`0
+  applied`, `apply history:`) cannot honestly be re-derived or
+  hand-translated to "shipped" in this session without either misrepresenting
+  it as freshly re-verified when it wasn't, or fabricating output that
+  was never actually produced. A founder-run live re-verification against
+  real GCP would be the honest way to update this transcript's own words;
+  until then, it stays byte-for-byte what actually happened, with this
+  note explaining why it still says "applied."
+</Note>
 
 Real transcript (the exact GCP scenario named above, re-run with the
 fix): the provider's `ApplyResourceChange` response is a clean success —
@@ -793,11 +855,10 @@ inline in the proposal:
 
 ```text
 $ ubx ship ea33959119167362358dd69dadbe0cdb6b3b478262a95f28b99438531a2eb655 --provider ./fakeprovider
-payments.fake_widget.solo-widget
-  ! destroy target drifted since it was signed away -- refusing to destroy state that was never reviewed
-✓ pending: payments.fake_widget.solo-widget
-  terminal: destroy target drifted since it was signed away -- refusing to destroy state that was never reviewed
-1 resource(s), 0 applied, 1 failed, 0 still unknown -- outcome: failed
+  ! payments.fake_widget.solo-widget: destroy target drifted since it was signed away -- refusing to destroy state that was never reviewed
+
+1 resource(s), 0 shipped, 1 failed, 0 still unknown -- outcome: failed
+ship: failed (see above)
 ```
 
 The only way past this is a fresh `ubx scan`/`ubx accept` cycle recording
@@ -807,17 +868,33 @@ If the target is **already gone** by the time its own turn in this batch
 comes, that's a low-friction success, never a refusal -- there's nothing
 left to lose that the operator didn't already implicitly ask to lose:
 
+<Note>
+  **Verified from source, not re-run live, for one narrow reason worth
+  stating plainly (UBI-82, 2026-08-04):** `fake_widget`'s own schema-`Computed`
+  `id` is the same literal `"computed-id"` for every instance of the type
+  (`provider/internal/fakeprovider`'s own doc comment), and the fixture's
+  already-absent tracking is keyed by that `id` — so two `fake_widget`
+  resources in the same batch can't independently be "one present, one
+  already gone" through this fixture the way two distinct real resources
+  could. The rendering below (address-prefixed lines, `shipped`
+  vocabulary, no separate terminal-summary line) is the identical
+  `printShipReport`/progress-printer code path already verified live,
+  repeatedly, elsewhere on this exact page — including the read-back line
+  for `widget-a` and the `already_absent` reconciliation outcome/message
+  text for `widget-b`, both confirmed unchanged, current, real strings in
+  `core/executor/ship.go`. Only the specific "captured by literally
+  running this precise two-resource scenario" claim doesn't hold for this
+  one example, and is flagged here instead of silently implied.
+</Note>
+
 ```text
 $ ubx ship c1ec92deb14fec35307dfb53003ca40c50eee780a3c81f12b041228dca4cc4d6 --provider ./fakeprovider
-payments.fake_widget.widget-a
-  ⠧ provider reported success -- verifying via read-back (attempt 1/10) 0:00
-  ✓ applied · confirmed by reconciliation              0:00
+  ⠧ payments.fake_widget.widget-a: provider reported success -- verifying via read-back (attempt 1/10) 0:00
+  ✓ payments.fake_widget.widget-a: shipped · confirmed by reconciliation              0:00
 
-payments.fake_widget.widget-b
-  ✓ applied · already absent before this attempt        0:00
-✓ applied: payments.fake_widget.widget-a
-✓ applied: payments.fake_widget.widget-b
-2 resource(s), 2 applied, 0 failed, 0 still unknown -- outcome: applied
+  ✓ payments.fake_widget.widget-b: shipped · already absent before this attempt        0:00
+
+2 resource(s), 2 shipped, 0 failed, 0 still unknown -- outcome: shipped
 ```
 
 ```json
@@ -903,25 +980,33 @@ A resource whose own provider can't launch at all fails on its own,
 terminally -- it never blocks a sibling resource against a different,
 already-fine provider:
 
+Real transcript, a genuine registry-sourced provider (`hashicorp/random`
+— no cloud dependency, nothing billed, chosen so this could be verified
+live rather than reconstructed by hand): resolved and accepted against
+`[providers]` pinned to `3.6.1`, then the pin moved to `3.5.0` before
+shipping:
+
 ```text
-$ ubx ship 9d6ca60737a559cf70cbec555674ae6e31fd60e44c5fd28f34e924cfe0fb44ed --ledger-dir . --yes
-payments.fake_widget.main
-  ! provider unavailable: provider "hashicorp/aws" is pinned to 6.61.0 in this stack's [providers] config, but this proposal recorded 6.60.0 -- re-resolve against the current config
-✓ pending: payments.fake_widget.main
-  terminal: provider unavailable: provider "hashicorp/aws" is pinned to 6.61.0 in this stack's [providers] config, but this proposal recorded 6.60.0 -- re-resolve against the current config
-1 resource(s), 0 applied, 1 failed, 0 still unknown -- outcome: failed
+$ ubx ship a675bd9d1268150fb5404011a45c4b8a851da06eb8aec6234e3ff2f516b53272 --ledger-dir . --yes
+  ! mpstack.random_pet.main: provider unavailable: provider "hashicorp/random" is pinned to 3.5.0 in this stack's [providers] config, but this proposal recorded 3.6.1 -- re-resolve against the current config
+
+1 resource(s), 0 shipped, 1 failed, 0 still unknown -- outcome: failed
 ship: failed (see above)
 ```
 
 The transcript above is a version pin moving out from under an
-already-signed proposal (`[providers]`'s own pin advanced to `6.61.0`
-after this proposal was resolved and signed against `6.60.0`) -- refused
+already-signed proposal (`[providers]`'s own pin moved to `3.5.0` after
+this proposal was resolved and signed against `3.6.1`) -- refused
 outright, never silently launched against whichever version happens to
 be current. A launch failure for an unreachable registry or bad
 credentials reports the identical shape (`provider unavailable: ...`,
-naming the real cause) -- the outcome seals `partially_applied` when at
-least one other resource, against a different provider, still lands
-normally.
+naming the real cause) -- the closing summary seals `outcome:
+partially_shipped` (the translated human label — see the "dependent
+create outrunning its own dependency's visibility" example above for a
+real transcript reaching exactly this outcome, including its own
+trailing `ship: partially_applied (see above)` hint line, which still
+names the raw untranslated value) when at least one other resource,
+against a different provider, still lands normally.
 
 <Note>
   `ubx scan --all`/`ubx status --drift` also read `[providers]` -- see
@@ -931,31 +1016,32 @@ normally.
 ## `--json` output
 
 ```text
-$ ubx ship 8fa7a1498d41886a0f68138539d05876deee940a94edbac912c947d2529de56f --provider ./terraform-provider-aws --json
+$ ubx ship 817770a30b9708da1907de1af22cc5a18fcf28549d0fc4d96a828b28de3e60ab --provider ./fakeprovider --json
 {
   "format": 1,
   "already_applied": true,
   "apply_record": {
     "schema_version": 1,
-    "id": "d3156d08dc6168d4d524ea6ffa780a307b597b34bc6dfd8393a883dd1b86bc52",
-    "proposal": "8fa7a1498d41886a0f68138539d05876deee940a94edbac912c947d2529de56f",
+    "id": "d295387e7f4e427b2e28cdec94c829102e7bd87f8edec78c29c89f9fc387d6ef",
+    "proposal": "817770a30b9708da1907de1af22cc5a18fcf28549d0fc4d96a828b28de3e60ab",
     "parent": "",
     "attempt": 1,
     "resources": [
       {
-        "address": { "stack": "payments", "type": "fake_widget", "name": "api-cache" },
+        "address": { "stack": "payments", "type": "fake_widget", "name": "api-cache2" },
         "transitions": [
-          { "state": "pending", "at": "2026-07-17T11:15:08Z" },
-          { "state": "in_flight", "at": "2026-07-17T11:15:08Z" },
-          { "state": "applied", "at": "2026-07-17T11:15:08Z" }
+          { "state": "pending", "at": "2026-08-04T15:33:16Z" },
+          { "state": "in_flight", "at": "2026-08-04T15:33:16Z" },
+          { "state": "applied", "at": "2026-08-04T15:33:16Z" }
         ],
-        "provider_result": { "id": "computed-id", "name": "a-widget", "tags": {} }
+        "provider_result": { "id": "computed-id", "name": "api-cache2-widget", "tags": {} },
+        "lookup": { "id": "computed-id", "name": "api-cache2-widget" }
       }
     ],
     "summary": {
       "outcome": "applied",
-      "started_at": "2026-07-17T11:15:08Z",
-      "finished_at": "2026-07-17T11:15:08Z",
+      "started_at": "2026-08-04T15:33:16Z",
+      "finished_at": "2026-08-04T15:33:16Z",
       "resources_applied": 1,
       "resources_failed": 0,
       "resources_still_unknown": 0
@@ -974,7 +1060,7 @@ established for `proposal`.
 
 | Exit code | Meaning |
 | --- | --- |
-| `0` | every resource applied (including a genuine no-op: already fully applied) |
+| `0` | every resource shipped (including a genuine no-op: already fully shipped) |
 | `1` | `partially_applied` or `failed` — an actionable finding: retry, or investigate why |
 | `2` | bad input (proposal not found, wrong kind, not accepted), or a genuine provider/ledger failure |
 
@@ -986,7 +1072,7 @@ Unlike a one-shot command, `ubx ship` can run long enough, resource to
 resource, that reality moves *during* the run. Freshness is re-checked
 immediately before **each** resource's own attempt, not once at the start —
 a resource that drifts a second time between acceptance and its own turn in
-the queue is refused, not bulldozed; resources already applied earlier in
+the queue is refused, not bulldozed; resources already shipped earlier in
 the same run stand untouched. See [Apply record](/concepts/apply-record) for
 the full state machine.
 
@@ -1001,7 +1087,7 @@ the full state machine.
 - [The two-step flow](/guides/plan-ship-flow) — `ubx plan` + `ubx ship`, end to end
 - [Creating real infrastructure](/guides/create-flow) — the four-verb ceremony's own full walkthrough, live on real AWS
 - [`ubx revert-plan`](/cli/revert-plan) — the pre-acceptance (or
-  manual-reconciliation) alternative that never applies anything itself
+  manual-reconciliation) alternative that never ships anything itself
 - [Ledger stores](/concepts/ledger-stores) — remote stores, and why `--stack` becomes required for them
 - [Drift](/concepts/drift) — what a `drift_revert` proposal is
 - [Secrets](/concepts/secrets) — why a redacted restore target can never be

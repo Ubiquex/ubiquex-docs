@@ -53,13 +53,12 @@ A `.d2`-authored, already-shipped proposal in `staging/`:
 
 ```text
 $ cd staging
-$ ubx ship ddfaff0330f8b273ac0d0541830a711d2fd5473c34dec8fc3ffb6a69536d48ba --ledger-dir . --yes
-Ship  payments · 6s old · +1 create(s) ~0 modify(ies) -0 destroy(s)
-accepted ddfaff0330f8… (stack payments) via local plan
-payments.fake_widget.payments-db
-  ✓ applied                                            0:00
-✓ applied: payments.fake_widget.payments-db
-1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+$ ubx ship cc1ea0d4221c6d63394b31ffee70cb20f6ad8f010bb24190f7854f31c00edf67 --ledger-dir . --yes
+Ship  payments · 11s old · +1 create(s) ~0 change(s) -0 terminate(s)
+accepted cc1ea0d4221c… (stack payments) via local plan
+  ✓ payments.fake_widget.payments-db: shipped                                            0:00
+
+1 resource(s), 1 shipped, 0 failed, 0 still unknown -- outcome: shipped
 ```
 
 Promoted to `prod/`, from the same working directory the original `ubx
@@ -67,20 +66,21 @@ plan --from-diagram` ran from (see [Why the working directory
 matters](#why-the-working-directory-matters), below):
 
 ```text
-$ ubx promote ddfaff0330f8b273ac0d0541830a711d2fd5473c34dec8fc3ffb6a69536d48ba --ledger-dir . --to ../prod
-promoted ddfaff0330f8… -> payments (../prod)
+$ ubx promote cc1ea0d4221c6d63394b31ffee70cb20f6ad8f010bb24190f7854f31c00edf67 --ledger-dir . --to ../prod
+promoted cc1ea0d4221c… -> payments (../prod)
 Plan  payments
 
   + fake_widget.payments-db create
+      name: "payments-db"
 
-delta: +1 create(s), ~0 modify(ies), -0 destroy(s)
+delta: +1 create(s), ~0 change(s), -0 terminate(s)
 
 blast radius: +1 ~0 -0
 cost delta: $0/mo
 
-plan: ../prod/.ubx/plans/ae5a350983b30d36171f1c36a07afac5bead1587886ff2cea21e36db078dcfc0.json
-ubx-proposal: ae5a350983b30d36171f1c36a07afac5bead1587886ff2cea21e36db078dcfc0
-next: ubx ship ae5a350983b3
+plan: ../prod/.ubx/plans/1d63fc4b4c8f2f9871b3cd2f6426870c67594790af93df9e5ce61ae851ba6688.json
+ubx-proposal: 1d63fc4b4c8f2f9871b3cd2f6426870c67594790af93df9e5ce61ae851ba6688
+next: ubx ship 1d63fc4b4c8f
 ```
 
 The delta above is `prod/`'s **own fresh resolve** — its own providers,
@@ -88,30 +88,30 @@ its own live state, its own pins — not a copy of staging's delta. `ubx
 why` on the resulting id (once shipped) renders the trail:
 
 ```text
-$ ubx ship ae5a350983b30d36171f1c36a07afac5bead1587886ff2cea21e36db078dcfc0 --ledger-dir ../prod --yes
-Ship  payments · 21s old · +1 create(s) ~0 modify(ies) -0 destroy(s)
-accepted ae5a350983b3… (stack payments) via local plan
-payments.fake_widget.payments-db
-  ✓ applied                                            0:00
-✓ applied: payments.fake_widget.payments-db
-1 resource(s), 1 applied, 0 failed, 0 still unknown -- outcome: applied
+$ ubx ship 1d63fc4b4c8f2f9871b3cd2f6426870c67594790af93df9e5ce61ae851ba6688 --ledger-dir ../prod --yes
+Ship  payments · 9s old · +1 create(s) ~0 change(s) -0 terminate(s)
+accepted 1d63fc4b4c8f… (stack payments) via local plan
+  ✓ payments.fake_widget.payments-db: shipped                                            0:00
 
-$ ubx why ae5a350983b30d36171f1c36a07afac5bead1587886ff2cea21e36db078dcfc0 --ledger-dir ../prod
-proposal ae5a350983b3… (change)
+1 resource(s), 1 shipped, 0 failed, 0 still unknown -- outcome: shipped
+
+$ ubx why 1d63fc4b4c8f2f9871b3cd2f6426870c67594790af93df9e5ce61ae851ba6688 --ledger-dir ../prod
+proposal 1d63fc4b4c8f… (change)
 stack:  payments
 status: accepted
 intent: 1 resource(s) authored via payments.d2 for stack "payments"
-  source: document payments.d2 (content_hash=sha256:4afc2c22815afa0105e386f15b956ab48005d986363cc0ac7ff5596492ed821e)
-  source: promoted from ./ddfaff0330f8…
-accepted by [roozbeh] via local at 2026-07-31T19:41:05Z
+  source: document payments.d2 (content_hash=sha256:8e7bc5362752f31e7c0222ac572043112ad60e146f5a9710a6f9fedf5f434c70)
+  source: promoted from ./cc1ea0d4221c…
+accepted by [roozbeh] via local at 2026-08-04T16:14:26Z
 blast radius: +1 ~0 -0
 + fake_widget.payments-db create
-apply history:
-  attempt 1: outcome=applied
+    name: "payments-db"
+ship history:
+  attempt 1: outcome=shipped
     payments.fake_widget.payments-db:
-      pending at 2026-07-31T19:41:05Z
-      in_flight at 2026-07-31T19:41:05Z
-      applied at 2026-07-31T19:41:05Z
+      pending at 2026-08-04T16:14:26Z
+      in_flight at 2026-08-04T16:14:26Z
+      shipped at 2026-08-04T16:14:26Z
 ```
 
 See the [full staging → prod walkthrough](/guides/promotion) for the
@@ -125,8 +125,8 @@ accept ceremony — `ubx promote` refuses to build on a hash that's only
 ever been `ubx plan`ned, not shipped or accepted:
 
 ```text
-$ ubx promote c3a676d6582661457684a4e0eb6759995494aaa6b23a33e17322f517dd884200 --ledger-dir . --to ../prod3
-promote: c3a676d6582661457684a4e0eb6759995494aaa6b23a33e17322f517dd884200 is an unaccepted "ubx plan" draft, not an accepted proposal -- promotion evidence vouches for a proposal that went through the normal accept ceremony, so promote refuses to build on one that hasn't; accept it first (e.g. "ubx ship c3a676d6582661457684a4e0eb6759995494aaa6b23a33e17322f517dd884200"), then promote the resulting id
+$ ubx promote 1b11fe671c93e648e70bd35d68e787aacde181e876e2621754ac89f652cdecdf --ledger-dir . --to ../prod3
+promote: 1b11fe671c93e648e70bd35d68e787aacde181e876e2621754ac89f652cdecdf is an unaccepted "ubx plan" draft, not an accepted proposal -- promotion evidence vouches for a proposal that went through the normal accept ceremony, so promote refuses to build on one that hasn't; accept it first (e.g. "ubx ship 1b11fe671c93e648e70bd35d68e787aacde181e876e2621754ac89f652cdecdf"), then promote the resulting id
 ```
 
 A nonexistent id gets the same 0/2 treatment as everywhere else:
@@ -195,7 +195,7 @@ already follows for a missing config.
 
 - [Environments & promotion guide](/guides/promotion) — the full staging → prod walkthrough
 - [`ubx plan`](/cli/plan) — the same resolve pipeline `ubx promote` reuses
-- [`ubx ship`](/cli/ship) — accepting and applying the plan `ubx promote` saves
+- [`ubx ship`](/cli/ship) — accepting and shipping the plan `ubx promote` saves
 - [`ubx why`](/cli/why) — rendering a promoted proposal's own `source: promoted from ...` line
 - [`ubx propose`](/cli/propose) — the `--from-doc`/`--from-diagram` entry points that produce a promotable `document` source
 - [Proposal](/concepts/proposal) — the shape a promoted proposal is
