@@ -492,11 +492,36 @@ intent = {
 | Key | Meaning |
 | --- | --- |
 | `adapter` | which intent provider to use. Only `"claude"` exists today; unset defaults to it |
-| `model` | which model that adapter uses. Unset falls back to the adapter's own default (`claude-opus-4-8` for `"claude"`) |
+| `model` | which model that adapter uses. Unset falls back to the adapter's own default — **`claude-sonnet-5`** for `"claude"`, chosen for cost/quality balance; see [Zero-config model default](#zero-config-model-default), below |
 | `key_ref.env` | the environment variable holding the real API key |
 | `auth` | Gemini's own API-key-vs-Vertex-AI split (`"api_key"` or `"vertex"`) — no Gemini adapter is built yet; this key is reserved |
 | `vertex.project` / `vertex.location` | consulted only when `auth = "vertex"` — reserved alongside it |
 | `show_defaults` | whether [`ubx plan`](/cli/plan)'s receipt renders the full "AI defaults" block, or collapses it to a one-line count (default `true` — shown). See [`show_defaults`](#show_defaults-the-ai-defaults-block), below |
+
+### Zero-config model default
+
+Stated plainly, so it's never a silent surprise either way: with **no**
+`[intent]` block at all, or an `[intent]` block that omits `model`,
+every AI-drafting call ([`ubx propose --from-doc`](/cli/propose),
+[`ubx plan --from-doc`](/cli/plan), [`ubx chat`](/guides/chat)) uses
+**`claude-sonnet-5`** — a deliberate cost/quality balance, not the most
+capable model available. `ubx plan --from-doc`'s own pre-receipt
+progress line always names the model actually used for that call,
+config or no config:
+
+```text
+$ ubx plan --from-doc payments.md --stack payments --provider ./fakeprovider
+drafting via claude:claude-sonnet-5… ✓ · resolving…
+```
+
+To use a different model — a more capable one for a harder document, or
+a cheaper one still — set `model` explicitly:
+
+```hcl
+intent = {
+  model = "claude-opus-4-8"
+}
+```
 
 <Warning>
   `key_ref.env` is a reference, never the key itself — the same rule
