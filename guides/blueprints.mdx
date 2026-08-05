@@ -123,6 +123,84 @@ limitation). `--lang go`/`--lang ts`/`--lang py` narrow to exactly one.
   resources.md`. Never a silent overwrite of one resource by the other.
 </Note>
 
+## Converting an existing Terraform module
+
+Authoring from prose isn't the only way to get a blueprint — if you
+already have a Terraform module, `ubx blueprint convert` translates it
+directly, **with zero AI involved at all**:
+
+```text
+$ ubx blueprint convert --from-terraform ./my-module --out ./my-blueprint --lang go
+```
+
+<Note>
+  **Why this can skip AI entirely, unlike every other blueprint-authoring
+  path on this page.** HCL is already precise — a `var.x` reference, a
+  `resource_type.name.attr` reference, a string mixing literal text with
+  either, all correspond exactly to a blueprint's own resolved wire
+  shapes (`{param_name}` tokens, `$ref` markers). There's no ambiguity
+  left for a model to resolve, so `convert` translates directly and
+  deterministically: the same `Ubxfile` + compiled `go/`/`ts/`/`py/`
+  packages every other build path produces, written in one command, with
+  no `resources:` drafting step at all.
+</Note>
+
+`variable` blocks become `params:` directly (`string`/`number`/`bool`/
+`list(string)`/`list(number)` — Terraform's richer types, like
+`map(...)` or `object({...})`, aren't representable in a blueprint's own
+param vocabulary and are named as such, see below). `resource` blocks
+become the blueprint's own resource calls — a `var.x` reference becomes
+a `{x}` token, a `resource_type.name.attr` reference becomes a real
+cross-resource reference, exactly like a hand-authored blueprint. A real
+`count = length(var.<list>)` or `for_each = var.<list>`/`toset(var.
+<list>)` converts to [the same real `for_each` shape](#list-parameters-iteration)
+covered above; `cidrsubnet()` — the one Terraform built-in common enough
+to be worth porting — compiles to a real generated Go helper (Go only so
+far; TypeScript/Python are a named follow-up, not silently missing —
+building with `--lang ts`/`--lang py` fails loudly, by name, if a
+converted blueprint uses it). `output` blocks naming a plain resource
+attribute become `outputs:`.
+
+Anything the converter genuinely can't translate mechanically — a
+conditional expression, an unported function like `merge()`/`format()`,
+a `data` source, a `count`/`for_each` driven by something other than a
+list variable's own length — is never guessed at. It's reported as a
+real question, and the one affected attribute, resource, or output is
+left out of the converted blueprint rather than silently mistranslated:
+
+```text
+$ ubx blueprint convert --from-terraform ./vpc-module --out ./vpc-out --lang go
+2 question(s) -- not fatal, review before trusting the converted blueprint:
+  - variable "tags" declares type map(string), which blueprint params: doesn't support (only string, number, bool, list(string), list(number)) -- dropped from the converted blueprint
+  - resource "aws_vpc.this" attribute "tags": function call merge({ Name = var.name }, var.tags) isn't supported by the converter -- attribute dropped from the converted blueprint
+declared provider(s) (confirm the converted blueprint resolves against these before trusting it):
+  - aws: hashicorp/aws 6.58.0
+converted 2 resource(s) (0 skipped) -> /path/to/vpc-out (go: go/bindings.go, go/cidrsubnet.go, go/go.mod, go/vpcout.go)
+```
+
+<Warning>
+  **The converted `Ubxfile`'s own `resources:` field is documentation
+  only.** `ubx blueprint build` always re-drafts `resources:` through the
+  AI pipeline, every time — but `convert`'s whole point is skipping that
+  step. So the `Ubxfile` `convert` writes carries a short, deterministic
+  summary for a human to read, not prose meant to be re-drafted: running
+  `ubx blueprint build` again on a converted directory works, but there's
+  no guarantee its own fresh AI draft reproduces what `convert` already
+  produced. Treat `convert`'s own output (the `go`/`ts`/`py` packages it
+  writes) as the source of truth for a converted blueprint.
+</Warning>
+
+This module (distilled from the real, public
+[`terraform-aws-modules/terraform-aws-vpc`](https://github.com/terraform-aws-modules/terraform-aws-vpc)
+module's own actual `count`/`element()`/`cidrsubnet()` idiom for its
+private subnets) converted cleanly apart from the two named gaps above,
+compiled with a real `go build`, and resolved for real — `ubx resolve
+--from-code`, resolve-only, never `ubx ship` — against the real
+`hashicorp/aws@6.58.0` schema: 4 real creates (1 VPC + 3 subnets), each
+subnet's own `cidr_block` exactly `10.0.0.0/24`/`10.0.1.0/24`/
+`10.0.2.0/24` — the ported `cidrsubnet()` helper's own real output,
+confirmed against the real provider, not just asserted hermetically.
+
 ## Calling a blueprint
 
 Zero AI, from any of three real mediums. All three below call the exact
@@ -896,4 +974,6 @@ identical content, anywhere it lands
 - [Overrides: making drift stick](/guides/overrides) — patching a
   blueprint-produced resource's own unparameterized field, and
   generating the fix mechanically from real drift
+- [Converting an existing Terraform module](#converting-an-existing-terraform-module) —
+  `ubx blueprint convert --from-terraform`, zero AI, above on this page
 - [Why](/concepts/why) — the mental model `ubx why` implements
