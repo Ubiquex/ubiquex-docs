@@ -143,14 +143,14 @@ First, generate typed bindings for the providers you've declared (see
 
 ```text
 $ ubx sdk gen --out sdk/generated
-generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp-aws.ts
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/ts/hashicorp-aws
 ```
 
 Then author a program against them:
 
 ```typescript payments.ts
 import { intent, resource, stack } from "@ubx/sdk";
-import { AwsDbInstance } from "./sdk/generated/hashicorp-aws.ts";
+import { Instance } from "./sdk/generated/ts/hashicorp-aws/aws/db/instance.ts";
 
 export default stack("payments", () => {
   intent({
@@ -158,7 +158,7 @@ export default stack("payments", () => {
       "Provision a small Postgres RDS instance in the payments stack, modeled on the staging database but downsized for low initial traffic.",
   });
 
-  resource(AwsDbInstance, "payments", {
+  resource(Instance, "payments", {
     engine: "postgres",
     instanceClass: "db.t3.small",
     allocatedStorage: 20,
@@ -219,7 +219,7 @@ infrastructure -- three independent producers (a hand-written intent
 file, a markdown document, and this TypeScript program) converging on the
 same signed shape.
 
-`.instanceClass` has no `?` in the generated `AwsDbInstanceConfig`
+`.instanceClass` has no `?` in the generated `InstanceConfig`
 interface -- it's required by the real AWS schema, and TypeScript
 enforces that before the program ever runs, not after a failed resolve.
 
@@ -231,9 +231,9 @@ sibling resource's own config produces a `$ref`, exactly like the JSON
 `$ref` marker above:
 
 ```typescript
-const primary = resource(AwsDbInstance, "payments", { /* ... */ });
+const primary = resource(Instance, "payments", { /* ... */ });
 
-resource(AwsDbInstance, "payments-replica", {
+resource(Instance, "payments-replica", {
   instanceClass: "db.t3.small",
   replicateSourceDb: primary.id as unknown as string,
 });
@@ -274,13 +274,16 @@ First, generate typed bindings for Go (see [`ubx sdk gen
 
 ```text
 $ ubx sdk gen --lang go --out sdk/generated
-generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp-aws.go
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/go/hashicorp-aws
 ```
 
 Then author a program against them. A Go SDK program is its own real Go
 module, requiring `github.com/ubiquex/ubx-sdk-go` (the tiny runtime
-package -- not yet published, so a local `replace` is needed until it
-is):
+package -- genuinely published to the real Go module proxy, no `replace`
+needed for it) and the generated bindings themselves (a local `replace`
+pointing at the directory `ubx sdk gen` just wrote, unless you're
+importing one of the [real, already-published per-provider
+repos](/sdk#published-packages) instead):
 
 ```go go.mod
 module payments
@@ -288,6 +291,9 @@ module payments
 go 1.23
 
 require github.com/ubiquex/ubx-sdk-go v0.0.0
+require github.com/ubiquex/ubx-sdk-aws v0.0.0
+
+replace github.com/ubiquex/ubx-sdk-aws => ./sdk/generated/go/hashicorp-aws
 ```
 
 ```go payments.go
@@ -296,7 +302,7 @@ package main
 import (
 	sdk "github.com/ubiquex/ubx-sdk-go/runtime"
 
-	generated "payments/sdk/generated"
+	db "github.com/ubiquex/ubx-sdk-aws/aws/db"
 )
 
 func main() {
@@ -305,7 +311,7 @@ func main() {
 			Summary: "Provision a small Postgres RDS instance in the payments stack, modeled on the staging database but downsized for low initial traffic.",
 		})
 
-		sdk.Resource(generated.AwsDbInstance, "payments", generated.AwsDbInstanceConfig{
+		sdk.Resource(db.Instance, "payments", db.InstanceConfig{
 			Engine:           "postgres",
 			InstanceClass:    "db.t3.small",
 			AllocatedStorage: 20,
@@ -369,9 +375,9 @@ Proxy, so drilling into a nested attribute is an explicit method call
 rather than implicit property access:
 
 ```go
-primary := sdk.Resource(generated.AwsDbInstance, "payments", generated.AwsDbInstanceConfig{ /* ... */ })
+primary := sdk.Resource(db.Instance, "payments", db.InstanceConfig{ /* ... */ })
 
-sdk.Resource(generated.AwsDbInstance, "payments-replica", generated.AwsDbInstanceConfig{
+sdk.Resource(db.Instance, "payments-replica", db.InstanceConfig{
 	InstanceClass:     "db.t3.small",
 	ReplicateSourceDb: primary.Field("id"),
 })
@@ -410,14 +416,17 @@ First, generate typed bindings for Python (see [`ubx sdk gen
 
 ```text
 $ ubx sdk gen --lang py --out sdk/generated
-generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/hashicorp_aws.py
+generated 1682 resource type(s) for hashicorp/aws@6.54.0 -> sdk/generated/py/hashicorp-aws
 ```
 
-Then author a program against them:
+Then author a program against them, with `sdk/generated/py/hashicorp-aws`
+itself on `PYTHONPATH` (Python's own dotted `import` can't traverse the
+hyphen in `hashicorp-aws`, so the generated repo's own root -- not a
+path through it -- is what belongs on `PYTHONPATH`):
 
 ```python payments.py
 import ubx_sdk as sdk
-from sdk.generated.hashicorp_aws import AwsDbInstance, AwsDbInstanceConfig
+from aws.db.instance import Instance, InstanceConfig
 
 
 def describe():
@@ -426,7 +435,7 @@ def describe():
         "modeled on the staging database but downsized for low initial traffic."
     )
 
-    sdk.resource(AwsDbInstance, "payments", AwsDbInstanceConfig(
+    sdk.resource(Instance, "payments", InstanceConfig(
         engine="postgres",
         instance_class="db.t3.small",
         allocated_storage=20,
@@ -492,9 +501,9 @@ method call, having no Proxy), Python's own `__getattr__` hook lets
 attribute access work exactly the way it reads:
 
 ```python
-primary = sdk.resource(AwsDbInstance, "payments", AwsDbInstanceConfig(...))
+primary = sdk.resource(Instance, "payments", InstanceConfig(...))
 
-sdk.resource(AwsDbInstance, "payments-replica", AwsDbInstanceConfig(
+sdk.resource(Instance, "payments-replica", InstanceConfig(
     instance_class="db.t3.small",
     replicate_source_db=primary.id,
 ))

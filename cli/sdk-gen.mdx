@@ -310,40 +310,54 @@ generation and evaluation are separate, explicit steps, the same way
 `ubx propose --from-doc` (network) and `ubx resolve` (offline) are
 already two separate commands.
 
-## No runtime package is published yet
+## Runtime and generated-bindings publish status
 
 TypeScript's `@ubx/sdk` (`stack`, `resource`, `secret`, `cross`,
-`intent`, `Computed<T>`) is not published to npm -- it's embedded
-directly inside the `ubx` binary and made available to the evaluator
-automatically. You don't need to `npm install` anything for `ubx resolve
---from-code` to work with a `.ts` entry; only generated bindings (this
-command's own output) need to exist on disk. The generated bindings
-tree's own `package.json` (name `@ubx/sdk-aws` and so on) isn't
-published to npm either -- it's a repo-*shaped* local directory (ready
-to become its own real repo), not a real published package; whether/how
-it becomes one is left entirely to you (or CI).
+`intent`, `Computed<T>`) is embedded directly inside the `ubx` binary and
+made available to the evaluator automatically -- you don't need to
+install anything for `ubx resolve --from-code` to work with a `.ts`
+entry. It's also genuinely published, for real, on
+[JSR](https://jsr.io/@ubx/sdk) (`jsr:@ubx/sdk`) -- useful for editor/IDE
+type-checking outside the evaluator. It is **not** meaningfully published
+on npm: an `@ubx/sdk` package exists there too, but as a deliberate
+placeholder pointing at the real JSR package, not the real thing itself.
 
 Go's `github.com/ubiquex/ubx-sdk-go` (`sdk.Stack`, `sdk.Resource`,
 `sdk.Secret`, `sdk.Cross`, `sdk.Intent`, `sdk.Main`, `*sdk.Computed`) is
-not published to a module proxy yet -- unlike TypeScript, a Go program's
-own `go.mod` needs a `require`, and (until publication) a `replace`
-pointing at a real checkout of the runtime, since `go build` has no
-bundled-runtime-injection mechanism the way the TS evaluator's import
-map does. The generated bindings repo itself (`github.com/ubiquex/ubx-sdk-aws`
-and so on) isn't published anywhere either -- `--lang go`'s own `--out`
-writes a repo-*shaped* local directory (import-path-compatible, its own
-`go.mod` stub), not a real pushed repo; whether/how it becomes one is
-left entirely to you (or CI), the same posture as any other generated
-code being reviewable before it's committed.
+genuinely published to the real public Go module proxy -- a plain
+`require github.com/ubiquex/ubx-sdk-go v0.0.0` in your own `go.mod`
+resolves it with no `replace` directive and no credentials needed.
 
 Python's `ubx_sdk` (`sdk.stack`, `sdk.resource`, `sdk.secret`,
-`sdk.cross`, `sdk.intent`, `sdk.run`, `sdk.Computed`) is not published to
-PyPI yet either -- like TypeScript's, it's embedded inside the `ubx`
-binary and made available to the evaluator automatically; you don't need
+`sdk.cross`, `sdk.intent`, `sdk.run`, `sdk.Computed`) is **not** published
+to PyPI yet -- like TypeScript's, it's embedded inside the `ubx` binary
+and made available to the evaluator automatically, so you don't need
 `pip install` anything for `ubx resolve --from-code` to work with a
-`.py` entry. The generated bindings tree's own `pyproject.toml` (name
-`ubx-sdk-aws` and so on) isn't published to PyPI either, same posture as
-Go/TS's own generated manifests.
+`.py` entry; a real release is still open work.
+
+**The generated bindings tree itself** (this command's own `--out`
+output -- `package.json`/`go.mod`/`pyproject.toml` named `@ubx/sdk-aws`/
+`ubx-sdk-aws`/etc.) is never published BY `ubx sdk gen` itself, in any
+language -- it's a repo-*shaped* local directory (ready to become its
+own real repo), not a real package this command pushes anywhere;
+whether/how it becomes one is left entirely to you (or CI).
+
+<Note>
+  **In practice, this has already happened, repeatedly.** This project
+  maintains 12 real, separately-hosted, per-(provider,language) bindings
+  repos this exact way -- `ubx-sdk-aws-go`, `ubx-sdk-aws-ts`,
+  `ubx-sdk-aws-py`, and the same three-language row for Google,
+  Kubernetes, and Azure. Each was seeded with a real `ubx sdk gen --out .`
+  run, then manually pushed and renamed (the mechanical, unsuffixed
+  `ubx-sdk-aws` this command derives isn't the real repo's own final
+  name -- see the [SDK Reference](/sdk#published-packages) for the
+  full list and the naming distinction). Each is kept current
+  automatically by a real GitHub Actions workflow: a scheduled + manually
+  dispatchable check against the real Terraform Registry API, which
+  regenerates and opens a PR on a version bump -- never auto-merges. This
+  is the recommended way to keep a real pushed bindings repo current,
+  rather than re-running this command by hand.
+</Note>
 
 ## Related
 

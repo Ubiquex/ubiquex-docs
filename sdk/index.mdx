@@ -1,17 +1,21 @@
 ---
 title: "SDK Reference"
-description: "Author infrastructure as typed TypeScript, Go, or Python code, each evaluated hermetically -- no runtime package is published yet."
+description: "Author infrastructure as typed TypeScript, Go, or Python code, each evaluated hermetically -- TypeScript and Go's own runtimes are genuinely published, Python's isn't yet."
 ---
 
 Three describe-only SDKs for authoring infrastructure as typed code, all
 producing the exact same `intent/v1` shape: `@ubx/sdk` (TypeScript),
 `github.com/ubiquex/ubx-sdk-go` (Go), and `ubx_sdk` (Python). All three
-work today, through the CLI -- none is published yet (TypeScript's is
-bundled directly inside the `ubx` binary; Go's needs a local `replace`
-in your own `go.mod`; Python's runtime is likewise bundled, though its
-own hermetic Python build is a separate, larger download -- see [The
-hermetic evaluator](#the-python-evaluator) below), so there's no
-separate install step: generate bindings, write a program, resolve it.
+work today, through the CLI, with no separate install step required --
+every runtime is also bundled directly inside the `ubx` binary itself and
+made available to the evaluator automatically (Python's own hermetic
+build is a separate, larger download -- see [The hermetic
+evaluator](#the-python-evaluator) below), so generate bindings, write a
+program, resolve it, regardless of whether you also install anything.
+TypeScript's `@ubx/sdk` and Go's `github.com/ubiquex/ubx-sdk-go` are
+BOTH genuinely published too (JSR and the real Go module proxy,
+respectively -- see [Published packages](#published-packages) below);
+Python's `ubx_sdk` isn't yet.
 
 ```bash
 ubx sdk gen --out sdk/generated               # TypeScript (default) -> sdk/generated/ts/<source>/
@@ -47,7 +51,7 @@ A program's entire vocabulary is five functions and one type:
 
 ```typescript payments.ts
 import { intent, resource, stack } from "@ubx/sdk";
-import { Instance } from "./sdk/generated/ts/hashicorp-aws/db/instance.ts";
+import { Instance } from "./sdk/generated/ts/hashicorp-aws/aws/db/instance.ts";
 
 export default stack("payments", () => {
   intent({ summary: "provision the payments database" });
@@ -131,7 +135,7 @@ package main
 import (
 	sdk "github.com/ubiquex/ubx-sdk-go/runtime"
 
-	db "github.com/ubiquex/ubx-sdk-aws/db"
+	db "github.com/ubiquex/ubx-sdk-aws/aws/db"
 )
 
 func main() {
@@ -183,7 +187,7 @@ A repo-shaped tree -- its own `go.mod` (module
 real bindings, real config struct per resource type, plus a runtime
 descriptor:
 
-```go sdk/generated/go/hashicorp-aws/db/instance.go (excerpt)
+```go sdk/generated/go/hashicorp-aws/aws/db/instance.go (excerpt)
 package db
 
 type InstanceConfig struct {
@@ -210,11 +214,13 @@ reference, or a `sdk.Secret`/`sdk.Cross` marker) -- unlike TypeScript's
 generated `Config`/`Attrs` interface pair, there's no separate `Attrs`
 type at all: Go's `Computed` has no static per-field shape (`.Field(name)`
 works the same regardless), so there's nothing for a generated `Attrs`
-type to describe. Your own program's `go.mod` needs a `require`+`replace`
-pointing at the generated directory, the same local-checkout pattern the
-runtime itself needs (see [`ubx sdk gen`'s own "No runtime package is
-published yet"](/cli/sdk-gen#no-runtime-package-is-published-yet)) --
-neither is published anywhere yet.
+type to describe. Your own program's `go.mod` needs only a plain
+`require github.com/ubiquex/ubx-sdk-go` for the runtime -- genuinely
+published, no `replace` needed (see [Published
+packages](#published-packages) below). A `require`+`replace` pointing at
+the generated directory is still needed for the BINDINGS themselves,
+unless you import one of the real, already-published per-provider repos
+instead of your own freshly-generated local copy (same section).
 
 ### The hermetic evaluator {#the-go-evaluator}
 
@@ -255,7 +261,7 @@ place of `Computed<T>`:
 
 ```python payments.py
 import ubx_sdk as sdk
-from db.instance import Instance, InstanceConfig
+from aws.db.instance import Instance, InstanceConfig
 
 
 def describe():
@@ -309,7 +315,7 @@ A repo-shaped tree -- its own `pyproject.toml` (name `ubx-sdk-aws`), one
 real Python package per AWS-service boundary (`__init__.py` and all),
 real `@dataclass` per resource type, plus a runtime descriptor:
 
-```python sdk/generated/py/hashicorp-aws/db/instance.py (excerpt)
+```python sdk/generated/py/hashicorp-aws/aws/db/instance.py (excerpt)
 @dataclasses.dataclass
 class InstanceConfig:
     allocated_storage: Any = None
@@ -382,6 +388,59 @@ guard against either, the same simplification Go's own evaluator has --
 the program runs **twice**, and any other nondeterminism shows up as a
 byte difference between the two runs and fails hard.
 
+## Published packages
+
+`npm install @ubx/sdk` does **not** get you the real package (see
+below); `go get github.com/ubiquex/ubx-sdk-go` **does** work, for real,
+against the public Go module proxy; `pip install ubx_sdk` does **not**
+work yet.
+
+- **TypeScript**: `@ubx/sdk` is published on [JSR](https://jsr.io/@ubx/sdk)
+  (`jsr:@ubx/sdk`), not npm -- npm has an `@ubx/sdk` package too, but as
+  a deliberate placeholder pointing at the real JSR package. Useful for
+  editor/IDE type-checking; `ubx resolve --from-code` itself needs
+  neither, since the runtime is bundled directly inside the `ubx` binary.
+- **Go**: `github.com/ubiquex/ubx-sdk-go` is published to the real,
+  public Go module proxy -- a plain `require` with no `replace` resolves
+  it. Also bundled inside `ubx` itself for the evaluator's own use.
+- **Python**: `ubx_sdk` is not published to PyPI yet. Also bundled inside
+  `ubx` itself for the evaluator's own use, so this doesn't block using
+  `ubx resolve --from-code` with a `.py` entry today.
+
+**Generated bindings repos** (this is a genuinely different thing from
+the three runtimes above -- a *provider's* generated types, not the
+hand-written vocabulary every program imports) are never published BY
+[`ubx sdk gen`](/cli/sdk-gen) itself, in any language -- its own `--out`
+writes a repo-*shaped* local directory, ready to become its own real
+repo, not something this command pushes anywhere. In practice, this
+project already publishes 12 of them this way -- one real, separately-
+hosted GitHub repo per (provider, language) pair, each kept current by a
+real, scheduled GitHub Actions workflow (queries the real Terraform
+Registry API, regenerates on a version bump, opens a PR, never
+auto-merges):
+
+| Provider | Go | TypeScript | Python |
+| --- | --- | --- | --- |
+| AWS | [ubx-sdk-aws-go](https://github.com/Ubiquex/ubx-sdk-aws-go) | [ubx-sdk-aws-ts](https://github.com/Ubiquex/ubx-sdk-aws-ts) | [ubx-sdk-aws-py](https://github.com/Ubiquex/ubx-sdk-aws-py) |
+| Google | [ubx-sdk-google-go](https://github.com/Ubiquex/ubx-sdk-google-go) | [ubx-sdk-google-ts](https://github.com/Ubiquex/ubx-sdk-google-ts) | [ubx-sdk-google-py](https://github.com/Ubiquex/ubx-sdk-google-py) |
+| Kubernetes | [ubx-sdk-kubernetes-go](https://github.com/Ubiquex/ubx-sdk-kubernetes-go) | [ubx-sdk-kubernetes-ts](https://github.com/Ubiquex/ubx-sdk-kubernetes-ts) | [ubx-sdk-kubernetes-py](https://github.com/Ubiquex/ubx-sdk-kubernetes-py) |
+| Azure | [ubx-sdk-azure-go](https://github.com/Ubiquex/ubx-sdk-azure-go) | [ubx-sdk-azure-ts](https://github.com/Ubiquex/ubx-sdk-azure-ts) | [ubx-sdk-azure-py](https://github.com/Ubiquex/ubx-sdk-azure-py) |
+
+<Note>
+  A real naming subtlety: `ubx sdk gen` itself always derives an
+  unsuffixed module/package name (`ubx-sdk-aws`, mechanically, from the
+  provider source alone) -- the `-go`/`-ts`/`-py` suffix on each real repo
+  above was a one-time manual rename applied before establishing it as
+  its own independent (provider, language) repo, not something this
+  command produces on its own. If you generate bindings locally and
+  import them directly, your own `go.mod`/`package.json`/`pyproject.toml`
+  will name the unsuffixed form unless you rename it yourself.
+</Note>
+
+Import one of these directly instead of generating your own copy if you
+just need AWS/Google/Kubernetes/Azure bindings and don't need a
+different provider version than what's currently pinned there.
+
 ## What a program can't do yet
 
 - **Only creates**, in all three languages. A hermetic, sandboxed
@@ -389,12 +448,6 @@ byte difference between the two runs and fails hard.
   ledger, so there's no way to author a `"modify"` from a program today
   -- use a hand-written intent file or [`ubx scan`](/cli/scan)'s own
   drift-generated proposals for that.
-- **No published packages.** `npm install @ubx/sdk`, `go get
-  github.com/ubiquex/ubx-sdk-go`, and `pip install ubx_sdk` all don't
-  work yet -- every runtime ships bundled with `ubx` itself (Go's also
-  needs a local `replace` pointing at a checkout). A real release of any
-  of the three (mainly useful for editor/IDE convenience) hasn't
-  shipped.
 
 ## Related
 
