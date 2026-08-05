@@ -309,6 +309,100 @@ own UBI-29 section (in the `ubiquex` repo) for the full live session
 this transcript is drawn from, including the two real (and honestly
 different) reasons the two `drift_adopt` entries above exist.
 
+## A blueprint call's own provenance
+
+A resource created by a blueprint call (a signed, reusable, parameterized
+proposal template — `ubx blueprint build`/`ubx resolve`'s own
+`blueprint_calls`) carries a `source: blueprint <name>:sha256:<hash>` line
+right under its own create header — which blueprint made it, and which
+version (a content hash of the blueprint's own files, not a hand-picked
+version number). Real, unedited output — a `ci-platform` blueprint (ECR
+repo + SQS queue + IAM role + policy + attachment) called once for the
+`payments` stack, resolved against real `hashicorp/aws@6.54.0`, accepted,
+and shipped:
+
+```text
+$ ubx why 6ece75b09ee254fd00db903d5a15932e2571338f66d4399bf69754a73afe05d9 --ledger-dir .
+proposal 6ece75b09ee2… (change)
+stack:  payments
+status: accepted
+intent: Instantiate the ci-platform blueprint for the payments stack with repo_name=payments-ci-artifacts-md, queue_name=payments-notifications-md, and retention_days=14; no resources are drafted directly since this is a blueprint call.
+  source: document /path/to/create_ci_platform.md (content_hash=sha256:2c3d5d1a12472b9a6d2eed2f36b60fb6c40862c041218f87d342eb5dd3c93069)
+  source: intent_provider claude:claude-sonnet-5 (content_hash=sha256:26d105efa33beeedadd9d4a59cf6c903dc6df3c2f941e2e94a72aa18979705ad)
+accepted by [roozbeh] via local at 2026-08-04T22:50:37Z
+blast radius: +5 ~0 -0
++ aws_ecr_repository.container-repo create
+  source: blueprint ci-platform:sha256:f893af6e945f…
+    (this resource's own creation is signed by the CALLING stack's own acceptance below; the blueprint's own authorship has no separate signing ceremony in this build yet)
+    image_scanning_configuration:
+    {
+      "scan_on_push": true
+    }
+    image_tag_mutability: "IMMUTABLE"
+    name: "payments-ci-artifacts-md"
+
++ aws_sqs_queue.pipeline-events create
+  source: blueprint ci-platform:sha256:f893af6e945f…
+    (this resource's own creation is signed by the CALLING stack's own acceptance below; the blueprint's own authorship has no separate signing ceremony in this build yet)
+    message_retention_seconds: 1209600
+    name: "payments-notifications-md"
+...
+```
+
+Two things worth naming explicitly. First, `intent.sources` above (the
+`document`/`intent_provider` lines right under `intent:`) is
+**document-level** provenance — which `.md` file and which model drafted
+the CALL itself. Each create's own `source: blueprint ...` line is a
+completely different, **per-resource** field — which blueprint the call
+actually invoked. A document can legally mix a blueprint call with a
+hand-authored resource in the same proposal, so only the resources the
+blueprint call actually produced carry the `blueprint` source; a
+hand-authored sibling in the same document has none.
+
+Second, the note under each `source: blueprint` line is a deliberately
+honest gap, not an oversight: the design calls for TWO separate signed
+acts — the blueprint AUTHOR's own signing of the blueprint's definition,
+and the CALLING stack's own signing of THIS instantiation. This build has
+no ceremony for the first one at all (no `ubx blueprint accept`, no
+ledger entry for a blueprint's own definition independent of any call) —
+only the second, real one is rendered, as the proposal's own `accepted
+by [...] via ... at ...` line above.
+
+Looking the SAME resource up by address shows the identical provenance,
+plus real ship history:
+
+```text
+$ ubx why payments.aws_ecr_repository.container-repo --ledger-dir .
+payments.aws_ecr_repository.container-repo: 1 proposal(s), newest first
+- change 6ece75b09ee2… (2026-08-04T22:50:20Z): Instantiate the ci-platform blueprint for the payments stack with repo_name=payments-ci-artifacts-md, queue_name=payments-notifications-md, and retention_days=14; no resources are drafted directly since this is a blueprint call.
+    source: document /path/to/create_ci_platform.md (content_hash=sha256:2c3d5d1a12472b9a6d2eed2f36b60fb6c40862c041218f87d342eb5dd3c93069)
+    source: intent_provider claude:claude-sonnet-5 (content_hash=sha256:26d105efa33beeedadd9d4a59cf6c903dc6df3c2f941e2e94a72aa18979705ad)
+    accepted by [roozbeh] via local at 2026-08-04T22:50:37Z
+    + aws_ecr_repository.container-repo create
+      source: blueprint ci-platform:sha256:f893af6e945f…
+        (this resource's own creation is signed by the CALLING stack's own acceptance below; the blueprint's own authorship has no separate signing ceremony in this build yet)
+        image_scanning_configuration:
+        {
+          "scan_on_push": true
+        }
+        image_tag_mutability: "IMMUTABLE"
+        name: "payments-ci-artifacts-md"
+...
+ship history:
+  attempt 1: outcome=shipped
+    payments.aws_ecr_repository.container-repo:
+      pending at 2026-08-05T09:15:54Z
+      in_flight at 2026-08-05T09:15:55Z
+      shipped at 2026-08-05T09:15:56Z
+    ...
+```
+
+The address form's own `accepted by [...] via ... at ...` line (only
+recently added under each proposal in this chain view, alongside the
+`source:` lines — it used to render only in the bare-proposal-id form
+above) is the same real calling-stack signature, in context of the
+resource's own full recorded history rather than one isolated proposal.
+
 ## A resource's tombstone: destroyed via `ubx ship`
 
 A `change` proposal's own `delta.destroys` (accepted with
@@ -488,3 +582,4 @@ meaningful when it's `true`.
 - [Chat: interactive drafting](/guides/chat) — `ubx chat`, what `--dialogue` walks back to
 - [Promoting across environments](/guides/promotion) — `ubx promote`, what a `promotion` source's own `base`/ref mean
 - [`ubx promote`](/cli/promote) — producing a promoted proposal
+- [`ubx render`](/cli/render) — visually grouping a blueprint call's own resources in a diagram

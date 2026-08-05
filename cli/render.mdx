@@ -12,20 +12,28 @@ converse of [`ubx propose --from-diagram`](/cli/propose#example-transcribing-a-d
 Walks a stack's own live resources (the same [`ledger`](/concepts/ledger)
 fleet walk [`ubx status`](/cli/status) already performs) and emits the
 canonical [D2](https://d2lang.com) rendering of their current, resolved
-shape: one flat top-level node per live resource, `class:` naming its real
-type, an attribute `tooltip:` from real ledger truth, and dependency/
-cross-stack edges drawn from each resource's own creating proposal. Never
+shape: a top-level node per live resource, `class:` naming its real type,
+an attribute `tooltip:` from real ledger truth, and dependency/cross-stack
+edges drawn from each resource's own creating proposal. A resource created
+by a blueprint call (a signed, reusable, parameterized proposal template —
+`ubx blueprint build`/`ubx resolve`'s own `blueprint_calls`) is the one
+exception to "flat" — see [Example: a blueprint call's own resources,
+grouped](#example-a-blueprint-calls-own-resources-grouped) below. Never
 writes to the ledger, never resolves anything — a pure read.
 
 <Note>
-  No synthetic containers. There's no canonical grouping basis to invent (by
+  No GUESSED containers. There's no canonical grouping basis to invent (by
   type? by dependency cluster? by a diagram's own original authored
   structure, which `render` has no access to and shouldn't need) that
   wouldn't be an unreviewable guess baked into every emitted diagram — a
   human editing the emitted file by hand can add their own grouping
   afterward, the same "generated, reviewable, human-editable-adjacent
   artifact" posture [`ubx sdk gen`](/cli/sdk-gen)'s own bindings already
-  established.
+  established. A blueprint call's own resources are the one real
+  exception, not a contradiction of this: which blueprint produced a
+  resource is real, resolved-time truth recorded on the resource's own
+  creating proposal (the same place a `depends_on` edge already comes
+  from), never a guess at structure `render` doesn't actually have.
 </Note>
 
 ## Flags
@@ -118,6 +126,67 @@ neighbor ledger's own real `Head()` at the moment `consumer`'s own `$cross`
 reference resolved; two resources pinning the identical neighbor address
 share one reference node rather than drawing a redundant duplicate.
 
+## Example: a blueprint call's own resources, grouped
+
+A resource created by a blueprint call carries a `{"kind": "blueprint",
+"ref": "<name>:<content_hash>"}` entry in its own recorded provenance
+(see [`ubx why`'s own blueprint provenance section](/cli/why#a-blueprint-calls-own-provenance)) —
+`render` groups every resource sharing the same ref into one dashed-border
+container, labeled with the ref itself. Real, unedited output — a
+`ci-platform` blueprint (ECR repo + SQS queue + IAM role + policy +
+attachment) called once for the `payments` stack, shipped against real
+`hashicorp/aws@6.54.0`:
+
+```text
+$ ubx render --stack payments --ledger-dir .
+classes: {
+  aws_ecr_repository
+  aws_iam_policy
+  aws_iam_role
+  aws_iam_role_policy_attachment
+  aws_sqs_queue
+}
+bp0: "ci-platform:sha256:f893af6e945f…" {
+  style.stroke-dash: 3
+  style.fill: transparent
+  r0: "container-repo" {
+    class: aws_ecr_repository
+    tooltip: "arn: arn:aws:ecr:us-east-1:839333509514:repository/payments-ci-artifacts-md; ..."
+  }
+  r1: "ci-runner-access" {
+    class: aws_iam_policy
+    tooltip: "arn: arn:aws:iam::839333509514:policy/ci-runner-access; ..."
+  }
+  r2: "ci-runner" {
+    class: aws_iam_role
+    tooltip: "arn: arn:aws:iam::839333509514:role/ci-runner; ..."
+  }
+  r3: "ci-runner-access-attachment" {
+    class: aws_iam_role_policy_attachment
+    tooltip: "id: ci-runner/arn:aws:iam::839333509514:policy/ci-runner-access; ..."
+  }
+  r4: "pipeline-events" {
+    class: aws_sqs_queue
+    tooltip: "arn: arn:aws:sqs:us-east-1:839333509514:payments-notifications-md; ..."
+  }
+}
+bp0.r1 -> bp0.r0
+bp0.r1 -> bp0.r4
+bp0.r3 -> bp0.r1
+```
+
+All five resources came from the SAME blueprint call, so all five nest
+under the SAME single container (`bp0`) — a second, unrelated blueprint
+call would get its own `bp1`, sorted by ref. `r0`..`r4` are still the
+identical synthetic, deterministic per-resource keys `render` always
+assigns; the container just adds one more level of D2 nesting around
+them, so an edge between two grouped resources uses the container-
+qualified path (`bp0.r1 -> bp0.r0`, never a bare `r1 -> r0`) — real D2
+syntax, the only way an edge can actually reach a nested node. A resource
+NOT created by a blueprint call renders exactly as the earlier examples
+on this page show — top-level, ungrouped, byte-identical to a stack that
+never called a blueprint at all.
+
 ## `render --check`
 
 Re-emits and byte-compares against `--out`'s own current content — the same
@@ -209,3 +278,6 @@ own byte-compare meaningful at all.
 - [`ubx status`](/cli/status) — the same ledger-fleet-walk read `render`
   reuses
 - [Ledger](/concepts/ledger) — what `FoldState`/`Fleet` actually read
+- [`ubx why`](/cli/why#a-blueprint-calls-own-provenance) — the full
+  provenance chain (which blueprint, which version, who signed the call)
+  behind a grouped resource
