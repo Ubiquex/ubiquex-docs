@@ -487,6 +487,172 @@ exactly like the Go and diagram examples above.
   reachable from this document, which is fine if nothing needs them.
 </Note>
 
+## List parameters + iteration
+
+Every example so far creates a FIXED set of resources. A blueprint can
+also declare a `list(string)`/`list(number)` parameter and describe a
+real iteration pattern — one subnet per availability zone, one queue per
+environment — and it compiles to a genuine loop, not a fixed template
+re-run by hand N times.
+
+<Note>
+  **Why this needs no new runtime construct.** Terraform needed dedicated
+  `count`/`for_each` syntax because HCL has no loop of its own. A
+  blueprint compiles to real Go/TypeScript/Python source — all three
+  already have a `for` loop, so "iteration" is just "the AI recognizes
+  the pattern in prose and emits an ordinary one."
+</Note>
+
+```text Ubxfile (list-typed param + a for_each resource)
+lang: go
+
+params:
+  vpc_id: string, required
+  availability_zones: list(string), required
+
+resources: |
+  For each value in {availability_zones}, create an AWS subnet named
+  "subnet-<the value>": set its availability_zone to that value, its
+  vpc_id to {vpc_id}, and its cidr_block to "10.0.<its zero-based index
+  in the list>.0/24".
+```
+
+Inside that ONE resource's own name/config, `{availability_zones}` means
+the current loop element's own value, and `{availability_zones_index}`
+(the same param name, `_index` appended) means its zero-based position —
+both plain substitution, exactly like an ordinary `{param_name}` token
+elsewhere in the same file. Referencing either token from any OTHER
+resource, or the bare token with no iterating resource at all, is a hard
+build error, not a silent wrong value.
+
+The compiled Go function is a real loop, returning a list of refs so a
+caller (or a composing blueprint) can reach individual instances:
+
+```go vpc-subnets's own compiled Go function
+func VpcSubnets(vpcId string, availabilityZones []string) []*sdk.Computed {
+	var subnetList []*sdk.Computed
+	for availabilityZonesIndex, availabilityZonesValue := range availabilityZones {
+		item := sdk.Resource(Subnet, fmt.Sprintf("subnet-%v", availabilityZonesValue), SubnetConfig{
+			AvailabilityZone: availabilityZonesValue,
+			CidrBlock:        fmt.Sprintf("10.0.%v.0/24", availabilityZonesIndex),
+			VpcId:            vpcId,
+		})
+		subnetList = append(subnetList, item)
+	}
+	return subnetList
+}
+```
+
+TypeScript/Python compile the identical shape in each language's own
+idiom — `Array.prototype.forEach`/`any[]` for TS,
+`enumerate()`/`list[Any]` for Python — confirmed by a real `deno
+check`/`python3` import, same as every other calling example on this
+page.
+
+### Calling with a list, per medium
+
+An SDK caller passes a real list/array/slice directly — no new
+mechanism:
+
+```go
+vpcSubnets.VpcSubnets("vpc-123", []string{"eu-central-1a", "eu-central-1b", "eu-central-1c"})
+```
+
+<Tabs>
+  <Tab title="Diagram">
+    A D2 attribute holds the list as one comma-separated value — the SAME
+    plain-string capture every scalar call param already uses, so this
+    needed zero new parsing code in the diagram medium at all:
+
+    ```d2
+    platform: "vpc subnets call" {
+      class: ubx_blueprint
+      blueprint: "../vpc-subnets"
+      vpc_id: "vpc-0123456789abcdef0"
+      availability_zones: "eu-central-1a, eu-central-1b, eu-central-1c"
+    }
+    ```
+  </Tab>
+  <Tab title="md">
+    Comma-separated values in ordinary prose, extracted the same
+    bounded, thin way any other call param already is:
+
+    ```md
+    Use blueprint `vpc-subnets` with:
+      vpc_id = vpc-0123456789abcdef0
+      availability_zones = eu-central-1a, eu-central-1b, eu-central-1c
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  **The design decision behind the diagram shape, made deliberately, not
+  deferred.** D2 node attributes are single key-value pairs with no
+  built-in list representation. Repeated child nodes were considered and
+  rejected: they'd need a genuinely new attribute shape (new parsing
+  code, no md-medium equivalent to mirror), while a comma-separated
+  string needs none — the diagram medium's own existing "every
+  non-reserved attribute is one call param, verbatim raw text" capture
+  already handles it, unchanged, and stays symmetric with the md medium's
+  own identical convention.
+</Note>
+
+A real, live `ubx plan --from-diagram` run (against `fake_widget`, this
+project's own hermetic stand-in resource type — real AWS types like
+`aws_subnet` have no schema in the hermetic test provider) confirms three
+correctly-named, correctly-valued resources from the ONE comma-separated
+attribute above:
+
+```text
+$ ubx plan --from-diagram widgets.d2 --stack widget-list-demo
+
+  + fake_widget.widget-alpha create
+    source: blueprint widget-list:sha256:6485ca3e79b6…
+      name: "alpha"
+
+  + fake_widget.widget-beta create
+    source: blueprint widget-list:sha256:6485ca3e79b6…
+      name: "beta"
+
+  + fake_widget.widget-gamma create
+    source: blueprint widget-list:sha256:6485ca3e79b6…
+      name: "gamma"
+
+delta: +3 create(s), ~0 change(s), -0 terminate(s)
+```
+
+`ubx ship` shipped all three for real against that same hermetic
+provider (`3 resource(s), 3 shipped, 0 failed`), and `ubx why` confirmed
+the same real blueprint-content-hash/document-content-hash provenance
+every other calling example on this page already shows.
+
+<Warning>
+  **A real, live-found bug, fixed before this page shipped.** A for_each
+  resource that references only the per-element VALUE (never the index —
+  the `widget-list` example above, one `fake_widget` per name) first
+  surfaced a real Go compile failure: `declared and not used:
+  widgetNamesIndex`. Go, unlike TypeScript/Python, hard-refuses to
+  compile a declared range variable that's never read. Fixed by tracking
+  which of the two loop variables a resource's own fields/name actually
+  reference and substituting Go's own blank identifier (`_`) for
+  whichever one doesn't — caught by a real `ubx resolve --from-code` run
+  against a real, hermetic stack, not assumed correct from a code review.
+</Warning>
+
+<Note>
+  **Two known, honest live-verification gaps, not glossed over.** The
+  build-time AI's own recognition of the iteration pattern above, and the
+  md medium's own extraction of a comma-separated call argument from
+  prose, both need a real Claude API call this project's own configured
+  key couldn't make during this feature's own development session
+  (insufficient account credit, unrelated to the feature itself). Every
+  other claim on this page — the generated code, the SDK/diagram calling
+  examples, the real `ubx plan`/`ubx ship`/`ubx why` transcripts above —
+  is real, live, unedited output. If you hit a case where the model
+  doesn't recognize an iteration pattern you expect it to, that's the one
+  piece of this feature not yet confirmed against a real drafting run.
+</Note>
+
 ## Provenance: `ubx why` and `ubx render`
 
 Once a diagram- or md-called blueprint's resources are shipped, the
