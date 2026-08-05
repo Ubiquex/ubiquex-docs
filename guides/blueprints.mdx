@@ -152,6 +152,89 @@ $ ubx resolve --from-code create_ci_platform.go --source hashicorp/aws --provide
 resolved: payments: 5 create(s), 0 change(s), 0 terminate(s)
 ```
 
+### SDK: direct import, Python — resolving a dependency from `requirements.txt`
+
+Go resolves a locally-built blueprint via a `replace` directive; Python
+has no equivalent "point my package manager at this local build"
+mechanism at all. Instead, a Python stack declares a blueprint
+dependency in an ordinary `requirements.txt`, sitting next to the entry
+`.py` file, using pip's own real `<name> @ <url>` specifier syntax — no
+new syntax invented:
+
+```text requirements.txt
+ci-platform @ oci://ghcr.io/ubiquex/ci-platform:v1
+```
+
+The `.py` source itself uses a plain import, no URL at all — exactly
+like Go's own direct import above:
+
+```python create_ci_platform.py
+import ubx_sdk as sdk
+from ciplatform import ci_platform
+
+
+def build():
+    sdk.intent("CI platform for payments, blueprint pulled from OCI at plan time")
+    ci_platform(repo_name="payments-ci-artifacts", queue_name="payments-notifications", retention_days=7)
+
+
+if __name__ == "__main__":
+    sdk.run("payments", build)
+```
+
+`ubx plan`/`ubx resolve --from-code` reads `requirements.txt`, pulls and
+verifies each declared dependency into ubx's own local cache (the same
+`Pull`/`Verify` mechanism [OCI](#oci-a-real-live-registry) and
+[git](#git) distribution already use — never a second, parallel
+mechanism), and makes it importable — all BEFORE the script itself
+runs. Per this project's own "never a silent network call" rule, every
+pull renders a real receipt line, never a silent operation:
+
+```text
+$ ubx plan --from-code create_ci_platform.py --source hashicorp/aws --provider-version 6.54.0
+pulled ci-platform @ oci://ghcr.io/ubiquex/ci-platform:v1, verified: content hash sha256:f893af6e945fe1e708af03dd60fe5372b76969579b3bdc8b70c3b4238968c885 matches (11 file(s))
+Plan  payments · from create_ci_platform.py
+
+  + aws_ecr_repository.container-repo create
+      ...
+  + aws_sqs_queue.pipeline-events create
+      message_retention_seconds: 604800
+      ...
+  + aws_iam_role.ci-runner create
+      ...
+  + aws_iam_policy.ci-runner-access create
+      ...
+  + aws_iam_role_policy_attachment.ci-runner-access-attachment create
+      ...
+
+delta: +5 create(s), ~0 change(s), -0 terminate(s)
+```
+
+That's the same real, live `ghcr.io/ubiquex/ci-platform:v1` artifact
+pulled above under [OCI](#oci-a-real-live-registry), resolved against the
+real `hashicorp/aws@6.54.0` schema — `retention_days=7` correctly
+converts to `message_retention_seconds: 604800` (7 × 86400), proving the
+pulled package's own logic genuinely executed, not just that a file got
+copied somewhere. A second `ubx plan` against the same
+`requirements.txt` reuses the verified local cache instead of pulling
+again — `pulled ci-platform @ oci://ghcr.io/ubiquex/ci-platform:v1
+(cached), verified: ...` — with an identical resolved delta either way.
+
+A dependency can equally be declared via git
+(`widget-lib @ git+https://github.com/org/blueprints.git@v2#subdirectory=widget-lib`)
+or a bare local path (`widget-lib @ ../shared/widget-lib`, never
+cached — a local path is assumed to be actively edited, so it's pulled
+fresh every time) — see [Distributing a blueprint](#distributing-a-blueprint)
+below for the underlying mechanism each form reuses.
+
+<Note>
+  This mechanism resolves the DEPENDENCY, not its provenance — a resource
+  produced this way carries ordinary document-sourced provenance (the
+  calling script itself), not blueprint provenance. Python's own
+  blueprint-CALL provenance (the gap the next section names for Go) is a
+  real, separate, still-open follow-up.
+</Note>
+
 ### Diagram: a `ubx_blueprint`-classed node
 
 [The diagram medium](/guides/diagram-medium)'s own zero-AI structural
