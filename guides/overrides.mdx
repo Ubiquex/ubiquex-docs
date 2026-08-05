@@ -1,0 +1,216 @@
+---
+title: "Overrides: making drift stick"
+description: "override() in Go/TS/Python/diagram/md, and render --sync-overrides — a real, mechanical drift-to-override round trip"
+---
+
+## The problem
+
+A blueprint's own internal resource attributes are owned by the
+blueprint's **author**, not the caller — only call-site parameters are
+editable by whoever instantiates it. If a caller drifts a value the
+blueprint never exposed as a parameter (a console edit, an out-of-band
+change) and adopts it, the ledger is correct — but there's no
+source-of-truth text the caller owns to edit, so that adoption can't
+"stick" the next time the same stack creates that resource.
+
+## The mechanism
+
+`override(address, {field: value, ...})` — a caller patches any resolved
+attribute by its own canonical `<stack>.<type>.<name>` address, applied
+after a blueprint call resolves and before ship. `config`'s own keys are
+the target's real WIRE attribute names (e.g. `some_hardcoded_field`),
+never translated through any generated binding — the target need not
+even be declared in the calling document at all (the common case: a
+resource a blueprint call just produced).
+
+<Note>
+  `Config`'s own keys are TOP-LEVEL wire attribute names only, never a
+  dot-path into a nested value — overriding one key of a nested object
+  (a `tags` map, say) means supplying that whole attribute's own complete
+  new value, never a deep merge.
+</Note>
+
+### SDK — Go, TypeScript, Python (zero AI)
+
+```go
+sdk.Override("payments.aws_sqs_queue.pipeline-events", map[string]any{
+	"some_hardcoded_field": "new_value",
+})
+```
+
+```typescript
+override("payments.aws_sqs_queue.pipeline-events", {
+  some_hardcoded_field: "new_value",
+});
+```
+
+```python
+sdk.override("payments.aws_sqs_queue.pipeline-events", {"some_hardcoded_field": "new_value"})
+```
+
+An override's own value can be a real `Computed` reference (a `$ref` into
+a sibling resource), exactly like an ordinary `resource()` config value —
+overrides flow through the same resolution machinery any other config
+value does, never a weaker, separate mechanism.
+
+### Diagram — a `ubx_override`-classed node (zero AI)
+
+A structural attribute read, mirroring the `ubx_blueprint` node's own
+convention exactly:
+
+```d2
+fix: "fix pipeline-events" {
+  class: ubx_override
+  address: "payments.aws_sqs_queue.pipeline-events"
+  some_hardcoded_field: "new_value"
+}
+```
+
+`address` is the one reserved attribute; every other child is one config
+field. A value can reference a sibling node in the same diagram via
+`"ref:<node>.<attr-path>"` — [the same escape hatch `ubx_required`
+already established](/guides/diagram-medium).
+
+<Warning>
+  Diagram's own override syntax only expresses **string-valued**
+  overrides today (the same real, documented scope `ubx_required`'s own
+  structural-attribute reading already has) — a number/bool/nested-object
+  drift target needs Go/TS/Python instead. `render --sync-overrides`
+  refuses cleanly, naming the field, rather than mis-rendering one.
+</Warning>
+
+### md — thin AI mapping only, never a re-draft
+
+The one call site that uses AI at all — and only to map prose onto the
+wire shape, never to reason about the target resource:
+
+> Override the pipeline-events queue's some_hardcoded_field to
+> "new_value".
+
+Maps to one `overrides[]` entry. The model is explicitly instructed
+(`intentprovider/claude`'s own system prompt) never to touch any other
+attribute of the target, and never to draft a `resources[]` entry for it
+— it already exists, created elsewhere.
+
+## `render --sync-overrides`: generating the statement, mechanically
+
+`status --drift` already computes the exact address, field, and old/new
+values. Turning that into "override X's Y to Z" syntax in a target
+medium is templating, never interpretation — **zero AI**, confirmed:
+
+```text
+$ ubx status --stack payments --drift --all
+Drift  payments · 1 of 1 resource(s) drifted
+
+drifted: payments.fake_widget.primary: adoption cd2f12ea5fcd… (accepted 2026-08-05T13:07:44Z)
+    ~ name: "payments-widget-v1" -> "payments-widget-v2-drifted"
+    next: ubx scan --propose both
+
+1 resource(s), 1 drifted, 0 unreadable
+status: 1 resource(s) drifted (see above)
+```
+
+`ubx render --md --sync-overrides` walks the whole stack's drift and
+generates one statement per drifted resource, **in whichever medium the
+calling stack is authored in** — auto-detected from the one recognizable
+authoring file sitting in `--ledger-dir` (the same detection `ubx plan`'s
+own bare invocation already uses). Real, unedited output, Go medium:
+
+```text
+$ ubx render --md --sync-overrides --stack payments
+sdk.Override("payments.fake_widget.primary", map[string]any{
+	"name": "payments-widget-v2-drifted",
+})
+```
+
+The identical drift, against a directory whose one authoring file is a
+`.d2` diagram instead:
+
+```text
+$ ubx render --md --sync-overrides --stack payments
+fix_primary: "fix primary" {
+  class: ubx_override
+  address: "payments.fake_widget.primary"
+  name: "payments-widget-v2-drifted"
+}
+```
+
+`--from-drift <address>` generates a single statement for one specific
+resource (useful for a targeted fix); `--sync-overrides --write` appends
+the generated statement(s) directly into the calling stack's own source
+file — safe and supported for a diagram/md-authored stack (always
+syntactically valid to append); **refused, clearly, for a Go/TS/Python-
+authored stack**, since the statement belongs inside the stack's own
+describe-function body, which `--write` has no safe way to splice into.
+
+## The real, live-verified round trip
+
+A real fakeprovider-shipped resource, drifted for real, generated a
+correct override statement in both Go and diagram syntax (the diagram
+one confirmed by round-tripping it through the real parser, not just
+string-matched), applied for real — `ubx terminate` the drifted resource,
+then `ubx plan --from-diagram` against a fresh diagram carrying both a
+baseline resource declaration and the override:
+
+```text
+$ ubx plan --from-diagram apply_override.d2 --stack payments
+Plan  payments · from apply_override.d2
+
+  + fake_widget.primary2 create
+      name: "payments-widget-v2-drifted"
+
+delta: +1 create(s), ~0 change(s), -0 terminate(s)
+...
+ubx-proposal: 3a18f34c79fc…
+next: ubx ship 3a18f34c79fc
+```
+
+The created resource's own baseline `name` was
+`"baseline-should-be-overridden"` — the plan output above shows the
+**override's** own value instead, proving the mechanism applied before
+resolve ever ran. Shipped, then confirmed via a fresh render and a
+fresh drift check:
+
+```text
+$ ubx render --md --stack payments
+...
+#### primary2
+
+- `id`: computed-id
+- `name`: payments-widget-v2-drifted
+- `tags`: (empty)
+
+$ ubx status --stack payments --drift --all
+clean: payments.fake_widget.primary2: change 3a18f34c79fc… (accepted ...)
+```
+
+<Note>
+  **A real, named scope boundary**: `override()` only ever targets a
+  resource **created within the same resolving document** — a blueprint
+  call's own just-expanded output, or a fresh create. It does not yet
+  retroactively patch an address that already exists in the ledger from
+  a prior resolve/ship without first terminating it (as the round trip
+  above does) — a real, deferred extension (a ledger-aware "synthesize an
+  `op: modify`" path), not built yet. Named here rather than glossed
+  over.
+</Note>
+
+## Security: policy-bypass protection
+
+An override must not be able to bypass a field a blueprint's own bound
+policy protects. The bound + org-wide policy engine this would check
+against doesn't exist yet (a separate, held initiative) — as of this
+guide, the enforcement hook exists and is real, but always permits
+today, documented explicitly rather than silently assumed safe. Treat
+`override()` as trusted, reviewed code until that engine ships.
+
+## Related
+
+- [`ubx render`](/cli/render) — the full flag reference, including
+  `--from-drift`/`--sync-overrides`/`--write`
+- [Blueprints](/guides/blueprints) — authoring, building, calling from
+  any medium, distributing a blueprint
+- [`ubx status`](/cli/status) — the drift comparison `--sync-overrides`
+  itself reuses, unchanged
+- [Diagram medium](/guides/diagram-medium) — the `ref:` sigil an
+  override's own diagram syntax reuses
