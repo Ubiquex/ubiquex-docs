@@ -41,8 +41,8 @@ actual `ubx` binary — nothing hand-typed.
 
 ## Author and build
 
-A blueprint's own definition lives in an `Ubxfile` — three keys only,
-found automatically the same way `docker build .` finds a `Dockerfile`:
+A blueprint's own definition lives in an `Ubxfile` — four keys, found
+automatically the same way `docker build .` finds a `Dockerfile`:
 
 ```text Ubxfile
 lang: all
@@ -80,6 +80,10 @@ resources: |
      - pushing and pulling images to/from the {repo_name} repository (only that one)
      - sending messages to the {queue_name} queue (only that one)
      Attach this policy to the ci-runner role.
+
+outputs:
+  repo_arn: container-repo.arn
+  queue_url: pipeline-events.url
 ```
 
 `lang:` selects compiled output — `go`, `ts`, `py`, or `all` (every
@@ -89,6 +93,9 @@ cost is paid once regardless of how many languages compile from it).
 language; `{param_name}` tokens in the prose (including simple
 arithmetic, like the seconds-conversion above) are preserved literally
 for the compiler to translate, never resolved to a guessed example value.
+`outputs:` (optional) exposes an internal resource's own attribute to
+every caller, by name — see [Outputs](#outputs-referencing-a-called-blueprints-own-resources)
+below, once calling is covered.
 
 ```text
 $ ubx blueprint build .
@@ -254,23 +261,14 @@ platform: "ci-platform call" {
 
 ```text
 $ ubx propose --from-diagram ci-platform-call.d2 --stack payments --out diagram-draft.json
-Questions (4):
-  - [blocking -- review before accepting] node "platform.blueprint" has no class: attribute -- ubx can't infer its resource type from a label alone. Add a class: naming the real provider type (e.g. "class: aws_db_instance").
-      affects: platform.blueprint
-  - [blocking -- review before accepting] node "platform.queue_name" has no class: attribute -- ubx can't infer its resource type from a label alone. Add a class: naming the real provider type (e.g. "class: aws_db_instance").
-      affects: platform.queue_name
-  - [blocking -- review before accepting] node "platform.repo_name" has no class: attribute -- ubx can't infer its resource type from a label alone. Add a class: naming the real provider type (e.g. "class: aws_db_instance").
-      affects: platform.repo_name
-  - [blocking -- review before accepting] node "platform.retention_days" has no class: attribute -- ubx can't infer its resource type from a label alone. Add a class: naming the real provider type (e.g. "class: aws_db_instance").
-      affects: platform.retention_days
+no assumptions, defaults, or open questions -- the document was unambiguous.
 wrote draft: diagram-draft.json
 ```
 
-The four questions are real but harmless noise, not something to act
-on — they're D2's own compiler seeing the `ubx_blueprint` node's
-children (`blueprint:`, `repo_name:`, ...) as ordinary untyped nodes
-before `ubx`'s own blueprint-node recognition takes over; the draft's own
-`blueprint_calls` entry is unaffected and `ubx resolve` proceeds
+A `ubx_blueprint` node's own children (`blueprint:`, `repo_name:`, ...)
+are read directly as that call's own attributes, never independently
+classified as ordinary untyped topology nodes — the draft's own
+`blueprint_calls` entry captures them and `ubx resolve` proceeds
 normally:
 
 ```text
@@ -337,6 +335,157 @@ this prose onto real parameter names," nothing more.
   diagram/md path is the one to prefer meanwhile if blueprint provenance
   visibility matters to you.
 </Warning>
+
+## Outputs: referencing a called blueprint's own resources
+
+Calling a blueprint gives you its resolved DELTA — new resources, in
+your own stack. But what if a resource somewhere else in your stack
+needs to point at one of THOSE resources — the CI role's own generated
+policy needs the repository's real ARN, say? `outputs:` in the `Ubxfile`
+(above) exposes exactly that, by name, to every caller — a real
+attribute on a real internal resource, given a stable public name:
+
+```text Ubxfile (outputs: block)
+outputs:
+  repo_arn: container-repo.arn
+  queue_url: pipeline-events.url
+```
+
+Each entry maps an output name to `<resource-slug>.<attribute>` — the
+same internal slugs the `resources:` prose already fixed (`container-repo`,
+`pipeline-events`), never the `{param_name}` tokens.
+
+<Note>
+  **Not the same thing as `@stack.type.name` cross-stack references.**
+  `@stack` crosses a real trust boundary — a different team's own
+  separately-signed ledger, pinned to their current head, with its own
+  staleness model once they ship again. An output never leaves the
+  document being resolved right now — no separate ledger, no pinning, no
+  staleness — because the blueprint call and whatever references its
+  output are both part of the very same call. Different syntax, different
+  wire shape, different resolution path, on purpose.
+</Note>
+
+### Go, TypeScript, Python: native return values, zero new mechanism
+
+Every declared output becomes part of the compiled function's own
+return — no new construct in any of the three languages:
+
+```go ci-platform's own compiled Go function
+func CiPlatform(repoName string, queueName string, opts ...Option) (repoArn, queueUrl *sdk.Computed) {
+	...
+	return containerRepo.Field("arn"), pipelineEvents.Field("url")
+}
+```
+
+A caller uses the return values exactly like any other Go function's:
+
+```go create_ci_platform.go
+repoArn, _ := ciplatform.CiPlatform("payments-ci-artifacts", "payments-notifications")
+sdk.Resource(Downstream, "downstream-attachment", DownstreamConfig{PolicyArn: repoArn})
+```
+
+```text
+$ ubx resolve --from-code create_ci_platform.go --source hashicorp/aws --provider-version 6.54.0 --out resolved.json
+resolved: payments: 6 create(s), 0 change(s), 0 terminate(s)
+```
+
+The extra resource's own resolved config shows the output resolved to a
+real address, exactly like any other cross-resource reference:
+
+```json resolved.json (excerpt)
+{
+  "type": "aws_iam_role_policy_attachment",
+  "name": "downstream-attachment",
+  "config": {
+    "policy_arn": {"$computed": {"from": "payments.aws_ecr_repository.container-repo.arn"}},
+    "role": "downstream-role"
+  }
+}
+```
+
+TypeScript returns a plain object literal (`{ repoArn: containerRepo.arn, queueUrl: pipelineEvents.url }`,
+destructured at the call site: `const { repoArn } = ciPlatform(...)`);
+Python returns a bare value for exactly one output, or a real tuple for
+two or more (`return repo_arn, queue_url` — unpacked `repo_arn, queue_url = ci_platform(...)`).
+Both confirmed against a real `deno run`/`python3` driver respectively —
+same "the return value is directly usable, no new runtime mechanism"
+result as Go, just each language's own native multi-value-return shape.
+
+### Diagram: the existing `ref:` sigil, extended
+
+[`ref:<node>.<attr-path>`](/guides/diagram-medium#referencing-a-sibling-node)
+already lets one resource node reference another's attribute. It now
+also resolves a `ubx_blueprint` node's own declared output — the SAME
+sigil, naming the blueprint-call node's own D2 identifier instead of an
+ordinary resource node's:
+
+```d2 ci-platform-call-with-output.d2
+platform: "ci-platform call" {
+  class: ubx_blueprint
+  blueprint: "/path/to/ci-platform"
+  repo_name: "payments-ci-artifacts"
+  queue_name: "payments-notifications"
+}
+downstream: "downstream attachment" {
+  class: aws_iam_role_policy_attachment
+  ubx_required.policy_arn: "ref:platform.repo_arn"
+  ubx_required.role: "downstream-role"
+}
+```
+
+```text
+$ ubx plan --from-diagram ci-platform-call-with-output.d2 --stack payments
+
+  + aws_ecr_repository.container-repo create
+    source: blueprint ci-platform:sha256:71489d69a39b…
+      name: "payments-ci-artifacts"
+      ...
+
+  + aws_iam_role_policy_attachment.downstream-attachment create
+      policy_arn: $ref:payments.aws_ecr_repository.container-repo.arn
+      role: "downstream-role"
+
+  ...
+```
+
+### md: a new grammar — "Call blueprint X as 'name' with:"
+
+The one genuinely new piece of syntax this feature adds. Giving a call an
+explicit name lets LATER prose reference its own output:
+
+```md create-ci-platform-with-output.md
+# Platform CI, via a named blueprint call
+
+Call blueprint `ci-platform` as `platform` with: repo_name =
+payments-ci-artifacts, queue_name = payments-notifications.
+
+We also need an IAM role policy granting a downstream service access to
+that repository -- attach a policy to the `downstream-role` role using
+platform's own `repo_arn` output as the `Resource` in an inline policy
+granting `s3:GetObject`.
+```
+
+```text
+$ ubx propose --from-doc create-ci-platform-with-output.md --stack payments --out md-draft.json
+no assumptions, defaults, or open questions -- the document was unambiguous.
+wrote draft: md-draft.json
+```
+
+The draft's own `blueprint_calls[0].call_name` is `"platform"`, and the
+policy resource's own config carries a real
+`{"$ref": {"to": "$blueprint_output:platform:repo_arn"}}` object at the
+`Resource` position — resolved into the real ARN address by `ubx resolve`,
+exactly like the Go and diagram examples above.
+
+<Note>
+  `call_name` is deliberately NOT the same thing as the pre-existing
+  `name` field — `name` is a free-text label for error messages only;
+  `call_name` is a real identifier other prose in the same document can
+  reference. A call given no `as '<name>'` alias simply has no
+  `call_name` — its own outputs (if it declares any) just aren't
+  reachable from this document, which is fine if nothing needs them.
+</Note>
 
 ## Provenance: `ubx why` and `ubx render`
 
