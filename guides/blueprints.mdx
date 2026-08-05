@@ -1,0 +1,495 @@
+---
+title: "Blueprints: signed, reusable, parameterized proposal templates"
+description: "Build once (AI, if md-authored), call many (zero AI at call time) — author a reusable infrastructure pattern once, call it from any medium, distribute it four ways"
+---
+
+Every other guide in this section starts a stack from scratch: an SDK
+program, a diagram, or an md document, each authoring one team's own
+infrastructure directly. A **blueprint** is different — it's a reusable,
+parameterized TEMPLATE for a whole pattern (an ECR repo + SQS queue + IAM
+role/policy/attachment for a CI pipeline, say), built once, then called
+by name from any stack, any medium, any language, with real parameter
+values substituted at call time.
+
+<Note>
+  **Not source-code inclusion.** A Terraform module is unaudited `.tf`
+  you trust blind, re-evaluated fresh on every `terraform init`. A
+  blueprint compiles to a real, content-hashed, independently
+  `ubx blueprint verify`-able package — reviewed once, the exact same
+  reviewed content hash cited by every caller forever, upgrading versions
+  a visible, diffable act rather than a silent `terraform init -upgrade`.
+</Note>
+
+## Build once, call many
+
+A blueprint's own resources: prose runs through the intent-provider
+pipeline (the same one behind [the md medium](/guides/md-medium)) exactly
+ONCE, at `ubx blueprint build` time — never again. Every subsequent call,
+from any stack, in any language, via any medium, is zero-AI: a real
+compiled function call (SDK), a real structural attribute read (diagram),
+or a thin, bounded "map these param names" step (md — never a re-draft).
+This is the entire point: two teams calling the identical blueprint get
+byte-identical resolved deltas, never two subtly different AI
+interpretations of the same prose.
+
+The rest of this guide builds one real blueprint — `ci-platform`, an ECR
+repository + SQS queue + IAM role/policy/attachment for a CI pipeline —
+and walks it through every stage: author, build, call (all three
+mediums), inspect its provenance, and distribute it (all four
+mechanisms). Every transcript below is real, unedited output from the
+actual `ubx` binary — nothing hand-typed.
+
+## Author and build
+
+A blueprint's own definition lives in an `Ubxfile` — three keys only,
+found automatically the same way `docker build .` finds a `Dockerfile`:
+
+```text Ubxfile
+lang: all
+
+params:
+  repo_name: string, required
+  queue_name: string, required
+  retention_days: number, default 1
+
+resources: |
+  Infrastructure for our CI pipeline in eu-central-1. Note: the resource
+  slugs below (container-repo, pipeline-events, ci-runner, ci-runner-access)
+  are this template's own fixed internal identifiers, distinct from the
+  {repo_name}/{queue_name} attribute VALUES named inside each resource --
+  use the given slug as the resource's own name/identity, never the
+  parameter token itself. Use each provider's own real, standard attribute
+  names (e.g. "name") -- never invent a more descriptive synonym for a
+  real attribute.
+
+  1. An ECR repository, resource slug "container-repo", named
+     "{repo_name}", for container images. Enable image scanning on push.
+     Images should be immutable.
+
+  2. An SQS queue, resource slug "pipeline-events", named "{queue_name}",
+     for pipeline events. Standard queue. Its message retention period
+     attribute is measured in SECONDS, but {retention_days} is expressed
+     in DAYS -- convert it: the retention attribute's own value must be
+     "{retention_days * 86400}", not the raw {retention_days} token.
+
+  3. An IAM role, resource slug "ci-runner", named "ci-runner", that EC2
+     instances can assume.
+
+  4. A custom IAM policy, resource slug "ci-runner-access", named
+     "ci-runner-access", that allows:
+     - pushing and pulling images to/from the {repo_name} repository (only that one)
+     - sending messages to the {queue_name} queue (only that one)
+     Attach this policy to the ci-runner role.
+```
+
+`lang:` selects compiled output — `go`, `ts`, `py`, or `all` (every
+language, the default when `--lang` is omitted, since the AI draft's own
+cost is paid once regardless of how many languages compile from it).
+`params:` become real typed function parameters in every compiled
+language; `{param_name}` tokens in the prose (including simple
+arithmetic, like the seconds-conversion above) are preserved literally
+for the compiler to translate, never resolved to a guessed example value.
+
+```text
+$ ubx blueprint build .
+drafting via claude:claude-sonnet-5… ✓
+built 5 resource(s) -> /path/to/ci-platform (go, ts, py: go/bindings.go, go/ciplatform.go, go/go.mod, py/bindings.py, py/ciplatform.py, ts/bindings.ts, ts/ciplatform.ts)
+```
+
+One AI call, three real compiled packages — `go/`, `ts/`, `py/` sibling
+directories, each with a typed `CiPlatform(repoName, queueName string,
+opts ...Option)`-shaped function (Go's own functional-options pattern for
+`retention_days`'s `default 1`; TypeScript/Python use native default
+parameters instead, since neither language shares Go's syntax
+limitation). `--lang go`/`--lang ts`/`--lang py` narrow to exactly one.
+
+<Note>
+  Two consecutive real drafts of the identical prose can legitimately
+  split resources differently — the AI draft isn't guaranteed
+  byte-identical run to run, only the resolved SHAPE is expected to match
+  what the prose actually describes. `ubx blueprint build` refuses
+  cleanly, naming the exact collision, if a draft ever produces two
+  resources whose names collide once translated into a target language's
+  own identifier rules — a real, captured example: `blueprint build (go):
+  blueprint: resource names "ci-runner-access" and "ci-runner-access"
+  both derive the Go identifier "CiRunnerAccess" -- rename one in
+  resources.md`. Never a silent overwrite of one resource by the other.
+</Note>
+
+## Calling a blueprint
+
+Zero AI, from any of three real mediums. All three below call the exact
+same built `ci-platform` package with the exact same parameter values
+(`repo_name=payments-ci-artifacts`, `queue_name=payments-notifications`,
+`retention_days=14`) — resolved against the real `hashicorp/aws@6.54.0`
+provider schema, a safe, apply-free operation.
+
+### SDK: direct import
+
+A plain SDK program — no blueprint machinery of its own — imports the
+locally-built package (a real Go module `replace` directive, or your
+package manager's own local-path equivalent for TS/Python) and calls its
+function like any other typed function:
+
+```go create_ci_platform.go
+package main
+
+import (
+	ciplatform "ciplatform"
+	sdk "github.com/ubiquex/ubx-sdk-go/runtime"
+)
+
+func main() {
+	sdk.Main(sdk.Stack("payments", func() {
+		sdk.Intent(sdk.IntentInfo{Summary: "CI platform for payments, direct SDK call"})
+		ciplatform.CiPlatform("payments-ci-artifacts", "payments-notifications", ciplatform.WithRetentionDays(14))
+	}))
+}
+```
+
+```text
+$ ubx resolve --from-code create_ci_platform.go --source hashicorp/aws --provider-version 6.54.0 --out resolved.json
+resolved: payments: 5 create(s), 0 change(s), 0 terminate(s)
+```
+
+### Diagram: a `ubx_blueprint`-classed node
+
+[The diagram medium](/guides/diagram-medium)'s own zero-AI structural
+reading extends to blueprint calls: a node classed `ubx_blueprint`, a
+required `blueprint:` attribute naming what to call, every other
+attribute a real parameter value:
+
+```d2 ci-platform-call.d2
+platform: "ci-platform call" {
+  class: ubx_blueprint
+  blueprint: "/path/to/ci-platform"
+  repo_name: "payments-ci-artifacts"
+  queue_name: "payments-notifications"
+  retention_days: "14"
+}
+```
+
+```text
+$ ubx propose --from-diagram ci-platform-call.d2 --stack payments --out diagram-draft.json
+Questions (4):
+  - [blocking -- review before accepting] node "platform.blueprint" has no class: attribute -- ubx can't infer its resource type from a label alone. Add a class: naming the real provider type (e.g. "class: aws_db_instance").
+      affects: platform.blueprint
+  - [blocking -- review before accepting] node "platform.queue_name" has no class: attribute -- ubx can't infer its resource type from a label alone. Add a class: naming the real provider type (e.g. "class: aws_db_instance").
+      affects: platform.queue_name
+  - [blocking -- review before accepting] node "platform.repo_name" has no class: attribute -- ubx can't infer its resource type from a label alone. Add a class: naming the real provider type (e.g. "class: aws_db_instance").
+      affects: platform.repo_name
+  - [blocking -- review before accepting] node "platform.retention_days" has no class: attribute -- ubx can't infer its resource type from a label alone. Add a class: naming the real provider type (e.g. "class: aws_db_instance").
+      affects: platform.retention_days
+wrote draft: diagram-draft.json
+```
+
+The four questions are real but harmless noise, not something to act
+on — they're D2's own compiler seeing the `ubx_blueprint` node's
+children (`blueprint:`, `repo_name:`, ...) as ordinary untyped nodes
+before `ubx`'s own blueprint-node recognition takes over; the draft's own
+`blueprint_calls` entry is unaffected and `ubx resolve` proceeds
+normally:
+
+```text
+$ ubx resolve diagram-draft.json --source hashicorp/aws --provider-version 6.54.0 --out diagram-resolved.json
+resolved: payments: 5 create(s), 0 change(s), 0 terminate(s)
+```
+
+### md: "Use blueprint X with..." prose
+
+The one call site that uses AI at all — a thin, bounded mapping step
+(never a re-draft of the blueprint's own resources):
+
+```md create-ci-platform.md
+# CI platform for payments, via a blueprint call
+
+Use blueprint /path/to/ci-platform with:
+  repo_name = payments-ci-artifacts
+  queue_name = payments-notifications
+  retention_days = 14
+```
+
+```text
+$ ubx propose --from-doc create-ci-platform.md --stack payments --out md-draft.json
+no assumptions, defaults, or open questions -- the document was unambiguous.
+wrote draft: md-draft.json
+$ ubx resolve md-draft.json --source hashicorp/aws --provider-version 6.54.0 --out md-resolved.json
+resolved: payments: 5 create(s), 0 change(s), 0 terminate(s)
+```
+
+Zero hallucinated resources — the model's own job here is exactly "map
+this prose onto real parameter names," nothing more.
+
+### A known, honest gap: provenance differs by calling path
+
+<Warning>
+  **UBI-126, open.** The diagram and md calls above tag every resource
+  they produce with `{"kind": "blueprint", "ref": "ci-platform:sha256:..."}`
+  in its own resolved `sources` — real, inspectable, and what
+  [`ubx why`](/cli/why#a-blueprint-calls-own-provenance)/[`ubx
+  render`](/cli/render#example-a-blueprint-calls-own-resources-grouped)
+  read below. The direct SDK-import call above does **not** — its
+  resolved resources carry no blueprint provenance at all, even though
+  the resolved DELTA (which resources, which config) is otherwise
+  identical. Real, confirmed directly against each of the three resolved
+  documents above:
+
+  ```text
+  # direct SDK import (resolved.json)
+  aws_ecr_repository container-repo -> sources: None
+
+  # diagram call (diagram-resolved.json)
+  aws_ecr_repository container-repo -> sources: [{'kind': 'blueprint', 'ref': 'ci-platform:sha256:e92d28ba...'}]
+
+  # md call (md-resolved.json)
+  aws_ecr_repository container-repo -> sources: [{'kind': 'blueprint', 'ref': 'ci-platform:sha256:e92d28ba...'}]
+  ```
+
+  This is a real correctness gap, not a missing feature — the three
+  calling conventions are supposed to be fully interchangeable, and their
+  resolved deltas genuinely are (byte-identical, proven hermetically). If
+  your stacks call blueprints via a direct SDK import today, `ubx
+  why`/`ubx render` won't show that provenance until this is fixed.
+  Tracked as [UBI-126](https://linear.app/ubiquex/issue/UBI-126) — the
+  diagram/md path is the one to prefer meanwhile if blueprint provenance
+  visibility matters to you.
+</Warning>
+
+## Provenance: `ubx why` and `ubx render`
+
+Once a diagram- or md-called blueprint's resources are shipped, the
+provenance tagged onto them (above) surfaces in both commands. Real,
+unedited output from an actual `ci-platform` blueprint call — the exact
+diagram-medium shape above, ECR + SQS + IAM role/policy/attachment,
+shipped for real against `hashicorp/aws@6.54.0` during this project's own
+development (that specific AWS stack has since been terminated — the
+transcripts below are real captured output, not a live resource you can
+reproduce by re-running the commands above without also shipping):
+
+```text
+$ ubx why 6ece75b09ee254fd00db903d5a15932e2571338f66d4399bf69754a73afe05d9 --ledger-dir .
+proposal 6ece75b09ee2… (change)
+stack:  payments
+status: accepted
+intent: Instantiate the ci-platform blueprint for the payments stack with repo_name=payments-ci-artifacts-md, queue_name=payments-notifications-md, and retention_days=14; no resources are drafted directly since this is a blueprint call.
+  source: document /path/to/create_ci_platform.md (content_hash=sha256:2c3d5d1a12472b9a6d2eed2f36b60fb6c40862c041218f87d342eb5dd3c93069)
+  source: intent_provider claude:claude-sonnet-5 (content_hash=sha256:26d105efa33beeedadd9d4a59cf6c903dc6df3c2f941e2e94a72aa18979705ad)
+accepted by [roozbeh] via local at 2026-08-04T22:50:37Z
+blast radius: +5 ~0 -0
++ aws_ecr_repository.container-repo create
+  source: blueprint ci-platform:sha256:f893af6e945f…
+    (this resource's own creation is signed by the CALLING stack's own acceptance below; the blueprint's own authorship has no separate signing ceremony in this build yet)
+    image_scanning_configuration:
+    {
+      "scan_on_push": true
+    }
+    image_tag_mutability: "IMMUTABLE"
+    name: "payments-ci-artifacts-md"
+...
+```
+
+Every resource that came from the blueprint call carries a `source:
+blueprint <name>:sha256:<hash>` line, right under its own create header —
+which blueprint, and which version (a content hash of the blueprint's own
+files at call time, never a hand-picked version number). The note under
+it is a deliberately honest gap, not an oversight: the design calls for
+TWO signed acts — the blueprint AUTHOR's own signing, and the CALLING
+stack's own signing of this instantiation. Only the second is real in
+this build (no `ubx blueprint accept` exists yet) — named explicitly
+rather than fabricated.
+
+`ubx render` groups every resource sharing the same blueprint ref into
+one dashed-border container:
+
+```text
+$ ubx render --stack payments --ledger-dir .
+classes: {
+  aws_ecr_repository
+  aws_iam_policy
+  aws_iam_role
+  aws_iam_role_policy_attachment
+  aws_sqs_queue
+}
+bp0: "ci-platform:sha256:f893af6e945f…" {
+  style.stroke-dash: 3
+  style.fill: transparent
+  r0: "container-repo" {
+    class: aws_ecr_repository
+    tooltip: "arn: arn:aws:ecr:us-east-1:839333509514:repository/payments-ci-artifacts-md; ..."
+  }
+  r1: "ci-runner-access" {
+    class: aws_iam_policy
+    tooltip: "arn: arn:aws:iam::839333509514:policy/ci-runner-access; ..."
+  }
+  r2: "ci-runner" {
+    class: aws_iam_role
+    tooltip: "arn: arn:aws:iam::839333509514:role/ci-runner; ..."
+  }
+  r3: "ci-runner-access-attachment" {
+    class: aws_iam_role_policy_attachment
+    tooltip: "id: ci-runner/arn:aws:iam::839333509514:policy/ci-runner-access; ..."
+  }
+  r4: "pipeline-events" {
+    class: aws_sqs_queue
+    tooltip: "arn: arn:aws:sqs:us-east-1:839333509514:payments-notifications-md; ..."
+  }
+}
+bp0.r1 -> bp0.r0
+bp0.r1 -> bp0.r4
+bp0.r3 -> bp0.r1
+```
+
+All five resources came from the SAME call, so all five nest under the
+SAME container (`bp0`) — a second, unrelated blueprint call would get its
+own `bp1`. A resource NOT from a blueprint call (or from a direct
+SDK-import call — see the gap above) renders exactly as it always has:
+top-level, ungrouped.
+
+Full reference: [`ubx why`'s own blueprint provenance
+section](/cli/why#a-blueprint-calls-own-provenance), [`ubx render`'s own
+grouping example](/cli/render#example-a-blueprint-calls-own-resources-grouped).
+
+## Distributing a blueprint
+
+A built blueprint travels via any of four real mechanisms — all produce
+the exact same thing on the other end (an ordinary local directory,
+`blueprint.lock.json` included), all verified identically by [`ubx
+blueprint verify`](#verify-everywhere-one-hash-scheme). `ubx blueprint
+package` produces the one artifact three of the four mechanisms build on:
+
+```text
+$ ubx blueprint package ci-platform -o ci-platform-v1.tar.gz
+packaged "ci-platform" -> ci-platform-v1.tar.gz (8 file(s), content hash sha256:e92d28ba064dbf0eded5ec7f64c6a0fcf51df957b96cf32df85e5d6b33b71d66)
+```
+
+### Local path
+
+```text
+$ ubx blueprint pull ./ci-platform ./pulled-local
+pulled ./ci-platform -> ./pulled-local
+```
+
+### Git
+
+Any git URL works — `https://`, `ssh://`, or (shown here, for a
+self-contained example) a local `file://` repository; `--ref` picks a
+branch/tag/commit, `--path` names the blueprint's own location within the
+repo:
+
+```text
+$ ubx blueprint pull file:///path/to/some-org/infra-blueprints --path ci-platform ./pulled-git
+pulled file:///path/to/some-org/infra-blueprints -> ./pulled-git
+```
+
+### OCI — a real, live registry
+
+Any OCI registry works (GHCR, Docker Hub, Artifactory, Harbor — via
+[ORAS](https://oras.land)), authenticated with the SAME credentials a
+real `docker login`/`oras login` already established:
+
+```text
+$ ubx blueprint push ci-platform-v1.tar.gz --to oci://ghcr.io/ubiquex/ci-platform:v1
+pushed "ci-platform" -> oci://ghcr.io/ubiquex/ci-platform:v1 (11 file(s), content hash sha256:f893af6e945fe1e708af03dd60fe5372b76969579b3bdc8b70c3b4238968c885)
+```
+
+That push is real, and it's still live — `ci-platform` is published
+right now at
+[`ghcr.io/ubiquex/ci-platform:v1`](https://github.com/orgs/ubiquex/packages/container/package/ci-platform),
+usable as a genuine pull target. Its own content hash differs slightly
+from the tarball built earlier in this guide — both are real
+`ci-platform` builds from the identical `Ubxfile`, but from two separate
+AI drafts. `package`'s own determinism guarantee is narrower than that:
+re-packaging the SAME unchanged directory twice is byte-identical; two
+independent drafts of the same prose can still legitimately differ in
+exact generated code, even when the resolved resource SHAPE matches:
+
+```text
+$ ubx blueprint pull oci://ghcr.io/ubiquex/ci-platform:v1 ./pulled-oci
+pulled oci://ghcr.io/ubiquex/ci-platform:v1 -> ./pulled-oci
+$ ubx blueprint verify ./pulled-oci
+verified "ci-platform": content hash sha256:f893af6e945fe1e708af03dd60fe5372b76969579b3bdc8b70c3b4238968c885 matches (11 file(s))
+```
+
+### Offline: a bare tarball file
+
+The `package` output above is also a standalone, self-contained delivery
+artifact — no network at all, air-gapped/email/support-ticket friendly:
+
+```text
+$ ubx blueprint pull ci-platform-v1.tar.gz ./pulled-offline
+pulled ci-platform-v1.tar.gz -> ./pulled-offline
+```
+
+### Verify everywhere: one hash scheme
+
+`ubx blueprint verify` recomputes a pulled directory's own content hash
+and confirms it matches `blueprint.lock.json`'s declared value — the
+SAME check regardless of which of the four mechanisms delivered the
+content:
+
+```text
+$ ubx blueprint verify ./pulled-offline
+verified "ci-platform": content hash sha256:e92d28ba064dbf0eded5ec7f64c6a0fcf51df957b96cf32df85e5d6b33b71d66 matches (8 file(s))
+```
+
+<Note>
+  A blueprint's own declared `name` (derived from its directory's own
+  basename at `package` time) is part of what gets hashed, alongside file
+  content — re-packaging identical files from a differently-named
+  directory produces a genuinely different hash. Not a bug (the hash is
+  meant to identify WHICH blueprint this is, not just what bytes it
+  contains) — but worth knowing if you're re-exporting a pulled blueprint
+  for offline delivery: keep the directory named to match.
+</Note>
+
+This same content-hash scheme is also what makes **mirroring** trust-
+preserving: pushing the identical tarball to a second, independent OCI
+location (`ubx blueprint push ci-platform-v1.tar.gz --to
+oci://some-other-registry/ci-platform:v1`) needs no new mechanism at
+all — pulling from either location and running `verify` reports the
+identical original content hash, proving the mirror is genuinely
+unmodified, not just labeled as such.
+
+## Putting it together
+
+```
+Ubxfile (params + prose)
+  │  ubx blueprint build --lang all      ← AI, exactly once
+  ▼
+go/ ts/ py/ packages, real & compilable
+  │
+  ├─ called directly (SDK import)         ← zero AI, no provenance yet (UBI-126)
+  ├─ called via a diagram (ubx_blueprint)  ← zero AI, full provenance
+  └─ called via md ("Use blueprint X...")  ← thin AI mapping, full provenance
+  │  ubx resolve → ubx accept → ubx ship
+  ▼
+real infrastructure, provenance-tagged
+  │  ubx why / ubx render
+  ▼
+full chain visible: which blueprint, which version, who accepted the call
+  │  ubx blueprint package
+  ▼
+ci-platform-v1.tar.gz
+  │
+  ├─ ubx blueprint pull <local dir>
+  ├─ ubx blueprint pull <git URL> --ref --path
+  ├─ ubx blueprint pull oci://<registry>/<repo>:<tag>   ← ghcr.io/ubiquex/ci-platform:v1, real
+  └─ ubx blueprint pull <tarball file>                  ← offline, zero network
+  │  ubx blueprint verify   (same check, every path)
+  ▼
+identical content, anywhere it lands
+```
+
+## Related
+
+- [`ubx why`](/cli/why#a-blueprint-calls-own-provenance) — the full
+  provenance chain behind a blueprint-created resource
+- [`ubx render`](/cli/render#example-a-blueprint-calls-own-resources-grouped) —
+  visually grouping a blueprint call's own resources
+- [The diagram medium](/guides/diagram-medium) — the full `ubx_blueprint`
+  node grammar lives here, shared with ordinary diagram authoring
+- [The md medium](/guides/md-medium) — the same intent-provider pipeline
+  a blueprint's own `resources:` prose runs through at build time
+- [`ubx resolve`](/cli/resolve) — `--from-code`, the direct SDK-import
+  call path
+- [Why](/concepts/why) — the mental model `ubx why` implements
