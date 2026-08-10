@@ -1,0 +1,167 @@
+---
+title: "Your first GCP resources"
+description: "A real topic and a real subscription, wired together with a reference."
+---
+
+Same commands, `hashicorp/google` instead of `hashicorp/aws`. Two real
+resources, one referencing the other, shown in all five mediums.
+
+## Set up a stack
+
+```bash
+mkdir payments-gcp && cd payments-gcp
+ubx init --source hashicorp/google --provider-version 5.40.0
+```
+
+## Author both resources
+
+<Tabs>
+  <Tab title="Markdown">
+    ```bash
+    cat > platform.md << 'EOF'
+    Provision a Pub/Sub topic called "pipeline-events" for payments.
+
+    Create a subscription called "pipeline-events-worker" on that topic,
+    with a 30 second acknowledgment deadline.
+    EOF
+    ubx plan --from-doc platform.md --stack payments
+    ```
+  </Tab>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    	pubsub "github.com/ubiquex/ubx-sdk-google-go/google/pubsub"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments topic and worker subscription"})
+
+    		topic := ubx.Resource(pubsub.Topic, "pipeline-events", pubsub.TopicConfig{
+    			Name: "pipeline-events",
+    		})
+
+    		ubx.Resource(pubsub.Subscription, "pipeline-events-worker", pubsub.SubscriptionConfig{
+    			Name:                "pipeline-events-worker",
+    			Topic:               topic.Field("id"),
+    			AckDeadlineSeconds:  30,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```bash
+    deno add jsr:@ubx/sdk jsr:@ubx/sdk-google
+    ```
+    ```typescript
+    import { stack, intent, resource } from "@ubx/sdk";
+    import { Topic } from "jsr:@ubx/sdk-google/google/pubsub/topic";
+    import { Subscription } from
+      "jsr:@ubx/sdk-google/google/pubsub/subscription";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments topic and worker subscription" });
+
+      const topic = resource(Topic, "pipeline-events", {
+        name: "pipeline-events",
+      });
+
+      resource(Subscription, "pipeline-events-worker", {
+        name: "pipeline-events-worker",
+        topic: topic.id,
+        ackDeadlineSeconds: 30,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```bash
+    git clone https://github.com/Ubiquex/ubx-sdk-google-py.git
+    ```
+    Save this file **inside** the cloned directory, as
+    `ubx-sdk-google-py/create_platform.py`:
+    ```python
+    import ubx_sdk as ubx
+    from google.pubsub import Topic, TopicConfig, Subscription, SubscriptionConfig
+
+    def describe():
+        ubx.intent("payments topic and worker subscription")
+
+        topic = ubx.resource(Topic, "pipeline-events", TopicConfig(
+            name="pipeline-events",
+        ))
+
+        ubx.resource(Subscription, "pipeline-events-worker", SubscriptionConfig(
+            name="pipeline-events-worker",
+            topic=topic.id,
+            ack_deadline_seconds=30,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Diagram">
+    ```d2
+    topic: "pipeline-events" {
+      class: google_pubsub_topic
+    }
+
+    subscription: "pipeline-events-worker" {
+      class: google_pubsub_subscription
+      ubx_required.topic: "ref:topic.id"
+      ack_deadline_seconds: "30"
+    }
+    ```
+    ```bash
+    ubx plan --from-diagram platform.d2 --stack payments
+    ```
+  </Tab>
+</Tabs>
+
+Every tab resolves to the exact same delta:
+
+```bash
+Plan  payments
+
+  + google_pubsub_topic.pipeline-events create
+      name: "pipeline-events"
+
+  + google_pubsub_subscription.pipeline-events-worker create
+      name: "pipeline-events-worker"
+      topic: $ref:payments.google_pubsub_topic.pipeline-events.id
+      ack_deadline_seconds: 30
+
+delta: +2 create(s), ~0 change(s), -0 terminate(s)
+```
+
+The subscription's `topic` isn't a guessed name, it's a real reference,
+resolved to the topic's actual ID once it exists.
+
+## Ship it
+
+```bash
+ubx ship <hash>
+```
+
+```bash
+  ✓ google_pubsub_topic.pipeline-events        : shipped
+  ✓ google_pubsub_subscription.pipeline-events-worker : shipped
+2 resource(s), 2 shipped, 0 failed
+```
+
+## What you just did
+
+You shipped two real, connected GCP resources, and saw the exact same
+reference mechanism work identically across prose, two typed
+languages, and a diagram.
+
+## Next
+
+<Card title="Drift and Cloud Audit Logs attribution" icon="arrows-rotate" href="/tutorial/gcp/attribution">
+  See who really changed a GCP resource.
+</Card>

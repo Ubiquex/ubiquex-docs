@@ -1,0 +1,121 @@
+---
+title: "aws_iam_policy"
+description: "A reusable IAM policy document."
+---
+
+`aws_iam_policy` creates a standalone, reusable IAM policy, a real JSON
+document describing what's allowed. It grants nothing on its own,
+attach it to a role or user with `aws_iam_role_policy_attachment` to
+actually apply it.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    import (
+        "encoding/json"
+        iam "github.com/ubiquex/ubx-sdk-aws-go/aws/iam"
+    )
+
+    accessPolicy, _ := json.Marshal(map[string]any{
+        "Statement": []map[string]any{{
+            "Effect":   "Allow",
+            "Action":   "sqs:SendMessage",
+            "Resource": queue.Field("arn"),
+        }},
+    })
+
+    ubx.Resource(iam.Policy, "ci-runner-access", iam.PolicyConfig{
+        Policy: string(accessPolicy),
+    })
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { Policy } from "jsr:@ubx/sdk-aws/aws/iam/policy";
+
+    const accessPolicy = JSON.stringify({
+      Statement: [{
+        Effect: "Allow",
+        Action: "sqs:SendMessage",
+        Resource: queue.arn,
+      }],
+    });
+
+    resource(Policy, "ci-runner-access", {
+      policy: accessPolicy,
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import json
+    from ubx.aws.iam import Policy, PolicyConfig
+
+    access_policy = json.dumps({
+        "Statement": [{
+            "Effect": "Allow",
+            "Action": "sqs:SendMessage",
+            "Resource": queue.arn,
+        }],
+    })
+
+    ubx.resource(Policy, "ci-runner-access", PolicyConfig(
+        policy=access_policy,
+    ))
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create a policy allowing it to send messages to
+    @payments.aws_sqs_queue.pipeline-events.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="name" type="string">
+  The policy's own name. Conflicts with `name_prefix`.
+</ResponseField>
+
+<ResponseField name="name_prefix" type="string">
+  A prefix, with a generated suffix appended. Conflicts with `name`.
+</ResponseField>
+
+<ResponseField name="path" type="string" default="/">
+  The policy's own path.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A description of the policy.
+</ResponseField>
+
+<ResponseField name="policy" type="string (JSON)" required>
+  The real policy document itself.
+</ResponseField>
+
+<ResponseField name="tags" type="map(string)">
+  Real, arbitrary tags.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  Same value as `arn`.
+</ResponseField>
+
+<ResponseField name="arn" type="string">
+  The policy's real ARN, computed, known only after ship.
+</ResponseField>
+
+<ResponseField name="policy_id" type="string">
+  AWS's own stable unique identifier for the policy.
+</ResponseField>
+
+## See also
+
+- [Your first AWS resources](/tutorial/aws/first-resource)
+- [aws_iam_role](/resource-reference/aws/iam/role)
+- [aws_iam_role_policy_attachment](/resource-reference/aws/iam/role-policy-attachment)

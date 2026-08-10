@@ -1,0 +1,55 @@
+---
+title: "Canonical Hashing"
+description: "What actually makes a proposal's hash reproducible."
+---
+
+Two people, on two different machines, resolving the exact same real
+change, need to get the exact same hash. If the hash depended on
+anything incidental, which order a map happened to iterate in, how much
+whitespace a serializer inserted, that guarantee would quietly break,
+and the whole trust model built on proposal IDs being a real content
+hash would stop meaning anything.
+
+## How it works
+
+Before a proposal is ever hashed, its content goes through a fixed,
+canonical form: object keys sorted, no insignificant whitespace, every
+number written as either a real integer or an explicit decimal string,
+never a raw float. Nothing about the encoding is left to whatever a
+given language's JSON library happens to do by default.
+
+```json
+{"cost_delta":{"monthly_usd":"59.00"},"id":"..."}
+```
+
+Not `59.00` as a bare number, `"59.00"` as a string. A resolver that
+produces a float anywhere in hashed content fails outright, before
+hashing, rather than silently coercing it.
+
+## Why trusting the language's default serializer doesn't work
+
+Two different JSON libraries, or two different versions of the same
+one, can serialize the identical data structure into different bytes,
+different key order, different float formatting, different whitespace.
+If hashing just used whatever a library produced by default, the same
+real proposal could hash differently depending on which tool resolved
+it, breaking the "two people get the same hash" guarantee this whole
+design depends on.
+
+## What this actually looks like
+
+Every evaluator that produces hashed content runs twice and compares
+the two results before trusting either one, the same double-run rule
+covered in [SDK Medium: Depth](/concepts/sdk-depth). If canonicalization
+ever let something nondeterministic through, timestamps, unordered
+iteration, this is the mechanism that catches it, as a hard failure at
+resolve time, not a silent inconsistency discovered later.
+
+## Why it matters
+
+The proposal ID isn't just *a* hash, it's a hash anyone can
+independently recompute and get the identical answer, from the identical
+content, regardless of which machine, which language, or which tool
+produced it. That's what makes [hash-chain
+verification](/concepts/verification) a real, checkable guarantee
+instead of a convention everyone has to trust.

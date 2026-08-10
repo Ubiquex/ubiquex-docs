@@ -1,0 +1,64 @@
+---
+title: "The Config Cascade"
+description: "Per-key inheritance from wherever you are, up to a real ceiling."
+---
+
+If every stack had to repeat its own copy of shared settings, a
+provider's version, a shared repository name, updating one shared value
+across dozens of stacks would mean editing dozens of files by hand and
+hoping none were missed.
+
+## How it works
+
+Ubx walks upward from your current directory, collecting config as it
+goes. Each directory only needs to declare the one key it actually
+differs on:
+
+```bash
+~/infra/
+  .ubx/config.hcl         # github_repo = "acme/infra"
+  prod/
+    .ubx/config.hcl       # provider = { source = "hashicorp/aws", version = "6.54.0" }
+    payments/
+      .ubx/config.hcl     # stack = "payments"
+```
+
+Run `ubx` from `payments/`, and all three values apply. The merge
+happens per key, not per file: if a parent sets two keys in the same
+table and a child overrides only one, the other still inherits.
+
+```bash
+ubx config
+```
+
+```bash
+stack             payments        (payments/.ubx/config.hcl)
+provider.version  6.54.0          (prod/.ubx/config.hcl)
+github_repo       acme/infra      (.ubx/config.hcl)
+```
+
+Every value's own source file is named, never guessed at.
+
+## Why one giant shared config file doesn't work
+
+A single config file for every stack means anyone touching it risks
+affecting stacks they never meant to change, and there's no natural way
+to express "this one stack needs a different provider version" without
+special-casing it. The cascade lets each directory say only what's
+actually true for it.
+
+## What this actually looks like
+
+The walk has to stop somewhere. It checks, in order: an explicit
+`root = true` marker, a `.git` boundary, `$HOME`, or the filesystem root
+as a final fallback. A separate, stricter file, `~/.ubx/config`, holds
+your own personal preferences outside this cascade entirely, and
+hard-refuses any real project setting (like `stack`) that tries to sneak
+in there, so your infrastructure's behavior never depends on whose
+machine ran the command.
+
+## Why it matters
+
+Shared settings live in exactly one place, updating them updates every
+stack that inherits them, and `ubx config` always tells you precisely
+which file is responsible for any value you're looking at.

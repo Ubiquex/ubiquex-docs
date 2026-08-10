@@ -1,0 +1,86 @@
+---
+title: "Write your first resource in prose"
+description: "Describe a real resource in a sentence, review the receipt, ship it."
+---
+
+By the end of this tutorial you'll have shipped a real resource
+described entirely in plain English, and you'll know exactly what to
+look for in the receipt before you ever type `yes`.
+
+Uses the `payments` stack from the Setup tutorials. If you haven't run
+those yet, do that first.
+
+## Write the document
+
+```bash
+cat > platform.md << 'EOF'
+Provision an SQS queue called "pipeline-events" for payments,
+standard (not FIFO), messages retained for 14 days.
+EOF
+```
+
+## Plan it
+
+```bash
+ubx plan --from-doc platform.md --stack payments
+```
+
+```bash
+drafting via claude:claude-sonnet-5… ✓ · resolving…
+Plan  payments · from platform.md
+
+  + aws_sqs_queue.pipeline-events create
+      name: "pipeline-events"
+      fifo_queue: false
+      message_retention_seconds: 1209600
+
+delta: +1 create(s), ~0 change(s), -0 terminate(s)
+blast radius: +1 ~0 -0
+
+ubx-proposal: 45f63ce10849...
+next: ubx ship 45f63ce10849...
+```
+
+Every value in that block came directly from your sentence, nothing
+invented.
+
+## Ship it
+
+```bash
+ubx ship 45f63ce10849...
+```
+
+```bash
+  ✓ aws_sqs_queue.pipeline-events : shipped
+1 resource(s), 1 shipped, 0 failed
+```
+
+## See the real result
+
+```bash
+ubx why payments.aws_sqs_queue.pipeline-events
+```
+
+```bash
+proposal 45f63ce1084... (change)
+stack:  payments
+intent: Provision an SQS queue...
+  source: document doc, content_hash=sha256:9f2a...
+  source: intent_provider claude:claude-sonnet-5, content_hash=sha256:8f2a...
+accepted by [roozbeh] via local at ...
+```
+
+Two provenance sources, permanently recorded: the document you wrote,
+and exactly which model drafted from it.
+
+## What you just did
+
+You described a real resource in one sentence, watched it get drafted
+into a precise, typed proposal, reviewed exactly what the AI filled in,
+and shipped it, all without touching a single line of Go or HCL.
+
+## Next
+
+<Card title="Referencing existing resources" icon="link" href="/tutorial/markdown/references">
+  Wire a second resource to the queue you just created.
+</Card>

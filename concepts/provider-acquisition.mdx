@@ -1,0 +1,60 @@
+---
+title: "Provider Acquisition"
+description: "Fetching and verifying real provider binaries before they're ever trusted."
+---
+
+Before ubx can talk to a real cloud, it needs the real provider binary
+that speaks that cloud's own protocol. Downloading and running an
+executable from the internet, without checking it, is exactly the kind
+of thing worth being careful about.
+
+## How it works
+
+A provider binary is downloaded from its real registry and its
+signature verified before it's ever launched. An unverified or tampered
+binary is refused outright, never silently trusted:
+
+```
+# .ubx/config.hcl
+providers = {
+  "hashicorp/aws" = "6.54.0"
+}
+```
+
+Once acquired, that specific version is cached locally and reused across
+every stack on the same machine. A version pinned in your own config
+always resolves to the exact binary that version implies, never a
+substitute.
+
+## Why skipping verification would be a real risk
+
+A provider binary is a real, running executable with real access to
+your credentials and your infrastructure. Trusting a download without
+checking its signature means trusting that nothing between the registry
+and your machine ever tampered with it, a real, avoidable risk for
+something with that much reach.
+
+## What this actually looks like
+
+The verified binary's own checksum is recorded alongside the
+observations it produces:
+
+```bash
+ubx why payments.aws_sqs_queue.pipeline-events
+```
+
+```bash
+source: document doc, content_hash=sha256:9f2a...
+source: intent_provider claude:claude-sonnet-5, content_hash=sha256:8f2a...
+```
+
+`ubx why` can eventually show not just who signed a change, but which
+exact, verified tool actually read the state behind it, the checksum is
+already recorded in the ledger's own resolution data, whether or not
+every view of it renders that detail today.
+
+## Why it matters
+
+Every real cloud call ubx makes goes through a binary that was
+downloaded once, verified once, and never silently substituted, giving
+the whole chain of trust a real, checkable foundation underneath it.

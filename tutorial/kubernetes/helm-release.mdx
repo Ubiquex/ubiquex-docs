@@ -1,0 +1,66 @@
+---
+title: "A real Helm release"
+description: "Ship a real helm_release, ubx's own multi-provider stack in action."
+---
+
+A Helm release is a genuinely different provider from plain Kubernetes
+resources. This tutorial ships one in the same stack as your secret,
+using multi-provider support directly.
+
+## Declare both providers
+
+```bash
+cat >> .ubx/config.hcl << 'EOF'
+providers = {
+  "hashicorp/kubernetes" = "2.31.0"
+  "hashicorp/helm" = "2.13.0"
+}
+EOF
+```
+
+## Author it
+
+```bash
+cat > release.md << 'EOF'
+Deploy a Helm release called "payments-migrator" from the "acme"
+repository, chart "migrator", in the "payments" namespace, referencing
+the db-credentials secret already created.
+EOF
+ubx plan --from-doc release.md --stack payments
+```
+
+```bash
+Plan  payments · from release.md
+
+  + helm_release.payments-migrator create  (hashicorp/helm)
+      name: "payments-migrator"
+      namespace: "payments"
+
+delta: +1 create(s), ~0 change(s), -0 terminate(s)
+```
+
+Recorded on the resource itself: this one's real owning provider is
+`hashicorp/helm`, not `hashicorp/kubernetes`, decided automatically.
+
+## Ship it
+
+```bash
+ubx ship <hash>
+```
+
+```bash
+  ✓ helm_release.payments-migrator : shipped
+1 resource(s), 1 shipped, 0 failed
+```
+
+## What you just did
+
+You shipped a genuinely different provider type, in the same stack, as
+one connected decision, with the executor correctly dispatching it to
+its own real provider binary.
+
+## Next
+
+<Card title="EKS audit-log attribution" icon="arrows-rotate" href="/tutorial/kubernetes/attribution">
+  See who really changed something in your cluster.
+</Card>

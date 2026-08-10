@@ -1,0 +1,106 @@
+---
+title: "ubx init"
+description: "Write a minimal, runnable .ubx/config, or recover a broken ledger head."
+---
+
+`ubx init` writes the config file every other command reads. Its
+default output is deliberately minimal: a real stack name and a real
+provider if you gave one, nothing else. Every other key gets a pointer
+to the full reference rather than a wall of commented-out examples,
+`--full` restores that exhaustive version if you want it inline.
+
+The same command also carries a real, separate recovery tool,
+`--reset-ledger`, for a specific, sanctioned situation: a local ledger
+whose head pointer no longer resolves to a real proposal.
+
+## Usage
+
+```bash
+ubx init [flags]
+ubx init --reset-ledger [--force]
+```
+
+## Examples
+
+Writing a minimal config with a real provider:
+
+```bash
+ubx init --source hashicorp/aws --provider-version 6.54.0
+```
+
+```bash
++ .ubx/config.hcl has been generated successfully
+    see https://github.com/Ubiquex/ubiquex-docs, cli/config
+next: write an intent file and run `ubx plan <file>.json`, or `ubx plan --from-doc <file>.md --stack payments`
+```
+
+Recovering a broken local ledger head:
+
+```bash
+ubx init --reset-ledger
+```
+
+```bash
+ledger head cleared, 2 stale plan draft(s) removed at . -- salt preserved untouched
+```
+
+## Flags
+
+<ResponseField name="--dir" type="string" default=".">
+  Directory to write the config into, also where the stack name defaults from (default `.`).
+</ResponseField>
+
+<ResponseField name="--force">
+  Overwrite an existing config, or force `--reset-ledger` on a head that still resolves.
+</ResponseField>
+
+<ResponseField name="--full">
+  Write the exhaustive, annotated reference instead of the minimal default.
+</ResponseField>
+
+<ResponseField name="--format" type="string" default="hcl">
+  `hcl` (canonical, default), `toml`, or `yaml`.
+</ResponseField>
+
+<ResponseField name="--stack" type="string">
+  Default stack name (default: the directory's own name).
+</ResponseField>
+
+<ResponseField name="--source / --provider-version" type="string">
+  Provider to write into the modern `[providers]` map.
+</ResponseField>
+
+<ResponseField name="--provider" type="string">
+  A local provider binary path, written into the legacy `[provider]` table.
+</ResponseField>
+
+<ResponseField name="--provider-config / --region" type="string">
+  Provider configuration, merged if both given.
+</ResponseField>
+
+<ResponseField name="--github-repo / --tf-dir" type="string">
+  Optional defaults for GitHub and `.tf` integration.
+</ResponseField>
+
+<ResponseField name="--reset-ledger">
+  Clear a broken local ledger's head pointer and stale plan drafts. Ignores every other flag.
+</ResponseField>
+
+## Notes
+
+With no provider given by flag, and a real terminal on both ends, `init`
+asks briefly, three short prompts, any skippable by pressing enter,
+rather than writing a config that fails the moment you try to plan
+anything.
+
+`--reset-ledger` refuses on a head that still resolves to a real
+proposal unless `--force` is also given, that's a healthy ledger, not a
+broken one. It clears only the head pointer and stale plan drafts, never
+the real proposal or apply files themselves, and never touches the
+redaction salt.
+
+## See also
+
+- [The Config Cascade](/concepts/config-cascade)
+- [Teaching Errors](/concepts/teaching-errors)
+- [`ubx config`](/cli-reference/config)

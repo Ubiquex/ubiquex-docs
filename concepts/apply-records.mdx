@@ -1,0 +1,62 @@
+---
+title: "Apply Records: Sealed vs. Live"
+description: "Why an apply record's own hash can't exist from the moment it's first written."
+---
+
+Every other signed object in the ledger is complete the instant it's
+written, its content is fixed, so its hash can be computed once and
+never change. An apply record can't work that way. Its whole point is
+recording a resource's real progress through the executor's own state
+machine, pending, then in flight, then applied, and that progress has
+to be written to disk *before* each risky step, not after everything's
+already finished.
+
+## How it works
+
+An apply record's content genuinely accretes over the course of one
+real ship attempt. Its filename during a live attempt is deterministic,
+not content-derived, `<proposal-id>.attempt-<n>.apply.json`, assigned
+before any content exists at all:
+
+```bash
+ls .ubx/ledger/applies/
+```
+
+```bash
+45f63ce1....attempt-1.apply.json
+```
+
+Only once the attempt reaches a real, terminal outcome does the record
+get sealed, its final content hashed, and `id` populated for the first
+time.
+
+## Why hashing it upfront doesn't work
+
+The whole reason apply records exist is to survive a real crash
+mid-attempt, a resource genuinely, durably applied, while its own
+attempt's overall record is still open. If the record's identity
+depended on content that isn't finished yet, there'd be no way to write
+the pending/in-flight transitions honestly before the risky call they
+precede, the entire reliability guarantee this mechanism exists for
+would be gone.
+
+## What this actually looks like
+
+A reader encountering a file with no `id` field yet is looking at a
+genuinely in-progress attempt, not a corrupt one:
+
+```json
+{ "proposal": "45f63ce1...", "attempt": 1, "resources": [ { "transitions": [ { "state": "in_flight" } ] } ] }
+```
+
+A crash right here leaves exactly this half-written state on disk,
+expected and handled, never silently resumed by guessing what should
+have happened next.
+
+## Why it matters
+
+Every other object in this project earns its trust from being complete
+and immutable the instant it exists. An apply record earns the same
+trust a different, honest way, by being explicit about the one real
+moment its own identity becomes fixed, and never pretending to have a
+hash before its content actually stopped changing.

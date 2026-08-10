@@ -1,0 +1,86 @@
+---
+title: "The executor and real destroys"
+description: "Watch the real state machine, then terminate something for real."
+---
+
+Every resource you've shipped moved through a real, recorded state
+machine. This tutorial shows it directly, then closes out by
+destroying something for real.
+
+## Ship something and watch the transitions
+
+```bash
+ubx why payments.aws_sqs_queue.pipeline-events
+```
+
+```bash
+ship history:
+  attempt 1: outcome=applied
+    pending at ...
+    in_flight at ...
+    applied at ... (confirmed by reconciliation)
+```
+
+Every state, recorded before the risky provider call it precedes, not
+after.
+
+## Terminate a real resource
+
+```bash
+ubx terminate payments.aws_sqs_queue.pipeline-events
+```
+
+```bash
+Plan  payments
+
+  - payments.aws_sqs_queue.pipeline-events destroy
+      message_retention_seconds: 345600
+
+blast radius: +0 ~0 -1
+
+ubx-proposal: 37b097a1d5e0...
+next: ubx ship 37b097a1d5e0 --confirm-destroys
+```
+
+## Ship it, with the required confirmation
+
+```bash
+ubx ship 37b097a1d5e0 --confirm-destroys
+```
+
+```bash
+  ✓ aws_sqs_queue.pipeline-events : shipped · confirmed by reconciliation
+1 resource(s), 1 shipped, 0 failed
+```
+
+Real reconciliation, ubx read back and confirmed the queue is genuinely
+gone, not just that AWS returned a response.
+
+## Confirm the tombstone
+
+```bash
+ubx why payments.aws_sqs_queue.pipeline-events
+```
+
+```bash
+change 45f63ce1... created
+change 8224643b... modified
+change 37b097a1... destroyed
+```
+
+The full history is still there, permanently. `ubx status` correctly
+shows the resource as gone.
+
+## What you just did
+
+You watched the real executor state machine directly, and terminated a
+real resource with real, required friction, confirmed by an honest
+read-back, not a trusted claim.
+
+## Next
+
+You've completed the AWS track.
+
+<Card title="GCP" icon="google" href="/tutorial/gcp">
+  The same patterns against real Google Cloud infrastructure.
+</Card>

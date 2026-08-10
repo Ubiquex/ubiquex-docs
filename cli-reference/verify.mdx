@@ -1,0 +1,84 @@
+---
+title: "ubx verify"
+description: "Independently re-verify the entire ledger's chain integrity, offline."
+---
+
+This is the auditor's command, the one that makes "independently
+verifiable" a real, checkable claim instead of a slogan. It re-checks
+everything without trusting a single already-computed value: every
+proposal's own hash against its own ID, every parent link, every sealed
+apply record, every redacted marker's real shape. Given a real git
+directory, it re-derives every PR-merge acceptance too.
+
+## Usage
+
+```bash
+ubx verify [flags]
+```
+
+## Examples
+
+A clean chain:
+
+```bash
+ubx verify
+```
+
+```bash
+verify: 47 proposal(s) checked
+chain: intact
+acceptance: 3 re-derived, 44 convenience-tier (local), 0 inconclusive
+```
+
+A broken link:
+
+```bash
+ubx verify
+```
+
+```bash
+verify: 47 proposal(s) checked
+  8224643bbbc5...: hash_mismatch -- recomputed hash does not match parent reference
+chain: BROKEN (1 finding(s), see above)
+```
+
+## Flags
+
+<ResponseField name="--ledger-dir" type="string" default=".">
+  Root directory containing `ledger/` and `.ubx/` (default `.`).
+</ResponseField>
+
+<ResponseField name="--stack" type="string">
+  Which stack to verify. Required only for a remote ledger store.
+</ResponseField>
+
+<ResponseField name="--repo-dir" type="string">
+  Local git working tree to re-derive `pr_merge` acceptances against. Omitted, they're reported inconclusive, not skipped silently.
+</ResponseField>
+
+<ResponseField name="--github-repo" type="string">
+  Repository for the reviewer re-check half of PR-merge re-derivation.
+</ResponseField>
+
+<ResponseField name="--json">
+  Emit one JSON document instead of human text.
+</ResponseField>
+
+<ResponseField name="--timeout" type="string" default="1m">
+  Timeout per PR-merge re-derivation call (default `1m`).
+</ResponseField>
+
+## Notes
+
+Local (`yes`-typed) acceptances are honestly reported as
+convenience-tier, there's nothing external to independently re-derive
+them against. Reporting one as fully "verified" would be exactly the
+kind of rounding-up this command exists to refuse. "Couldn't check" and
+"checked and found a problem" are always kept distinct, never collapsed
+into one result.
+
+## See also
+
+- [Hash-Chain Verification](/concepts/verification)
+- [PR-Merge Acceptance](/concepts/pr-merge-acceptance)
+- [The Audit Surface](/concepts/audit-surface)

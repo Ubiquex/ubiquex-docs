@@ -1,0 +1,65 @@
+---
+title: "Addressing, Environments & Promotion"
+description: "One address format, environments as directories, promotion as re-resolution."
+---
+
+Once you have more than one environment, dev, staging, prod, a real
+question comes up: how does a tool tell them apart, and how do you move
+a proven change from one to the next without just copying values around
+by hand and hoping they still fit?
+
+## How it works
+
+Every resource has exactly one address:
+`<stack>.<type>.<name>`, for example
+`payments.aws_sqs_queue.pipeline-events`. This one string is how `why`,
+`blame`, `terminate`, and every reference find the same resource,
+unambiguously, every time.
+
+Environments aren't a separate concept ubx tracks anywhere. They're just
+directories, each with its own completely independent ledger:
+
+```bash
+prod/payments/
+dev/payments/
+```
+
+`payments` in `prod/` and `payments` in `dev/` share nothing at all
+unless you explicitly connect them. This keeps the whole trust model,
+hashing, chaining, verification, working identically in every
+environment, with zero special-casing anywhere.
+
+## Why copying values between environments doesn't work
+
+If promoting a change just meant copying the exact resolved values from
+staging into prod, you'd be replaying old, possibly stale settings
+rather than a decision that's actually re-checked against prod's own
+current, real state. A staging queue's small settings might not be right
+for prod at all, and a straight copy would never notice.
+
+## What this actually looks like
+
+`ubx promote` re-resolves the *same original intent* against the target
+environment's own real state, and records a genuine link back to the
+proposal that proved it out in staging:
+
+```bash
+cd prod/payments
+ubx promote a1b2c3d4... --to .
+```
+
+```bash
+Plan  payments (prod) · promoted from staging/a1b2c3d4...
+  + aws_sqs_queue.pipeline-events create
+next: ubx ship <new-hash>
+```
+
+`ubx why` on the resulting resource in prod shows exactly which staging
+proposal it came from, real lineage, not a comment someone remembered to
+write.
+
+## Why it matters
+
+Promotion is a decision, re-checked against reality, not a blind copy.
+And because environments are just directories, prod's own ledger has
+every guarantee dev's does, no extra work required to make that true.

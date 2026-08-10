@@ -1,0 +1,88 @@
+---
+title: "ubx propose"
+description: "Draft from markdown or a diagram, or hash an already-resolved proposal for a PR trailer."
+---
+
+`ubx propose` actually does three different jobs, disambiguated by
+flags, all sharing one real property: none of them touch the ledger.
+
+With no flags, it computes an already-resolved draft's real content
+hash, the exact value a `ubx-proposal:` trailer needs in a pull request
+body before anyone reviews it. With `--from-doc`, it's the markdown
+medium's own real entry point, transcribing prose into a draft via your
+configured AI adapter. With `--from-diagram`, it's the diagram medium's
+entry point, parsing real D2 topology into a draft with zero AI
+involved. Both drafting modes deliberately stop before resolving, a
+separate human checkpoint before anything gets checked against the
+ledger.
+
+## Usage
+
+```bash
+ubx propose <proposal.json>
+ubx propose --from-doc <file>.md --stack <stack>
+ubx propose --from-diagram <file>.d2 --stack <stack>
+```
+
+## Examples
+
+Hashing an already-resolved draft for a PR trailer:
+
+```bash
+ubx propose resolved.json
+```
+
+```bash
+ubx-proposal: 45f63ce108492f6581fe452cc96421ca50195abae1c365ec3b76d700c38a8974
+```
+
+Drafting from a markdown document:
+
+```bash
+ubx propose --from-doc platform.md --stack payments
+```
+
+## Flags
+
+<ResponseField name="--from-doc" type="string">
+  Path to a markdown document, transcribed via the configured `[intent]` provider.
+</ResponseField>
+
+<ResponseField name="--from-diagram" type="string">
+  Path to a `.d2` diagram, parsed deterministically, no AI.
+</ResponseField>
+
+<ResponseField name="--stack" type="string">
+  Target stack name. Required with either drafting mode.
+</ResponseField>
+
+<ResponseField name="--out" type="string">
+  Write the draft here instead of stdout.
+</ResponseField>
+
+<ResponseField name="--summary" type="string">
+  `intent.summary` for a diagram draft, which has no prose to derive one from.
+</ResponseField>
+
+<ResponseField name="--neighbor-ledger" type="list(string)">
+  `<stack>=<path>`, overrides a diagram's cross-stack reference convention. Repeatable.
+</ResponseField>
+
+<ResponseField name="--timeout" type="string" default="3m">
+  Timeout for the drafting round trip or provider schema fetch (default `3m`).
+</ResponseField>
+
+## Notes
+
+A bare `ubx propose <file>` refuses a file that already has an `id` or
+`acceptance`, propose is for drafts only. This command exists because
+the hash a PR trailer needs must be computed before anyone reviews the
+PR, `ubx accept --from-merge` later checks that exact hash against what
+the trailer claims.
+
+## See also
+
+- [PR-Merge Acceptance](/concepts/pr-merge-acceptance)
+- [The Four Mediums](/concepts/mediums)
+- [`ubx resolve`](/cli-reference/resolve)
+- [`ubx accept`](/cli-reference/accept)

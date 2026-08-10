@@ -1,0 +1,120 @@
+---
+title: "Building your first blueprint"
+description: "Turn a real pattern into a reusable, versioned blueprint."
+---
+
+You've shipped this queue pattern several times now, by hand, in every
+medium. This tutorial turns it into something you author once and reuse
+forever.
+
+## Write an Ubxfile
+
+```bash
+mkdir ci-platform && cd ci-platform
+cat > Ubxfile << 'EOF'
+lang: go
+
+params:
+  queue_name: string, required
+  retention_days: number, default 14
+
+resources: |
+  An SQS queue called "{queue_name}", standard, messages retained
+  for {retention_days * 86400} seconds.
+EOF
+```
+
+## Build it
+
+```bash
+ubx blueprint build .
+```
+
+```bash
+drafting via claude:claude-sonnet-5… ✓
+built 1 resource(s) -> . (go, ts, py: go/bindings.go, go/ciplatform.go, go/go.mod, ts/ciplatform.ts, ts/bindings.ts, py/ciplatform.py, py/bindings.py)
+```
+
+The AI drafted this once. Every future call, in any language, involves
+zero AI from here forward.
+
+## Look at what it produced
+
+```bash
+cat go/ciplatform.go
+```
+
+```go
+func CiPlatform(queueName string, opts ...Option) *ubx.Computed {
+	ubx.PushBlueprintSource("ci-platform")
+	defer ubx.PopBlueprintSource()
+
+	cfg := options{retentionDays: 14}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	return ubx.Resource(Queue, "pipeline-events", QueueConfig{
+		Name:                    queueName,
+		MessageRetentionSeconds: cfg.retentionDays * 86400,
+	})
+}
+```
+
+The `PushBlueprintSource`/`PopBlueprintSource` pair is what tags every
+resource this function creates with real provenance, `ubx why` reads it
+back later to show exactly which blueprint produced a given resource.
+The `{retention_days * 86400}` in your prose also became a real
+arithmetic expression here, `cfg.retentionDays * 86400`, not a frozen
+number.
+
+## Package and share it
+
+A blueprint that only exists on your own machine isn't reusable yet.
+Package it into a content-addressed tarball, then push it to any real
+OCI registry, GHCR here, but Docker Hub, Artifactory, and Harbor all
+work identically, no new server required:
+
+```bash
+ubx blueprint package . -o ci-platform-v1.tar.gz
+ubx blueprint push ci-platform-v1.tar.gz \
+  --to oci://ghcr.io/acme/ci-platform:v1
+```
+
+```bash
+packaged "ci-platform" -> ci-platform-v1.tar.gz (1 file(s), content hash sha256:d4e5f6...)
+pushed "ci-platform" -> oci://ghcr.io/acme/ci-platform:v1 (1 file(s), content hash sha256:d4e5f6...)
+```
+
+Anyone on your team, on a different machine entirely, pulls it back
+down and confirms it arrived unmodified:
+
+```bash
+ubx blueprint pull oci://ghcr.io/acme/ci-platform:v1 \
+  ./ci-platform
+ubx blueprint verify ./ci-platform
+```
+
+```bash
+verified "ci-platform": content hash sha256:d4e5f6... matches (1 file(s))
+```
+
+`ubx blueprint pull` also resolves a plain git repository (`--ref`
+picks a branch, tag, or commit) or a bare tarball file with no network
+at all, the same command either way. See
+[Distributing a Blueprint](/concepts/blueprint-distribution) for the
+real registry model and why no bespoke Ubiquex-hosted registry was
+ever needed for this.
+
+## What you just did
+
+You described a pattern once, in prose, got back a real, callable
+function in three languages, and proved it survives a real round trip
+to a registry and back, byte for byte. Nobody has to redraft this
+pattern from scratch again, and nobody has to trust that a copy of it
+arrived intact, `ubx blueprint verify` proves it.
+
+## Next
+
+<Card title="Calling it from SDK code" icon="code" href="/tutorial/blueprints/call-sdk">
+  Import the built package and call it directly.
+</Card>

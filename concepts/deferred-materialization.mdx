@@ -1,0 +1,52 @@
+---
+title: "Deferred Materialization"
+description: "A real value that doesn't exist yet, safely written into a signed proposal as a template."
+---
+
+An IAM role's own inline policy often needs to name a sibling
+resource's real ARN, a queue, a bucket, created in the very same batch.
+But that sibling hasn't shipped yet when the proposal is being
+resolved, its real ARN genuinely doesn't exist. Refusing to let the
+policy reference it at all would force splitting one connected change
+into two separate proposals for no real reason.
+
+## How it works
+
+A `$computed` marker can sit inside a resolved proposal as a real,
+signed template, not a placeholder that blocks signing, an honest
+statement that this exact value will be known once its own resource
+ships:
+
+```json
+{ "policy": "{\"Resource\":{\"$computed\":{\"from\":\"payments.aws_sqs_queue.pipeline-events.arn\"}}}" }
+```
+
+At ship time, once the queue has actually shipped and its real ARN is
+known, the executor substitutes it directly into the string, in place,
+producing the concrete policy document the provider actually receives.
+
+## Why refusing to sign an unresolved value doesn't work
+
+The alternative, splitting every same-batch dependency into two
+separate proposals, ship the queue, then author the policy against its
+now-real ARN, adds real, avoidable ceremony to an extremely common
+pattern. The dependency is already correctly computed and ordered, the
+only thing genuinely missing is one literal value that won't exist
+until a few seconds later in the same ship run.
+
+## What this actually looks like
+
+This is deliberately different from `$secret`. A `$computed` value is
+never secret material, it's an ordinary attribute of a resource this
+same proposal is already creating, guaranteed to become concrete the
+moment that resource ships. `$secret` names material that must never
+appear in cleartext at all, deferring it wouldn't change that risk, so
+it stays refused unconditionally, never deferred the way `$computed` is.
+
+## Why it matters
+
+The signed proposal is still completely honest about what it contains,
+a template, clearly marked, resolved by a real dependency edge that
+guarantees the real value exists before anything ever tries to read it.
+Nothing here is guessed, and nothing is silently concretized before
+it's actually true.

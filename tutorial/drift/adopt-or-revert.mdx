@@ -1,0 +1,75 @@
+---
+title: "Adopt or revert"
+description: "Walk through both real responses to the same drift."
+---
+
+You have two real proposals from the previous tutorial. This one ships
+each and shows what actually happens.
+
+## Option A: adopt the new reality
+
+```bash
+ubx ship 8224643b...
+```
+
+```bash
+  ✓ aws_sqs_queue.pipeline-events : shipped
+1 resource(s), 1 shipped, 0 failed
+```
+
+Nothing changed on AWS, this was record-only. Confirm the ledger now
+agrees:
+
+```bash
+ubx status --drift --stack payments
+```
+
+```bash
+Drift  payments · 0 of 1 resource(s) drifted
+```
+
+Clean. The ledger's own memory now matches reality.
+
+## Option B: revert it instead
+
+If you'd rather restore the original value, you'd ship the other
+proposal instead:
+
+```bash
+ubx ship c53c22fa...
+```
+
+```bash
+  ✓ aws_sqs_queue.pipeline-events : shipped
+1 resource(s), 1 shipped, 0 failed
+```
+
+This one is real, it genuinely calls AWS to set the retention back to
+`1209600`. Only run one of the two, never both, they resolve the same
+drift in opposite directions.
+
+## See who actually made the change
+
+```bash
+ubx why payments.aws_sqs_queue.pipeline-events
+```
+
+```bash
+source: cloudtrail
+  actor: arn:aws:iam::839333509514:role/platform-admin
+  event: SetQueueAttributes, at 2026-08-06T...
+```
+
+If your account has CloudTrail visibility, the real actor who made the
+hand-change shows up here, permanently.
+
+## What you just did
+
+You saw both real, honest responses to drift, side by side, and picked
+one deliberately. Neither one was ever guessed on your behalf.
+
+## Next
+
+<Card title="Reconciling your source" icon="file-pen" href="/tutorial/drift/writeback">
+  Write the adopted value back into an existing .tf file.
+</Card>

@@ -1,0 +1,61 @@
+---
+title: "Multi-Provider Stacks"
+description: "One signed proposal can span more than one provider binary."
+---
+
+Real infrastructure often spans more than one system, an AWS-hosted
+database alongside a Helm release running on the Kubernetes cluster that
+talks to it. If a tool could only handle one provider per change, that
+one real, connected piece of infrastructure would have to be split into
+separate, disconnected proposals, losing the fact that they're actually
+related.
+
+## How it works
+
+A single stack, and a single proposal, can name resources owned by
+entirely different provider binaries, declared together in config:
+
+```
+# .ubx/config.hcl
+providers = {
+  "hashicorp/aws" = "6.54.0"
+  "hashicorp/helm" = "2.13.0"
+}
+```
+
+Given a resource type, ubx works out which declared provider actually
+owns it. That's computed, the same way dependency order between
+resources is computed, never something you have to wire together by
+hand.
+
+## Why one provider per proposal doesn't work
+
+Splitting a genuinely connected change into separate proposals, one for
+the AWS half, one for the Helm half, loses the fact that they belong to
+the same real decision. You'd lose one review, one signature, one
+blast-radius number covering the whole real change, and you'd have no
+way to guarantee they ship in the right order relative to each other.
+
+## What this actually looks like
+
+Which provider handles a given resource is recorded on the resource
+itself, visible to a reviewer before they sign:
+
+```bash
+ubx plan --from-code create_platform.go
+```
+
+```bash
++ aws_db_instance.payments-db      create  (hashicorp/aws)
++ helm_release.payments-migrator   create  (hashicorp/helm)
+```
+
+At ship time, the executor maintains a real client per provider
+involved, dispatching each resource correctly, in the right dependency
+order, regardless of how many different providers the proposal touches.
+
+## Why it matters
+
+Infrastructure that's actually one connected decision gets reviewed and
+signed as one connected decision, even when it spans more than one real
+provider.

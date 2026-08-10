@@ -1,0 +1,94 @@
+---
+title: "The same pattern, three languages"
+description: "Prove Go, TypeScript, and Python resolve to the identical result."
+---
+
+The SDK medium isn't Go-specific. This tutorial writes the exact same
+queue in TypeScript and Python, and proves both resolve to the same
+delta the Go version did.
+
+Both hermetic evaluators refuse remote code at evaluation time, on
+purpose, so this tutorial clones the real bindings repos locally first,
+rather than importing them remotely.
+
+## Clone the real bindings repos
+
+```bash
+git clone https://github.com/Ubiquex/ubx-sdk-aws-ts.git
+git clone https://github.com/Ubiquex/ubx-sdk-aws-py.git
+```
+
+## Write the TypeScript version
+
+```typescript
+import { stack, intent, resource } from "@ubx/sdk";
+import { Queue } from "./ubx-sdk-aws-ts/aws/sqs/queue.ts";
+
+export default stack("payments", () => {
+  intent({ summary: "payments own SQS queue" });
+  resource(Queue, "pipeline-events", {
+    name: "pipeline-events",
+    messageRetentionSeconds: 1209600,
+  });
+});
+```
+
+Save as `create_platform.ts`, next to the cloned `ubx-sdk-aws-ts`
+directory. The import is a real local relative path, never a remote
+URL, the hermetic evaluator's own `--no-remote` flag refuses to resolve
+anything else.
+
+## Write the Python version
+
+```python
+import ubx_sdk as ubx
+from ubx.aws.sqs import Queue, QueueConfig
+
+def describe():
+    ubx.intent("payments own SQS queue")
+    ubx.resource(Queue, "pipeline-events", QueueConfig(
+        name="pipeline-events",
+        message_retention_seconds=1209600,
+    ))
+
+if __name__ == "__main__":
+    ubx.run("payments", describe)
+```
+
+Save this file as `create_platform.py` **inside** the cloned
+`ubx-sdk-aws-py` directory itself, not next to it. The real top-level
+importable package in that repo is `aws`, not a `pip`-installed name,
+and the WASI sandbox only ever mounts the entry script's own directory,
+a host-installed package elsewhere on your machine is never reachable
+from inside it.
+
+## Resolve all three and compare
+
+```bash
+ubx resolve --from-code create_platform.go --out go.json
+ubx resolve --from-code create_platform.ts --out ts.json
+ubx resolve --from-code ubx-sdk-aws-py/create_platform.py --out py.json
+diff go.json ts.json
+diff go.json py.json
+```
+
+```bash
+(no output)
+```
+
+No differences. Three separate programs, three separate languages, one
+identical resolved result.
+
+## What you just did
+
+You proved directly, not just by reading a claim, that the SDK medium's
+determinism guarantee holds across languages, and saw exactly why each
+evaluator requires real, local code, never a remote fetch, network
+access during evaluation would break the same hermetic guarantee the
+double-run rule protects.
+
+## Next
+
+<Card title="Determinism and the double-run rule" icon="check-double" href="/tutorial/sdk/determinism">
+  Why this consistency isn't assumed, it's actively checked.
+</Card>

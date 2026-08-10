@@ -1,0 +1,68 @@
+---
+title: "PR-Merge Acceptance"
+description: "Signing a proposal by merging a real, reviewed pull request."
+---
+
+Typing `yes` on your own machine is a real signature, but it only proves
+that *you* agreed, on your own computer, with nobody else watching. A
+real team often needs something stronger: proof that a specific set of
+people actually reviewed a change before it became real, the same way a
+pull request review works everywhere else in software.
+
+## How it works
+
+A proposal's file is committed to a real git repository and opened as an
+ordinary pull request. The PR's own description carries one required
+line:
+
+```
+ubx-proposal: 45f63ce108492f6581fe452cc96421ca50195abae1c365ec3b76d700c38a8974
+```
+
+Once the PR is reviewed and merged, `ubx accept --from-merge` derives
+the acceptance entirely from real, external evidence, never from
+anything the person running the command typed themselves:
+
+```bash
+ubx accept --from-merge 8c1d2e... --proposal-file proposal.json
+```
+
+It confirms the merge commit really exists in git history, reads the
+proposal file's content at that exact commit, finds the real pull
+request that commit belongs to, and reads its current approving
+reviewers directly from the GitHub API.
+
+## Why trusting a typed claim of "this was reviewed" doesn't work
+
+If acceptance just meant someone typing "reviewed by Alice and Bob," that
+claim would be exactly as trustworthy as whoever typed it, no different
+from a comment in a commit message. Nothing about it could be
+independently re-checked later.
+
+## What this actually looks like
+
+Every field in a PR-merge acceptance is re-derivable, not stored as a
+one-time assertion:
+
+```json
+{
+  "acceptance": {
+    "method": "pr_merge",
+    "merge_sha": "8c1d2e...",
+    "pr_number": 42,
+    "approvers": ["roozbeh"],
+    "accepted_at": "2026-07-11T00:00:00Z"
+  }
+}
+```
+
+Years later, `ubx why --verify-acceptance` can re-check every one of
+these fields against real git history and the real GitHub API, the
+merge commit, the PR's own body, its current approving reviews, and
+confirm they still say what the ledger claims they said.
+
+## Why it matters
+
+A proposal accepted this way carries a signature that isn't just
+trusted, it's independently checkable, forever, against evidence that
+lives outside ubx entirely.

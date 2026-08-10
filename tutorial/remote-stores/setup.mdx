@@ -1,0 +1,65 @@
+---
+title: "Setting up a remote store"
+description: "Point a stack at a real S3 bucket instead of local git."
+---
+
+The same ledger interface works against any real cloud object store.
+This tutorial points a real stack at S3.
+
+## Point your config at a real bucket
+
+```bash
+cat >> .ubx/config.hcl << 'EOF'
+ledger = {
+  store = "s3://acme-infra-ledger/payments"
+}
+EOF
+```
+
+## Confirm the resolved address
+
+```bash
+ubx config --stack payments
+```
+
+```bash
+ledger address (stack "payments"): s3://acme-infra-ledger/payments
+```
+
+## Ship against it
+
+```bash
+ubx plan --from-doc platform.md --stack payments
+ubx ship <hash>
+```
+
+```bash
+  ✓ aws_sqs_queue.pipeline-events : shipped
+1 resource(s), 1 shipped, 0 failed
+```
+
+Same command, same receipt. The ledger now lives in a real S3 bucket
+instead of local git, nothing about the ceremony changed.
+
+## Confirm it's really there
+
+```bash
+aws s3 ls s3://acme-infra-ledger/payments/ledger/proposals/
+```
+
+```bash
+2026-08-06 10:14:22  1842 45f63ce1....prop.json
+```
+
+A real object, in a real bucket, not a local file at all.
+
+## What you just did
+
+You moved a real ledger from local git to a real, shared cloud store,
+with zero change to any command you already know.
+
+## Next
+
+<Card title="A real concurrent write" icon="people-arrows" href="/tutorial/remote-stores/concurrency">
+  See the real protection when two people ship at once.
+</Card>

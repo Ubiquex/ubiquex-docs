@@ -1,0 +1,59 @@
+---
+title: "ubx mcp"
+description: "Serve ubx's read-only tools over MCP, for an AI assistant to call directly."
+---
+
+`ubx mcp` runs the same binary in server mode, serving the Model Context
+Protocol over stdio so an AI assistant can ask real questions about your
+infrastructure directly in conversation, without you first translating
+"who changed this bucket" into the right CLI flags yourself.
+
+It has no execution authority at all. Three tools are exposed, `why`,
+`status`, `scan`, and nothing else, every one of them read-only, every
+one producing the exact same JSON shape the equivalent `--json` CLI flag
+already does.
+
+## Usage
+
+```bash
+ubx mcp
+```
+
+## Examples
+
+Connecting a client (e.g. Claude Code's own MCP config):
+
+```json
+{
+  "mcpServers": {
+    "ubx": { "command": "ubx", "args": ["mcp"] }
+  }
+}
+```
+
+Once connected, an assistant can call `ubx_why`, `ubx_status`, or
+`ubx_scan` directly, the same real ledger data `ubx why`/`ubx status`/`ubx
+scan` would show from your own terminal.
+
+## Flags
+
+This command takes no flags. Configuration is discovered from the
+process's own working directory, exactly like every other `ubx`
+command, point your MCP client's working directory at a real ledger
+checkout to get the same defaults a human sitting there would.
+
+## Notes
+
+`ubx accept`, `ubx ship`, `ubx writeback`, `ubx revert-plan`, and `scan
+--surface-as` are all deliberately excluded. Accepting a proposal is a
+recorded human decision, never something an assistant does on your
+behalf mid-conversation. A sensitive attribute is never returned as real
+material through any of the three tools, only its salted fingerprint,
+the same redaction every other surface in this project already applies.
+
+## See also
+
+- [MCP Server](/concepts/mcp-server)
+- [`ubx why`](/cli-reference/why)
+- [`ubx status`](/cli-reference/status)
+- [`ubx scan`](/cli-reference/scan)

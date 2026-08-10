@@ -1,0 +1,60 @@
+---
+title: "SDK Medium: Depth"
+description: "Determinism, and the double-run rule."
+---
+
+Two mediums, diagram and SDK, involve no AI at all, by design. Their
+entire value depends on the same program producing the exact same
+resolved output every single time. If a program could quietly behave
+differently from one run to the next, that whole guarantee would be
+worthless.
+
+## How it works
+
+An SDK program is real code, in Go, TypeScript, or Python. It never
+calls an AI, never reaches a real provider, and never touches the ledger
+directly, it describes a desired end state and stops:
+
+```go
+ubx.Main(ubx.Stack("payments", func() {
+    ubx.Intent(ubx.IntentInfo{Summary: "payments own SQS queue"})
+    ubx.Resource(sqs.Queue, "pipeline-events", sqs.QueueConfig{
+        Name: "pipeline-events",
+        MessageRetentionSeconds: 86400,
+    })
+}))
+```
+
+Any evaluator that produces content destined for the ledger runs the
+program twice. A byte-for-byte mismatch between the two runs is a hard
+failure at draft time, never silently accepted.
+
+## Why running a program once and trusting it doesn't work
+
+A program could accidentally depend on something that varies, a
+timestamp, an unordered map's own iteration order, without its author
+ever noticing, since a single run always looks fine. Running it twice
+and comparing catches exactly this class of accidental nondeterminism
+before it can ever reach a signed proposal.
+
+## What this actually looks like
+
+An SDK program is hermetic by construction, it has no access to the
+network, the filesystem, or the clock while it runs:
+
+```bash
+ubx resolve --from-code create_platform.go
+```
+
+```bash
+resolved: payments: 1 create(s), 0 change(s), 0 terminate(s)
+```
+
+The double-run happens silently underneath this single command. You
+never see a separate confirmation line on success, only a hard failure
+if the two runs ever disagreed.
+
+## Why it matters
+
+Determinism isn't assumed here, it's actively checked, every time,
+before a proposal is ever trusted enough to sign.

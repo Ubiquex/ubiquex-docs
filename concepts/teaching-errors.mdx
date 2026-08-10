@@ -1,0 +1,60 @@
+---
+title: "Teaching Errors"
+description: "An error should name the problem and the exact next command, not just fail."
+---
+
+A plain "invalid input" or "operation failed" tells you something went
+wrong without telling you what to actually do about it. For a tool
+making real, sometimes irreversible changes to real infrastructure,
+leaving someone stuck guessing at the fix is a real cost, not just an
+inconvenience.
+
+## How it works
+
+Every real error in ubx is written to name the specific problem and the
+exact command that resolves it, not just report failure:
+
+```bash
+ubx scan
+```
+
+```bash
+scan requires --stack (or --all --tfstate <path> for bulk onboarding,
+or --discover for cloud-side discovery) -- pass --stack or set
+stack="..." in .ubx/config.hcl
+```
+
+That single message tells you exactly what's missing, and gives you two
+different real next steps depending on what you're actually trying to
+do.
+
+## Why a bare failure code doesn't work
+
+A generic error, "missing required argument," is technically accurate
+but leaves you to go find the documentation, or guess at the flag name,
+every single time. For a command you don't run every day, that's real,
+avoidable friction, and for something with real consequences, avoidable
+confusion is worth actively designing against.
+
+## What this actually looks like
+
+The same discipline holds for a destructive or unsafe action:
+
+```bash
+ubx accept proposal.json
+```
+
+```bash
+accept refused: this proposal has blast_radius.destroys > 0 -- pass
+--confirm-destroys to accept it, or review the destroys first with
+ubx why <address>
+```
+
+Not just "refused", the exact flag that unblocks it, and an alternative
+path if you're not ready to proceed at all.
+
+## Why it matters
+
+You're never stuck staring at a failure with no idea what to do next.
+The tool's own errors are written to actually move you forward, not just
+report that something stopped.

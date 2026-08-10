@@ -1,0 +1,96 @@
+---
+title: "Calling it from SDK code"
+description: "Import the built package and call it directly."
+---
+
+Calling a blueprint from Go is just calling a function. This tutorial
+imports what you built and ships it, in a real stack.
+
+## Write a caller
+
+```bash
+cd .. && mkdir call-blueprint && cd call-blueprint
+go mod init call-blueprint
+```
+
+The blueprint's own compiled package isn't published anywhere, it's a
+real Go module, but a local one, so `go.mod` needs to say where to find
+it:
+
+```bash
+cat >> go.mod << 'EOF'
+require ciplatform v0.0.0
+replace ciplatform => ../ci-platform/go
+EOF
+```
+
+```go
+package main
+
+import (
+	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+	ciplatform "ciplatform"
+)
+
+func main() {
+	ubx.Main(ubx.Stack("payments", func() {
+		ubx.Intent(ubx.IntentInfo{Summary: "payments queue, via blueprint"})
+		ciplatform.CiPlatform("pipeline-events", ciplatform.WithRetentionDays(3))
+	}))
+}
+```
+
+Save as `create_platform.go`. The import is the module name declared in
+`go.mod` (`ciplatform`), not a filesystem path, `replace` is what
+points Go at the real local directory. `ciplatform.WithRetentionDays(3)`
+overrides the blueprint's own default, `14`.
+
+## Resolve and ship
+
+```bash
+ubx plan --from-code create_platform.go
+```
+
+```bash
+Plan  payments · from create_platform.go
+
+  + aws_sqs_queue.pipeline-events create
+      message_retention_seconds: 259200
+
+delta: +1 create(s), ~0 change(s), -0 terminate(s)
+```
+
+`3 * 86400 = 259200`. Real arithmetic, resolved correctly.
+
+```bash
+ubx ship <hash>
+```
+
+## See the real provenance
+
+```bash
+ubx why payments.aws_sqs_queue.pipeline-events
+```
+
+```bash
+source: blueprint
+  ref: ci-platform:sha256:a1b2c3...
+  (this resource's own creation is signed by the CALLING stack's own
+  acceptance below)
+accepted by [roozbeh] via local at ...
+```
+
+Permanent record of which blueprint, and which exact version, produced
+this resource.
+
+## What you just did
+
+You called a real, compiled blueprint function, zero AI involved at
+call time, and shipped a real resource whose provenance permanently
+names the pattern that created it.
+
+## Next
+
+<Card title="Calling it from diagram and markdown" icon="shapes" href="/tutorial/blueprints/call-other-mediums">
+  Prove the same blueprint resolves identically from two other mediums.
+</Card>

@@ -1,0 +1,71 @@
+---
+title: "Blueprints"
+description: "Build once with AI, call many times with zero AI."
+---
+
+If your team keeps building the same pattern, an ECR repository, an SQS
+queue, an IAM role and policy wired together correctly, someone ends up
+re-authoring that exact shape by hand every single time, in whichever
+medium they happen to be using. Every repeat is a chance to get some
+small detail wrong differently than last time.
+
+## How it works
+
+A blueprint is a reusable pattern, drafted once, then compiled into
+real, deterministic code. The AI's job happens exactly once, at build
+time. Every future call to the blueprint, from any medium, involves zero
+AI, ever again.
+
+```bash
+ubx blueprint build . --lang all
+```
+
+That command drafts the pattern once and compiles the result into real
+Go, TypeScript, and Python packages. From here forward, calling it is
+just calling a function:
+
+```go
+import ciplatform "ciplatform"
+
+ciplatform.CiPlatform("payments-ci-artifacts", "payments-notifications")
+```
+
+The same blueprint, called instead from a diagram or from prose,
+resolves to a byte-identical result, proven directly, not assumed.
+
+## Why hand-copying a pattern doesn't work
+
+Copy-pasting the "same" resource pattern into a new stack means every
+copy can quietly drift from the original, a forgotten attribute here, a
+slightly different default there. There's no way to know later which
+copies actually match, or to fix a real bug in the pattern everywhere at
+once.
+
+## What this actually looks like
+
+Every resource a blueprint produces carries a permanent record of which
+blueprint, and which exact version, created it:
+
+```bash
+ubx why payments.aws_iam_role.ci-runner
+```
+
+```bash
+source: blueprint
+  ref: ci-platform:a1b2c3...
+  called by: roozbeh, 2026-08-05
+```
+
+Two separate, both-real signatures: the blueprint author's own, and the
+signature of whoever called it into this stack.
+
+## Why it matters
+
+The pattern gets designed correctly once. Every future use inherits that
+correctness automatically, and if the pattern itself needs a fix, it's
+fixed once, in one place, for everyone who calls it.
+
+Building it is only half the story. See
+[Distributing a Blueprint](/concepts/blueprint-distribution) for how a
+built blueprint actually gets from its author's machine to everyone
+else's.

@@ -1,0 +1,81 @@
+---
+title: "Promoting a real change"
+description: "Move a proven change from dev to prod, with real evidence."
+---
+
+`ubx promote` never copies dev's resolved values into prod. It
+re-resolves the same original document, fresh, against prod's own real
+config and state.
+
+## Find your dev proposal
+
+```bash
+cd envs/dev/payments
+ubx status
+```
+
+```bash
+payments.aws_sqs_queue.pipeline-events: change a1b2c3d4... (accepted ...)
+```
+
+## Promote it
+
+```bash
+ubx promote a1b2c3d4... --to ../../prod/payments
+```
+
+```bash
+promoted a1b2c3d4... -> payments (../../prod/payments)
+Plan  payments · promoted from dev/payments/a1b2c3d4...
+
+  + aws_sqs_queue.pipeline-events create
+      message_retention_seconds: 259200
+
+plan: ../../prod/payments/.ubx/plans/8224643b....json
+ubx-proposal: 8224643bbbc5...
+next: ubx ship 8224643bbbc5...
+```
+
+Same retention as dev, in this case, because the document didn't
+express anything environment-specific. It was re-derived, not copied,
+even though the value happens to match.
+
+## Ship it in prod
+
+```bash
+cd ../../prod/payments
+ubx ship 8224643bbbc5...
+```
+
+```bash
+  ✓ aws_sqs_queue.pipeline-events : shipped
+1 resource(s), 1 shipped, 0 failed
+```
+
+## See the real lineage
+
+```bash
+ubx why payments.aws_sqs_queue.pipeline-events
+```
+
+```bash
+source: promotion
+  ref: dev/payments/a1b2c3d4...
+```
+
+Permanent, real evidence, prod's own resource genuinely traces back to
+the exact dev proposal that proved it out.
+
+## What you just did
+
+You moved a proven pattern from dev to prod as a real re-derivation,
+never a blind copy, and confirmed the lineage is permanently recorded,
+not just implied by a commit message.
+
+## Next
+
+You've completed Environments & Promotion.
+
+<Card title="Blueprints" icon="cubes" href="/tutorial/blueprints">
+  Turn this pattern into something reusable across stacks.
+</Card>

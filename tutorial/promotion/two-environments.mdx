@@ -1,0 +1,71 @@
+---
+title: "Two environments, two ledgers"
+description: "Set up dev and prod as real, independent directories."
+---
+
+Environments aren't a concept ubx tracks anywhere, they're just
+directories, each with a completely independent ledger. This tutorial
+sets up both.
+
+## Create the structure
+
+```bash
+mkdir -p envs/dev/payments envs/prod/payments
+```
+
+## Initialize each independently
+
+```bash
+cd envs/dev/payments
+ubx init --source hashicorp/aws --provider-version 6.54.0
+```
+
+```bash
+cd ../../prod/payments
+ubx init --source hashicorp/aws --provider-version 6.54.0
+```
+
+Two real, separate `.ubx/config.hcl` files, two real, separate ledgers.
+Nothing here connects them yet.
+
+## Author and ship in dev
+
+```bash
+cd ../../dev/payments
+cat > platform.md << 'EOF'
+Provision an SQS queue called "pipeline-events" for payments,
+standard, messages retained for 3 days.
+EOF
+ubx plan --from-doc platform.md --stack payments
+ubx ship <hash>
+```
+
+```bash
+  ✓ aws_sqs_queue.pipeline-events : shipped
+1 resource(s), 1 shipped, 0 failed
+```
+
+## Confirm prod knows nothing about it
+
+```bash
+cd ../../prod/payments
+ubx status
+```
+
+```bash
+0 resource(s) (ledger-only, no live comparison)
+```
+
+Genuinely empty. Dev's own ledger has no bearing on prod's at all.
+
+## What you just did
+
+You proved directly that environments are just directories with their
+own independent ledgers, shipping a real resource in dev changed
+nothing about what prod knows or believes.
+
+## Next
+
+<Card title="Promoting a real change" icon="arrow-up-right" href="/tutorial/promotion/promote">
+  Move the queue you just proved out in dev, into prod.
+</Card>

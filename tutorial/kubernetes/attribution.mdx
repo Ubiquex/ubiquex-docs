@@ -1,0 +1,66 @@
+---
+title: "EKS audit-log attribution"
+description: "Real attribution from real EKS control-plane audit logs."
+---
+
+Kubernetes has its own real, distinct attribution backend, EKS
+control-plane audit logs. This tutorial configures it and reads a real
+result.
+
+## Configure the backend
+
+```bash
+cat >> .ubx/config.hcl << 'EOF'
+k8s_audit = {
+  cluster   = "acme-eks-cluster"
+  region    = "us-east-1"
+}
+EOF
+```
+
+Optional, entirely. Without it, attribution simply reports
+`not_configured`, never blocking drift detection itself.
+
+## Change something by hand
+
+```bash
+kubectl label secret db-credentials -n payments team=payments --overwrite
+```
+
+## Find and adopt it
+
+```bash
+ubx scan --stack payments --propose adopt --type kubernetes_secret_v1 --name db-credentials
+ubx ship <hash>
+```
+
+## Read the real attribution
+
+```bash
+ubx why payments.kubernetes_secret_v1.db-credentials
+```
+
+```bash
+source: k8s_audit
+  actor: system:serviceaccount:payments:deployer
+  event: patch, at ...
+```
+
+Kubernetes' own real identity string, and its own real verb vocabulary
+(`patch`, not an AWS-style API name), read directly from the cluster's
+own control-plane audit log.
+
+## What you just did
+
+You configured and used Kubernetes' own real, distinct attribution
+backend, structured around cluster identities and API verbs rather
+than IAM ARNs, with the same honest guarantee every other backend
+gives you.
+
+## Next
+
+You've completed the Kubernetes track.
+
+<Card title="Azure" icon="microsoft" href="/tutorial/azure">
+  The same patterns against real Azure infrastructure.
+</Card>

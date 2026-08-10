@@ -1,0 +1,56 @@
+---
+title: "Remote Ledger Stores"
+description: "The same ledger, backed by S3, GCS, or Azure Blob instead of local git."
+---
+
+A ledger kept only in local git works fine for one person, but a real
+team needs the ledger itself reachable from anywhere, without everyone
+constantly pulling and pushing a git repo just to see the latest state.
+
+## How it works
+
+The exact same ledger interface works against any real cloud object
+store, S3, GCS, or Azure Blob, through one shared implementation, not
+three separate ones:
+
+```
+# .ubx/config.hcl
+ledger = {
+  store = "s3://acme-infra-ledger/payments"
+}
+```
+
+Every command, `ship`, `why`, `verify`, works identically against a
+remote store as it does against local git. Instead of one mutable
+"current head" value, the chain is stored as edges: each proposal
+records which proposal comes right after it. Finding the real head means
+walking forward from a cached hint until the walk runs out of edges.
+
+Advancing the chain uses a create-only write, one the object store
+itself refuses if that edge already exists. If two people race to ship
+from the same point at the same time, exactly one wins outright, with no
+custom locking logic required to make that safe.
+
+## Why a single shared "current head" file doesn't work
+
+If the current head were just one file, two people advancing it at the
+same moment could race to overwrite each other, and whichever write
+landed last would silently win, with no record that a conflict even
+happened. The edge-based design turns that race into a real,
+detectable, safely-resolved conflict instead.
+
+## What this actually looks like
+
+Locking works differently here than a local ledger. A local lock can
+check whether the process holding it is still alive. A remote lock,
+possibly held by a process on a completely different machine, can't ask
+that question at all, there's no shared process table to check. Remote
+locks use a TTL instead, they expire after a stated time, and any caller
+can safely reclaim one that's expired.
+
+## Why it matters
+
+A remote store gives your whole team the same ledger, the same
+guarantees, and the same trust model as a local one, just reachable from
+anywhere, with safe, real concurrency handling built in rather than
+assumed.

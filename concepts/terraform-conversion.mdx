@@ -1,0 +1,59 @@
+---
+title: "Terraform Module Conversion"
+description: "A deterministic, mechanical path from an existing Terraform module to a blueprint."
+---
+
+Teams with years of existing Terraform modules shouldn't have to
+rewrite all of it by hand just to get the same real trust guarantees
+ubx provides. A real, existing module already describes its own
+resources precisely, that precision can be used directly.
+
+## How it works
+
+`ubx blueprint convert` reads a real Terraform module's HCL directly and
+mechanically, no AI involved in the translation at all, because HCL is
+already precise enough to read as-is:
+
+```bash
+ubx blueprint convert --from-terraform ./my-module/ --out ./converted/
+```
+
+```bash
+converted: 4 resources, 2 outputs, 1 for_each loop
+0 questions -- every construct translated deterministically
+```
+
+`variable` blocks become blueprint parameters. `resource` blocks become
+the blueprint's own resource calls. `output` blocks become the
+blueprint's own declared outputs. `count` and `for_each` blocks convert
+into a real loop, using the same list-parameter mechanism a
+hand-authored blueprint would use.
+
+## Why re-drafting an existing module with AI would be worse
+
+The module already says exactly what it means, in a precise, structured
+language. Running it back through an AI draft would introduce exactly
+the kind of interpretive variance this project works hard to avoid
+everywhere else. A mechanical, deterministic translation preserves the
+original's own precision instead of guessing at it.
+
+## What this actually looks like
+
+Not everything translates cleanly. Complex `locals`, or a built-in
+function that hasn't been ported yet, surface as an explicit, named
+question rather than a silent guess or a failed build:
+
+```bash
+question: variable.tf line 14 -- unsupported function merge(), review manually
+```
+
+A converted blueprint is checked against the same real provider schema
+its original module targeted, confirming it resolves to an equivalent
+result, not just that the translation compiled.
+
+## Why it matters
+
+Existing Terraform work isn't wasted. It becomes a real, signed,
+verifiable blueprint, with the same trust guarantees as anything
+authored directly in ubx, without anyone having to redraft it from
+scratch.

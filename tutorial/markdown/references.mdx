@@ -1,0 +1,77 @@
+---
+title: "Referencing existing resources"
+description: "Wire a new resource to one you already created, using @refs."
+---
+
+Real infrastructure is rarely one isolated resource. This tutorial
+shows the real syntax for pointing prose at something that already
+exists in your own ledger.
+
+## Write a document that references the queue
+
+```bash
+cat > runner.md << 'EOF'
+Create an IAM role called "ci-runner", assumable by EC2.
+Attach a policy allowing it to send messages to
+@payments.aws_sqs_queue.pipeline-events.
+EOF
+```
+
+`@payments.aws_sqs_queue.pipeline-events` is the exact same address form
+`ubx why` already showed you, this is a real, unambiguous pointer, not a
+description the AI has to interpret.
+
+## Plan it
+
+```bash
+ubx plan --from-doc runner.md --stack payments
+```
+
+```bash
+Plan  payments · from runner.md
+
+  + aws_iam_role.ci-runner create
+      name: "ci-runner"
+      assume_role_policy: { ... }
+
+  + aws_iam_policy.ci-runner-access create
+      policy: {
+        "Statement": [{
+          "Effect": "Allow",
+          "Action": "sqs:SendMessage",
+          "Resource": "$ref:payments.aws_sqs_queue.pipeline-events.arn"
+        }]
+      }
+
+  + aws_iam_role_policy_attachment.ci-runner-access-attachment create
+
+delta: +3 create(s), ~0 change(s), -0 terminate(s)
+```
+
+The policy's `Resource` isn't a guessed ARN string, it's a real
+reference, resolved to the queue's actual ARN the moment it ships.
+
+## Ship it
+
+```bash
+ubx ship <hash>
+```
+
+```bash
+  ✓ aws_iam_role.ci-runner                                    : shipped
+  ✓ aws_iam_policy.ci-runner-access                           : shipped
+  ✓ aws_iam_role_policy_attachment.ci-runner-access-attachment: shipped
+3 resource(s), 3 shipped, 0 failed
+```
+
+## What you just did
+
+You referenced an existing resource by its real address, in plain
+prose, and the reference resolved to a genuine value at ship time, not
+a string you had to look up and paste in yourself.
+
+## Next
+
+<Card title="Handling ambiguity" icon="circle-question" href="/tutorial/markdown/ambiguity">
+  Write a genuinely vague requirement and see how it gets handled.
+</Card>

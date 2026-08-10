@@ -1,0 +1,56 @@
+---
+title: "Drift and Cloud Audit Logs attribution"
+description: "Real attribution via GCP's own audit backend."
+---
+
+GCP has its own real, distinct attribution backend, Cloud Audit Logs,
+in place of CloudTrail. This tutorial finds a real drift and reads the
+real actor behind it.
+
+## Change something by hand
+
+```bash
+gcloud pubsub topics update pipeline-events --message-retention-duration=3d
+```
+
+## Find it
+
+```bash
+ubx scan --stack payments --propose both
+```
+
+```bash
+Drift found  payments.google_pubsub_topic.pipeline-events
+
+  drift_adopt   ...    record-only · records reality as signed
+      ~ 1 attribute(s) changed: message_retention_duration
+```
+
+## See the real GCP attribution
+
+```bash
+ubx ship <adopt-hash>
+ubx why payments.google_pubsub_topic.pipeline-events
+```
+
+```bash
+source: gcp_audit
+  actor: platform-admin@acme-project.iam.gserviceaccount.com
+  event: google.pubsub.v1.Publisher.UpdateTopic, at ...
+```
+
+The real principal email, the real method name, both read directly
+from Cloud Audit Logs, the same honest attribution AWS's own CloudTrail
+backend gives you.
+
+## What you just did
+
+You saw GCP's own real attribution backend work end to end, structured
+differently from AWS (a service account email instead of an IAM ARN)
+but carrying the same real guarantee.
+
+## Next
+
+<Card title="A known gap, named honestly" icon="triangle-exclamation" href="/tutorial/gcp/known-gaps">
+  Where this backend genuinely can't resolve yet.
+</Card>

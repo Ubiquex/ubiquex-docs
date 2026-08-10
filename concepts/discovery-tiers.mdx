@@ -1,0 +1,67 @@
+---
+title: "Discovery Tiers"
+description: "How a resource's real lookup key relates to its ARN, classified honestly, never guessed."
+---
+
+Finding a resource by tag is only half of [cloud-side
+discovery](/concepts/discovery). The other half is a real, practical
+problem: given a resource's ARN, what value do you actually pass to the
+provider to read its full, live state? For some resource types the ARN
+itself is enough. For others, it isn't even close.
+
+## How it works
+
+Every resource type discovery knows how to handle is classified into one
+of three real, empirically confirmed tiers:
+
+- **Tier A**: the ARN itself is exactly the value the provider needs.
+  `aws_iam_policy` works this way.
+- **Tier B**: the value needed is a piece of the ARN, its trailing
+  segment. `aws_vpc` and `aws_iam_role` both work this way.
+- **Tier C**: the value needed has to be built from several parts of the
+  ARN together, not just extracted as a substring. `aws_sqs_queue`'s
+  real lookup value is its queue URL, constructed from the ARN's own
+  region, account, and resource ID.
+
+```bash
+ubx scan --discover --type aws_sqs_queue
+```
+
+```bash
+classified as Tier C
+lookup: https://sqs.us-east-1.amazonaws.com/839333509514/pipeline-events
+```
+
+## Why guessing the lookup shape from the ARN alone doesn't work
+
+An ARN's own structure varies by AWS service in ways that aren't
+consistent or guessable from the outside. Assuming every resource type
+behaves like the simplest case, the ARN is the whole answer, would
+silently produce a wrong lookup value for anything more complex, and a
+wrong lookup value means discovery would confidently report a resource
+it can't actually read.
+
+## What this actually looks like
+
+A resource type discovery genuinely doesn't know yet is never guessed
+at, it's reported honestly as unclassified:
+
+```bash
+ubx scan --discover
+```
+
+```bash
+found 12 resource(s) by tag
+9 classified and adoptable
+3 discovered but not yet adoptable (no known lookup shape for this type)
+```
+
+Every tier in the real table was confirmed against a real, live cloud
+account before being trusted, never assumed from a resource type's own
+name or category.
+
+## Why it matters
+
+Discovery only ever claims a resource is adoptable once it genuinely
+knows how to read it correctly. A gap in coverage is named honestly,
+never silently papered over with a guess that might be wrong.

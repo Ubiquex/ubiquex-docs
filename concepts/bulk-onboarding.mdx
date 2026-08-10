@@ -1,0 +1,62 @@
+---
+title: "Bulk Onboarding from Terraform State"
+description: "A one-time read of an existing state file, used only to bootstrap identity."
+---
+
+Infrastructure already managed by another tool, one that keeps a state
+file recording what it created, shouldn't have to be re-described by
+hand just to bring it into ubx. That state file already has almost
+everything needed to find each real resource.
+
+## How it works
+
+A state file is read exactly once, at onboarding, and never touched
+again after:
+
+```bash
+ubx scan --all --tfstate ./terraform.tfstate
+```
+
+```bash
+adopted: payments.aws_db_instance.payments-db
+adopted: payments.aws_vpc.main
+2 adopted, 0 skipped, 0 attribute(s) redacted
+next: ubx accept <hash>  (record them as-is, zero blast radius)
+```
+
+The state file's own recorded attributes are used only to build a
+lookup key for each resource, enough to find it. The actual state ubx
+records always comes from a real, live read at the time of onboarding,
+never from what the state file happened to say.
+
+## Why trusting the state file's own recorded values doesn't work
+
+A state file can be stale the moment you read it, someone may have
+changed a resource by hand since the last time that other tool ran.
+Recording the state file's own values as truth would mean starting the
+ledger off with information that might already be wrong. Using it only
+for identity, and always reading real, live state, avoids that risk
+entirely.
+
+## What this actually looks like
+
+Once every resource is adopted this way, the state file itself becomes
+irrelevant, ubx never opens it again:
+
+```bash
+ubx status
+```
+
+```bash
+payments.aws_db_instance.payments-db: adoption <hash> (accepted 2026-08-05T...)
+2 resource(s) (ledger-only, no live comparison)
+```
+
+Every one of these resources is now a full, ordinary ledger entry, no
+different from one created directly through ubx from the start.
+
+## Why it matters
+
+An existing investment in infrastructure managed elsewhere isn't wasted.
+It becomes the ledger's real, honest starting point, verified against
+live reality rather than just trusted from an old file.

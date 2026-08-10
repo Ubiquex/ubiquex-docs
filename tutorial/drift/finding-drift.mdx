@@ -1,0 +1,70 @@
+---
+title: "Causing and finding drift"
+description: "Change something by hand, then find it with a real scan."
+---
+
+Uses the `pipeline-events` queue from the Basic tutorials. If you don't
+have it anymore, ship it again from any Basic track first.
+
+## Change something by hand
+
+Outside of ubx entirely, change the queue's retention directly:
+
+```bash
+aws sqs set-queue-attributes \
+  --queue-url $(aws sqs get-queue-url --queue-name pipeline-events --query QueueUrl --output text) \
+  --attributes MessageRetentionPeriod=345600
+```
+
+Nothing in the ledger knows this happened yet.
+
+## Find it
+
+```bash
+ubx status --drift --stack payments
+```
+
+```bash
+Drift  payments · 1 of 1 resource(s) drifted
+
+drifted: payments.aws_sqs_queue.pipeline-events: change 45f63ce1...
+    ~ message_retention_seconds: 1209600 -> 345600
+    next: ubx scan --propose both
+
+1 resource(s), 1 drifted, 0 unreadable
+```
+
+The ledger still believes the old value, the live queue disagrees.
+That gap is drift, named honestly, not silently ignored.
+
+## Generate real proposals
+
+```bash
+ubx scan --stack payments --propose both
+```
+
+```bash
+Drift found  payments.aws_sqs_queue.pipeline-events
+
+  drift_adopt   8224643b...     record-only · records reality as signed
+      ~ 1 attribute(s) changed: message_retention_seconds
+  drift_revert  c53c22fa...     restores the ledger's own recorded state
+      ~ 1 attribute(s) changed: message_retention_seconds
+
+  saved to plan store            next: ubx ship 8224643b...  (or ubx ship c53c22fa...)
+```
+
+Two real proposals, drafted side by side. Nothing decided anything for
+you.
+
+## What you just did
+
+You caused a real, honest gap between the ledger and reality, found it
+with a real scan, and got two real, ready-to-sign proposals representing
+the two legitimate responses.
+
+## Next
+
+<Card title="Adopt or revert" icon="code-branch" href="/tutorial/drift/adopt-or-revert">
+  Choose between the two proposals you just generated.
+</Card>

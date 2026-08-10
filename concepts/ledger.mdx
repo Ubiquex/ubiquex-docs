@@ -1,106 +1,107 @@
 ---
-title: "Ledger"
-description: "The append-only chain of accepted proposals"
+title: "The Ledger"
+description: "A permanent record of every change, never a mutable snapshot."
 ---
 
-The ledger is where accepted [proposals](/concepts/proposal) live. It's a plain
-directory on disk — every ubx command that reads or writes it takes a
-`--ledger-dir` flag (defaulting to the current directory).
+Imagine someone on your team opens a security group port by clicking
+around in the AWS console, by hand, without telling anyone. A week
+later something breaks, and you need to know: who changed that, and
+when? With most infrastructure tools, the honest answer is: nobody
+knows. The tool only remembers what your infrastructure looks like
+*right now*. It has no memory of how it got that way.
 
-## On disk
+## How it works
 
-```text
-<ledger-dir>/
-  ledger/proposals/<id>.prop.json   # one file per accepted proposal
-  .ubx/ledger.lock                  # the current head: the most recently accepted id
-  .ubx/lock                         # concurrency lock -- see "Concurrent access" below
+In ubx, every real change you make gets written down as a **proposal**,
+a permanent record answering three questions: what changed, why, and
+who agreed to it. "Agreed to it" means someone actually reviewed the
+change and typed `yes` to confirm it, the same way you'd approve a pull
+request before it merges. That's what "signed" means here: a real
+person's real confirmation, recorded alongside the change itself.
+
+Every time you make a change, a new proposal gets added. Nothing ever
+replaces an older one. If you ship five changes to the same resource
+over a month, you end up with five separate, permanent records, one per
+change, each one still there, still readable, forever.
+
+```bash
+ls ledger/proposals/
 ```
 
-Each proposal file is the full accepted proposal — hash, delta, resolution,
-acceptance, everything. `ledger.lock` holds nothing but the head hash.
-`.ubx/lock` is a different file with a different job (concurrency, not the
-head pointer) — see below — and [`.ubx/config`](/cli/config) is a third,
-also unrelated file in the same directory.
-
-## It's a chain, not a set
-
-Every proposal's `parent` field is the ledger's head hash at the moment it was
-resolved. Accepting a proposal checks that `parent` still matches the current
-head before appending — if something else was accepted in the meantime, the
-proposal is stale and has to be re-resolved. This is what makes the ledger a
-chain: you can walk it backwards from the head, through `parent`, all the way
-to the first proposal (whose `parent` is empty).
-
-## Stacks are independent, but not physically separated
-
-A resource's address is `<stack>.<type>.<name>` — for example,
-`payments.aws_db_instance.payments-db`. The `stack` is just a name you choose to
-group related resources; there's no separate command to create one. Every
-proposal belongs to exactly one stack, and `ubx why <stack>.<type>.<name>`
-resolves a resource's history within its stack.
-
-"Independent" describes how you *think about* stacks, not how the ledger is
-physically laid out: one `--ledger-dir` is one chain on disk, and nothing
-stops proposals for several different stacks from living in that same
-directory, interleaved in accepted order — `stack` is a field recorded on
-each proposal, not a separate directory ubx enforces per stack. Whether you
-give each stack its own `--ledger-dir` or share one across several is a
-deployment choice either way works correctly; [`ubx status`](/cli/status)'s
-"every resource, every stack, by default" report depends on the shared-directory
-shape being sound, and it is.
-
-## Concurrent access
-
-`.ubx/lock` makes it safe for a person and CI to both be working against
-the same ledger directory at once. It's acquired only around the
-ledger-mutating step of [`ubx accept`](/cli/accept) (both the local and
-`--from-merge` tiers) — [`ubx scan`](/cli/scan), [`ubx why`](/cli/why), and
-[`ubx status`](/cli/status) never write to the ledger, so they never
-acquire it and are never blocked by it, no matter how long an accept
-elsewhere is holding it.
-
-If another process is genuinely still running and holding the lock, a
-blocked `ubx accept` waits briefly and then fails clearly, naming the file
-and the holder's process id:
-
-```text
-$ ubx accept proposal.json --ledger-dir .
-Error: accept: append: ledger is locked by another process: .ubx/lock (held by pid 29771)
+```bash
+45f63ce108492f6581fe452cc96421ca50195abae1c365ec3b76d700c38a8974.prop.json
+8224643bbbc5ac77873005df504f1a6bd3dce76457c523876e0047ca60fb6e42.prop.json
+c53c22fae1ae2fd81eee0e1bade10c1a40b83de5b019ceee26480e08d5fd0e6c.prop.json
 ```
 
-If the lock file names a process that's no longer running — killed, or
-crashed before it could clean up after itself — that's detected
-immediately (no need to wait out the contention window for a holder that
-isn't there) and reported with explicit recovery guidance instead of being
-silently broken or blocking forever:
+Every one of those is a real file. Five changes means five files, all
+still sitting there. None of them ever gets deleted or rewritten to
+make room for the next one.
 
-```text
-$ ubx accept proposal.json --ledger-dir .
-Error: accept: append: stale ledger lock: holder is no longer running: .ubx/lock names pid 99999999, which is not running -- remove .ubx/lock to recover (confirm no ubx process actually holds it first)
+A useful comparison if you've used Git: a Git commit doesn't erase the
+commits before it, it just adds one more entry to a history that keeps
+growing. The ledger works the same way.
+
+## Why not just keep the latest state
+
+The simplest possible design would be to just remember what your
+infrastructure looks like right now, and overwrite that record every
+time something changes. It's tempting because it's simple: one file,
+always up to date.
+
+The problem is that this design can only ever answer one question,
+"what does my infrastructure look like right now." It can never answer
+"what did it look like three changes ago" or "who made that particular
+change," because the old answer is gone the instant a new one exists.
+
+```bash
+# a "keep the latest state" design: one file, replaced every time
+ship-change   # the record is replaced
+ship-change   # replaced again
+              # the version from the FIRST change is just gone
 ```
 
-`ubx` never removes `.ubx/lock` on your behalf even once it's confirmed
-stale — deleting a lock file is a deliberate operator action (`rm
-.ubx/lock`), not something a command that just failed to acquire it
-should do for you. Either failure exits `2` (a genuine error, not an
-actionable finding) — see [Exit codes](/cli/exit-codes).
+```bash
+# ubx: a new file every time, nothing overwritten
+ubx ship <hash-1>  # ledger/proposals/<hash-1>.prop.json is written
+ubx ship <hash-2>  # ledger/proposals/<hash-2>.prop.json is ALSO written
+                    # <hash-1>.prop.json is still there, untouched
+```
 
-## Reconstructing what's true now
+Ubx doesn't have a single file like that at all. "What does my
+infrastructure look like right now" is worked out by reading the
+*entire* history and combining it, every time you ask (this combining
+step is covered in [FoldState](/concepts/foldstate), if you want the
+full detail). The point for now: the history itself, not a snapshot, is
+the only thing ubx actually stores.
 
-The ledger never stores a resource's "current state" directly — it stores the
-sequence of proposals that got it there. To answer "what does the ledger think
-this resource looks like right now," ubx folds that sequence: start from the
-resource's `adoption` proposal's snapshot, then apply every subsequent
-`drift_adopt`'s before/after diff on top, in order. This is exactly what lets
-`ubx scan` compare live state against "the ledger" for a resource that's had
-several drifts recorded against it.
+## What this actually looks like
 
-## Related
+Say two real changes were made to the same resource, a week apart.
+Here's what asking about that resource's history actually shows you:
 
-- [Proposal](/concepts/proposal) — what gets appended
-- [Ledger stores](/concepts/ledger-stores) — the in-repo git directory vs. a configured remote store
-- [Drift](/concepts/drift) — how `ubx scan` decides something belongs in the ledger
-- [Why](/concepts/why) — reading the ledger back
-- [`ubx status`](/cli/status) — every resource the ledger has ever recorded, across every stack, in one report
-- [Exit codes](/cli/exit-codes) — the 0/1/2 contract, including a locked or stale-locked accept
-- [Why trust the record](/concepts/trust-model) — why a hash chain beats a PR history for this job
+```bash
+ubx why payments.aws_sqs_queue.pipeline-events
+```
+
+```bash
+change 45f63ce1... (accepted 2026-08-04, roozbeh)
+  created: message_retention_seconds = 86400
+
+change 8224643b... (accepted 2026-08-05, roozbeh)
+  modified: message_retention_seconds 86400 -> 1209600
+```
+
+Both of these are real, permanent records, still sitting on disk exactly
+as they were written. The second one didn't overwrite or erase the
+first. `ubx why` isn't cleverly reconstructing this story from scattered
+logs, it's just reading the ledger back to you, in the order it
+genuinely happened.
+
+## Why it matters
+
+You never have to trust a snapshot, or dig through Slack messages and
+commit histories trying to piece together what happened. Every question
+about "how did this get this way" has one real answer, sitting right
+there, that can never quietly go stale or get silently overwritten by
+whatever change comes next.

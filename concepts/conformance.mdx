@@ -1,0 +1,48 @@
+---
+title: "Conformance & Provider Trust Tiers"
+description: "How ubx catches a provider quietly lying, before you ever trust its output."
+---
+
+A provider's own schema describes what it *claims* a resource type
+does. It doesn't prove ubx's own read, scan, and adopt logic actually
+handles that type correctly, or that the provider itself isn't lying
+about what really happened. The conformance harness exists to catch
+exactly that, empirically, against real cloud accounts.
+
+## Four real ways a provider can lie
+
+The harness checks every resource type against four distinct failure
+patterns, each one a real bug class this project has actually hit:
+
+- **Identity-shape lies** — a read-back that looks complete but is
+  missing or malformed identity fields, silently breaking future lookups.
+- **Sensitive-flag-vs-echo lies** — a provider claims an attribute is
+  sensitive but still echoes the real value back in a response.
+- **Destroy-honesty lies** — a destroy call reports success while the
+  resource, read back immediately after, still genuinely exists.
+- **Drift-detectability lies** — a real, live change to a resource that
+  a scan fails to notice at all.
+
+## Two execution tiers
+
+Some checks can run hermetically, against a fake, in-process provider
+with no real cloud account needed, fast and safe to run constantly.
+Others require a real, live cloud account to catch what a fake provider
+can't simulate, real eventual consistency, real API quirks. Both tiers
+feed the same registry of per-type results.
+
+## What this actually looks like
+
+The harness itself is an internal, test-only mechanism, not a CLI
+command you run directly, it runs as part of this project's own
+verification process before a provider type is ever trusted. Its real
+output is a generated, per-type registry recording which types have
+been checked, at which provider version, and which tier.
+
+## Why this matters
+
+A type that's never been through this harness can still be used, based
+on the provider's own schema, but without the same empirical confidence
+behind it. Naming that distinction honestly, rather than treating every
+type as equally proven, is a deliberate choice this project makes
+rather than a gap it hides.

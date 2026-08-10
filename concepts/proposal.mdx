@@ -1,111 +1,79 @@
 ---
-title: "Proposal"
-description: "The unit of change ubx records: a typed, hashed proposal"
+title: "The Proposal"
+description: "The signed, hashed unit of change ubx records."
 ---
 
-Everything ubx records — a hand-authored change, an adopted resource, a detected
-drift — is a **proposal**. A proposal is a JSON document with a fixed shape:
-what changed (`delta`), why (`intent`), what it was resolved against (`resolution`),
-its cost and blast radius, and, once accepted, who signed off on it and how.
+Every entry in [the ledger](/concepts/ledger) needs a real, fixed shape,
+otherwise "reading back history" would mean parsing whatever loose
+structure each tool, or each person, happened to write. A proposal is
+that fixed shape: one JSON document, the same fields every time,
+representing exactly one real decision.
 
-## Kinds
+## How it works
 
-A proposal has a `kind`. Two kinds are generated automatically by `ubx scan`:
+A proposal answers a handful of specific questions, always in the same
+place: what changed (`delta`), why (`intent`), what it was checked
+against (`resolution`), how expensive it is (`cost_delta` and
+`blast_radius`), and, once someone approves it, who signed off and how
+(`acceptance`).
 
-- **`adoption`** — a resource ubx has never recorded before. Its `delta.creates`
-  holds a full snapshot of the resource's observed state.
-- **`drift_adopt`** — a resource ubx has recorded before, whose live state no
-  longer matches what the ledger has for it. Its `delta.modifies` holds only the
-  attributes that changed, as a before/after diff.
-
-A third kind, **`change`**, is for a proposal you write by hand (or that some
-other tool generates) — a change you're proposing to make, rather than something
-`ubx scan` already observed.
-
-Both `adoption` and `drift_adopt` proposals always have an all-zero
-`blast_radius` — they record what's already true in the cloud, they don't
-propose making anything happen.
-
-## Identity is a hash, not a number
-
-A proposal's `id` is the SHA-256 hash of its own canonical content (everything
-except `id`, `acceptance`, and `status` — those are filled in once the proposal
-is accepted, so they can't be part of what's hashed). There's no sequential
-numbering. Two proposals with byte-for-byte identical content, resolved
-independently, hash to the same ID.
-
-## A minimal example
+A proposal's own identity, its `id`, isn't a number you or ubx picks. It's
+the SHA-256 hash of the proposal's own content. That has a real,
+practical consequence: two people who independently write the exact same
+change end up with the exact same ID, because the ID is entirely
+determined by what's actually in the file.
 
 ```json
 {
-  "schema_version": 1,
-  "stack": "payments",
-  "parent": "",
+  "id": "45f63ce10849...",
   "kind": "change",
-  "intent": {
-    "summary": "provision the payments database",
-    "sources": [{ "kind": "manual_edit", "ref": "PR #42" }]
-  },
-  "delta": {
-    "creates": [{ "stack": "payments", "type": "aws_db_instance", "name": "payments-db" }]
-  },
-  "resolution": { "resolved_at": "2026-07-12T00:00:00Z" },
-  "cost_delta": { "monthly_usd": 59 },
+  "parent": "8224643bbbc5...",
+  "delta": { "creates": [ "..." ] },
   "blast_radius": { "creates": 1, "modifies": 0, "destroys": 0 },
-  "status": "draft"
+  "status": "accepted"
 }
 ```
 
-A proposal resolved from an [`ubx propose --from-doc`](/guides/md-medium)
-draft carries three more fields on `intent` — `assumptions`, `defaults`,
-and `questions`, an LLM-authored draft's own reviewable record of every
-interpretation it had to make. They ride along unchanged through
-acceptance: signing a proposal built this way signs its stated
-assumptions too, not just the resulting resource config.
+`parent` points at the hash of the proposal right before this one. That
+single field is what turns a folder full of separate files into one
+real, ordered chain (more on why that matters in
+[Hash-Chain Verification](/concepts/verification)).
 
-Accepting it computes the hash, fills in `id`/`status`/`acceptance`, and appends
-it to the ledger:
+## Why a loosely-shaped record doesn't work
+
+Imagine instead that each change was just recorded as free-form notes,
+"bumped the queue's retention to 14 days, seemed fine." That's readable
+to a human right after the change, but it can't be checked by a machine,
+can't be hashed reliably (the same change described two different ways
+would produce two different hashes), and has no fixed place to record
+things like cost or blast radius consistently.
+
+A proposal's fixed shape means every tool, every command, every future
+version of ubx, can read any proposal ever written and know exactly
+where to find what it needs.
+
+## What this actually looks like
+
+Accepting a hand-written or resolved proposal is a real command, not
+just a description:
 
 ```bash
 ubx accept proposal.json --ledger-dir .
 ```
 
-```text
-accepted 89f98a80c66dc1eab122080eb33166980e9b69b0b119a141b978a270aa6ddea1 (stack payments)
-```
-
 ```bash
-ubx why 89f98a80c66dc1eab122080eb33166980e9b69b0b119a141b978a270aa6ddea1 --ledger-dir .
+accepted 45f63ce10849... (stack payments)
 ```
 
-```text
-proposal 89f98a80c66dc1eab122080eb33166980e9b69b0b119a141b978a270aa6ddea1 (change)
-stack:  payments
-status: accepted
-intent: provision the payments database
-  source: manual_edit PR #42 (content_hash=)
-accepted by [roozbeh] via local at 2026-07-11T15:42:26Z
-blast radius: +1 ~0 -0
-```
+That single line means the proposal's hash was computed, its
+`acceptance` field was filled in with a real signature, and it was
+appended to the ledger, permanently.
 
-## Acceptance
+## Why it matters
 
-Acceptance binds a signature to the exact hash. There are two ways to accept a
-proposal today:
-
-- **`local`** — running `ubx accept proposal.json` on your own machine. Records
-  who ran it (your OS username) and when.
-- **`pr_merge`** — deriving acceptance from a merged, reviewed GitHub pull
-  request (`ubx accept --from-merge`). Records the merge commit, the pull
-  request number, and every reviewer whose most recent review was an approval.
-
-See the [CLI reference for `ubx accept`](/cli/accept) for both flows.
-
-## Related
-
-- [Ledger](/concepts/ledger) — where accepted proposals live
-- [Drift](/concepts/drift) — how `adoption`/`drift_adopt` proposals get generated
-- [Apply record](/concepts/apply-record) — what `ubx ship` produces when it executes an accepted `drift_revert`; the proposal's own `status` is never rewritten by it
-- [Why](/concepts/why) — reading a proposal back
-- [Why trust the record](/concepts/trust-model) — what hash-based identity and acceptance tiers actually prove
-- [The md medium](/guides/md-medium) — how a proposal's `assumptions`/`defaults`/`questions` fields get populated
+Because the shape is fixed and the ID is computed, not chosen, you can
+independently verify a proposal's own integrity without trusting
+whoever wrote it. Two proposals with the same content always produce
+the same hash, and any proposal whose content changes even slightly
+produces a completely different one. Nothing about "what actually
+happened" depends on anyone's word alone.

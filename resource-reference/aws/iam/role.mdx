@@ -1,0 +1,144 @@
+---
+title: "aws_iam_role"
+description: "An IAM role, assumable by a real trust policy."
+---
+
+An IAM role grants a set of permissions to whatever's allowed to assume
+it, an EC2 instance, a Lambda function, another AWS account. `aws_iam_role`
+creates the role and its trust policy, real permissions are attached
+separately, via `aws_iam_role_policy_attachment`.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    import (
+        "encoding/json"
+        iam "github.com/ubiquex/ubx-sdk-aws-go/aws/iam"
+    )
+
+    trustPolicy, _ := json.Marshal(map[string]any{
+        "Version": "2012-10-17",
+        "Statement": []map[string]any{{
+            "Effect": "Allow",
+            "Principal": map[string]string{
+                "Service": "ec2.amazonaws.com",
+            },
+            "Action": "sts:AssumeRole",
+        }},
+    })
+
+    ubx.Resource(iam.Role, "ci-runner", iam.RoleConfig{
+        Name:             "ci-runner",
+        AssumeRolePolicy: string(trustPolicy),
+    })
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { Role } from "jsr:@ubx/sdk-aws/aws/iam/role";
+
+    const trustPolicy = JSON.stringify({
+      Version: "2012-10-17",
+      Statement: [{
+        Effect: "Allow",
+        Principal: { Service: "ec2.amazonaws.com" },
+        Action: "sts:AssumeRole",
+      }],
+    });
+
+    resource(Role, "ci-runner", {
+      name: "ci-runner",
+      assumeRolePolicy: trustPolicy,
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import json
+    from ubx.aws.iam import Role, RoleConfig
+
+    trust_policy = json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Effect": "Allow",
+            "Principal": {"Service": "ec2.amazonaws.com"},
+            "Action": "sts:AssumeRole",
+        }],
+    })
+
+    ubx.resource(Role, "ci-runner", RoleConfig(
+        name="ci-runner",
+        assume_role_policy=trust_policy,
+    ))
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create an IAM role called "ci-runner", assumable by EC2.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="name" type="string">
+  The role's own name. Conflicts with `name_prefix`.
+</ResponseField>
+
+<ResponseField name="name_prefix" type="string">
+  A prefix, with a generated suffix appended. Conflicts with `name`.
+</ResponseField>
+
+<ResponseField name="assume_role_policy" type="string (JSON)" required>
+  The trust policy naming who may assume this role.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A description of the role.
+</ResponseField>
+
+<ResponseField name="path" type="string" default="/">
+  The role's own path.
+</ResponseField>
+
+<ResponseField name="max_session_duration" type="number" default="3600">
+  Longest a session assuming this role may last, in seconds. `3600` to `43200`.
+</ResponseField>
+
+<ResponseField name="permissions_boundary" type="string">
+  ARN of a policy used as this role's permissions boundary.
+</ResponseField>
+
+<ResponseField name="force_detach_policies" type="bool" default="false">
+  Detach every attached policy before destroying the role.
+</ResponseField>
+
+<ResponseField name="tags" type="map(string)">
+  Real, arbitrary tags.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  Same value as `name`.
+</ResponseField>
+
+<ResponseField name="arn" type="string">
+  The role's real ARN, computed, known only after ship.
+</ResponseField>
+
+<ResponseField name="unique_id" type="string">
+  AWS's own stable unique identifier for the role.
+</ResponseField>
+
+<ResponseField name="create_date" type="string">
+  When the role was actually created, in ISO 8601.
+</ResponseField>
+
+## See also
+
+- [Your first AWS resources](/tutorial/aws/first-resource)
+- [aws_iam_policy](/resource-reference/aws/iam/policy)
+- [aws_iam_role_policy_attachment](/resource-reference/aws/iam/role-policy-attachment)

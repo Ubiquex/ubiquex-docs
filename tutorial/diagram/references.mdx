@@ -1,0 +1,78 @@
+---
+title: "Wiring nodes together"
+description: "Connect two nodes with a real ref:, resolved at ship time."
+---
+
+A `ubx_required` value can point at another node in the same diagram,
+resolved into a real reference once every node's own type and name are
+known. This tutorial wires an IAM attachment to a role and a policy
+using exactly that.
+
+## Add a policy and an attachment
+
+```bash
+cat >> platform.d2 << 'EOF'
+policy: "ci-runner-access" {
+  class: aws_iam_policy
+  ubx_required.policy: "{\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"sqs:SendMessage\",\"Resource\":\"*\"}]}"
+}
+
+attach: "attach" {
+  class: aws_iam_role_policy_attachment
+  ubx_required.role: "ref:role.name"
+  ubx_required.policy_arn: "ref:policy.arn"
+}
+EOF
+```
+
+Neither `ref:` value is a literal string. Both resolve to the real
+attribute of the node they name, `role.name` and `policy.arn` aren't
+known until those resources are actually about to be created.
+
+## Plan it
+
+```bash
+ubx plan --from-diagram platform.d2 --stack payments
+```
+
+```bash
+Plan  payments · from platform.d2
+
+  + aws_iam_role.ci-runner create
+  + aws_iam_policy.ci-runner-access create
+  + aws_iam_role_policy_attachment.attach create
+      role: $ref:payments.aws_iam_role.ci-runner.name
+      policy_arn: $ref:payments.aws_iam_policy.ci-runner-access.arn
+
+delta: +4 create(s), ~0 change(s), -0 terminate(s)
+```
+
+## Ship it
+
+```bash
+ubx ship <hash>
+```
+
+```bash
+  ✓ aws_iam_role.ci-runner                                    : shipped
+  ✓ aws_iam_policy.ci-runner-access                           : shipped
+  ✓ aws_iam_role_policy_attachment.attach                     : shipped
+4 resource(s), 4 shipped, 0 failed
+```
+
+The attachment correctly waited for the role and policy to ship first,
+the dependency was inferred from the reference itself.
+
+## What you just did
+
+You wired two diagram nodes together with a real, resolved reference,
+never a hardcoded name that could silently drift out of sync if either
+resource were ever renamed.
+
+## Next
+
+You've completed the Diagram track. One medium left, real code.
+
+<Card title="SDK" icon="code" href="/tutorial/sdk">
+  Real Go, TypeScript, or Python, deterministic, compiler-checked.
+</Card>

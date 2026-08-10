@@ -1,0 +1,204 @@
+---
+title: "Your first cluster resources"
+description: "A real secret and a real deployment, wired together with a reference."
+---
+
+Same commands, `hashicorp/kubernetes` as the provider. Two real
+resources, one referencing the other, shown in all five mediums.
+
+## Set up a stack
+
+```bash
+mkdir payments-k8s && cd payments-k8s
+ubx init --source hashicorp/kubernetes --provider-version 2.31.0
+```
+
+## Author both resources
+
+<Tabs>
+  <Tab title="Markdown">
+    ```bash
+    cat > platform.md << 'EOF'
+    Create a Kubernetes secret called "db-credentials" in the "payments"
+    namespace, with a key "password" referencing our secret store.
+
+    Deploy a single-replica deployment called "payments-worker" in that
+    same namespace, image "acme/payments-worker:latest", with an
+    environment variable DB_PASSWORD sourced from that secret's password key.
+    EOF
+    ubx plan --from-doc platform.md --stack payments
+    ```
+  </Tab>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    	core "github.com/ubiquex/ubx-sdk-kubernetes-go/kubernetes/core"
+    	apps "github.com/ubiquex/ubx-sdk-kubernetes-go/kubernetes/apps"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments secret and worker deployment"})
+
+    		secret := ubx.Resource(core.SecretV1, "db-credentials", core.SecretV1Config{
+    			Metadata: core.ObjectMeta{Name: "db-credentials", Namespace: "payments"},
+    			Data: map[string]any{
+    				"password": ubx.Secret("aws_secrets_manager", "payments/db-password"),
+    			},
+    		})
+
+    		ubx.Resource(apps.DeploymentV1, "payments-worker", apps.DeploymentV1Config{
+    			Metadata: core.ObjectMeta{Name: "payments-worker", Namespace: "payments"},
+    			Spec: apps.DeploymentSpec{
+    				Replicas: 1,
+    				Template: core.PodTemplate{
+    					Containers: []core.Container{{
+    						Name:  "payments-worker",
+    						Image: "acme/payments-worker:latest",
+    						Env: []core.EnvVar{{
+    							Name: "DB_PASSWORD",
+    							ValueFrom: core.EnvVarSource{
+    								SecretKeyRef: core.SecretKeyRef{
+    									Name: secret.Field("metadata").Field("name"),
+    									Key:  "password",
+    								},
+    							},
+    						}},
+    					}},
+    				},
+    			},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```bash
+    deno add jsr:@ubx/sdk jsr:@ubx/sdk-kubernetes
+    ```
+    ```typescript
+    import { stack, intent, resource, secret } from "@ubx/sdk";
+    import { SecretV1 } from "jsr:@ubx/sdk-kubernetes/kubernetes/secret/secret_v1";
+    import { DeploymentV1 } from
+      "jsr:@ubx/sdk-kubernetes/kubernetes/deployment/deployment_v1";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments secret and worker deployment" });
+
+      const dbSecret = resource(SecretV1, "db-credentials", {
+        metadata: { name: "db-credentials", namespace: "payments" },
+        data: { password: secret("aws_secrets_manager", "payments/db-password") },
+      });
+
+      resource(DeploymentV1, "payments-worker", {
+        metadata: { name: "payments-worker", namespace: "payments" },
+        spec: {
+          replicas: 1,
+          template: {
+            containers: [{
+              name: "payments-worker",
+              image: "acme/payments-worker:latest",
+              env: [{
+                name: "DB_PASSWORD",
+                valueFrom: { secretKeyRef: { name: dbSecret.metadata.name, key: "password" } },
+              }],
+            }],
+          },
+        },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```bash
+    git clone https://github.com/Ubiquex/ubx-sdk-kubernetes-py.git
+    ```
+    Save this file **inside** the cloned directory, as
+    `ubx-sdk-kubernetes-py/create_platform.py`:
+    ```python
+    import ubx_sdk as ubx
+    from kubernetes.core import SecretV1, SecretV1Config, ObjectMeta
+    from kubernetes.apps import DeploymentV1, DeploymentV1Config
+
+    def describe():
+        ubx.intent("payments secret and worker deployment")
+
+        db_secret = ubx.resource(SecretV1, "db-credentials", SecretV1Config(
+            metadata=ObjectMeta(name="db-credentials", namespace="payments"),
+            data={"password": ubx.secret("aws_secrets_manager", "payments/db-password")},
+        ))
+
+        ubx.resource(DeploymentV1, "payments-worker", DeploymentV1Config(
+            metadata=ObjectMeta(name="payments-worker", namespace="payments"),
+            spec={
+                "replicas": 1,
+                "template": {
+                    "containers": [{
+                        "name": "payments-worker",
+                        "image": "acme/payments-worker:latest",
+                        "env": [{
+                            "name": "DB_PASSWORD",
+                            "valueFrom": {"secretKeyRef": {"name": db_secret.metadata.name, "key": "password"}},
+                        }],
+                    }],
+                },
+            },
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Diagram">
+    ```d2
+    secret: "db-credentials" {
+      class: kubernetes_secret_v1
+      ubx_required.metadata: "{\"name\":\"db-credentials\",\"namespace\":\"payments\"}"
+    }
+
+    worker: "payments-worker" {
+      class: kubernetes_deployment_v1
+      ubx_required.metadata: "{\"name\":\"payments-worker\",\"namespace\":\"payments\"}"
+      ubx_required.spec: "{\"replicas\":1,\"template\":{\"spec\":{\"containers\":[{\"name\":\"payments-worker\",\"image\":\"acme/payments-worker:latest\",\"env\":[{\"name\":\"DB_PASSWORD\",\"valueFrom\":{\"secretKeyRef\":{\"name\":\"ref:secret.metadata.name\",\"key\":\"password\"}}}]}]}}}"
+    }
+    ```
+    ```bash
+    ubx plan --from-diagram platform.d2 --stack payments
+    ```
+  </Tab>
+</Tabs>
+
+The deployment's `secretKeyRef.name` is a real reference to the secret,
+never a hardcoded name the two resources could quietly fall out of sync
+on. The real secret value stays a reference the whole way through,
+never appearing in either resource's own config.
+
+## Ship it
+
+```bash
+ubx ship <hash>
+```
+
+```bash
+  ✓ kubernetes_secret_v1.db-credentials     : shipped
+  ✓ kubernetes_deployment_v1.payments-worker : shipped
+2 resource(s), 2 shipped, 0 failed
+```
+
+The deployment correctly waited for the secret to ship first.
+
+## What you just did
+
+You shipped two real, connected Kubernetes resources, a secret and a
+deployment consuming it, and saw the exact same reference mechanism
+and secret-handling discipline work identically across prose, two
+typed languages, and a diagram.
+
+## Next
+
+<Card title="A real Helm release" icon="helmet-safety" href="/tutorial/kubernetes/helm-release">
+  Ship a real helm_release next to what you just built.
+</Card>

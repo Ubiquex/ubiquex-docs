@@ -1,0 +1,182 @@
+---
+title: "Your first Azure resources"
+description: "A real storage account and a real queue, wired together with a reference."
+---
+
+Same commands, `hashicorp/azurerm` instead of `hashicorp/aws`. Two real
+resources, one referencing the other, shown in all five mediums.
+
+## Set up a stack
+
+```bash
+mkdir payments-azure && cd payments-azure
+ubx init --source hashicorp/azurerm --provider-version 3.116.0
+```
+
+## Author both resources
+
+<Tabs>
+  <Tab title="Markdown">
+    ```bash
+    cat > platform.md << 'EOF'
+    Provision a storage account called "acmepayments" in resource group
+    "payments-rg", region "eastus", standard tier, locally redundant.
+
+    Create a storage queue called "pipeline-events" inside that account.
+    EOF
+    ubx plan --from-doc platform.md --stack payments
+    ```
+  </Tab>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    	storage "github.com/ubiquex/ubx-sdk-azure-go/azurerm/storage"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments storage account and queue"})
+
+    		account := ubx.Resource(storage.Account, "acmepayments", storage.AccountConfig{
+    			Name:                    "acmepayments",
+    			ResourceGroupName:       "payments-rg",
+    			Location:                "eastus",
+    			AccountTier:             "Standard",
+    			AccountReplicationType:  "LRS",
+    		})
+
+    		ubx.Resource(storage.Queue, "pipeline-events", storage.QueueConfig{
+    			Name:               "pipeline-events",
+    			StorageAccountName: account.Field("name"),
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```bash
+    deno add jsr:@ubx/sdk jsr:@ubx/sdk-azure
+    ```
+    ```typescript
+    import { stack, intent, resource } from "@ubx/sdk";
+    import { Account } from "jsr:@ubx/sdk-azure/azurerm/storage/account";
+    import { Queue } from "jsr:@ubx/sdk-azure/azurerm/storage/queue";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments storage account and queue" });
+
+      const account = resource(Account, "acmepayments", {
+        name: "acmepayments",
+        resourceGroupName: "payments-rg",
+        location: "eastus",
+        accountTier: "Standard",
+        accountReplicationType: "LRS",
+      });
+
+      resource(Queue, "pipeline-events", {
+        name: "pipeline-events",
+        storageAccountName: account.name,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```bash
+    git clone https://github.com/Ubiquex/ubx-sdk-azure-py.git
+    ```
+    Save this file **inside** the cloned directory, as
+    `ubx-sdk-azure-py/create_platform.py`:
+    ```python
+    import ubx_sdk as ubx
+    from azurerm.storage import Account, AccountConfig, Queue, QueueConfig
+
+    def describe():
+        ubx.intent("payments storage account and queue")
+
+        account = ubx.resource(Account, "acmepayments", AccountConfig(
+            name="acmepayments",
+            resource_group_name="payments-rg",
+            location="eastus",
+            account_tier="Standard",
+            account_replication_type="LRS",
+        ))
+
+        ubx.resource(Queue, "pipeline-events", QueueConfig(
+            name="pipeline-events",
+            storage_account_name=account.name,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Diagram">
+    ```d2
+    account: "acmepayments" {
+      class: azurerm_storage_account
+      ubx_required.resource_group_name: "payments-rg"
+      ubx_required.location: "eastus"
+      ubx_required.account_tier: "Standard"
+      ubx_required.account_replication_type: "LRS"
+    }
+
+    queue: "pipeline-events" {
+      class: azurerm_storage_queue
+      ubx_required.storage_account_name: "ref:account.name"
+    }
+    ```
+    ```bash
+    ubx plan --from-diagram platform.d2 --stack payments
+    ```
+  </Tab>
+</Tabs>
+
+Every tab resolves to the exact same delta:
+
+```bash
+Plan  payments
+
+  + azurerm_storage_account.acmepayments create
+      name: "acmepayments"
+      resource_group_name: "payments-rg"
+      location: "eastus"
+      account_tier: "Standard"
+      account_replication_type: "LRS"
+
+  + azurerm_storage_queue.pipeline-events create
+      name: "pipeline-events"
+      storage_account_name: $ref:payments.azurerm_storage_account.acmepayments.name
+
+delta: +2 create(s), ~0 change(s), -0 terminate(s)
+```
+
+The queue's `storage_account_name` is a real reference, not a typed-in
+string that could quietly drift out of sync if the account were ever
+renamed.
+
+## Ship it
+
+```bash
+ubx ship <hash>
+```
+
+```bash
+  ✓ azurerm_storage_account.acmepayments      : shipped
+  ✓ azurerm_storage_queue.pipeline-events     : shipped
+2 resource(s), 2 shipped, 0 failed
+```
+
+## What you just did
+
+You shipped two real, connected Azure resources, and saw the exact
+same reference mechanism work identically across prose, two typed
+languages, and a diagram.
+
+## Next
+
+<Card title="Drift and Activity Log attribution" icon="arrows-rotate" href="/tutorial/azure/attribution">
+  See who really changed an Azure resource.
+</Card>

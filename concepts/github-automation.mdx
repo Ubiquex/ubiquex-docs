@@ -1,0 +1,66 @@
+---
+title: "GitHub App Automation"
+description: "Surfacing a real change automatically, at two deliberate permission tiers."
+---
+
+Reviewing a change is easiest when it shows up where your team already
+works, a GitHub issue or pull request, rather than requiring someone to
+remember to run a command. Automating that requires giving something
+real access to your repository, and how much access it actually needs
+should be a deliberate choice, not an afterthought.
+
+## How it works
+
+Two separate automation modes exist, at two genuinely different
+permission levels. The lighter one opens a plain issue, needing only
+`issues: write`:
+
+```bash
+ubx scan --propose both --notify github-issue
+```
+
+```bash
+opened: https://github.com/acme/infra/issues/142
+```
+
+The fuller one opens a real, ready-to-review draft pull request,
+branching, committing the proposal file, and opening the PR
+automatically, wired directly into [PR-merge
+acceptance](/concepts/pr-merge-acceptance)'s own `ubx-proposal:` trailer
+convention. This mode needs real write access to repository content:
+
+```bash
+ubx scan --propose both --notify github-pr
+```
+
+```bash
+opened: https://github.com/acme/infra/pull/143
+  branch: ubx/drift-adopt-a1b2c3
+  body includes: ubx-proposal: a1b2c3d4...
+```
+
+## Why offering only the fuller mode by default doesn't work
+
+Granting broad write access to a repository just to get a helpful
+notification is a real, unnecessary risk if all you actually wanted was
+a heads-up. Giving the issue-only mode its own, genuinely smaller
+permission footprint means a team can start with the least access that
+does the job, and only grant more once they actually want automated PRs.
+
+## What this actually looks like
+
+Once a draft PR is merged, it flows straight into the same acceptance
+mechanism a manually-opened PR would:
+
+```bash
+ubx accept --from-merge <merge-sha> --proposal-file proposal.json
+```
+
+Nothing about how the PR was created changes how its acceptance gets
+verified later, the same real, re-derivable evidence either way.
+
+## Why it matters
+
+Automated notification and automated review both exist, but the choice
+of how much access to grant for that convenience stays entirely yours,
+made explicitly, not assumed.

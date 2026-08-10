@@ -1,0 +1,98 @@
+---
+title: "ubx status"
+description: "Report every resource the ledger knows about, optionally comparing against live state."
+---
+
+`ubx status` is the fast, read-only report over your whole fleet. On its
+own it's ledger-only, no provider launched, no credentials needed, just
+a listing of every resource the ledger has ever recorded. With
+`--drift`, it also reads each resource's real, live state and classifies
+it clean, drifted, or unreadable.
+
+Unlike `ubx scan`, it never generates a proposal, it only reports. Use
+`ubx scan` once you're ready to act on what it finds.
+
+## Usage
+
+```bash
+ubx status [--stack <stack>] [--drift] [flags]
+```
+
+## Examples
+
+Ledger-only, every stack:
+
+```bash
+ubx status
+```
+
+```bash
+payments.aws_sqs_queue.pipeline-events: change 45f63ce1... (accepted 2026-08-04T18:07:04Z)
+2 resource(s) (ledger-only, no live comparison)
+```
+
+Comparing against live reality:
+
+```bash
+ubx status --drift --stack payments
+```
+
+```bash
+Drift  payments · 1 of 5 resource(s) drifted
+
+drifted: payments.aws_sqs_queue.pipeline-events: change 45f63ce1...
+    ~ message_retention_seconds: 86400 -> 1209600
+    next: ubx scan --propose both
+
+4 clean (--all to show)
+
+5 resource(s), 1 drifted, 0 unreadable
+```
+
+## Flags
+
+<ResponseField name="--stack" type="string">
+  Restrict the report to one stack. Omitted, every stack the ledger holds is shown (git-local stores only, a remote store requires `--stack`).
+</ResponseField>
+
+<ResponseField name="--drift">
+  Also compare each resource against live state.
+</ResponseField>
+
+<ResponseField name="--all">
+  With `--drift`, also show each clean resource's own line (hidden by default).
+</ResponseField>
+
+<ResponseField name="--source / --provider-version / --provider" type="string">
+  Provider selection for `--drift`.
+</ResponseField>
+
+<ResponseField name="--provider-config" type="string" default="{}">
+  JSON object configuring the provider, for `--drift`.
+</ResponseField>
+
+<ResponseField name="--json">
+  Emit one JSON document instead of human text.
+</ResponseField>
+
+<ResponseField name="--ledger-dir" type="string" default=".">
+  Root directory containing `ledger/` and `.ubx/` (default `.`).
+</ResponseField>
+
+<ResponseField name="--timeout" type="string" default="60s">
+  Overall timeout for the fleet walk with `--drift` (default `60s`).
+</ResponseField>
+
+## Notes
+
+Exit code is a real CI contract: `0` if clean, `1` if anything drifted,
+`2` if anything was unreadable, whichever is worse always wins. A
+resource that fails to read (a launch failure, a missing lookup key)
+never aborts the whole walk, it's recorded as unreadable and the report
+continues.
+
+## See also
+
+- [FoldState](/concepts/foldstate)
+- [Drift, Adoption & Revert](/concepts/drift)
+- [`ubx scan`](/cli-reference/scan)

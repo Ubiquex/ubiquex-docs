@@ -1,0 +1,164 @@
+---
+title: "ubx scan"
+description: "Compare live infrastructure against the ledger, one resource, a whole fleet, or bulk onboarding."
+---
+
+`ubx scan` is how drift and new resources actually get found. Its exact
+behavior depends on which mode you invoke: scan one specific resource,
+scan every resource a stack's ledger already tracks, bulk-onboard from a
+Terraform state file, or discover resources directly from the cloud with
+no state file at all.
+
+Whatever it finds, adoption or drift, it never applies anything. It
+generates a real proposal, saves it to the plan store, and hands you the
+exact `ubx ship` command to act on it.
+
+## Usage
+
+```bash
+ubx scan --stack <stack> [--type <type> --name <name>] [flags]
+ubx scan --all --tfstate <path> [flags]
+ubx scan --discover --tag <key=value> [flags]
+```
+
+## Examples
+
+Scanning everything a stack already tracks:
+
+```bash
+ubx scan --stack payments
+```
+
+```bash
+Drift found  payments.aws_sqs_queue.pipeline-events
+
+  drift_adopt   45f63ce1...     record-only · records reality as signed
+      ~ 1 attribute(s) changed: message_retention_seconds
+
+  saved to plan store            next: ubx ship 45f63ce1...
+```
+
+Bulk onboarding from a real state file:
+
+```bash
+ubx scan --all --tfstate ./terraform.tfstate --stack payments
+```
+
+Cloud-side discovery, no state file:
+
+```bash
+ubx scan --discover --tag team=payments --stack payments
+```
+
+## Flags
+
+<ResponseField name="--stack" type="string">
+  Stack the resource(s) belong to. Required unless `--all` (defaults to the state file's own basename) or set in `.ubx/config`.
+</ResponseField>
+
+<ResponseField name="--type / --name" type="string">
+  Scan exactly one resource. Omit both to walk every resource the stack's ledger already tracks.
+</ResponseField>
+
+<ResponseField name="--propose" type="string" default="adopt">
+  On drift, which resolution to generate: `adopt`, `revert`, or `both` (default `adopt`).
+</ResponseField>
+
+<ResponseField name="--all">
+  Bulk onboarding: enumerate every resource in `--tfstate`.
+</ResponseField>
+
+<ResponseField name="--tfstate" type="string">
+  Path to a Terraform state v4 file. Required with `--all`.
+</ResponseField>
+
+<ResponseField name="--discover">
+  Cloud-side discovery via tags, no state file. Requires `--tag`.
+</ResponseField>
+
+<ResponseField name="--tag" type="list(string)">
+  `key=value` filter for `--discover`. Repeatable, same key ORs, different keys AND.
+</ResponseField>
+
+<ResponseField name="--discover-type" type="list(string)">
+  Resource type allowlist for `--discover`. Repeatable.
+</ResponseField>
+
+<ResponseField name="--region" type="string">
+  AWS region to enumerate with `--discover`.
+</ResponseField>
+
+<ResponseField name="--limit" type="number" default="100">
+  Refuse `--discover` without `--yes` past this many resources.
+</ResponseField>
+
+<ResponseField name="--yes">
+  Confirm proceeding past `--discover`'s own limit.
+</ResponseField>
+
+<ResponseField name="--suggest-stacks">
+  With `--discover`, preview a stack grouping without writing anything.
+</ResponseField>
+
+<ResponseField name="--stack-tag" type="string">
+  With `--suggest-stacks`, the tag key to group by.
+</ResponseField>
+
+<ResponseField name="--no-attribution">
+  Skip audit-log attribution for this scan.
+</ResponseField>
+
+<ResponseField name="--surface-as" type="string">
+  On drift, open a GitHub `issue` or `pr` instead of just printing the proposal.
+</ResponseField>
+
+<ResponseField name="--github-repo" type="string">
+  Repository for `--surface-as`.
+</ResponseField>
+
+<ResponseField name="--lookup" type="string" default="{}">
+  JSON object identifying the resource to the provider, for a single-resource scan.
+</ResponseField>
+
+<ResponseField name="--source / --provider-version / --provider" type="string">
+  Provider selection, same as `ubx ship`.
+</ResponseField>
+
+<ResponseField name="--provider-config" type="string" default="{}">
+  JSON object configuring the provider.
+</ResponseField>
+
+<ResponseField name="--ledger-dir" type="string" default=".">
+  Root directory containing `ledger/` and `.ubx/` (default `.`).
+</ResponseField>
+
+<ResponseField name="--out / --out-dir" type="string">
+  Write generated proposal(s) to a file or directory instead of stdout.
+</ResponseField>
+
+<ResponseField name="--json">
+  Emit JSON (single-resource scan only).
+</ResponseField>
+
+<ResponseField name="--full-hashes">
+  Render every hash in full instead of the default 12-character short form.
+</ResponseField>
+
+<ResponseField name="--timeout" type="string" default="60s">
+  Overall timeout for the scan or walk (default `60s`).
+</ResponseField>
+
+## Notes
+
+A never-seen-before resource always generates an adoption proposal,
+`--propose` has no effect there, there's nothing recorded yet to revert
+to. For an already-tracked resource with real drift, `--propose both`
+drafts adopt and revert side by side, so the choice stays yours.
+
+## See also
+
+- [Drift, Adoption & Revert](/concepts/drift)
+- [Bulk Onboarding from Terraform State](/concepts/bulk-onboarding)
+- [Cloud-Side Discovery](/concepts/discovery)
+- [Discovery Tiers](/concepts/discovery-tiers)
+- [`ubx status`](/cli-reference/status)

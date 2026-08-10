@@ -1,0 +1,63 @@
+---
+title: "Writeback"
+description: "Surgically correcting an existing .tf file after adopting real drift."
+---
+
+A real team migrating gradually onto ubx often still has other tools, or
+other people, reading the same `.tf` files ubx's own resources live
+next to. If ubx adopts a real drift but the `.tf` file itself still
+shows the old value, anyone else reading that file gets a false picture
+of reality.
+
+## How it works
+
+`ubx writeback` corrects the exact literal value inside an existing
+`.tf` file to match what was just adopted, and nothing else:
+
+```bash
+ubx writeback 45f63ce10849...
+```
+
+```bash
+applied: message_retention_seconds (86400 -> 1209600)
+1 attribute written back to main.tf
+```
+
+The edit is surgical, byte-range precise. Only the specific value that
+changed is touched, comments, formatting, and everything else around it
+stay exactly as they were.
+
+## Why regenerating the whole file doesn't work
+
+A tool that just regenerated an entire `.tf` file from scratch would
+throw away comments, custom formatting, anything a human added that
+wasn't part of ubx's own model. That's real, often carefully-written
+content, destroying it just to fix one value would be a much bigger
+change than the one actually being made.
+
+## What this actually looks like
+
+Not every value can be safely rewritten. The argument is always a real
+proposal ID, not a resource address, `writeback` works off one specific
+accepted `drift_adopt` decision. If the current value is an expression,
+a variable reference or a function call, rather than a plain literal,
+writeback declines rather than guessing at what to do with it:
+
+```bash
+ubx writeback 8224643bbbc5...
+```
+
+```bash
+applied: 1 attribute
+declined: max_session_duration (current value is var.session_duration, not a literal -- update the variable instead)
+```
+
+Real secret material is refused unconditionally too, a redacted value is
+never written into a `.tf` file, since it's a fingerprint, not the real
+value.
+
+## Why it matters
+
+Writeback lets `.tf` files stay a real, accurate reflection of what ubx
+knows, without ubx ever rewriting more than the exact thing that
+actually changed.

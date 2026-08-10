@@ -1,0 +1,57 @@
+---
+title: "Cross-Stack Orphan Protection"
+description: "A destroy can be refused because of a reference in a stack you never touched."
+---
+
+Imagine destroying a VPC that a completely different team's stack still
+references, their own subnet, their own security group rule, pointing
+at a resource that's about to disappear. Nothing in *your* stack would
+ever show that danger. The reference lives entirely in theirs.
+
+## How it works
+
+Before a destroy resolves, ubx checks whether any *other* stack you name
+still holds a pinned reference to the address being destroyed. Pass
+`--known-dependent` naming a neighbor stack's own ledger directory, and
+the resolver walks that neighbor's real, current references, refusing
+the destroy outright if one still points at your target.
+
+```bash
+ubx terminate network.aws_vpc.main --known-dependent ../payments
+```
+
+```bash
+terminate: network.aws_vpc.main is still referenced by
+payments.aws_subnet.public-a (@network.aws_vpc.main.id) -- resolve or
+remove that reference first
+```
+
+## Why checking only your own stack doesn't work
+
+A destroy that only ever validates against its own stack's own history
+has no way to know a neighbor depends on it at all, cross-stack
+references are precisely the kind of connection that crosses outside
+what any one ledger can see on its own. Refusing to even try checking
+would leave exactly the failure mode this exists to prevent: a resource
+destroyed out from under a reference nobody thought to look for.
+
+## What this actually looks like
+
+This is deliberately opt-in and best-effort, not automatic. Omitting
+`--known-dependent` doesn't mean "no dependents exist," it means none
+were checked, and the resolved proposal records that gap honestly:
+
+```json
+{ "kind": "cross_stack_orphan_check", "status": "not_performed" }
+```
+
+Never silently assumed safe. A reviewer reading the proposal sees
+exactly whether this check ran, and against which neighbors.
+
+## Why it matters
+
+A destroy that only ever looks at its own history could quietly break
+something real in another team's stack. Naming this check explicitly,
+and recording honestly whether it ran, means a reviewer always knows
+exactly how much protection a given destroy actually had, never an
+assumed guarantee that wasn't really checked.

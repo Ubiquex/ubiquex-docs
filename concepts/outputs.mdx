@@ -1,0 +1,62 @@
+---
+title: "Blueprint Outputs"
+description: "A blueprint's own stable, versioned return values."
+---
+
+Say a caller needs to reference something a blueprint creates
+internally, an IAM role's real ARN, for example, to write a policy
+elsewhere. If they just reach directly into the blueprint's internal
+resource name to grab it, a perfectly reasonable rename by the
+blueprint's own author later silently breaks every caller who did that.
+
+## How it works
+
+A blueprint author declares outputs explicitly, and the compiled
+function genuinely returns them, the same way any ordinary function
+returns a value:
+
+```
+# Ubxfile
+outputs:
+  repo_arn: container-repo.arn
+```
+
+```go
+repoArn := ciplatform.CiPlatform("payments-ci-artifacts", "payments-notifications")
+// repoArn is a real *ubx.Computed value
+```
+
+A caller uses the returned value directly. They never need to know, or
+depend on, the blueprint's own internal resource names.
+
+## Why reaching into internals doesn't work
+
+If a caller has to know a blueprint's private resource names to get a
+value out of it, the blueprint's author can never safely rename or
+restructure anything internal without breaking someone. That's the
+opposite of what a reusable pattern is supposed to give you.
+
+## What this actually looks like
+
+Outputs are deliberately different from
+[`@stack` cross-stack references](/concepts/environments), even though
+both involve "getting a value from somewhere else." A `@stack` reference
+crosses a real trust boundary, a different team's own, separately
+signed ledger, pinned to their chain's current head. An output never
+leaves the one proposal being resolved right now, no separate ledger, no
+staleness to worry about.
+
+```
+ubx_required.policy: "ref:platform.repo_arn"
+```
+
+A diagram node references an output using the same `ref:` syntax it
+already uses for anything else in the same document, resolved into the
+real value once every node's own type is known.
+
+## Why it matters
+
+An author can freely restructure a blueprint's internals across
+versions, as long as the declared outputs stay stable. Callers get a
+real contract, not an implementation detail they'd have to track by
+hand.

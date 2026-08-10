@@ -1,0 +1,79 @@
+---
+title: "A real concurrent write"
+description: "Two writers, one bucket, and the real CAS protection that resolves it."
+---
+
+The whole point of a remote store's edge-based head design is safe
+concurrency. This tutorial proves it directly, with two real terminals.
+
+## Prepare two proposals from the same head
+
+In one terminal:
+
+```bash
+ubx plan --from-doc queue-a.md --stack payments --out plan-a.json
+```
+
+In a second terminal, from a separate checkout of the same stack:
+
+```bash
+ubx plan --from-doc queue-b.md --stack payments --out plan-b.json
+```
+
+Both plans resolve against the exact same current head.
+
+## Ship both, at nearly the same moment
+
+Terminal 1:
+
+```bash
+ubx ship <hash-a>
+```
+
+```bash
+  ✓ aws_sqs_queue.queue-a : shipped
+1 resource(s), 1 shipped, 0 failed
+```
+
+Terminal 2, run right after:
+
+```bash
+ubx ship <hash-b>
+```
+
+```bash
+ship: expected 45f63ce1... -- the ledger's head has moved since this
+proposal was resolved; re-resolve and try again
+```
+
+The second one refuses, cleanly, because the first one already won the
+real create-only write to that exact head edge.
+
+## Resolve and retry
+
+```bash
+ubx plan --from-doc queue-b.md --stack payments --out plan-b.json
+ubx ship <hash-b>
+```
+
+```bash
+  ✓ aws_sqs_queue.queue-b : shipped
+1 resource(s), 1 shipped, 0 failed
+```
+
+Re-resolved against the new head, it ships cleanly.
+
+## What you just did
+
+You caused a real race between two writers against a real remote
+store, and watched the object store's own atomic create-only write
+decide the winner, no custom locking logic, no silent data loss.
+
+## Next
+
+You've completed every Advanced track, and every track in this entire
+tutorial series.
+
+<Card title="Concepts" icon="book" href="/concepts/ledger">
+  Revisit the deeper "why" behind everything you've built here.
+</Card>

@@ -1,0 +1,103 @@
+---
+title: "ubx render"
+description: "Emit a diagram or readable document of current state, or generate override statements from real drift."
+---
+
+`ubx render` is a pure projection, it never writes to the ledger. By
+default it emits the canonical D2 diagram of a stack's own resolved
+shape. With `--md`, the same underlying read produces a readable
+markdown document instead. A third, genuinely different mode,
+`--sync-overrides`, generates real override statements directly from
+live drift, mechanically, with zero AI.
+
+## Usage
+
+```bash
+ubx render --stack <stack> [--md] [--out <file>] [--check]
+ubx render --stack <stack> --md --sync-overrides [--write]
+```
+
+## Examples
+
+The default diagram:
+
+```bash
+ubx render --stack payments --out platform.d2
+```
+
+A readable current-state document:
+
+```bash
+ubx render --stack payments --md
+```
+
+Generating override statements from real drift:
+
+```bash
+ubx render --stack payments --md --sync-overrides
+```
+
+```bash
+Override the pipeline-events queue's message_retention_seconds to 1209600.
+```
+
+## Flags
+
+<ResponseField name="--stack" type="string">
+  Which stack to render. Required.
+</ResponseField>
+
+<ResponseField name="--md">
+  Emit a markdown current-state document instead of the default D2 diagram.
+</ResponseField>
+
+<ResponseField name="--out" type="string">
+  Write the rendered file here instead of stdout.
+</ResponseField>
+
+<ResponseField name="--check">
+  Byte-compare against `--out`'s current content, exit `1` on any difference. Requires `--out`.
+</ResponseField>
+
+<ResponseField name="--from-drift" type="string">
+  Generate one override statement for a single drifted address. Requires `--md`.
+</ResponseField>
+
+<ResponseField name="--sync-overrides">
+  Walk the whole stack's drift, generating an override statement for every drifted resource. Requires `--md`.
+</ResponseField>
+
+<ResponseField name="--write">
+  With `--sync-overrides`, append the generated statements directly into the calling stack's own source file. Refused for an SDK-authored stack.
+</ResponseField>
+
+<ResponseField name="--source / --provider-version / --provider" type="string">
+  Provider selection, only used with `--from-drift`/`--sync-overrides`.
+</ResponseField>
+
+<ResponseField name="--provider-config" type="string" default="{}">
+  JSON object configuring the provider, only used with `--from-drift`/`--sync-overrides` (default `{}`).
+</ResponseField>
+
+<ResponseField name="--ledger-dir" type="string" default=".">
+  Root directory containing `ledger/` and `.ubx/` (default `.`).
+</ResponseField>
+
+<ResponseField name="--timeout" type="string" default="60s">
+  Timeout for the drift scan, only with `--from-drift`/`--sync-overrides` (default `60s`).
+</ResponseField>
+
+## Notes
+
+`--check` is meant for CI: it never writes, only confirms a committed
+rendered file still matches current resolved state, failing loudly if
+it's gone stale. `--sync-overrides` is entirely mechanical, it reads the
+same real drift comparison `ubx status --drift` already computes and
+templates it into whichever medium the calling stack is authored in,
+auto-detected, never guessed.
+
+## See also
+
+- [Writeback](/concepts/writeback)
+- [Drift, Adoption & Revert](/concepts/drift)
+- [`ubx status`](/cli-reference/status)

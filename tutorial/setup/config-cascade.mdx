@@ -1,0 +1,86 @@
+---
+title: "Understanding your config"
+description: "See exactly where a config value comes from when more than one file is involved."
+---
+
+The previous tutorial wrote one config file in one directory. Real
+projects usually have more than one, a shared setting at the top of a
+repo, a stack-specific override below it. This tutorial shows exactly
+how those combine.
+
+## Add a parent config
+
+From inside `payments/`, go up one level and write a second config:
+
+```bash
+cd ..
+mkdir -p .ubx
+cat > .ubx/config.hcl << 'EOF'
+github_repo = "acme/infra"
+EOF
+```
+
+You now have two real config files:
+
+```bash
+.ubx/config.hcl          # github_repo = "acme/infra"
+payments/.ubx/config.hcl  # stack = "payments", providers = { ... }
+```
+
+## See them merge
+
+```bash
+cd payments
+ubx config
+```
+
+```bash
+stack             payments        (payments/.ubx/config.hcl)
+provider.version  6.54.0          (payments/.ubx/config.hcl)
+github_repo       acme/infra      (.ubx/config.hcl)
+```
+
+Three values, from two different files, merged into one resolved view.
+Neither file had to repeat what the other already said.
+
+## Override one key
+
+Add a second `github_repo` inside `payments/` itself:
+
+```bash
+cat >> .ubx/config.hcl << 'EOF'
+github_repo = "acme/payments-only"
+EOF
+```
+
+```bash
+ubx config
+```
+
+```bash
+stack             payments              (payments/.ubx/config.hcl)
+provider.version  6.54.0                (payments/.ubx/config.hcl)
+github_repo       acme/payments-only    (payments/.ubx/config.hcl)
+```
+
+The nearer file won, outright, for that one key. The parent's own value
+is still there for every stack that doesn't override it, just not this
+one.
+
+## What you just did
+
+You saw the real config cascade in action: values from more than one
+file, merged per key, with `ubx config` always telling you exactly which
+file supplied each one. This is the same mechanism every stack you'll
+ever create relies on, shared settings live once, at whatever level
+actually needs to share them.
+
+## Next
+
+You have a real, working stack directory. The next tutorials show you
+how to actually describe infrastructure in it, starting with plain
+prose.
+
+<Card title="Author in Markdown" icon="file-lines" href="/tutorial/markdown">
+  Write what you want in prose, review the AI's own assumptions, ship it.
+</Card>

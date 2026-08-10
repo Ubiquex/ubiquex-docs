@@ -1,0 +1,63 @@
+---
+title: "The Executor"
+description: "How ship actually works, and why a provider's own success is never trusted."
+---
+
+A cloud provider's own API can report that a change succeeded when it
+actually didn't, or hasn't fully taken effect yet. If a tool just trusts
+that response and moves on, the ledger ends up recording something as
+real that isn't, with nobody finding out until much later.
+
+## How it works
+
+`ubx ship` moves every resource through a real, recorded state machine:
+pending, in flight, applied, or failed. Each transition is written to
+disk *before* the risky provider call it precedes, not after, so a crash
+mid-attempt leaves an honest, resumable record instead of an ambiguous
+gap.
+
+```bash
+ubx ship 8224643bbbc5...
+```
+
+```bash
+  ✓ aws_ecr_repository.container-repo : shipped
+  ✓ aws_sqs_queue.pipeline-events    : shipped · confirmed by reconciliation
+5 resource(s), 5 shipped, 0 failed, 0 still unknown -- outcome: applied
+```
+
+"confirmed by reconciliation" means ubx actually read the resource back
+after creating it and confirmed it's genuinely real, not just that the
+provider's own call returned without an error.
+
+## Why trusting the provider's own response doesn't work
+
+A provider binary reporting "success" is one claim, made by one piece of
+software, about a real-world effect that software doesn't fully control.
+Real bugs have shipped where a resource was reported destroyed while
+still fully existing. Recording that claim as fact, with no
+verification, would let the ledger quietly diverge from reality the
+moment any provider gets it wrong.
+
+## What this actually looks like
+
+Re-running `ship` after a partial failure never re-attempts a resource
+that already genuinely succeeded:
+
+```bash
+ubx ship 8224643bbbc5...
+```
+
+```bash
+  ✓ aws_ecr_repository.container-repo : shipped · already applied in a prior attempt
+  ! aws_sqs_queue.pipeline-events    : provider error, retrying
+```
+
+It recovers each resource's own last known real state and only
+continues where genuine work actually remains.
+
+## Why it matters
+
+"The provider said it worked" and "it actually worked" are two different
+claims. The executor only ever records the second one, verified
+directly, never assumed from the first.

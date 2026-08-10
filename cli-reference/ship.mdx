@@ -1,0 +1,122 @@
+---
+title: "ubx ship"
+description: "Execute an accepted proposal or plan against real infrastructure."
+---
+
+The one command that changes real infrastructure. Every other command,
+`plan`, `resolve`, `why`, `status`, only ever reads the ledger or
+records something for later review. `ship` is where a signed decision
+actually reaches a real cloud provider.
+
+It executes either an already-accepted proposal (the review and
+signing already happened, this runs immediately) or a plan `ubx plan`
+saved (the receipt renders again here, and this is the actual signing
+moment for that path). Every resource moves through a real, recorded
+state machine, and nothing a provider reports is trusted until ubx
+reads the resource back and confirms it genuinely matches. See
+[The Executor](/concepts/executor) for the full mechanism.
+
+## Usage
+
+```bash
+ubx ship [hash] [flags]
+```
+
+`hash` is optional. Omitted, it resolves to the most recent unshipped
+plan for the current stack. It's looked up two ways: first as an
+already-accepted proposal in the ledger (shipped immediately, no
+further confirmation needed, since accepting it already was the consent
+moment), then as a plan saved by `ubx plan` (the full receipt renders
+again and a typed `yes` is required, this prompt *is* the signing
+moment for that path).
+
+## Examples
+
+Shipping an already-accepted proposal:
+
+```bash
+ubx ship 8224643bbbc5...
+```
+
+```bash
+  ✓ aws_ecr_repository.container-repo : shipped
+  ✓ aws_sqs_queue.pipeline-events    : shipped · confirmed by reconciliation
+5 resource(s), 5 shipped, 0 failed, 0 still unknown -- outcome: applied
+```
+
+Shipping a destroy, both required confirmations:
+
+```bash
+ubx ship 37b097a1d5e0 --confirm-destroys --yes
+```
+
+```bash
+  ✓ aws_ecr_repository.container-repo: shipped · confirmed by reconciliation
+2 resource(s), 2 shipped, 0 failed, 0 still unknown -- outcome: applied
+```
+
+## Flags
+
+<ResponseField name="--confirm-destroys">
+  Required for any plan with `blast_radius.destroys > 0`. Unused if `hash` is already accepted, since that confirmation happened at accept time.
+</ResponseField>
+
+<ResponseField name="--confirm-terminate">
+  Alias for `--confirm-destroys`, matches the wording `ubx terminate`'s own hint shows. Either spelling satisfies both.
+</ResponseField>
+
+<ResponseField name="--yes">
+  Skip the interactive `yes` prompt (for CI/scripts). The receipt still renders. Required on a non-TTY.
+</ResponseField>
+
+<ResponseField name="--json">
+  Emit one JSON document instead of human-readable text.
+</ResponseField>
+
+<ResponseField name="--full-hashes">
+  Render every hash in full instead of the default 12-character short form.
+</ResponseField>
+
+<ResponseField name="--ledger-dir" type="string" default=".">
+  Root directory containing `ledger/` and `.ubx/` (default `.`).
+</ResponseField>
+
+<ResponseField name="--stack" type="string">
+  Which stack's ledger to open. Required only when `.ubx/config`'s ledger store is remote, a bare proposal ID carries no stack of its own.
+</ResponseField>
+
+<ResponseField name="--source" type="string">
+  Provider source address (e.g. `hashicorp/aws`). Mutually exclusive with `--provider`, requires `--provider-version`.
+</ResponseField>
+
+<ResponseField name="--provider-version" type="string">
+  Explicit provider version to acquire. Required with `--source`.
+</ResponseField>
+
+<ResponseField name="--provider" type="string">
+  Path to a provider binary directly. Mutually exclusive with `--source`.
+</ResponseField>
+
+<ResponseField name="--provider-config" type="string" default="{}">
+  JSON object configuring the provider, e.g. `{"region":"us-east-1"}` (default `{}`).
+</ResponseField>
+
+<ResponseField name="--timeout" type="string" default="5m">
+  Overall timeout for the run (default `5m0s`).
+</ResponseField>
+
+## Notes
+
+`ship` is safe to re-run. A resource that already shipped in a prior
+attempt is skipped, not re-attempted, and its real output is recovered
+from the ledger so any still-pending dependent can proceed correctly
+even after a crash mid-run. See [The Executor](/concepts/executor) for
+why a provider's own reported success is never trusted at face value.
+
+## See also
+
+- [The Executor](/concepts/executor)
+- [Destroys & Tombstones](/concepts/destroys)
+- [`ubx plan`](/cli-reference/plan)
+- [`ubx accept`](/cli-reference/accept)
+- [`ubx terminate`](/cli-reference/terminate)

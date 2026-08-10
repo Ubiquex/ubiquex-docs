@@ -1,0 +1,75 @@
+---
+title: "ubx resolve"
+description: "Resolve a typed intent file or SDK program into a draft change proposal."
+---
+
+`ubx resolve` is the lower-level building block underneath `ubx plan`,
+it takes an already-structured input, a hand-written `ubx:intent/v1`
+file or an SDK program, and turns it into a real draft proposal. Unlike
+`plan`, it doesn't render a receipt or save anything for you, it just
+does the resolution and prints the result.
+
+Every intra-stack reference is checked against the ledger's own real
+dependency graph, with genuine cycle detection. A destroy is only ever
+explicit, listed by address, never inferred from something simply being
+absent, and it's refused if another live resource still depends on it.
+
+## Usage
+
+```bash
+ubx resolve <intent-file> [flags]
+ubx resolve --from-code <entry>.ts|.go|.py [flags]
+```
+
+## Examples
+
+```bash
+ubx resolve --from-code create_platform.go
+```
+
+```bash
+resolved: payments: 1 create(s), 0 change(s), 0 terminate(s)
+{ "schema_version": 1, "kind": "change", "delta": { "creates": [ "..." ] } }
+```
+
+## Flags
+
+<ResponseField name="--from-code" type="string">
+  Evaluate an SDK program instead of reading a file, dispatched by extension. Mutually exclusive with the positional argument.
+</ResponseField>
+
+<ResponseField name="--ledger-dir" type="string" default=".">
+  Root directory containing `ledger/` and `.ubx/` (default `.`).
+</ResponseField>
+
+<ResponseField name="--source / --provider-version / --provider" type="string">
+  Provider selection, same as `ubx ship`.
+</ResponseField>
+
+<ResponseField name="--out" type="string">
+  Write the resolved proposal here instead of stdout.
+</ResponseField>
+
+<ResponseField name="--known-dependent" type="list(string)">
+  A neighbor stack's ledger directory to check for cross-stack orphan references. Repeatable.
+</ResponseField>
+
+<ResponseField name="--timeout" type="string" default="120s">
+  One shared budget for provider acquisition and evaluation (default `120s`).
+</ResponseField>
+
+## Notes
+
+The result is a genuine draft: no `id`, no `acceptance` yet. Pipe it
+into `ubx accept` directly, or `ubx propose` if your team's ceremony
+needs a PR-body trailer hash first. Resolve never reads live provider
+state, a change proposal's "before" always comes from the ledger's own
+folded history, never a fresh cloud read (that happens later, at ship
+time).
+
+## See also
+
+- [The Proposal](/concepts/proposal)
+- [FoldState](/concepts/foldstate)
+- [`ubx plan`](/cli-reference/plan)
+- [`ubx propose`](/cli-reference/propose)

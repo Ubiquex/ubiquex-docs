@@ -1,0 +1,69 @@
+---
+title: "The AI Trust Boundary"
+description: "AI can draft. It never has execution authority."
+---
+
+If an AI is going to help write infrastructure changes, a real question
+has to be answered up front: what happens if it gets something wrong, or
+makes an assumption you'd never have agreed to? The answer in ubx is
+structural, not a policy someone could forget to follow: the AI can
+never actually apply anything. It can only draft.
+
+## How it works
+
+When you describe what you want in prose, an AI reads it and produces a
+draft, an unsigned proposal, sitting in `.ubx/plans/`. That's the entire
+job. Drafting and shipping are two completely separate commands in the
+code, and nothing lets a draft skip straight to becoming real.
+
+While drafting, the AI sometimes has to make a judgment call, a default
+value it wasn't told, an assumption about what "small" or "standard"
+means. None of that stays hidden. Every one of those choices gets
+written directly into the receipt you see before shipping.
+
+```bash
+ubx plan --from-doc platform.md
+```
+
+```bash
+AI defaults, you are signing these:
+  message_retention_seconds: defaulted to 86400 (1 day), not stated in your prompt
+
+Ship payments · +1 create(s)
+Only 'yes' accepted:
+```
+
+## Why "just trust the AI" doesn't work
+
+A system where an AI could draft and apply a change in one step means
+every mistake, every wrong assumption, every hallucinated detail, goes
+straight into your real infrastructure with nobody having actually
+looked at it. Even a very reliable AI is still wrong sometimes, and
+"usually right" isn't a real safety guarantee for something that can
+delete a database.
+
+## What this actually looks like
+
+Whether a human wrote the resource definitions directly or an AI drafted
+them from a sentence, the exact same confirmation is required before
+anything ships:
+
+```bash
+ubx ship 45f63ce10849...
+```
+
+```bash
+Ship payments · +1 create(s)
+Only 'yes' accepted: yes
+```
+
+The `ship` command has no idea, and doesn't care, whether a human or an
+AI produced the draft it's about to apply. The ceremony is identical
+either way.
+
+## Why it matters
+
+The AI's real job is turning your intent into a well-formed first draft,
+quickly. The decision to actually make something real still belongs
+entirely to a person, every single time, with every assumption laid out
+plainly first.

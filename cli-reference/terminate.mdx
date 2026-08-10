@@ -1,0 +1,89 @@
+---
+title: "ubx terminate"
+description: "Author a destroy proposal directly from the ledger's own knowledge, no document needed."
+---
+
+Destroying a resource you already know the address of shouldn't require
+writing a whole intent document just to say "get rid of this." `ubx
+terminate` skips that entirely, the address is the whole specification,
+the ledger already knows everything else about it.
+
+This is the human-facing verb for what the schema calls a destroy. `ubx
+destroy` isn't a real command, it exists purely to catch Terraform
+muscle memory and redirect it here.
+
+## Usage
+
+```bash
+ubx terminate <address>... [flags]
+```
+
+## Examples
+
+```bash
+ubx terminate payments.aws_sqs_queue.pipeline-events
+```
+
+```bash
+Plan  payments
+
+  - payments.aws_sqs_queue.pipeline-events destroy
+      message_retention_seconds: 1209600
+      ...
+
+delta: +0 create(s), ~0 change(s), -1 terminate(s)
+blast radius: +0 ~0 -1
+
+ubx-proposal: 37b097a1d5e0...
+next: ubx ship 37b097a1d5e0 --confirm-destroys
+```
+
+Typing the wrong verb from muscle memory:
+
+```bash
+ubx destroy payments.aws_sqs_queue.pipeline-events
+```
+
+```bash
+destroy: there is no "ubx destroy" -- use "ubx terminate" (same
+destroys[] machinery underneath, ledger-derived, no authoring document
+needed)
+```
+
+## Flags
+
+<ResponseField name="--ledger-dir" type="string" default=".">
+  Root directory containing `ledger/` and `.ubx/`, also where the plan is saved (default `.`).
+</ResponseField>
+
+<ResponseField name="--source / --provider-version / --provider" type="string">
+  Provider selection, same as `ubx ship`.
+</ResponseField>
+
+<ResponseField name="--out" type="string">
+  Additionally write the full resolved proposal here.
+</ResponseField>
+
+<ResponseField name="--known-dependent" type="list(string)">
+  A neighbor stack's ledger directory to check for cross-stack orphan references. Repeatable.
+</ResponseField>
+
+<ResponseField name="--full-hashes">
+  Render every hash in full.
+</ResponseField>
+
+<ResponseField name="--timeout" type="string" default="60s">
+  Timeout for provider acquisition (default `60s`).
+</ResponseField>
+
+## Notes
+
+Every address must be self-contained (`<stack>.<type>.<name>`) and name
+the same stack, a proposal is always single-stack. This never touches
+the ledger, it only resolves and saves a plan, `ubx ship <hash>
+--confirm-destroys` is the real signing and execution step.
+
+## See also
+
+- [Destroys & Tombstones](/concepts/destroys)
+- [`ubx ship`](/cli-reference/ship)

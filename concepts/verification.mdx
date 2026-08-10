@@ -1,0 +1,65 @@
+---
+title: "Hash-Chain Verification"
+description: "Tamper evidence, not just tamper prevention."
+---
+
+Say someone wanted to quietly rewrite history, change an old, already
+approved decision to hide what really happened. If the ledger were just
+a folder of ordinary files, nothing would stop them, and nothing would
+even tell you it happened. Hash-chain verification is what makes that
+kind of quiet edit detectable, every time.
+
+## How it works
+
+Every [proposal](/concepts/proposal)'s own ID is a hash computed from its
+full content, including a `parent` field pointing at the proposal right
+before it. That one detail is what makes the whole chain provable: change
+anything inside an old proposal, and its true hash changes too. The
+*next* proposal in the chain still points at the *old* hash, since that's
+what was true when it was written. The link is now visibly broken.
+
+```bash
+ubx verify
+```
+
+```bash
+verify: 47 proposal(s) checked
+chain: intact
+```
+
+A clean run recomputes every proposal's hash from scratch, confirms every
+`parent` reference matches, and confirms every signature is real.
+
+## Why "nobody would notice" doesn't work
+
+A system that just trusts whatever's on disk, with no way to check it,
+relies entirely on nobody ever having a reason to lie, make a mistake, or
+get hacked. That's not a real guarantee, it's just an absence of
+scrutiny. The moment you actually need to prove something happened a
+certain way, "we never checked" isn't an answer anyone can rely on.
+
+## What this actually looks like
+
+If a single old proposal were tampered with, verification doesn't just
+fail vaguely, it names exactly where:
+
+```bash
+ubx verify
+```
+
+```bash
+verify: 47 proposal(s) checked
+  8224643bbbc5...: hash_mismatch -- recomputed content hash does not match its own id
+chain: BROKEN (1 finding(s), see above)
+```
+
+To actually hide a change like this, someone would have to recompute and
+re-sign every single proposal after the one they edited, all the way to
+today, forging every real approval along the way. That's a fundamentally
+different, much harder problem than editing one file.
+
+## Why it matters
+
+You don't have to take anyone's word that the history is genuine. You
+can check it yourself, at any time, and get a mathematically real
+answer, not a guess based on trust.

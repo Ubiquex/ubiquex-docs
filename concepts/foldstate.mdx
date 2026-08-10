@@ -1,0 +1,53 @@
+---
+title: "FoldState"
+description: "Current truth is never stored directly, it's computed by folding history."
+---
+
+If "what does my infrastructure look like right now" were stored in its
+own separate file, that file could quietly drift out of sync with the
+actual history that's supposed to explain it. Two sources of truth that
+can disagree is exactly the situation worth avoiding.
+
+## How it works
+
+Nowhere in ubx is there a file that just says "here's the current
+state." It's always derived, fresh, by walking every proposal in the
+ledger, in order, and folding them into one result: each create adds a
+resource, each modify updates it, each destroy folds it back to absent,
+a tombstone in history, but genuinely gone from the live view.
+
+```bash
+ubx status
+```
+
+```bash
+payments.aws_sqs_queue.pipeline-events: change 45f63ce1... (accepted 2026-08-04T18:07:04Z)
+1 resource(s) (ledger-only, no live comparison)
+```
+
+That line comes from folding the whole chain, a destroyed resource
+simply stops appearing in it at all, its history stays in the ledger,
+but the folded, current view correctly shows nothing there.
+
+## Why storing current state separately doesn't work
+
+If current state lived in its own file, updated on every change, you'd
+be right back to the exact problem [the ledger](/concepts/ledger)
+already solves for history: a snapshot that can be overwritten, get out
+of sync, or simply be wrong in a way nothing catches. Deriving it fresh,
+every time, from the same history everything else already trusts, means
+it can never quietly disagree with that history.
+
+## What this actually looks like
+
+`ubx status`, `ubx scan`, and the resolver's own "does this address
+already exist" check all read this exact same folded view. None of them
+has its own separate notion of current state to maintain or keep in
+sync.
+
+## Why it matters
+
+Current state and history are never two different things that could
+drift apart. They're the same information, viewed two different ways,
+guaranteed to always agree because one is literally computed from the
+other.

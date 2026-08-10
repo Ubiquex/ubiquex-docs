@@ -1,0 +1,87 @@
+---
+title: "Handling ambiguity"
+description: "Write a genuinely vague requirement and see how ubx handles it honestly."
+---
+
+Real requirements aren't always precise. This tutorial writes one
+deliberately vague sentence and shows exactly how the ambiguity gets
+surfaced, never silently resolved.
+
+## Write a vague requirement
+
+```bash
+cat > cache.md << 'EOF'
+We need something cost-effective for a low-traffic cache in front of
+payments, keep it under $30/month.
+EOF
+```
+
+Nothing here names a real resource type, size, or exact configuration.
+That's deliberate.
+
+## Plan it
+
+```bash
+ubx plan --from-doc cache.md --stack payments
+```
+
+```bash
+Plan  payments · from cache.md
+
+  + aws_elasticache_cluster.payments-cache create
+      node_type: "cache.t4g.micro"
+      engine: "redis"
+      num_cache_nodes: 1
+
+AI defaults, you are signing these:
+  node_type: chosen as cache.t4g.micro, the smallest real instance type,
+    to fit "cost-effective" and "low-traffic" against the stated $30/mo ceiling
+
+delta: +1 create(s), ~0 change(s), -0 terminate(s)
+```
+
+The model made a real choice, a small Redis node, and told you exactly
+why, in its own assumptions block, before asking you to sign it.
+
+## What a genuine conflict looks like
+
+Try a version that can't actually be satisfied:
+
+```bash
+cat > cache.md << 'EOF'
+We need a large, highly available Redis cluster for payments,
+keep it under $10/month.
+EOF
+```
+
+```bash
+ubx plan --from-doc cache.md --stack payments
+```
+
+```bash
+questions:
+  - "large, highly available" and "under $10/month" are in tension --
+    a real multi-node Redis cluster costs meaningfully more than $10/mo.
+    Drafted a single small node to stay under budget; confirm this is
+    what you meant, or relax either constraint.
+```
+
+The model didn't silently pick one requirement over the other. It made
+a reasonable choice, and named the exact tension it couldn't resolve on
+your behalf.
+
+## What you just did
+
+You saw the real difference between an assumption (a reasonable filled
+gap) and a question (a genuine conflict, named honestly). Neither one is
+ever hidden, both show up in the same receipt you review before shipping
+anything.
+
+## Next
+
+You've completed the Markdown track. Try the same patterns as a live
+conversation instead of a static document.
+
+<Card title="Chat" icon="comments" href="/tutorial/chat">
+  The same drafting, one turn at a time.
+</Card>

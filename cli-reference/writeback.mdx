@@ -1,0 +1,73 @@
+---
+title: "ubx writeback"
+description: "Correct an existing .tf file to match an accepted drift_adopt proposal."
+---
+
+Once a drift is adopted, the ledger's own record of reality is correct,
+but an existing `.tf` file sitting nearby might still show the old
+value. `ubx writeback` fixes that specific gap, surgically correcting
+just the changed attribute inside the real file.
+
+By default it only shows a diff, nothing is written to disk unless you
+explicitly ask for it.
+
+## Usage
+
+```bash
+ubx writeback <proposal-id> [flags]
+```
+
+## Examples
+
+Reviewing what would change:
+
+```bash
+ubx writeback 45f63ce10849...
+```
+
+```bash
+payments.aws_sqs_queue.pipeline-events (main.tf):
+  written: message_retention_seconds
+--- main.tf (before)
++++ main.tf (after)
+@@ -12,7 +12,7 @@
+-  message_retention_seconds = 86400
++  message_retention_seconds = 1209600
+```
+
+Actually writing it:
+
+```bash
+ubx writeback 45f63ce10849... --write
+```
+
+## Flags
+
+<ResponseField name="--ledger-dir" type="string" default=".">
+  Root directory containing `ledger/` and `.ubx/` (default `.`).
+</ResponseField>
+
+<ResponseField name="--stack" type="string">
+  Which stack's ledger to open. Required only for a remote ledger store.
+</ResponseField>
+
+<ResponseField name="--tf-dir" type="string" default=".">
+  Directory containing the `.tf` files to write back into (default `.`).
+</ResponseField>
+
+<ResponseField name="--write">
+  Actually write the modified file to disk instead of printing a diff. Never commits or pushes.
+</ResponseField>
+
+## Notes
+
+Only works on an already-accepted `drift_adopt` proposal, never a draft
+and never a `change`. An attribute writeback can't safely handle, an
+expression instead of a plain literal, is declined and reported by name,
+never silently skipped or guessed at. A redacted secret value is refused
+unconditionally, it's never written into source.
+
+## See also
+
+- [Writeback](/concepts/writeback)
+- [Drift, Adoption & Revert](/concepts/drift)

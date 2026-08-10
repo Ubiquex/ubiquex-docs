@@ -1,0 +1,227 @@
+---
+title: "Your first AWS resources"
+description: "A real queue and a real IAM role, wired together with a reference."
+---
+
+Same real reference pattern proven against GCP, Azure, and Kubernetes,
+now against AWS directly: two resources, one referencing the other. Pick
+whichever medium you'd rather use, all five produce the identical
+resolved result.
+
+## Set up a stack
+
+```bash
+mkdir payments-aws && cd payments-aws
+ubx init --source hashicorp/aws --provider-version 6.54.0
+```
+
+## Author both resources
+
+<Tabs>
+  <Tab title="Markdown">
+    ```bash
+    cat > platform.md << 'EOF'
+    Provision an SQS queue called "pipeline-events" for payments,
+    standard, messages retained for 14 days.
+
+    Create an IAM role called "ci-runner", assumable by EC2, with a policy
+    allowing it to send messages to that queue.
+    EOF
+    ubx plan --from-doc platform.md --stack payments
+    ```
+  </Tab>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    	iam "github.com/ubiquex/ubx-sdk-aws-go/aws/iam"
+    	sqs "github.com/ubiquex/ubx-sdk-aws-go/aws/sqs"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments queue and ci-runner role"})
+
+    		queue := ubx.Resource(sqs.Queue, "pipeline-events", sqs.QueueConfig{
+    			Name:                    "pipeline-events",
+    			MessageRetentionSeconds: 1209600,
+    		})
+
+    		role := ubx.Resource(iam.Role, "ci-runner", iam.RoleConfig{
+    			Name:             "ci-runner",
+    			AssumeRolePolicy: `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ec2.amazonaws.com"},"Action":"sts:AssumeRole"}]}`,
+    		})
+
+    		ubx.Resource(iam.Policy, "ci-runner-access", iam.PolicyConfig{
+    			Policy: ubx.Sprintf(`{"Statement":[{"Effect":"Allow","Action":"sqs:SendMessage","Resource":%q}]}`, queue.Field("arn")),
+    		})
+
+    		ubx.Resource(iam.RolePolicyAttachment, "ci-runner-access-attachment", iam.RolePolicyAttachmentConfig{
+    			Role: role.Field("name"),
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```bash
+    git clone https://github.com/Ubiquex/ubx-sdk-aws-ts.git
+    ```
+    ```typescript
+    import { stack, intent, resource } from "@ubx/sdk";
+    import { Queue } from "./ubx-sdk-aws-ts/aws/sqs/queue.ts";
+    import { Role, Policy, RolePolicyAttachment } from "./ubx-sdk-aws-ts/aws/iam/mod.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments queue and ci-runner role" });
+
+      const queue = resource(Queue, "pipeline-events", {
+        name: "pipeline-events",
+        messageRetentionSeconds: 1209600,
+      });
+
+      const role = resource(Role, "ci-runner", {
+        name: "ci-runner",
+        assumeRolePolicy: `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ec2.amazonaws.com"},"Action":"sts:AssumeRole"}]}`,
+      });
+
+      resource(Policy, "ci-runner-access", {
+        policy: `{"Statement":[{"Effect":"Allow","Action":"sqs:SendMessage","Resource":"${queue.arn}"}]}`,
+      });
+
+      resource(RolePolicyAttachment, "ci-runner-access-attachment", {
+        role: role.name,
+      });
+    });
+    ```
+    A real, local, cloned import, never a remote URL, the hermetic
+    evaluator's own `--no-remote` flag refuses anything else.
+  </Tab>
+  <Tab title="Python">
+    ```bash
+    git clone https://github.com/Ubiquex/ubx-sdk-aws-py.git
+    ```
+    Save this file **inside** the cloned directory, as
+    `ubx-sdk-aws-py/create_platform.py`:
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.sqs import Queue, QueueConfig
+    from ubx.aws.iam import (
+        Role,
+        RoleConfig,
+        Policy,
+        PolicyConfig,
+        RolePolicyAttachment,
+        RolePolicyAttachmentConfig,
+    )
+
+    def describe():
+        ubx.intent("payments queue and ci-runner role")
+
+        queue = ubx.resource(Queue, "pipeline-events", QueueConfig(
+            name="pipeline-events",
+            message_retention_seconds=1209600,
+        ))
+
+        role = ubx.resource(Role, "ci-runner", RoleConfig(
+            name="ci-runner",
+            assume_role_policy='{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ec2.amazonaws.com"},"Action":"sts:AssumeRole"}]}',
+        ))
+
+        ubx.resource(Policy, "ci-runner-access", PolicyConfig(
+            policy=ubx.fmt('{{"Statement":[{{"Effect":"Allow","Action":"sqs:SendMessage","Resource":{}}}]}}', queue.arn),
+        ))
+
+        ubx.resource(RolePolicyAttachment, "ci-runner-access-attachment", RolePolicyAttachmentConfig(
+            role=role.name,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Diagram">
+    ```d2
+    queue: "pipeline-events" {
+      class: aws_sqs_queue
+      message_retention_seconds: "1209600"
+    }
+
+    role: "ci-runner" {
+      class: aws_iam_role
+      ubx_required.assume_role_policy: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+    }
+
+    policy: "ci-runner-access" {
+      class: aws_iam_policy
+      ubx_required.policy: "{\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"sqs:SendMessage\",\"Resource\":\"ref:queue.arn\"}]}"
+    }
+
+    attach: "attach" {
+      class: aws_iam_role_policy_attachment
+      ubx_required.role: "ref:role.name"
+    }
+    ```
+    ```bash
+    ubx plan --from-diagram platform.d2 --stack payments
+    ```
+  </Tab>
+</Tabs>
+
+Every tab resolves to the exact same delta:
+
+```bash
+Plan  payments
+
+  + aws_sqs_queue.pipeline-events create
+      name: "pipeline-events"
+      message_retention_seconds: 1209600
+
+  + aws_iam_role.ci-runner create
+      name: "ci-runner"
+      assume_role_policy: { ... }
+
+  + aws_iam_policy.ci-runner-access create
+      policy: {
+        "Statement": [{
+          "Effect": "Allow",
+          "Action": "sqs:SendMessage",
+          "Resource": $ref:payments.aws_sqs_queue.pipeline-events.arn
+        }]
+      }
+
+  + aws_iam_role_policy_attachment.ci-runner-access-attachment create
+
+delta: +4 create(s), ~0 change(s), -0 terminate(s)
+```
+
+## Ship it
+
+```bash
+ubx ship <hash>
+```
+
+```bash
+  ✓ aws_sqs_queue.pipeline-events                             : shipped
+  ✓ aws_iam_role.ci-runner                                    : shipped
+  ✓ aws_iam_policy.ci-runner-access                           : shipped
+  ✓ aws_iam_role_policy_attachment.ci-runner-access-attachment: shipped
+4 resource(s), 4 shipped, 0 failed
+```
+
+The policy and attachment correctly waited for the queue and role to
+ship first, ordered entirely by the references themselves.
+
+## What you just did
+
+You shipped a real, connected set of AWS resources, and saw the exact
+same reference mechanism work identically across all five mediums,
+prose, two typed languages, and a diagram.
+
+## Next
+
+<Card title="Onboarding existing infrastructure" icon="download" href="/tutorial/aws/onboarding">
+  Bring real, already-existing AWS resources under the ledger.
+</Card>

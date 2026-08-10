@@ -1,0 +1,81 @@
+---
+title: "Write your first program"
+description: "Import real, published bindings and ship a real resource."
+---
+
+Twelve real, published repos already exist, one per provider per
+language. This tutorial imports one directly, no generation step at
+all.
+
+## Add the real published repo
+
+```bash
+go mod init payments
+go get github.com/ubiquex/ubx-sdk-aws-go
+```
+
+## Write a program
+
+```go
+package main
+
+import (
+	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+	sqs "github.com/ubiquex/ubx-sdk-aws-go/aws/sqs"
+)
+
+func main() {
+	ubx.Main(ubx.Stack("payments", func() {
+		ubx.Intent(ubx.IntentInfo{Summary: "payments own SQS queue"})
+		ubx.Resource(sqs.Queue, "pipeline-events", sqs.QueueConfig{
+			Name:                    "pipeline-events",
+			MessageRetentionSeconds: 1209600,
+		})
+	}))
+}
+```
+
+Save this as `create_platform.go`. `sqs.Queue` and `sqs.QueueConfig`
+come straight from the real, published `ubx-sdk-aws-go` repo, real, typed
+bindings, maintained and version-watched automatically.
+
+## Resolve it
+
+```bash
+ubx plan --from-code create_platform.go
+```
+
+```bash
+Plan  payments · from create_platform.go
+
+  + aws_sqs_queue.pipeline-events create
+      message_retention_seconds: 1209600
+
+delta: +1 create(s), ~0 change(s), -0 terminate(s)
+
+ubx-proposal: 45f63ce10849...
+next: ubx ship 45f63ce10849...
+```
+
+## Ship it
+
+```bash
+ubx ship 45f63ce10849...
+```
+
+```bash
+  ✓ aws_sqs_queue.pipeline-events : shipped
+1 resource(s), 1 shipped, 0 failed
+```
+
+## What you just did
+
+You imported real, typed bindings from a real, published repo, the
+compiler checked your program against the exact wire attribute names
+AWS expects, and you never had to generate anything locally.
+
+## Next
+
+<Card title="The same pattern, three languages" icon="layer-group" href="/tutorial/sdk/cross-language">
+  Prove Go, TypeScript, and Python resolve to the identical result.
+</Card>

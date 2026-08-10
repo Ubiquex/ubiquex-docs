@@ -1,0 +1,83 @@
+---
+title: "Distributing a Blueprint"
+description: "Package, push, and pull a blueprint through a real OCI registry, no new server required."
+---
+
+A blueprint that only exists on its author's own laptop isn't
+reusable, it's just a file. The moment someone else needs to call it,
+from a different machine, a different repo, a different team, there
+has to be a real, verifiable way to hand it to them that survives the
+trip intact.
+
+## How it works
+
+`ubx blueprint package` turns a built blueprint directory into a
+content-addressed tarball. `ubx blueprint push` uploads that tarball,
+unmodified, to any real OCI registry, GHCR, Docker Hub, Artifactory,
+Harbor, whichever one your team already uses:
+
+```bash
+ubx blueprint package . -o ci-platform-v1.tar.gz
+ubx blueprint push ci-platform-v1.tar.gz \
+  --to oci://ghcr.io/acme/ci-platform:v1
+```
+
+```bash
+packaged "ci-platform" -> ci-platform-v1.tar.gz (7 file(s), content hash sha256:a1b2c3...)
+pushed "ci-platform" -> oci://ghcr.io/acme/ci-platform:v1 (7 file(s), content hash sha256:a1b2c3...)
+```
+
+Anyone with registry access pulls it back down the same way, on any
+machine, and confirms nothing changed in transit:
+
+```bash
+ubx blueprint pull oci://ghcr.io/acme/ci-platform:v1 \
+  ./ci-platform
+ubx blueprint verify ./ci-platform
+```
+
+```bash
+verified "ci-platform": content hash sha256:a1b2c3... matches (7 file(s))
+```
+
+## Why a bespoke registry doesn't need to exist
+
+A tarball pushed to an OCI registry is one manifest wrapping one blob
+layer, the exact same shape Helm charts, WASM modules, SBOMs, and
+Cosign signatures already use in production. Building a new,
+Ubiquex-hosted registry service to store blueprints would mean
+standing up and operating real server infrastructure just to
+reimplement something every real OCI registry already does correctly.
+Reusing that existing infrastructure means any registry your team
+already authenticates against, via the same `docker login`/`oras
+login` credentials `ubx` reads directly, works as a blueprint backend
+with zero new server code.
+
+## What this actually looks like
+
+A push and a pull each carry two separate, non-competing hashes, not
+one. OCI's own blob digest, computed and checked natively by the
+registry on every round trip, is a transport-level check: did these
+exact bytes survive the trip there and back. `blueprint.lock.json`'s
+own `content_hash`, the same one `ubx blueprint verify` already
+checks, travels inside the tarball itself and stays an
+application-level check: is this genuinely the content that was built
+and reviewed, unmodified. Recording `content_hash` as an OCI manifest
+annotation too means a plain `docker manifest inspect` can cross-check
+it without pulling and extracting first, a convenience, never a second
+competing verification path.
+
+`ubx blueprint pull` resolves four real source forms the same way,
+regardless of which one produced them: a local directory, a bare
+tarball file (no network at all, for handing someone a blueprint over
+email or a support ticket), a git repository at a given ref, or an
+`oci://` reference. Whichever one a teammate used, `ubx blueprint
+verify` afterward can't tell the difference.
+
+## Why it matters
+
+Nobody has to trust that a blueprint arrived intact, `ubx blueprint
+verify` proves it, the same way `ubx why` proves which blueprint
+produced a given resource. And nobody has to stand up or maintain a
+new piece of infrastructure to share one: the registry your team
+already has is already enough.

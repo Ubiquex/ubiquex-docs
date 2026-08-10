@@ -1,0 +1,61 @@
+---
+title: "Handling what didn't convert cleanly"
+description: "Real, named questions instead of a silent guess."
+---
+
+The previous tutorial surfaced one real question. This one shows what
+that actually means, and how to resolve it.
+
+## Find the flagged line
+
+```bash
+grep -n "merge(" terraform-aws-vpc/variables.tf
+```
+
+```bash
+42:  default_tags = merge(var.tags, { "Terraform" = "true" })
+```
+
+`merge()` is a real Terraform built-in the converter doesn't
+mechanically translate, named honestly rather than silently dropped or
+guessed at.
+
+## Resolve it by hand
+
+Open the generated blueprint's own resources file and write the merged
+result directly, as a real, deterministic value:
+
+```
+# resources.md, the flagged section
+default_tags:
+  Terraform: "true"
+  # plus whatever var.tags the caller provides, merged by the caller
+  # before calling this blueprint, not inside it
+```
+
+## Rebuild and verify
+
+```bash
+ubx blueprint build .
+ubx blueprint verify .
+```
+
+```bash
+verified "vpc-blueprint": content hash sha256:<new-hash> matches (14 file(s))
+```
+
+A new, real content hash, reflecting your real, reviewed fix.
+
+## What you just did
+
+You resolved the one real gap the mechanical converter couldn't safely
+guess at, and confirmed the blueprint is still genuinely, verifiably
+correct afterward.
+
+## Next
+
+You've completed Migrating from Terraform. One track remains.
+
+<Card title="Remote Ledger Stores" icon="database" href="/tutorial/remote-stores">
+  A real S3-backed ledger, shared safely across a team.
+</Card>

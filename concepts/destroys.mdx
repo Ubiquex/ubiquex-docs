@@ -1,0 +1,60 @@
+---
+title: "Destroys & Tombstones"
+description: "Explicit intent, reversed dependency order, and a permanent record."
+---
+
+Deleting something is the one kind of infrastructure change you can't
+easily undo. A tool that ever inferred a destroy, "you didn't mention
+this resource anymore, so I'll remove it", would be one small mistake
+away from destroying something real by accident.
+
+## How it works
+
+A destroy is always an explicit, deliberate part of a proposal, never
+inferred from what a document simply left out. Resources that depend on
+something being destroyed are torn down first, the same dependency graph
+that orders creates correctly runs the sequence in reverse for destroys.
+
+Accepting any proposal with a destroy in it requires a real, extra
+confirmation:
+
+```bash
+ubx terminate payments.aws_sqs_queue.pipeline-events
+ubx ship <hash> --confirm-destroys
+```
+
+Two separate confirmations are needed: the proposal itself, and the
+destroy flag. Neither one alone is enough to remove something real.
+
+## Why "unmentioned means delete" doesn't work
+
+If leaving a resource out of your next document meant ubx should delete
+it, one incomplete draft, a section you forgot to paste back in, could
+silently destroy real infrastructure with no warning at all. Requiring
+every destroy to be named explicitly removes that entire class of
+accident.
+
+## What this actually looks like
+
+A destroyed resource's full history stays in the ledger forever, nothing
+is erased:
+
+```bash
+ubx why payments.aws_sqs_queue.pipeline-events
+```
+
+```bash
+change 45f63ce1... created
+change 8224643b... modified
+change c53c22fa... destroyed
+```
+
+The destroy proposal is simply the chain's terminal record, the
+resource correctly reads as gone from current state, but every step
+that led there is still fully visible.
+
+## Why it matters
+
+Destroying something real requires explicit, deliberate intent every
+time, with real friction before it can ship, and the record of it never
+disappears just because the resource itself is gone.

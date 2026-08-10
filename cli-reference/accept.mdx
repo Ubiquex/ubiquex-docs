@@ -1,0 +1,118 @@
+---
+title: "ubx accept"
+description: "Sign a proposal, locally or by deriving acceptance from a merged GitHub pull request."
+---
+
+Accepting is the real signing moment, the point where a proposal stops
+being a draft and becomes a permanent, binding decision in the ledger.
+`ubx accept` supports two genuinely different ways to do that: a local
+file you sign directly, or deriving the signature entirely from a
+merged, reviewed pull request.
+
+Before anything else, accept checks whether the proposal is fresh (has
+the live resource moved since this was resolved?) and, if it destroys
+anything, requires an explicit flag acknowledging that. Neither check
+can be skipped by accident.
+
+## Usage
+
+```bash
+ubx accept [proposal.json] [flags]
+ubx accept --from-merge <commit-sha> --proposal-file <path> --github-repo <owner/name>
+```
+
+## Examples
+
+Accepting a hand-written or resolved proposal directly:
+
+```bash
+ubx accept proposal.json --ledger-dir .
+```
+
+```bash
+accepted 45f63ce10849... (stack payments)
+```
+
+Deriving acceptance from a real, merged pull request:
+
+```bash
+ubx accept --from-merge 8c1d2e... \
+  --proposal-file proposals/db-replica.json \
+  --github-repo acme/infra
+```
+
+```bash
+accepted 45f63ce10849... (stack payments) via PR #42, 1 approver(s)
+```
+
+## Flags
+
+<ResponseField name="--ledger-dir" type="string" default=".">
+  Root directory containing `ledger/` and `.ubx/` (default `.`).
+</ResponseField>
+
+<ResponseField name="--from-merge" type="string">
+  Derive `pr_merge` acceptance from a merge commit SHA instead of accepting a local file.
+</ResponseField>
+
+<ResponseField name="--proposal-file" type="string">
+  Path, within the repo, to the proposal the merge commit carries. Required with `--from-merge`.
+</ResponseField>
+
+<ResponseField name="--github-repo" type="string">
+  `owner/name` of the GitHub repository. Required with `--from-merge`.
+</ResponseField>
+
+<ResponseField name="--repo-dir" type="string" default=".">
+  Local git working tree to verify the merge commit's history against (default `.`).
+</ResponseField>
+
+<ResponseField name="--confirm-destroys">
+  Required to accept any proposal with `blast_radius.destroys > 0`.
+</ResponseField>
+
+<ResponseField name="--reverify-with" type="string">
+  Path to a provider binary: re-read the resource live and refuse if it no longer matches. Mutually exclusive with `--reverify-source`.
+</ResponseField>
+
+<ResponseField name="--reverify-source" type="string">
+  Provider source to acquire for reverification (e.g. `hashicorp/aws`). Requires `--reverify-provider-version`.
+</ResponseField>
+
+<ResponseField name="--reverify-provider-version" type="string">
+  Explicit provider version for reverification. Required with `--reverify-source`.
+</ResponseField>
+
+<ResponseField name="--resource-type / --resource-name" type="string">
+  The resource to re-read. Required with either reverify flag.
+</ResponseField>
+
+<ResponseField name="--provider-config" type="string" default="{}">
+  JSON object configuring the provider used for reverification (default `{}`).
+</ResponseField>
+
+<ResponseField name="--timeout" type="string" default="60s">
+  Timeout for the reverify round trip (default `60s`).
+</ResponseField>
+
+## Notes
+
+Cross-stack pins are always re-verified, whether or not you asked for
+reverification, since checking a neighbor ledger's own head is a free,
+local read, not a real provider round trip. Reverifying live state
+against the provider, by contrast, stays opt-in, since it costs a real
+network call.
+
+For `--from-merge`, nothing about the acceptance is trusted from a
+typed claim. The merge commit's real existence, the proposal's real
+content at that commit, the real pull request it belongs to, and its
+real, current approving reviewers are all independently derived from
+git and the GitHub API. See [PR-Merge
+Acceptance](/concepts/pr-merge-acceptance) for the full mechanism.
+
+## See also
+
+- [The Proposal](/concepts/proposal)
+- [PR-Merge Acceptance](/concepts/pr-merge-acceptance)
+- [`ubx ship`](/cli-reference/ship)
+- [`ubx plan`](/cli-reference/plan)

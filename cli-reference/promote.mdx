@@ -1,0 +1,89 @@
+---
+title: "ubx promote"
+description: "Re-resolve an accepted proposal's own document against a target environment."
+---
+
+Promotion never copies a proposal's resolved values into a new
+environment. `ubx promote` reads the source proposal's own authoring
+document and resolves it fresh, against the target environment's real
+config, real providers, real live state. What ships to prod is a genuine
+re-derivation, not a stale replay of what staging happened to compute.
+
+## Usage
+
+```bash
+ubx promote <proposal-id> --to <target-dir> [flags]
+```
+
+## Examples
+
+```bash
+ubx promote a1b2c3d4... --to ../prod/payments
+```
+
+```bash
+promoted a1b2c3d4... -> payments (../prod/payments)
+Plan  payments · promoted from staging/a1b2c3d4...
+  + aws_sqs_queue.pipeline-events create
+
+plan: ../prod/payments/.ubx/plans/8224643b....json
+ubx-proposal: 8224643bbbc5...
+next: ubx ship 8224643bbbc5...
+```
+
+## Flags
+
+<ResponseField name="--to" type="string">
+  Target environment's own directory, its own config, ledger, and providers. Required.
+</ResponseField>
+
+<ResponseField name="--to-stack" type="string">
+  Target stack name, if different from the source's own (default: same name).
+</ResponseField>
+
+<ResponseField name="--ledger-dir" type="string" default=".">
+  Directory containing the *source* proposal's own ledger (default `.`).
+</ResponseField>
+
+<ResponseField name="--stack" type="string">
+  Which stack to open the source proposal from, only for a remote ledger store.
+</ResponseField>
+
+<ResponseField name="--source / --provider-version / --provider" type="string">
+  Provider selection for the target.
+</ResponseField>
+
+<ResponseField name="--out" type="string">
+  Additionally write the full resolved proposal here.
+</ResponseField>
+
+<ResponseField name="--summary" type="string">
+  `intent.summary` override, only relevant for a diagram-sourced proposal.
+</ResponseField>
+
+<ResponseField name="--neighbor-ledger" type="list(string)">
+  Cross-stack reference override, only relevant for a diagram-sourced proposal.
+</ResponseField>
+
+<ResponseField name="--known-dependent" type="list(string)">
+  A neighbor stack's ledger to check for orphan references in the target's own graph.
+</ResponseField>
+
+<ResponseField name="--timeout" type="string" default="3m">
+  One shared budget for re-drafting and provider acquisition (default `3m`).
+</ResponseField>
+
+## Notes
+
+The source must be an already-*accepted* proposal, not an unaccepted
+plan draft, promotion evidence vouches for something that went through
+the normal accept ceremony. Two real, named gaps: an SDK-authored source
+can't be relocated (only its filename was ever recorded, not its
+directory), and a chat-captured source's own file path is relative to
+the source ledger, not portable to a target. Both are refused cleanly,
+by name, rather than silently mishandled.
+
+## See also
+
+- [Addressing, Environments & Promotion](/concepts/environments)
+- [`ubx accept`](/cli-reference/accept)

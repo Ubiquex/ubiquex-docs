@@ -1,145 +1,58 @@
 ---
-title: "Drift"
-description: "What it means when reality no longer matches the ledger"
+title: "Drift, Adoption & Revert"
+description: "The honest response when reality and the ledger disagree."
 ---
 
-Drift is what `ubx scan` exists to find: a resource's live state no longer
-matches what the [ledger](/concepts/ledger) last recorded for it. ubx never
-auto-corrects drift — it records what it found as a proposal, for a human to
-review and accept.
+The ledger only knows what it was explicitly told. If someone changes a
+real resource by hand, outside ubx entirely, the ledger has no idea
+until something goes looking for the difference. That gap, between what
+the ledger believes and what's actually true right now, is called
+drift.
 
-## The three outcomes of a scan
+## How it works
 
-Every `ubx scan` invocation reads one resource and compares its observed state
-against the ledger, producing one of three outcomes:
-
-- **New** — the ledger has never recorded this address before. ubx generates an
-  `adoption` proposal: a full snapshot of what it found, with an all-zero blast
-  radius (adopting a resource just records it, it doesn't propose changing
-  anything).
-- **Drifted** — the ledger has recorded this address before, and the live state
-  no longer matches. ubx generates a `drift_adopt` proposal: a before/after diff
-  of exactly the attributes that changed.
-- **Unchanged** — the live state matches what's already recorded. Nothing is
-  generated.
-
-## A worked example
-
-Adopting a resource ubx has never seen:
+`ubx status` and `ubx scan` read a resource's real, live state and
+compare it, attribute by attribute, against what the ledger last
+recorded for it. Any mismatch is drift, and it's never silently ignored.
 
 ```bash
-ubx scan --provider ./terraform-provider-aws \
-  --stack payments --type fake_widget --name api-cache \
-  --lookup '{"name":"api-cache","tags":{"env":"prod"}}' \
-  --ledger-dir . --out adopt.json
-```
-
-```text
-new: payments.fake_widget.api-cache (5c04c1c9c937a742ad32c319ffe75c550c344ed51bbee6d95dd14a12186daa4d) -- generated a "adoption" proposal
+ubx scan --propose both
 ```
 
 ```bash
-ubx accept adopt.json --ledger-dir .
+! payments.aws_sqs_queue.pipeline-events drifted
+  message_retention_seconds: 86400 -> 1209600
+  next: ubx ship <adopt-hash>   (accept the new value)
+       ubx ship <revert-hash>  (restore the signed value)
 ```
 
-Later, something changes the resource outside of ubx — someone edits a tag in
-the console. Scanning again with the same lookup surfaces the drift:
+Once drift is found, there are exactly two honest responses, drafted
+side by side:
 
-```bash
-ubx scan --provider ./terraform-provider-aws \
-  --stack payments --type fake_widget --name api-cache \
-  --lookup '{"name":"api-cache","tags":{"env":"staging"}}' \
-  --ledger-dir . --out drift.json
-```
+- **Adopt**: accept the real value as the new truth. This only updates
+  the ledger's own memory, nothing on the actual infrastructure changes.
+- **Revert**: undo the drift, restoring the infrastructure to match what
+  was originally signed off on.
 
-```text
-drifted: payments.fake_widget.api-cache (41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589) -- generated a "drift_adopt" proposal
-```
+## Why silently "fixing" drift automatically doesn't work
 
-`drift.json`'s `delta.modifies` holds exactly the attributes that changed —
-nothing else:
+A tool that automatically reverted anything unexpected, without asking,
+would fight real, intentional changes that just happened to be made
+outside it, an emergency fix at 2am, say. A tool that automatically
+adopted everything would let unreviewed changes quietly become the new
+accepted baseline with nobody ever actually deciding that was okay.
+Neither guess is safe to make on your behalf.
 
-```json
-{
-  "delta": {
-    "modifies": [
-      {
-        "target": { "stack": "payments", "type": "fake_widget", "name": "api-cache" },
-        "before": { "tags.env": "prod" },
-        "after": { "tags.env": "staging" }
-      }
-    ]
-  }
-}
-```
+## What this actually looks like
 
-Accepting it and scanning a third time (same lookup) now reports no drift:
+Where a real audit backend like CloudTrail is available, `ubx why`
+names who actually made the change, not just that something changed.
+See [Attribution](/concepts/attribution) for the full mechanism and a
+real, worked example.
 
-```bash
-ubx accept drift.json --ledger-dir .
-ubx scan --provider ./terraform-provider-aws \
-  --stack payments --type fake_widget --name api-cache \
-  --lookup '{"name":"api-cache","tags":{"env":"staging"}}' \
-  --ledger-dir .
-```
+## Why it matters
 
-```text
-no drift: payments.fake_widget.api-cache matches the ledger (observed_hash 41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589)
-```
-
-## Two resolutions to a drift: adopt, or revert
-
-`drift_adopt` (above) records that reality's new state is now correct —
-the ledger's truth moves to match what `ubx scan` found. That's the right
-call when the change was intentional, or at least acceptable. Sometimes
-it isn't: `ubx scan --propose revert` generates a `drift_revert` proposal
-instead, which records the *opposite* decision — the ledger's existing
-truth is what should be true, and cloud needs to be corrected back to it.
-`--propose both` generates both from the same observation, as two
-alternative resolutions to the *same* detected drift; accepting one makes
-the other stale (it would need a fresh `ubx scan` to still be acceptable).
-
-A `drift_revert`'s `delta.modifies` is `drift_adopt`'s own shape with
-`before`/`after` reversed: `before` is the observed (drifted) value,
-`after` is the value being restored to. It's also the one place a
-drift/adoption kind carries a real, non-zero `blast_radius` — accepting a
-`drift_revert` is a decision to actually change cloud, not a record of
-something that already happened:
-
-```text
-$ ubx scan --provider ./terraform-provider-aws \
-  --stack payments --type fake_widget --name api-cache \
-  --lookup '{"name":"api-cache","tags":{"env":"staging"}}' \
-  --ledger-dir . --propose revert --out revert.json
-drifted: payments.fake_widget.api-cache (41a2bac0bb6d4e320bfff58928f939de1e73d6cdd30ee7e611e2dd7777115589) -- generated a "drift_revert" proposal
-```
-
-`ubx` never applies a `drift_revert` itself — see
-[`ubx revert-plan`](/cli/revert-plan) for the reconciliation artifact an
-accepted one produces, and exactly why applying it is left to your own
-tooling.
-
-## After a drift is accepted
-
-What you can do next depends on which resolution you accepted:
-
-- **`ubx writeback`** corrects your own `.tf` source to match an accepted
-  `drift_adopt`, for the specific literal attribute values it can safely edit
-  — see the [CLI reference](/cli/writeback) for exactly what it will and
-  won't touch.
-- **`ubx revert-plan`** emits the reconciliation plan for an accepted
-  `drift_revert` — a human-readable summary always, plus a corrective `.tf`
-  diff where `--tf-dir` is given and the attribute is a literal. It never
-  applies anything to `.tf` or to cloud; see the
-  [CLI reference](/cli/revert-plan).
-- **`ubx scan --surface-as issue|pr`** can open a GitHub issue or pull request
-  carrying the generated proposal, instead of just printing it — see the
-  [CLI reference for `ubx scan`](/cli/scan).
-
-## Related
-
-- [Attribution](/concepts/attribution) — identifying who caused a drift
-- [Proposal](/concepts/proposal) — the `adoption`/`drift_adopt`/`drift_revert` shapes
-- [Ledger](/concepts/ledger) — what "matches the ledger" is comparing against
-- [Resource lookup conventions](/cli/lookup) — what `--lookup` needs per type, since a wrong lookup can look like "no drift" when it's actually "found the wrong thing"
-- [`ubx revert-plan`](/cli/revert-plan) — the reconciliation artifact for an accepted `drift_revert`
+Drift is the honest name for "reality and the ledger disagree." Naming
+it plainly, and requiring an explicit human decision either way, means
+nothing about your real infrastructure's history is ever quietly
+assumed or guessed at.

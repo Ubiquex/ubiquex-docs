@@ -1,0 +1,83 @@
+---
+title: "Reconciling your source"
+description: "Write an adopted change back into an existing .tf file."
+---
+
+If a `.tf` file describes the same resource ubx now tracks, adopting
+drift doesn't automatically fix that file. This tutorial closes that
+gap, surgically.
+
+## Set up a real .tf file
+
+```bash
+mkdir terraform
+cat > terraform/main.tf << 'EOF'
+resource "aws_sqs_queue" "pipeline-events" {
+  name                       = "pipeline-events"
+  message_retention_seconds  = 1209600
+}
+EOF
+```
+
+This file still shows the old value, even though you adopted the new
+one earlier.
+
+## Preview the correction
+
+```bash
+ubx writeback 8224643b... --tf-dir ./terraform
+```
+
+```bash
+payments.aws_sqs_queue.pipeline-events (terraform/main.tf):
+  written: message_retention_seconds
+--- terraform/main.tf (before)
++++ terraform/main.tf (after)
+@@ -1,4 +1,4 @@
+ resource "aws_sqs_queue" "pipeline-events" {
+   name                       = "pipeline-events"
+-  message_retention_seconds  = 1209600
++  message_retention_seconds  = 345600
+ }
+```
+
+Nothing was written yet, just a diff for you to review.
+
+## Actually write it
+
+```bash
+ubx writeback 8224643b... --tf-dir ./terraform --write
+```
+
+```bash
+payments.aws_sqs_queue.pipeline-events (terraform/main.tf):
+  written: message_retention_seconds
+```
+
+```bash
+cat terraform/main.tf
+```
+
+```bash
+resource "aws_sqs_queue" "pipeline-events" {
+  name                       = "pipeline-events"
+  message_retention_seconds  = 345600
+}
+```
+
+Only the one attribute changed. Comments, formatting, everything else
+in the file is untouched.
+
+## What you just did
+
+You corrected an existing `.tf` file to match reality, surgically, with
+a real review step before anything was written. The file is honest
+again, without a wholesale regeneration.
+
+## Next
+
+You've completed the Drift & Adoption track.
+
+<Card title="Environments & Promotion" icon="layer-group" href="/tutorial/promotion">
+  Ship to dev, promote to prod, with real evidence.
+</Card>

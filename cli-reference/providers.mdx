@@ -1,0 +1,63 @@
+---
+title: "ubx providers"
+description: "Check your pinned provider versions against the real Terraform Registry."
+---
+
+Your `[providers]` table pins exact versions, on purpose, no `latest`
+resolution anywhere in this project. `ubx providers check` is the real,
+portable way to find out when a newer version actually exists, and
+optionally update the pin for you.
+
+## Usage
+
+```bash
+ubx providers check [--write]
+```
+
+## Examples
+
+Checking without changing anything:
+
+```bash
+ubx providers check
+```
+
+```bash
+hashicorp/aws: 6.54.0 -> 6.60.0 available
+hashicorp/helm: 2.13.0 is current
+```
+
+Writing the update directly:
+
+```bash
+ubx providers check --write
+```
+
+```bash
+hashicorp/aws: 6.54.0 -> 6.60.0 available
+hashicorp/aws: wrote 6.54.0 -> 6.60.0 in .ubx/config.hcl
+```
+
+## Flags
+
+<ResponseField name="--write">
+  Rewrite each newer-version provider's pin in place, in the real file the config cascade names as its source. Never commits, never opens a PR.
+</ResponseField>
+
+<ResponseField name="--timeout" type="string" default="30s">
+  Timeout per provider query against the registry (default `30s`).
+</ResponseField>
+
+## Notes
+
+`--write` only ever changes the exact pin line, in the exact file the
+cascade's own provenance already points at, never a full
+re-serialization that could silently drop comments or formatting. Exit
+code matches `ubx status --drift`'s own contract: `0` if every pin is
+current, `1` if a newer version exists for at least one provider (a real
+signal a CI workflow can branch on), `2` on a genuine error.
+
+## See also
+
+- [The Config Cascade](/concepts/config-cascade)
+- [Provider Acquisition](/concepts/provider-acquisition)

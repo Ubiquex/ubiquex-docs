@@ -1,0 +1,100 @@
+---
+title: "ubx why"
+description: "Explain an accepted proposal, or a resource's complete proposal history."
+---
+
+`ubx why` is the primary way to actually read the ledger back. Give it a
+proposal's hash and it explains that one decision in full, who signed
+it, what changed, what happened when it shipped. Give it a resource
+address instead, and it shows that resource's entire history, every
+proposal that ever touched it, newest first.
+
+## Usage
+
+```bash
+ubx why <proposal-id>
+ubx why <stack>.<type>.<name>
+```
+
+## Examples
+
+Explaining one proposal:
+
+```bash
+ubx why 45f63ce10849...
+```
+
+```bash
+proposal 45f63ce1084... (change)
+stack:  payments
+status: accepted
+intent: payments own SQS queue
+accepted by [roozbeh] via local at 2026-08-04T18:07:04Z
+blast radius: +1 ~0 -0
+
+  + aws_sqs_queue.pipeline-events create
+    message_retention_seconds: 1209600
+```
+
+A resource's full history:
+
+```bash
+ubx why payments.aws_sqs_queue.pipeline-events
+```
+
+```bash
+payments.aws_sqs_queue.pipeline-events: 2 proposal(s), newest first
+- change 8224643bbbc5... (2026-08-05T...): retention bump
+- change 45f63ce10849... (2026-08-04T...): payments own SQS queue
+```
+
+## Flags
+
+<ResponseField name="--ledger-dir" type="string" default=".">
+  Root directory containing `ledger/` and `.ubx/` (default `.`).
+</ResponseField>
+
+<ResponseField name="--stack" type="string">
+  Which stack's ledger to open, for a bare proposal ID. Required only for a remote ledger store.
+</ResponseField>
+
+<ResponseField name="--verify-acceptance">
+  Re-derive a `pr_merge` proposal's acceptance against real git history and the GitHub API, and report whether it still checks out.
+</ResponseField>
+
+<ResponseField name="--repo-dir" type="string" default=".">
+  Local git working tree for `--verify-acceptance` (default `.`).
+</ResponseField>
+
+<ResponseField name="--github-repo" type="string">
+  `owner/name` of the GitHub repository, for the reviewer re-check half of `--verify-acceptance`.
+</ResponseField>
+
+<ResponseField name="--dialogue">
+  If this proposal came from `ubx chat`, show the real conversation behind it.
+</ResponseField>
+
+<ResponseField name="--json">
+  Emit one JSON document instead of human text.
+</ResponseField>
+
+<ResponseField name="--full-hashes">
+  Render every hash in full.
+</ResponseField>
+
+## Notes
+
+A `change` or `drift_revert` proposal's full ship history renders too,
+every attempt, sealed or not, so a resource created via a crash-and-retry
+run shows its complete real story, not just the accepted decision. A
+blueprint-created resource's provenance line names the blueprint and its
+content hash, and notes honestly that only the calling stack's own
+acceptance is a real signature today, a blueprint's own authorship has
+no separate signing ceremony yet.
+
+## See also
+
+- [The Ledger](/concepts/ledger)
+- [Attribution](/concepts/attribution)
+- [PR-Merge Acceptance](/concepts/pr-merge-acceptance)
+- [The Audit Surface](/concepts/audit-surface)
