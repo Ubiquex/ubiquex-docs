@@ -11,18 +11,20 @@ Both hermetic evaluators refuse remote code at evaluation time, on
 purpose, so this tutorial clones the real bindings repos locally first,
 rather than importing them remotely.
 
-## Clone the real bindings repos
+## Clone the real bindings repo
 
 ```bash
-git clone https://github.com/Ubiquex/ubx-sdk-aws-ts.git
-git clone https://github.com/Ubiquex/ubx-sdk-aws-py.git
+git clone https://github.com/Ubiquex/ubx-sdk-aws.git
 ```
+
+One combined repo, all three languages as sibling subdirectories
+(`sdk/go/`, `sdk/typescript/`, `sdk/python/`).
 
 ## Write the TypeScript version
 
 ```typescript
 import { stack, intent, resource } from "@ubx/sdk";
-import { Queue } from "./ubx-sdk-aws-ts/aws/sqs/queue.ts";
+import { Queue } from "./ubx-sdk-aws/sdk/typescript/aws/sqs/queue.ts";
 
 export default stack("payments", () => {
   intent({ summary: "payments own SQS queue" });
@@ -33,7 +35,7 @@ export default stack("payments", () => {
 });
 ```
 
-Save as `create_platform.ts`, next to the cloned `ubx-sdk-aws-ts`
+Save as `create_platform.ts`, next to the cloned `ubx-sdk-aws`
 directory. The import is a real local relative path, never a remote
 URL, the hermetic evaluator's own `--no-remote` flag refuses to resolve
 anything else.
@@ -55,19 +57,19 @@ if __name__ == "__main__":
     ubx.run("payments", describe)
 ```
 
-Save this file as `create_platform.py` **inside** the cloned
-`ubx-sdk-aws-py` directory itself, not next to it. The real top-level
-importable package in that repo is `aws`, not a `pip`-installed name,
-and the WASI sandbox only ever mounts the entry script's own directory,
-a host-installed package elsewhere on your machine is never reachable
-from inside it.
+Save this file as `create_platform.py` **inside** the cloned repo's own
+`sdk/python/` directory, not next to it. The real top-level importable
+package in that directory is the `ubx` namespace package (`ubx.aws.*`),
+not a `pip`-installed name, and the WASI sandbox only ever mounts the
+entry script's own directory, a host-installed package elsewhere on
+your machine is never reachable from inside it.
 
 ## Resolve all three and compare
 
 ```bash
 ubx resolve --from-code create_platform.go --out go.json
 ubx resolve --from-code create_platform.ts --out ts.json
-ubx resolve --from-code ubx-sdk-aws-py/create_platform.py --out py.json
+ubx resolve --from-code ubx-sdk-aws/sdk/python/create_platform.py --out py.json
 diff go.json ts.json
 diff go.json py.json
 ```
