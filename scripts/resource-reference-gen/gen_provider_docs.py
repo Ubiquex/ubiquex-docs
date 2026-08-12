@@ -145,7 +145,18 @@ MAX_RICH_FIELDS = 8
 
 def pick_richer_example_fields(fields):
     required = sorted([f for f in fields if f["Required"]], key=lambda f: f["WireName"])
-    name_field = [f for f in fields if f["WireName"] == "name" and not f["Required"]]
+    # A real, found-in-review bug: "name" is a real field on MANY
+    # resources, but on some (aws_efs_file_system, a real, confirmed
+    # example) it's PURE COMPUTED -- Optional=False, Computed=True,
+    # derived automatically from the "Name" tag, never a real settable
+    # field in the generated Config struct at all. Checking only
+    # `WireName == "name"` (this function's own first version) included
+    # it anyway, producing a real Go compile error ("unknown field Name
+    # in struct literal"). f["Optional"] is the same real settability
+    # check the rest of this file's own Input properties selection
+    # already uses (eff_flags) -- applied here too now, not
+    # independently re-derived a second, looser way.
+    name_field = [f for f in fields if f["WireName"] == "name" and f["Optional"] and not f["Required"]]
     optional_pure = sorted(
         [f for f in fields if f["Optional"] and not f["Computed"] and not f["Required"]],
         key=lambda f: f["WireName"],
