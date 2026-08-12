@@ -1,0 +1,145 @@
+---
+title: "Context-aware drafting"
+description: "Write a document whose meaning depends on the target environment, and watch ubx work it out."
+---
+
+The [ambiguity tutorial](/tutorial/markdown/ambiguity) showed how ubx
+handles a vague requirement. This one is different: not vague, just
+conditional on something ubx used to have no way to check, which real
+environment it's actually targeting. See
+[Context-Aware Drafting](/concepts/context-aware-drafting) for the full
+mechanism, what it can and can't read.
+
+## Write a conditional requirement
+
+```bash
+cat > payments-logs.md << 'EOF'
+Create an S3 bucket called payments-logs. If this is a
+production environment, enable KMS encryption and 14-day log
+retention. Otherwise, use default (AES256) encryption and
+1-day log retention.
+EOF
+```
+
+This stack is named `app3`. Nothing about that name says "production" one
+way or the other. What decides the answer is a real
+`.ubx/config` value:
+
+```bash
+cat .ubx/config
+```
+
+```bash
+github_repo = "acme/app3-production-infra"
+```
+
+## What this used to require
+
+Before ubx could read a stack's own config before drafting, this
+conditional had exactly one honest outcome: a blocking question. The AI
+had no way to check `.ubx/config`, so it correctly refused to guess:
+
+```bash
+ubx plan --from-doc payments-logs.md --stack app3
+```
+
+```bash
+Questions (1):
+  - [blocking -- review before accepting] The document
+    conditions encryption/retention on whether 'this is a
+    production environment' but never states whether app3
+    actually is production. Defaulted to the non-production
+    branch (AES256 encryption, 1-day retention) since nothing
+    in the stack name or document indicates production, but
+    this should be confirmed.
+```
+
+Correct, but friction you'd have resolved yourself by glancing at the
+same config file.
+
+## Plan it now
+
+```bash
+ubx plan --from-doc payments-logs.md --stack app3
+```
+
+```bash
+Plan  app3 · from payments-logs.md
+
+  + aws_s3_bucket.payments-logs create
+      bucket: "payments-logs"
+      lifecycle_rule:
+      {
+        "enabled": true,
+        "expiration": {
+          "days": 14
+        }
+      }
+      server_side_encryption_configuration:
+      {
+        "rule": {
+          "apply_server_side_encryption_by_default": {
+            "sse_algorithm": "aws:kms"
+          }
+        }
+      }
+
+delta: +1 create(s), ~0 change(s), -0 terminate(s)
+
+AI defaults — you are signing these:
+
+◦ Determined this is a production environment because the
+  stack's own config reports github_repo
+  'acme/app3-production-infra', whose name explicitly
+  identifies it as production infrastructure; applied the
+  document's production branch: KMS encryption and 14-day
+  log retention.
+    affects: aws_s3_bucket.payments-logs
+```
+
+No question this time. The AI called its one read-only tool,
+`read_stack_config`, found the real config value that settles it, and
+resolved the branch, KMS encryption, 14-day retention, named plainly as
+an AI default in the same receipt you'd review either way.
+
+## Confirm it still asks when it genuinely doesn't know
+
+Run the identical document against a stack whose config gives no real
+signal:
+
+```bash
+ubx plan --from-doc payments-logs.md --stack widgets
+```
+
+```bash
+Questions (1):
+  - [blocking -- review before accepting] The document's
+    encryption/retention settings depend on whether this is
+    a 'production environment', but the stack's own config
+    (checked via read_stack_config) only exposed the stack
+    name 'widgets' and its GitHub repo 'acme/widgets-infra'
+    -- neither indicates an environment tier. Could not
+    determine if 'widgets' is production.
+```
+
+The tool was genuinely called, "checked via `read_stack_config`" is right
+there in the question, it just had nothing useful to say. Nothing about
+context-aware drafting means it stops asking, it means it stops asking
+you things it could have checked itself.
+
+## What you just did
+
+You saw the exact same conditional document produce two different, both
+correct, outcomes depending on what was actually knowable: a real config
+value resolved it as a named default, and its absence still produced a
+real, blocking question. Neither outcome required you to state the
+environment yourself in the document.
+
+## Next
+
+You've completed the Markdown track. Try the same patterns as a live
+conversation instead of a static document.
+
+<Card title="Chat" icon="comments" href="/tutorial/chat">
+  The same drafting, one turn at a time.
+</Card>
