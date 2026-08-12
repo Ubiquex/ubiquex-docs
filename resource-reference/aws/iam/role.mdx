@@ -8,75 +8,124 @@ it, an EC2 instance, a Lambda function, another AWS account. `aws_iam_role`
 creates the role and its trust policy, real permissions are attached
 separately, via `aws_iam_role_policy_attachment`.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "encoding/json"
-        iam "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/iam"
+    	"encoding/json"
+
+    	iam "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/iam"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
-    trustPolicy, _ := json.Marshal(map[string]any{
-        "Version": "2012-10-17",
-        "Statement": []map[string]any{{
-            "Effect": "Allow",
-            "Principal": map[string]string{
-                "Service": "ec2.amazonaws.com",
-            },
-            "Action": "sts:AssumeRole",
-        }},
-    })
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "CI runner role"})
 
-    ubx.Resource(iam.Role, "ci-runner", iam.RoleConfig{
-        Name:             "ci-runner",
-        AssumeRolePolicy: string(trustPolicy),
-    })
+    		trustPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":    "Allow",
+    				"Principal": map[string]string{"Service": "ec2.amazonaws.com"},
+    				"Action":    "sts:AssumeRole",
+    			}},
+    		})
+
+    		ubx.Resource(iam.Role, "ci-runner", iam.RoleConfig{
+    			AssumeRolePolicy:    string(trustPolicy),
+    			Name:                "ci-runner",
+    			Description:         "CI pipeline execution role",
+    			ForceDetachPolicies: true,
+    			MaxSessionDuration:  7200,
+    			Path:                "/ci/",
+    			PermissionsBoundary: "arn:aws:iam::123456789012:policy/ci",
+    			Tags:                map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
+    }
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Role } from "jsr:@ubx/sdk-aws/aws/iam/role";
 
-    const trustPolicy = JSON.stringify({
-      Version: "2012-10-17",
-      Statement: [{
-        Effect: "Allow",
-        Principal: { Service: "ec2.amazonaws.com" },
-        Action: "sts:AssumeRole",
-      }],
-    });
+    export default stack("payments", () => {
+      intent({ summary: "CI runner role" });
 
-    resource(Role, "ci-runner", {
-      name: "ci-runner",
-      assumeRolePolicy: trustPolicy,
+      const trustPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Principal: { Service: "ec2.amazonaws.com" },
+          Action: "sts:AssumeRole",
+        }],
+      });
+
+      resource(Role, "ci-runner", {
+        assumeRolePolicy: trustPolicy,
+        name: "ci-runner",
+        description: "CI pipeline execution role",
+        forceDetachPolicies: true,
+        maxSessionDuration: 7200,
+        path: "/ci/",
+        permissionsBoundary: "arn:aws:iam::123456789012:policy/ci",
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
     import json
+    import ubx_sdk as ubx
     from ubx.aws.iam import Role, RoleConfig
 
-    trust_policy = json.dumps({
-        "Version": "2012-10-17",
-        "Statement": [{
-            "Effect": "Allow",
-            "Principal": {"Service": "ec2.amazonaws.com"},
-            "Action": "sts:AssumeRole",
-        }],
-    })
+    def describe():
+        ubx.intent("CI runner role")
 
-    ubx.resource(Role, "ci-runner", RoleConfig(
-        name="ci-runner",
-        assume_role_policy=trust_policy,
-    ))
+        trust_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Principal": {"Service": "ec2.amazonaws.com"},
+                "Action": "sts:AssumeRole",
+            }],
+        })
+
+        ubx.resource(Role, "ci-runner", RoleConfig(
+            assume_role_policy=trust_policy,
+            name="ci-runner",
+            description="CI pipeline execution role",
+            force_detach_policies=True,
+            max_session_duration=7200,
+            path="/ci/",
+            permissions_boundary="arn:aws:iam::123456789012:policy/ci",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Create an IAM role called "ci-runner", assumable by EC2.
+    Create an IAM role called "ci-runner", assumable by EC2
+    instances, described as "CI pipeline execution role", under path
+    "/ci/", with sessions lasting up to 7200 seconds and a
+    permissions boundary at arn:aws:iam::123456789012:policy/ci. Tag
+    it managed-by=ubx, and detach every attached policy before ever
+    destroying it.
+
+    Attach a policy allowing it to send messages to
+    @payments.aws_sqs_queue.pipeline-events.
     ```
   </Tab>
 </Tabs>
