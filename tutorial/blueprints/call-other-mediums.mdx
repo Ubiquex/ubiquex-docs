@@ -65,8 +65,8 @@ lang: go
 
 params:
   queue_name: string, required
-  vpc_id: cross_ref, required
   retention_days: number, default 14
+  vpc_id: cross_ref, required
 
 resources: |
   An SQS queue called "{queue_name}", standard, messages retained
@@ -76,12 +76,12 @@ EOF
 ubx blueprint build ../ci-platform
 ```
 
-`vpc_id` is declared right after `queue_name`, both required, before
-`retention_days`'s own default. `required-first, defaulted-trailing`
-is the order `ubx blueprint build` itself generates a function
-signature in for every target language, so declaring params in that
-same order keeps the Ubxfile's own param list and the generated
-signature reading identically, in every language, not just Go's.
+`vpc_id`, required, is declared AFTER `retention_days`'s own default,
+the same natural order build.mdx already used for `queue_name` and
+`retention_days`. The generated signature is still required-first,
+defaulted-trailing in every language (`queueName, vpcId, opts
+...Option` in Go, say), `ubx blueprint build` reorders it for you
+regardless of how you declared it.
 
 ## Call it with the real value
 
@@ -105,7 +105,7 @@ ubx plan --from-diagram platform.d2 --stack payments --out diagram.json
 ```bash
 Plan  payments · from platform.d2
 
-  + aws_sqs_queue.queue create
+  + aws_sqs_queue.main-queue create
       message_retention_seconds: 259200
       tags:
       {
