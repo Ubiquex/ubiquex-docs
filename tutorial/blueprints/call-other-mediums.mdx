@@ -53,11 +53,167 @@ diff sdk.json md.json
 No differences. Same blueprint, same version, three different
 mediums, one identical resolved result.
 
+## Add a cross-stack reference
+
+A blueprint param can point at another stack's own real resource, not
+just a literal value. Add one, a `cross_ref` param naming the VPC a
+real neighboring stack (`networking`, here) already owns, and rebuild:
+
+```bash
+cat > ../ci-platform/Ubxfile << 'EOF'
+lang: go
+
+params:
+  queue_name: string, required
+  vpc_id: cross_ref, required
+  retention_days: number, default 14
+
+resources: |
+  An SQS queue called "{queue_name}", standard, messages retained
+  for {retention_days * 86400} seconds, tagged with vpc_id set to
+  {vpc_id}.
+EOF
+ubx blueprint build ../ci-platform
+```
+
+`vpc_id` is declared right after `queue_name`, both required, before
+`retention_days`'s own default. `required-first, defaulted-trailing`
+is the order `ubx blueprint build` itself generates a function
+signature in for every target language, so declaring params in that
+same order keeps the Ubxfile's own param list and the generated
+signature reading identically, in every language, not just Go's.
+
+## Call it with the real value
+
+Every medium takes the identical `"@<stack>.<type>.<name>.<attr>"`
+reference, `@networking.aws_vpc.main.id`, the real VPC `networking`
+already shipped:
+
+```bash
+cat > platform.d2 << 'EOF'
+platform: "ci-platform" {
+  class: ubx_blueprint
+  blueprint: "../ci-platform"
+  queue_name: "pipeline-events"
+  retention_days: "3"
+  vpc_id: "@networking.aws_vpc.main.id"
+}
+EOF
+ubx plan --from-diagram platform.d2 --stack payments --out diagram.json
+```
+
+```bash
+Plan  payments · from platform.d2
+
+  + aws_sqs_queue.queue create
+      message_retention_seconds: 259200
+      tags:
+      {
+        "vpc_id": "vpc-123"
+      }
+
+delta: +1 create(s), ~0 change(s), -0 terminate(s)
+```
+
+`vpc-123`, the real id resolved off `networking`'s own ledger, not a
+literal string, threaded straight into the new resource's own tags.
+
+```bash
+cat > platform.md << 'EOF'
+Use blueprint ../ci-platform with:
+  queue_name = "pipeline-events"
+  retention_days = 3
+  vpc_id = @networking.aws_vpc.main.id
+EOF
+ubx plan --from-doc platform.md --stack payments --out md.json
+```
+
+Update `create_platform.go`'s own call to pass the same reference,
+via `sdk.CrossStack`, the SDK's own real constructor for it:
+
+```go
+ciplatform.CiPlatform(
+	"pipeline-events",
+	sdk.CrossStack("networking", "networking.aws_vpc.main.id"),
+	ciplatform.WithRetentionDays(3),
+)
+```
+
+```bash
+ubx resolve --from-code create_platform.go --out sdk.json
+```
+
+```bash
+jq '.delta.creates[0].config' sdk.json diagram.json md.json
+```
+
+```bash
+{
+  "fifo_queue": false,
+  "message_retention_seconds": 259200,
+  "name": "pipeline-events",
+  "tags": {
+    "vpc_id": "vpc-123"
+  }
+}
+{
+  "fifo_queue": false,
+  "message_retention_seconds": 259200,
+  "name": "pipeline-events",
+  "tags": {
+    "vpc_id": "vpc-123"
+  }
+}
+{
+  "fifo_queue": false,
+  "message_retention_seconds": 259200,
+  "name": "pipeline-events",
+  "tags": {
+    "vpc_id": "vpc-123"
+  }
+}
+```
+
+Same resolved config, three times over. `intent.sources` and
+`resolution.resolved_at` differ between the three full proposals,
+real provenance and a real timestamp, each medium's own, never the
+same across separate runs, so this compares the resolved delta
+directly rather than the whole file.
+
+## Refuse a malformed reference
+
+Drop the leading `@` and call it again:
+
+```bash
+cat > platform-bad.d2 << 'EOF'
+platform: "ci-platform" {
+  class: ubx_blueprint
+  blueprint: "../ci-platform"
+  queue_name: "pipeline-events"
+  retention_days: "3"
+  vpc_id: "networking.aws_vpc.main.id"
+}
+EOF
+ubx plan --from-diagram platform-bad.d2 --stack payments
+```
+
+```bash
+error: param "vpc_id": "networking.aws_vpc.main.id" must start with
+"@" -- expected "@<stack>.<type>.<name>.<attr-path>"
+```
+
+Refused before it ever reaches a provider. The same real check runs
+for every medium, `cross_ref` never resolves a string that isn't
+already a well-formed reference.
+
 ## What you just did
 
 You proved directly what this whole design promises, a blueprint
 called from SDK code, a diagram node, or a sentence of prose produces
-the exact same real infrastructure, byte for byte.
+the exact same real infrastructure, byte for byte, even when one of
+its params points at another stack's own real resource instead of a
+literal value, and confirmed a malformed reference is refused the
+same way regardless of which medium sent it.
 
 ## Next
 
