@@ -15,7 +15,8 @@ ubx status
 ```
 
 ```bash
-payments.aws_sqs_queue.pipeline-events: change a1b2c3d4... (accepted ...)
+payments.aws_sqs_queue.pipeline-events:
+  change a1b2c3d4... (accepted ...)
 ```
 
 ## Promote it
@@ -66,11 +67,147 @@ source: promotion
 Permanent, real evidence, prod's own resource genuinely traces back to
 the exact dev proposal that proved it out.
 
+## Promoting an SDK-authored change
+
+The document above happens to be markdown, but promotion works
+identically for a real SDK program. Write one in dev:
+
+```go
+package main
+
+import sdk "github.com/ubiquex/ubx-sdk-go/runtime"
+
+func main() {
+	sdk.Main(sdk.Stack("payments", func() {
+		sdk.Intent(sdk.IntentInfo{
+			Summary: "payments own SQS queue, in Go",
+		})
+		sdk.Resource(Queue, "pipeline-events", QueueConfig{
+			Name:                    "pipeline-events",
+			MessageRetentionSeconds: 259200,
+		})
+	}))
+}
+```
+
+Resolve and accept it in dev, same as any other source:
+
+```bash
+ubx resolve --from-code create_platform.go --out resolved.json
+ubx accept resolved.json
+```
+
+```bash
+resolved: payments: 1 create(s), 0 change(s), 0 terminate(s)
+accepted 0f7645e8be31... (stack payments)
+```
+
+Promote it. `ubx promote` re-reads `create_platform.go` from disk and
+re-runs it through the real evaluator, against prod's own real
+context, never a copy of what dev's own run computed:
+
+```bash
+ubx promote 0f7645e8be310a... --to ../../prod/payments
+```
+
+```bash
+promoted 0f7645e8be31… -> payments (../../prod/payments)
+Plan  payments
+
+  + aws_sqs_queue.pipeline-events create
+      message_retention_seconds: 259200
+      name: "pipeline-events"
+
+delta: +1 create(s), ~0 change(s), -0 terminate(s)
+
+plan: ../../prod/payments/.ubx/plans/de145dd66917....json
+ubx-proposal: de145dd66917d5e74c172...
+next: ubx ship de145dd66917
+```
+
+Now edit the program after the fact — say, doubling the retention —
+without re-drafting:
+
+```bash
+ubx promote 0f7645e8be310a... --to ../../prod/payments
+```
+
+```bash
+promote: re-resolve create_platform.go: create_platform.go
+has changed since the source proposal was drafted (was
+sha256:b602525a2996..., now sha256:e818e9bee16c...) --
+promote only re-runs an UNCHANGED program; a changed
+program is new intent, not a promotion. Draft it fresh
+instead, e.g. "ubx plan --from-code create_platform.go"
+```
+
+A real, expected refusal — the accepted source proposal no longer
+describes what's actually on disk, so promoting it would silently
+claim provenance for a program it never actually ran. Draft and accept
+the new version fresh instead.
+
+## Promoting a chat-drafted change
+
+A dialogue promotes too, but differently: the model is never asked to
+draft again. `ubx promote` takes the *converged* draft the dialogue
+already produced and re-resolves that against the target.
+
+```bash
+ubx chat --stack payments
+> We need an SQS queue called pipeline-events for payments,
+  with a 3 day message retention.
+> /save
+```
+
+```bash
+captured dialogue: dialogues/7bef53d83fb5....dlg.json
+```
+
+Resolve, accept, then promote it exactly like any other source:
+
+```bash
+ubx promote e5036587bb74d1... --to ../../prod/payments-chat
+```
+
+```bash
+promoted e5036587bb74… -> payments (../../prod/payments-chat)
+Plan  payments
+
+  + aws_sqs_queue.pipeline-events create
+      message_retention_seconds: 259200
+      name: "pipeline-events"
+
+delta: +1 create(s), ~0 change(s), -0 terminate(s)
+
+AI defaults — you are signing these:
+
+◦ Converted the stated '3 day message retention' into the
+  wire attribute message_retention_seconds, expressed in
+  seconds (3 * 86400 = 259200), since SQS's API requires
+  this value in seconds.
+    affects: aws_sqs_queue.pipeline-events
+
+plan: ../../prod/payments-chat/.ubx/plans/413dcb1df3cf....json
+ubx-proposal: 413dcb1df3cf496c13801a005a2...
+next: ubx ship 413dcb1df3cf
+```
+
+The model's own original reasoning still shows up in the receipt — it
+was captured once, at drafting time, and promoted along with the
+resource it produced, never re-asked. The dialogue file itself is
+carried forward as pinned evidence in the new proposal's own
+`intent.sources`, not something `ubx promote` could re-run a second
+time.
+
 ## What you just did
 
-You moved a proven pattern from dev to prod as a real re-derivation,
-never a blind copy, and confirmed the lineage is permanently recorded,
-not just implied by a commit message.
+You moved three differently-authored changes from dev to prod as real
+re-derivations, never blind copies: a document re-drafted, an SDK
+program re-run against prod's own real context (and correctly refused
+once it no longer matched what was accepted), and a dialogue's own
+converged draft re-resolved without re-asking the model. Every
+promotion's own lineage is permanently recorded, not just implied by a
+commit message.
 
 ## Next
 

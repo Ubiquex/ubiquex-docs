@@ -77,11 +77,51 @@ next: ubx ship 8224643bbbc5...
 
 The source must be an already-*accepted* proposal, not an unaccepted
 plan draft, promotion evidence vouches for something that went through
-the normal accept ceremony. Two real, named gaps: an SDK-authored source
-can't be relocated (only its filename was ever recorded, not its
-directory), and a chat-captured source's own file path is relative to
-the source ledger, not portable to a target. Both are refused cleanly,
-by name, rather than silently mishandled.
+the normal accept ceremony.
+
+Four authoring sources are all promotable, each re-derived its own way:
+
+- **Markdown/diagram** (`.md`/`.d2`): re-read from disk and re-drafted/
+  re-parsed, exactly like the original `ubx propose`/`ubx plan` did.
+- **SDK program** (`--from-code`, `.go`/`.ts`/`.py`): re-read from disk,
+  and its `content_hash` is checked *first* — an unchanged file is
+  re-run through the real evaluator against the target's own real
+  context (see [Context-Aware Drafting](/concepts/context-aware-drafting)
+  for why a re-run, not a frozen copy, is what stays correct); a changed
+  file is refused outright, naming both hashes, since that's new intent,
+  not a promotion.
+- **Chat-drafted** (`ubx chat`): the final, *converged* intent/v1 draft
+  already captured in the dialogue's own `.dlg.json` is re-resolved
+  against the target — never re-run through the model a second time.
+  The dialogue capture itself carries forward as pinned evidence in the
+  promoted proposal's own `intent.sources`, never treated as something
+  promote could re-run.
+
+Every source is read relative to the same place its own medium already
+reads it from: `.md`/`.d2`/SDK refs resolve from the current working
+directory (same as the original `ubx propose`/`ubx plan`/`ubx resolve`
+did); a dialogue's own ref resolves relative to the *source* proposal's
+`--ledger-dir`, never the current working directory.
+
+## Refusal cases
+
+<Expandable title="SDK program changed since the source proposal was drafted">
+```bash
+ubx promote 0f7645e8be31… --to ../../prod/payments
+```
+```bash
+promote: re-resolve create_platform.go: create_platform.go
+has changed since the source proposal was drafted (was
+sha256:b602525a2996..., now sha256:e818e9bee16c...) --
+promote only re-runs an UNCHANGED program; a changed
+program is new intent, not a promotion. Draft it fresh
+instead, e.g. "ubx plan --from-code create_platform.go"
+```
+A real, expected refusal, not an edge case to work around --
+editing the program after the source proposal was accepted
+means the source proposal no longer describes what's on
+disk. Draft and accept fresh instead.
+</Expandable>
 
 ## See also
 
