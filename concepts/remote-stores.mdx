@@ -20,16 +20,50 @@ ledger = {
 }
 ```
 
+```
+ledger = { store = "gs://acme-infra-ledger/payments" }
+ledger = { store = "azblob://acme-infra-ledger/payments" }
+```
+
 Every command, `ship`, `why`, `verify`, works identically against a
-remote store as it does against local git. Instead of one mutable
-"current head" value, the chain is stored as edges: each proposal
-records which proposal comes right after it. Finding the real head means
-walking forward from a cached hint until the walk runs out of edges.
+remote store as it does against local git, regardless of which of the
+three it's backed by. Instead of one mutable "current head" value, the
+chain is stored as edges: each proposal records which proposal comes
+right after it. Finding the real head means walking forward from a
+cached hint until the walk runs out of edges.
 
 Advancing the chain uses a create-only write, one the object store
-itself refuses if that edge already exists. If two people race to ship
-from the same point at the same time, exactly one wins outright, with no
-custom locking logic required to make that safe.
+itself refuses if that edge already exists, using each provider's own
+real, native precondition mechanism underneath: S3's `If-None-Match`
+conditional write, GCS's `ifGenerationMatch=0` object generation
+precondition, Azure Blob's `If-None-Match` ETag condition. All three are
+real, server-side atomic guarantees, not a client-side race, and all
+three are live-verified against the real services, not just each
+provider's own documented behavior. If two people race to ship from the
+same point at the same time, exactly one wins outright, with no custom
+locking logic required to make that safe.
+
+### gs:// and azblob:// aren't in a default install
+
+`ubx` builds with S3 support unconditionally, but a default `ubx`
+binary doesn't include `gs://`/`azblob://` support -- their own real,
+measured cost (the real client SDKs for both, `cloud.google.com/go/
+storage` and `azure-sdk-for-go/sdk/storage/azblob`, not just credential
+plumbing) is a real, non-trivial binary size increase, +25.6MB/+27% at
+last measurement, that most installs never need. Build with the
+`cloudblob` tag to get both:
+
+```bash
+go build -tags cloudblob -o ubx ./cmd/ubx
+```
+
+Pointing an untagged `ubx` at a `gs://`/`azblob://` store fails fast
+with a clear error naming the fix, rather than a confusing "no driver
+registered" with no explanation:
+
+```
+open blob.Bucket: no driver registered for "gs" for URL "gs://..."; available schemes: s3 (this ubx binary wasn't built with gs:// / azblob:// support -- rebuild with `go build -tags cloudblob ./cmd/ubx`)
+```
 
 ## Why a single shared "current head" file doesn't work
 

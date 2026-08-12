@@ -1,20 +1,48 @@
 ---
 title: "Setting up a remote store"
-description: "Point a stack at a real S3 bucket instead of local git."
+description: "Point a stack at a real S3, GCS, or Azure Blob bucket instead of local git."
 ---
 
 The same ledger interface works against any real cloud object store.
-This tutorial points a real stack at S3.
+Pick whichever medium you'd rather use, all three produce the identical
+result.
 
-## Point your config at a real bucket
-
-```bash
-cat >> .ubx/config.hcl << 'EOF'
-ledger = {
-  store = "s3://acme-infra-ledger/payments"
-}
-EOF
-```
+<Tabs>
+  <Tab title="S3">
+    ```bash
+    cat >> .ubx/config.hcl << 'EOF'
+    ledger = {
+      store = "s3://acme-infra-ledger/payments"
+    }
+    EOF
+    ```
+  </Tab>
+  <Tab title="GCS">
+    ```bash
+    cat >> .ubx/config.hcl << 'EOF'
+    ledger = {
+      store = "gs://acme-infra-ledger/payments"
+    }
+    EOF
+    ```
+    `gs://` needs a `ubx` built with the `cloudblob` tag -- see
+    [Remote Ledger Stores](/concepts/remote-stores) for why it isn't in
+    a default install.
+  </Tab>
+  <Tab title="Azure Blob">
+    ```bash
+    cat >> .ubx/config.hcl << 'EOF'
+    ledger = {
+      store = "azblob://acme-infra-ledger/payments"
+    }
+    EOF
+    ```
+    `azblob://`'s own account name comes from the `AZURE_STORAGE_ACCOUNT`
+    environment variable (plus `AZURE_STORAGE_KEY` or an Azure AD
+    credential), not the URL itself -- the URL's host is the container
+    name. Also needs a `cloudblob`-tagged `ubx`.
+  </Tab>
+</Tabs>
 
 ## Confirm the resolved address
 
@@ -23,7 +51,7 @@ ubx config --stack payments
 ```
 
 ```bash
-ledger address (stack "payments"): s3://acme-infra-ledger/payments
+ledger address (stack "payments"): s3://acme-infra-ledger/payments/
 ```
 
 ## Ship against it
@@ -38,18 +66,42 @@ ubx ship <hash>
 1 resource(s), 1 shipped, 0 failed
 ```
 
-Same command, same receipt. The ledger now lives in a real S3 bucket
+Same command, same receipt, regardless of which of the three the ledger
+is actually backed by. The ledger now lives in a real cloud bucket
 instead of local git, nothing about the ceremony changed.
 
 ## Confirm it's really there
 
-```bash
-aws s3 ls s3://acme-infra-ledger/payments/ledger/proposals/
-```
-
-```bash
-2026-08-06 10:14:22  1842 45f63ce1....prop.json
-```
+<Tabs>
+  <Tab title="S3">
+    ```bash
+    aws s3 ls s3://acme-infra-ledger/payments/proposals/
+    ```
+    ```bash
+    2026-08-06 10:14:22  1842 45f63ce1....prop.json
+    ```
+  </Tab>
+  <Tab title="GCS">
+    ```bash
+    gcloud storage ls gs://acme-infra-ledger/payments/proposals/
+    ```
+    ```bash
+    gs://acme-infra-ledger/payments/proposals/45f63ce1....prop.json
+    ```
+  </Tab>
+  <Tab title="Azure Blob">
+    ```bash
+    az storage blob list --account-name acmeinfra \
+      --container-name acme-infra-ledger \
+      --prefix payments/proposals/ -o table
+    ```
+    ```bash
+    Name                                    Blob Type
+    --------------------------------------  -----------
+    payments/proposals/45f63ce1....prop.json  BlockBlob
+    ```
+  </Tab>
+</Tabs>
 
 A real object, in a real bucket, not a local file at all.
 
