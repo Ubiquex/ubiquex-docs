@@ -8,39 +8,68 @@ public-access blocking, and lifecycle rules are each their own separate
 resource, attached to this bucket by reference, real Terraform provider
 behavior since v4.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import s3 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/s3"
+    package main
 
-    ubx.Resource(s3.Bucket, "assets", s3.BucketConfig{
-        Bucket: "acme-payments-assets",
-    })
+    import (
+    	s3 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/s3"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own bucket"})
+
+    		ubx.Resource(s3.Bucket, "ci-runner", s3.BucketConfig{
+    			ForceDestroy: true,
+    			Tags:         map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
+    }
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Bucket } from "jsr:@ubx/sdk-aws/aws/s3/bucket";
 
-    resource(Bucket, "assets", {
-      bucket: "acme-payments-assets",
+    export default stack("payments", () => {
+      intent({ summary: "payments own bucket" });
+
+      resource(Bucket, "ci-runner", {
+        forceDestroy: true,
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.s3 import Bucket, BucketConfig
 
-    ubx.resource(Bucket, "assets", BucketConfig(
-        bucket="acme-payments-assets",
-    ))
+    def describe():
+        ubx.intent("payments own bucket")
+
+        ubx.resource(Bucket, "ci-runner", BucketConfig(
+            force_destroy=True,
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Create an S3 bucket called "acme-payments-assets".
+    Create aws_s3_bucket, with force destroy true, tags a set value.
     ```
   </Tab>
 </Tabs>

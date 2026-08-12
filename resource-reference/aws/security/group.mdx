@@ -6,44 +6,75 @@ description: "Real, generated bindings for `aws_security_group`."
 `aws_security_group` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/security"
+    package main
 
-    cfg := security.GroupConfig{
-        Description: "example",
-        Name: "example-name",
+    import (
+    	security "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/security"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own group"})
+
+    		ubx.Resource(security.Group, "ci-runner", security.GroupConfig{
+    			Name:                "ci-runner",
+    			Description:         "Managed by ubx.",
+    			RevokeRulesOnDelete: true,
+    			Tags:                map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(security.Group, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Group } from "jsr:@ubx/sdk-aws/aws/security/group";
 
-    resource(Group, "example", {
-      description: "example",
-      name: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own group" });
+
+      resource(Group, "ci-runner", {
+        name: "ci-runner",
+        description: "Managed by ubx.",
+        revokeRulesOnDelete: true,
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.security import Group, GroupConfig
 
-    cfg = GroupConfig(
-        description="example",
-        name="example",
-    )
-    ubx.resource(Group, "example", cfg)
+    def describe():
+        ubx.intent("payments own group")
+
+        ubx.resource(Group, "ci-runner", GroupConfig(
+            name="ci-runner",
+            description="Managed by ubx.",
+            revoke_rules_on_delete=True,
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_security_group with description, name.
+    Create aws_security_group called "ci-runner", with description
+    Managed by ubx., revoke rules on delete true, tags a set value.
     ```
   </Tab>
 </Tabs>

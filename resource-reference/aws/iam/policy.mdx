@@ -8,93 +8,112 @@ document describing what's allowed. It grants nothing on its own,
 attach it to a role or user with `aws_iam_role_policy_attachment` to
 actually apply it.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "encoding/json"
-        iam "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/iam"
+    	"encoding/json"
+
+    	iam "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/iam"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
-    accessPolicy, _ := json.Marshal(map[string]any{
-        "Statement": []map[string]any{{
-            "Effect":   "Allow",
-            "Action":   "sqs:SendMessage",
-            "Resource": map[string]any{"$ref": map[string]any{"to": queue.Field("arn").Address()}},
-        }},
-    })
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own policy"})
 
-    ubx.Resource(iam.Policy, "ci-runner-access", iam.PolicyConfig{
-        Policy: string(accessPolicy),
-    })
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(iam.Policy, "ci-runner", iam.PolicyConfig{
+    			Policy:                       string(accessPolicy),
+    			Name:                         "ci-runner",
+    			DelayAfterPolicyCreationInMs: 1,
+    			Description:                  "Managed by ubx.",
+    			Path:                         "/ci/",
+    			Tags:                         map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
+    }
     ```
-    `queue.Field("arn")` is a `*Computed` -- passing it straight into a
-    `map[string]any` that `json.Marshal` then walks is never valid: a
-    `Computed` isn't a real marshalable value. `.Address()` returns its
-    real address string; nested inside a literal `{"$ref": {"to":
-    "..."}}` marker map, `json.Marshal` serializes it like any other
-    value, and the resolver's own JSON-embedded-refs mechanism
-    (`core/resolver/refs.go`) finds and resolves that marker once the
-    policy document reaches it.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Policy } from "jsr:@ubx/sdk-aws/aws/iam/policy";
-    import { addressOf } from "@ubx/sdk";
 
-    const accessPolicy = JSON.stringify({
-      Statement: [{
-        Effect: "Allow",
-        Action: "sqs:SendMessage",
-        Resource: { "$ref": { to: addressOf(queue.arn) } },
-      }],
-    });
+    export default stack("payments", () => {
+      intent({ summary: "payments own policy" });
 
-    resource(Policy, "ci-runner-access", {
-      policy: accessPolicy,
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(Policy, "ci-runner", {
+        policy: accessPolicy,
+        name: "ci-runner",
+        delayAfterPolicyCreationInMs: 1,
+        description: "Managed by ubx.",
+        path: "/ci/",
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
-    `queue.arn` is a `Computed<string>` proxy -- assigning it directly
-    as `Resource` and calling `JSON.stringify` throws
-    `ComputedCoercionError` immediately (`JSON.stringify` reads
-    `toJSON`, one of the proxy's deliberate coercion traps).
-    `addressOf()`, exported from `@ubx/sdk`, returns the proxy's real
-    address string instead; nested inside a literal `{"$ref": {"to":
-    "..."}}` marker object, `JSON.stringify` serializes it like any
-    other value, and the resolver's own JSON-embedded-refs mechanism
-    finds and resolves that marker.
   </Tab>
   <Tab title="Python">
     ```python
     import json
+    import ubx_sdk as ubx
     from ubx.aws.iam import Policy, PolicyConfig
 
-    access_policy = json.dumps({
-        "Statement": [{
-            "Effect": "Allow",
-            "Action": "sqs:SendMessage",
-            "Resource": {"$ref": {"to": queue.arn.address}},
-        }],
-    })
+    def describe():
+        ubx.intent("payments own policy")
 
-    ubx.resource(Policy, "ci-runner-access", PolicyConfig(
-        policy=access_policy,
-    ))
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(Policy, "ci-runner", PolicyConfig(
+            policy=access_policy,
+            name="ci-runner",
+            delay_after_policy_creation_in_ms=1,
+            description="Managed by ubx.",
+            path="/ci/",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
-    `queue.arn` is a real `Computed` proxy -- assigning it directly as
-    `"Resource"` and calling `json.dumps` raises `TypeError: Object of
-    type Computed is not JSON serializable`. `.address` is a real
-    property on `Computed`, returning its address string; nested inside
-    a literal `{"$ref": {"to": "..."}}` marker dict, `json.dumps`
-    serializes it like any other value, and the resolver's own
-    JSON-embedded-refs mechanism finds and resolves that marker.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create a policy allowing it to send messages to
-    @payments.aws_sqs_queue.pipeline-events.
+    Create aws_iam_policy called "ci-runner", with policy a real,
+    valid value, delay after policy creation in ms 1, description
+    Managed by ubx., path /ci/, tags a set value.
     ```
   </Tab>
 </Tabs>

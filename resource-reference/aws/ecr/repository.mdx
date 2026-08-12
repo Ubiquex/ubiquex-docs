@@ -7,43 +7,75 @@ description: "A private container image repository."
 container images, with real, configurable scanning and mutability
 settings.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import ecr "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ecr"
+    package main
 
-    ubx.Resource(ecr.Repository, "repo", ecr.RepositoryConfig{
-        Name:               "container-repo",
-        ImageTagMutability: "IMMUTABLE",
-    })
+    import (
+    	ecr "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ecr"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own repository"})
+
+    		ubx.Resource(ecr.Repository, "ci-runner", ecr.RepositoryConfig{
+    			Name:               "ci-runner",
+    			ForceDelete:        true,
+    			ImageTagMutability: "example",
+    			Tags:               map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
+    }
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Repository } from "jsr:@ubx/sdk-aws/aws/ecr/repository";
 
-    resource(Repository, "repo", {
-      name: "container-repo",
-      imageTagMutability: "IMMUTABLE",
+    export default stack("payments", () => {
+      intent({ summary: "payments own repository" });
+
+      resource(Repository, "ci-runner", {
+        name: "ci-runner",
+        forceDelete: true,
+        imageTagMutability: "example",
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.ecr import Repository, RepositoryConfig
 
-    ubx.resource(Repository, "repo", RepositoryConfig(
-        name="container-repo",
-        image_tag_mutability="IMMUTABLE",
-    ))
+    def describe():
+        ubx.intent("payments own repository")
+
+        ubx.resource(Repository, "ci-runner", RepositoryConfig(
+            name="ci-runner",
+            force_delete=True,
+            image_tag_mutability="example",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Create an ECR repository called "container-repo", with immutable
-    image tags.
+    Create aws_ecr_repository called "ci-runner", with force delete
+    true, image tag mutability example, tags a set value.
     ```
   </Tab>
 </Tabs>

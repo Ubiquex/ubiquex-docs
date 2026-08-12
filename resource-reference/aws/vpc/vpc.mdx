@@ -7,39 +7,89 @@ description: "An isolated virtual network."
 foundation every other real networked resource, subnets, security
 groups, route tables, gets placed inside.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import vpc "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/vpc"
+    package main
 
-    ubx.Resource(vpc.Vpc, "main", vpc.VpcConfig{
-        CidrBlock: "10.0.0.0/16",
-    })
+    import (
+    	vpc "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/vpc"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own vpc"})
+
+    		ubx.Resource(vpc.Vpc, "ci-runner", vpc.VpcConfig{
+    			AssignGeneratedIpv6CidrBlock: true,
+    			EnableDnsSupport:             true,
+    			InstanceTenancy:              "example",
+    			Ipv4IpamPoolId:               "example",
+    			Ipv4NetmaskLength:            1,
+    			Ipv6IpamPoolId:               "example",
+    			Ipv6NetmaskLength:            1,
+    			Tags:                         map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
+    }
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Vpc } from "jsr:@ubx/sdk-aws/aws/vpc/vpc";
 
-    resource(Vpc, "main", {
-      cidrBlock: "10.0.0.0/16",
+    export default stack("payments", () => {
+      intent({ summary: "payments own vpc" });
+
+      resource(Vpc, "ci-runner", {
+        assignGeneratedIpv6CidrBlock: true,
+        enableDnsSupport: true,
+        instanceTenancy: "example",
+        ipv4IpamPoolId: "example",
+        ipv4NetmaskLength: 1,
+        ipv6IpamPoolId: "example",
+        ipv6NetmaskLength: 1,
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.vpc import Vpc, VpcConfig
 
-    ubx.resource(Vpc, "main", VpcConfig(
-        cidr_block="10.0.0.0/16",
-    ))
+    def describe():
+        ubx.intent("payments own vpc")
+
+        ubx.resource(Vpc, "ci-runner", VpcConfig(
+            assign_generated_ipv6_cidr_block=True,
+            enable_dns_support=True,
+            instance_tenancy="example",
+            ipv4_ipam_pool_id="example",
+            ipv4_netmask_length=1,
+            ipv6_ipam_pool_id="example",
+            ipv6_netmask_length=1,
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Create a VPC called "main" with CIDR block 10.0.0.0/16.
+    Create aws_vpc, with assign generated ipv6 cidr block true,
+    enable dns support true, instance tenancy example, ipv4 ipam pool
+    id example, ipv4 netmask length 1, ipv6 ipam pool id example,
+    ipv6 netmask length 1, tags a set value.
     ```
   </Tab>
 </Tabs>

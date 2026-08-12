@@ -7,46 +7,89 @@ Amazon SQS is a fully managed message queue. `aws_sqs_queue` creates
 and configures one, standard or FIFO, with a real, typed binding in
 every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import sqs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sqs"
+    package main
 
-    ubx.Resource(sqs.Queue, "pipeline-events", sqs.QueueConfig{
-        Name:                    "pipeline-events",
-        MessageRetentionSeconds: 1209600,
-        FifoQueue:               false,
-    })
+    import (
+    	sqs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sqs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own queue"})
+
+    		ubx.Resource(sqs.Queue, "ci-runner", sqs.QueueConfig{
+    			Name:                      "ci-runner",
+    			ContentBasedDeduplication: true,
+    			DelaySeconds:              7200,
+    			FifoQueue:                 true,
+    			KmsMasterKeyId:            "example",
+    			MaxMessageSize:            1,
+    			MessageRetentionSeconds:   7200,
+    			ReceiveWaitTimeSeconds:    7200,
+    		})
+    	}))
+    }
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Queue } from "jsr:@ubx/sdk-aws/aws/sqs/queue";
 
-    resource(Queue, "pipeline-events", {
-      name: "pipeline-events",
-      messageRetentionSeconds: 1209600,
-      fifoQueue: false,
+    export default stack("payments", () => {
+      intent({ summary: "payments own queue" });
+
+      resource(Queue, "ci-runner", {
+        name: "ci-runner",
+        contentBasedDeduplication: true,
+        delaySeconds: 7200,
+        fifoQueue: true,
+        kmsMasterKeyId: "example",
+        maxMessageSize: 1,
+        messageRetentionSeconds: 7200,
+        receiveWaitTimeSeconds: 7200,
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.sqs import Queue, QueueConfig
 
-    ubx.resource(Queue, "pipeline-events", QueueConfig(
-        name="pipeline-events",
-        message_retention_seconds=1209600,
-        fifo_queue=False,
-    ))
+    def describe():
+        ubx.intent("payments own queue")
+
+        ubx.resource(Queue, "ci-runner", QueueConfig(
+            name="ci-runner",
+            content_based_deduplication=True,
+            delay_seconds=7200,
+            fifo_queue=True,
+            kms_master_key_id="example",
+            max_message_size=1,
+            message_retention_seconds=7200,
+            receive_wait_time_seconds=7200,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision an SQS queue called "pipeline-events", standard,
-    messages retained for 14 days.
+    Create aws_sqs_queue called "ci-runner", with content based
+    deduplication true, delay seconds 7200, fifo queue true, kms
+    master key id example, max message size 1, message retention
+    seconds 7200, receive wait time seconds 7200.
     ```
   </Tab>
 </Tabs>

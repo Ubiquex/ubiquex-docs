@@ -6,44 +6,85 @@ description: "Real, generated bindings for `aws_elb`."
 `aws_elb` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/elb"
+    package main
 
-    cfg := elb.ElbConfig{
-        AvailabilityZones: []string{"example"},
-        ConnectionDraining: true,
+    import (
+    	elb "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/elb"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own elb"})
+
+    		ubx.Resource(elb.Elb, "ci-runner", elb.ElbConfig{
+    			Name:                      "ci-runner",
+    			ConnectionDraining:        true,
+    			ConnectionDrainingTimeout: 1,
+    			CrossZoneLoadBalancing:    true,
+    			DesyncMitigationMode:      "example",
+    			IdleTimeout:               1,
+    			Tags:                      map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(elb.Elb, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Elb } from "jsr:@ubx/sdk-aws/aws/elb/elb";
 
-    resource(Elb, "example", {
-      availabilityZones: ["example"],
-      connectionDraining: true,
+    export default stack("payments", () => {
+      intent({ summary: "payments own elb" });
+
+      resource(Elb, "ci-runner", {
+        name: "ci-runner",
+        connectionDraining: true,
+        connectionDrainingTimeout: 1,
+        crossZoneLoadBalancing: true,
+        desyncMitigationMode: "example",
+        idleTimeout: 1,
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.elb import Elb, ElbConfig
 
-    cfg = ElbConfig(
-        availability_zones=["example"],
-        connection_draining=True,
-    )
-    ubx.resource(Elb, "example", cfg)
+    def describe():
+        ubx.intent("payments own elb")
+
+        ubx.resource(Elb, "ci-runner", ElbConfig(
+            name="ci-runner",
+            connection_draining=True,
+            connection_draining_timeout=1,
+            cross_zone_load_balancing=True,
+            desync_mitigation_mode="example",
+            idle_timeout=1,
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_elb with availability_zones, connection_draining.
+    Create aws_elb called "ci-runner", with connection draining true,
+    connection draining timeout 1, cross zone load balancing true,
+    desync mitigation mode example, idle timeout 1, tags a set value.
     ```
   </Tab>
 </Tabs>
