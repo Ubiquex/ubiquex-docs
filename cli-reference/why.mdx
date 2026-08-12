@@ -48,6 +48,44 @@ payments.aws_sqs_queue.pipeline-events: 2 proposal(s), newest first
 - change 45f63ce10849... (2026-08-04T...): payments own SQS queue
 ```
 
+A proposal whose own resolution pinned a cross-stack reference shows
+the full, walked chain, not just its own direct neighbor. `payments`
+pins `networking`, which itself pins `security`, two hops, each with
+its own independent fresh/stale status:
+
+```bash
+ubx why a2e739391a57...
+```
+
+```bash
+proposal a2e739391a57... (adoption)
+stack:  payments
+status: accepted
+intent: seed payments.aws_rds_cluster.main
+accepted by [roozbeh] via local at 2026-08-12T20:09:19Z
+blast radius: +0 ~0 -0
+  + aws_rds_cluster.main create
+pin chain (2 hops):
+  1. payments.aws_rds_cluster.main -> ../networking: fresh
+  2. networking.aws_db_instance.db -> ../security: fresh
+```
+
+If `security`, an indirect ancestor two hops away, moves on without
+`networking` ever re-pinning it, that hop shows stale, clearly marked
+informational, never a reason `ubx why` (or `ubx ship`) refuses
+anything, only the proposal's own DIRECT neighbor staying fresh is
+ever a blocking check:
+
+```bash
+pin chain (2 hops):
+  1. payments.aws_rds_cluster.main -> ../networking: fresh
+  2. networking.aws_db_instance.db -> ../security:
+     STALE (pinned 313a3f997dec..., now 6303c72c2a7a...)
+  (an indirect ancestor has moved -- informational
+  only, this never blocks ab0afd47ff17... itself;
+  only its own direct neighbor's staleness does)
+```
+
 ## Flags
 
 <ResponseField name="--ledger-dir" type="string" default=".">
@@ -91,6 +129,14 @@ blueprint-created resource's provenance line names the blueprint and its
 content hash, and notes honestly that only the calling stack's own
 acceptance is a real signature today, a blueprint's own authorship has
 no separate signing ceremony yet.
+
+The pin chain section renders only when the proposal itself recorded a
+real cross-stack pin, silent otherwise, and only ever adds information,
+it never changes whether `ubx why` (or anything else) succeeds. An
+indirect ancestor's own staleness is real and shown, but never
+cascades into a blocking check, only a proposal's own direct neighbor
+staying fresh is ever enforced, by `ubx accept`/`ubx ship`, a
+completely separate code path this rendering never touches.
 
 ## See also
 

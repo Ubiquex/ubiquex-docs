@@ -1,0 +1,95 @@
+---
+title: "ubx store gc"
+description: "Find and remove orphaned proposal objects left behind by an interrupted append."
+---
+
+A crash between writing a proposal object and advancing the ledger's
+CAS head leaves that object permanently unreferenced by any head/chain
+edge, unless a later retry of the exact same proposal completes the
+interrupted append. This is real, harmless (an unreferenced object
+costs storage, nothing else), and accumulating. `ubx store gc` finds
+and, with `--yes`, removes exactly those objects, never anything a
+chain still references, even transitively.
+
+Only meaningful for a remote ledger store (`s3://`/`gs://`/`azblob://`),
+a git-local ledger's own equivalent concern is git's own object
+database, already served by `git gc`/`git prune`.
+
+## Usage
+
+```bash
+ubx store gc --stack <stack> [--yes]
+```
+
+## Examples
+
+Dry run, the default, lists what would be deleted and deletes nothing:
+
+```bash
+ubx store gc --stack payments
+```
+
+```bash
+1 orphaned proposal(s) in s3://acme-infra-ledger/payments:
+  f545d52c50e2fa6a8bf95526b737d79e88c48582c9afc7e852c188741c61dc86
+
+dry run -- nothing deleted. Re-run with --yes to delete 1 orphan(s).
+```
+
+`--yes` re-verifies the orphan set fresh, immediately before deleting
+anything, never trusting the listing above alone, then deletes:
+
+```bash
+ubx store gc --stack payments --yes
+```
+
+```bash
+1 orphaned proposal(s) in s3://acme-infra-ledger/payments:
+  f545d52c50e2fa6a8bf95526b737d79e88c48582c9afc7e852c188741c61dc86
+  f545d52c50e2fa6a8bf95526b737d79e88c48582c9afc7e852c188741c61dc86: deleted
+
+1 deleted, 0 skipped (re-chained since the listing above)
+```
+
+A clean store says so plainly:
+
+```bash
+ubx store gc --stack payments
+```
+
+```bash
+no orphaned proposals in s3://acme-infra-ledger/payments
+```
+
+## Flags
+
+<ResponseField name="--stack" type="string">
+  Which stack's remote ledger store to garbage-collect. Required, a remote store's own per-stack chain means opening one at all requires knowing which stack first.
+</ResponseField>
+
+<ResponseField name="--yes">
+  Actually delete the orphaned proposals found. Default is a dry run, lists only, deletes nothing.
+</ResponseField>
+
+## Notes
+
+Safety is verified twice, not asserted once. The orphan set is computed
+once for the dry-run listing (what you actually see), then recomputed
+fresh immediately before deleting anything, and only ids present in
+both the displayed list and that fresh recomputation are ever deleted,
+never a newly-orphaned id you were never shown, and never a
+formerly-orphaned id a concurrent interrupted-append resume has since
+legitimately re-chained. A `skipped, no longer orphaned (re-chained
+since the listing above)` line reports exactly that case when it
+happens.
+
+Pointed at a git-local ledger (`.ubx/config`'s `[ledger] store` unset
+or `git`), `ubx store gc` refuses immediately and names `git gc`/`git
+prune` as the real equivalent, rather than pretending to operate on a
+store that has no orphan problem of this shape.
+
+## See also
+
+- [Remote Stores](/concepts/remote-stores)
+- [The Config Cascade](/concepts/config-cascade)
+- [The Ledger](/concepts/ledger)

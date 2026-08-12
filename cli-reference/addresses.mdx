@@ -30,6 +30,58 @@ network.aws_vpc.main
   @network.aws_vpc.main.cidr_block (always present)
 ```
 
+An entry whose own creating proposal recorded a cross-stack pin is
+annotated with the real chain length, and how many of its own hops are
+stale, pointing you at `ubx why` for the full per-hop walk:
+
+```bash
+ubx addresses --stack payments
+```
+
+```bash
+payments.aws_rds_cluster.main
+  pinned via a 2-hop cross-stack chain
+  (ubx why a2e739391a57... for the full walk)
+  attributes unknown: no recorded provider -- adopted
+  or drift-recorded resource, never a shipped create
+```
+
+`--json` carries the same chain, one entry per hop, each with its own
+`stale` boolean:
+
+```bash
+ubx addresses --stack payments --json
+```
+
+```json
+{
+  "format": 1,
+  "entries": [
+    {
+      "address": { "stack": "payments", "type": "aws_rds_cluster", "name": "main" },
+      "tombstoned": false,
+      "schema_missing": "no recorded provider -- adopted or drift-recorded resource, never a shipped create",
+      "pin_chain": [
+        {
+          "resource": "payments.aws_rds_cluster.main",
+          "ledger_dir": "../networking",
+          "pinned_head": "b106faa1cb6d...",
+          "current_head": "b106faa1cb6d...",
+          "stale": false
+        },
+        {
+          "resource": "networking.aws_db_instance.db",
+          "ledger_dir": "../security",
+          "pinned_head": "313a3f997dec...",
+          "current_head": "313a3f997dec...",
+          "stale": false
+        }
+      ]
+    }
+  ]
+}
+```
+
 ## Flags
 
 <ResponseField name="--ledger-dir" type="string" default=".">
@@ -59,6 +111,11 @@ against, its real recorded provider version, never whatever version your
 current config happens to pin today. A resource that was only adopted or
 drift-recorded, never actually shipped by ubx, has no recorded provider
 to fetch a schema from, this is reported honestly rather than guessed.
+
+The pin-chain annotation is purely informational, exactly like `ubx
+why`'s own full walk, it names the real chain length and how many hops
+are stale, it never changes whether an address is listed here, and a
+stale hop never blocks anything.
 
 ## See also
 
