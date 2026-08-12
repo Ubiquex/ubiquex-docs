@@ -22,7 +22,7 @@ actually apply it.
         "Statement": []map[string]any{{
             "Effect":   "Allow",
             "Action":   "sqs:SendMessage",
-            "Resource": queue.Field("arn"),
+            "Resource": map[string]any{"$ref": map[string]any{"to": queue.Field("arn").Address()}},
         }},
     })
 
@@ -30,16 +30,25 @@ actually apply it.
         Policy: string(accessPolicy),
     })
     ```
+    `queue.Field("arn")` is a `*Computed` -- passing it straight into a
+    `map[string]any` that `json.Marshal` then walks is never valid: a
+    `Computed` isn't a real marshalable value. `.Address()` returns its
+    real address string; nested inside a literal `{"$ref": {"to":
+    "..."}}` marker map, `json.Marshal` serializes it like any other
+    value, and the resolver's own JSON-embedded-refs mechanism
+    (`core/resolver/refs.go`) finds and resolves that marker once the
+    policy document reaches it.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
     import { Policy } from "jsr:@ubx/sdk-aws/aws/iam/policy";
+    import { addressOf } from "@ubx/sdk";
 
     const accessPolicy = JSON.stringify({
       Statement: [{
         Effect: "Allow",
         Action: "sqs:SendMessage",
-        Resource: queue.arn,
+        Resource: { "$ref": { to: addressOf(queue.arn) } },
       }],
     });
 
@@ -47,6 +56,15 @@ actually apply it.
       policy: accessPolicy,
     });
     ```
+    `queue.arn` is a `Computed<string>` proxy -- assigning it directly
+    as `Resource` and calling `JSON.stringify` throws
+    `ComputedCoercionError` immediately (`JSON.stringify` reads
+    `toJSON`, one of the proxy's deliberate coercion traps).
+    `addressOf()`, exported from `@ubx/sdk`, returns the proxy's real
+    address string instead; nested inside a literal `{"$ref": {"to":
+    "..."}}` marker object, `JSON.stringify` serializes it like any
+    other value, and the resolver's own JSON-embedded-refs mechanism
+    finds and resolves that marker.
   </Tab>
   <Tab title="Python">
     ```python
@@ -57,7 +75,7 @@ actually apply it.
         "Statement": [{
             "Effect": "Allow",
             "Action": "sqs:SendMessage",
-            "Resource": queue.arn,
+            "Resource": {"$ref": {"to": queue.arn.address}},
         }],
     })
 
@@ -65,6 +83,13 @@ actually apply it.
         policy=access_policy,
     ))
     ```
+    `queue.arn` is a real `Computed` proxy -- assigning it directly as
+    `"Resource"` and calling `json.dumps` raises `TypeError: Object of
+    type Computed is not JSON serializable`. `.address` is a real
+    property on `Computed`, returning its address string; nested inside
+    a literal `{"$ref": {"to": "..."}}` marker dict, `json.dumps`
+    serializes it like any other value, and the resolver's own
+    JSON-embedded-refs mechanism finds and resolves that marker.
   </Tab>
   <Tab title="Markdown">
     ```

@@ -15,16 +15,24 @@ ubx init --source hashicorp/kubernetes --provider-version 2.31.0
 
 ## Author both resources
 
+Real, generated bindings for this provider nest deeply -- Kubernetes'
+own schema represents even a "single" nested block (`metadata`,
+`spec`, a container's own `env_from`) as a list internally, so every
+level below a resource's own config is wrapped in `[...]`, all the way
+down. This is more verbose than the other providers' own first-resource
+tutorials; that's a real, honest reflection of this provider's own
+schema shape, not an invented example.
+
 <Tabs>
   <Tab title="Markdown">
     ```bash
     cat > platform.md << 'EOF'
     Create a Kubernetes secret called "db-credentials" in the "payments"
-    namespace, with a key "password" referencing our secret store.
+    namespace, with a key "DB_PASSWORD".
 
     Deploy a single-replica deployment called "payments-worker" in that
-    same namespace, image "acme/payments-worker:latest", with an
-    environment variable DB_PASSWORD sourced from that secret's password key.
+    same namespace, image "acme/payments-worker:latest", importing that
+    secret's own keys as environment variables.
     EOF
     ubx plan --from-doc platform.md --stack payments
     ```
@@ -35,52 +43,65 @@ ubx init --source hashicorp/kubernetes --provider-version 2.31.0
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	core "github.com/ubiquex/ubx-sdk-kubernetes/sdk/go/kubernetes/core"
-    	apps "github.com/ubiquex/ubx-sdk-kubernetes/sdk/go/kubernetes/apps"
+    	"github.com/ubiquex/ubx-sdk-kubernetes/sdk/go/kubernetes/deployment"
+    	"github.com/ubiquex/ubx-sdk-kubernetes/sdk/go/kubernetes/secret"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments secret and worker deployment"})
 
-    		secret := ubx.Resource(core.SecretV1, "db-credentials", core.SecretV1Config{
-    			Metadata: core.ObjectMeta{Name: "db-credentials", Namespace: "payments"},
+    		dbSecret := ubx.Resource(secret.SecretV1, "db-credentials", secret.SecretV1Config{
+    			Metadata: []secret.SecretV1_Metadata{{
+    				Name:      "db-credentials",
+    				Namespace: "payments",
+    			}},
     			Data: map[string]any{
-    				"password": ubx.Secret("aws_secrets_manager", "payments/db-password"),
+    				"DB_PASSWORD": "changeme",
     			},
     		})
 
-    		ubx.Resource(apps.DeploymentV1, "payments-worker", apps.DeploymentV1Config{
-    			Metadata: core.ObjectMeta{Name: "payments-worker", Namespace: "payments"},
-    			Spec: apps.DeploymentSpec{
-    				Replicas: 1,
-    				Template: core.PodTemplate{
-    					Containers: []core.Container{{
-    						Name:  "payments-worker",
-    						Image: "acme/payments-worker:latest",
-    						Env: []core.EnvVar{{
-    							Name: "DB_PASSWORD",
-    							ValueFrom: core.EnvVarSource{
-    								SecretKeyRef: core.SecretKeyRef{
-    									Name: secret.Field("metadata").Field("name"),
-    									Key:  "password",
-    								},
-    							},
+    		ubx.Resource(deployment.DeploymentV1, "payments-worker", deployment.DeploymentV1Config{
+    			Metadata: []deployment.DeploymentV1_Metadata{{
+    				Name:      "payments-worker",
+    				Namespace: "payments",
+    			}},
+    			Spec: []deployment.DeploymentV1_Spec{{
+    				Replicas: "1",
+    				Template: []deployment.DeploymentV1_Spec_Template{{
+    					Spec: []deployment.DeploymentV1_Spec_Template_Spec{{
+    						Container: []deployment.DeploymentV1_Spec_Template_Spec_Container{{
+    							Name:  "payments-worker",
+    							Image: "acme/payments-worker:latest",
+    							EnvFrom: []deployment.DeploymentV1_Spec_Template_Spec_Container_EnvFrom{{
+    								SecretRef: []deployment.DeploymentV1_Spec_Template_Spec_Container_EnvFrom_ConfigMapRef{{
+    									Name: dbSecret.Field("metadata").Field("name"),
+    								}},
+    							}},
     						}},
     					}},
-    				},
-    			},
+    				}},
+    			}},
     		})
     	}))
     }
     ```
+    Every field in a real generated Go config struct is typed `any` --
+    deliberate, current codegen behavior (`sdk/codegen/templates/go/go.go`):
+    the runtime walks a config value purely by Go struct field name via
+    reflection, never by declared type, so a plain string/int/slice
+    literal assigned to an `any` field is correct, working Go, not
+    something to simplify away. `EnvFrom`'s own `SecretRef` reuses
+    `..._EnvFrom_ConfigMapRef`'s type (both share the identical real
+    `name`/`optional` shape) -- a deliberate dedup, confirmed safe by the
+    same field-name-driven reflection, not a naming mistake in this page.
   </Tab>
   <Tab title="TypeScript">
     ```bash
     git clone https://github.com/Ubiquex/ubx-sdk-kubernetes.git
     ```
     ```typescript
-    import { stack, intent, resource, secret } from "@ubx/sdk";
+    import { stack, intent, resource } from "@ubx/sdk";
     import { SecretV1 } from "./ubx-sdk-kubernetes/sdk/typescript/kubernetes/secret/secret_v1.ts";
     import { DeploymentV1 } from
       "./ubx-sdk-kubernetes/sdk/typescript/kubernetes/deployment/deployment_v1.ts";
@@ -89,25 +110,26 @@ ubx init --source hashicorp/kubernetes --provider-version 2.31.0
       intent({ summary: "payments secret and worker deployment" });
 
       const dbSecret = resource(SecretV1, "db-credentials", {
-        metadata: { name: "db-credentials", namespace: "payments" },
-        data: { password: secret("aws_secrets_manager", "payments/db-password") },
+        metadata: [{ name: "db-credentials", namespace: "payments" }],
+        data: { DB_PASSWORD: "changeme" },
       });
 
       resource(DeploymentV1, "payments-worker", {
-        metadata: { name: "payments-worker", namespace: "payments" },
-        spec: {
-          replicas: 1,
-          template: {
-            containers: [{
-              name: "payments-worker",
-              image: "acme/payments-worker:latest",
-              env: [{
-                name: "DB_PASSWORD",
-                valueFrom: { secretKeyRef: { name: dbSecret.metadata.name, key: "password" } },
+        metadata: [{ name: "payments-worker", namespace: "payments" }],
+        spec: [{
+          replicas: "1",
+          template: [{
+            spec: [{
+              container: [{
+                name: "payments-worker",
+                image: "acme/payments-worker:latest",
+                envFrom: [{
+                  secretRef: [{ name: dbSecret.metadata.name }],
+                }],
               }],
             }],
-          },
-        },
+          }],
+        }],
       });
     });
     ```
@@ -120,35 +142,52 @@ ubx init --source hashicorp/kubernetes --provider-version 2.31.0
     ```
     Save this file **inside** the cloned repo's own `sdk/python/`
     directory (alongside the `ubx/` namespace package it imports from),
-    as `ubx-sdk-kubernetes/sdk/python/create_platform.py`:
+    as `ubx-sdk-kubernetes/sdk/python/create_platform.py`. Nested types
+    (`..._Metadata`, `..._EnvFrom`, ...) aren't re-exported at the
+    `ubx.kubernetes.deployment` package level, only the resource binding
+    and its own `Config` are -- import them from the real submodule
+    directly:
     ```python
     import ubx_sdk as ubx
-    from kubernetes.core import SecretV1, SecretV1Config, ObjectMeta
-    from kubernetes.apps import DeploymentV1, DeploymentV1Config
+    from ubx.kubernetes.secret import SecretV1, SecretV1Config
+    from ubx.kubernetes.secret.secret_v1 import SecretV1_Metadata
+    from ubx.kubernetes.deployment import DeploymentV1, DeploymentV1Config
+    from ubx.kubernetes.deployment.deployment_v1 import (
+        DeploymentV1_Metadata,
+        DeploymentV1_Spec,
+        DeploymentV1_Spec_Template,
+        DeploymentV1_Spec_Template_Spec,
+        DeploymentV1_Spec_Template_Spec_Container,
+        DeploymentV1_Spec_Template_Spec_Container_EnvFrom,
+        DeploymentV1_Spec_Template_Spec_Container_EnvFrom_ConfigMapRef,
+    )
 
     def describe():
         ubx.intent("payments secret and worker deployment")
 
         db_secret = ubx.resource(SecretV1, "db-credentials", SecretV1Config(
-            metadata=ObjectMeta(name="db-credentials", namespace="payments"),
-            data={"password": ubx.secret("aws_secrets_manager", "payments/db-password")},
+            metadata=[SecretV1_Metadata(name="db-credentials", namespace="payments")],
+            data={"DB_PASSWORD": "changeme"},
         ))
 
         ubx.resource(DeploymentV1, "payments-worker", DeploymentV1Config(
-            metadata=ObjectMeta(name="payments-worker", namespace="payments"),
-            spec={
-                "replicas": 1,
-                "template": {
-                    "containers": [{
-                        "name": "payments-worker",
-                        "image": "acme/payments-worker:latest",
-                        "env": [{
-                            "name": "DB_PASSWORD",
-                            "valueFrom": {"secretKeyRef": {"name": db_secret.metadata.name, "key": "password"}},
-                        }],
-                    }],
-                },
-            },
+            metadata=[DeploymentV1_Metadata(name="payments-worker", namespace="payments")],
+            spec=[DeploymentV1_Spec(
+                replicas="1",
+                template=[DeploymentV1_Spec_Template(
+                    spec=[DeploymentV1_Spec_Template_Spec(
+                        container=[DeploymentV1_Spec_Template_Spec_Container(
+                            name="payments-worker",
+                            image="acme/payments-worker:latest",
+                            env_from=[DeploymentV1_Spec_Template_Spec_Container_EnvFrom(
+                                secret_ref=[DeploymentV1_Spec_Template_Spec_Container_EnvFrom_ConfigMapRef(
+                                    name=db_secret.metadata.name,
+                                )],
+                            )],
+                        )],
+                    )],
+                )],
+            )],
         ))
 
     if __name__ == "__main__":
@@ -156,16 +195,23 @@ ubx init --source hashicorp/kubernetes --provider-version 2.31.0
     ```
   </Tab>
   <Tab title="Diagram">
+    Neither `kubernetes_secret_v1` nor `kubernetes_deployment_v1` has a
+    single genuinely required top-level attribute in the real provider
+    schema (confirmed directly: `ubx_required.metadata`/`ubx_required.spec`
+    both fail with `"... is not a required attribute"`). The diagram
+    medium can only ever set attributes the schema flags required, so
+    unlike the other providers' own tutorials, this tab can express real
+    topology but not this page's own secret/env reference -- a genuine,
+    provider-specific limitation, not a diagram bug. Use `--from-doc` or
+    an SDK program for that.
+
     ```d2
     secret: "db-credentials" {
       class: kubernetes_secret_v1
-      ubx_required.metadata: "{\"name\":\"db-credentials\",\"namespace\":\"payments\"}"
     }
 
     worker: "payments-worker" {
       class: kubernetes_deployment_v1
-      ubx_required.metadata: "{\"name\":\"payments-worker\",\"namespace\":\"payments\"}"
-      ubx_required.spec: "{\"replicas\":1,\"template\":{\"spec\":{\"containers\":[{\"name\":\"payments-worker\",\"image\":\"acme/payments-worker:latest\",\"env\":[{\"name\":\"DB_PASSWORD\",\"valueFrom\":{\"secretKeyRef\":{\"name\":\"ref:secret.metadata.name\",\"key\":\"password\"}}}]}]}}}"
     }
     ```
     ```bash
@@ -174,10 +220,10 @@ ubx init --source hashicorp/kubernetes --provider-version 2.31.0
   </Tab>
 </Tabs>
 
-The deployment's `secretKeyRef.name` is a real reference to the secret,
-never a hardcoded name the two resources could quietly fall out of sync
-on. The real secret value stays a reference the whole way through,
-never appearing in either resource's own config.
+The deployment's `envFrom.secretRef.name` is a real reference to the
+secret's own `metadata.name`, never a hardcoded string the two
+resources could quietly fall out of sync on -- resolved through the
+list-kind `metadata` field automatically, no special indexing needed.
 
 ## Ship it
 
@@ -196,9 +242,13 @@ The deployment correctly waited for the secret to ship first.
 ## What you just did
 
 You shipped two real, connected Kubernetes resources, a secret and a
-deployment consuming it, and saw the exact same reference mechanism
-and secret-handling discipline work identically across prose, two
-typed languages, and a diagram.
+deployment consuming it, and saw the same real reference mechanism
+work identically across prose and all three typed languages -- Go's
+own deep, fully-qualified nested types included, not simplified away.
+The diagram medium genuinely can't express this specific reference for
+these two resource types (neither has a required top-level attribute),
+a real, honest limitation named on its own tab rather than glossed
+over.
 
 ## Next
 

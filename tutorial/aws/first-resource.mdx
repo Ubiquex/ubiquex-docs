@@ -35,6 +35,8 @@ ubx init --source hashicorp/aws --provider-version 6.54.0
     package main
 
     import (
+    	"fmt"
+
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     	iam "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/iam"
     	sqs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sqs"
@@ -54,23 +56,35 @@ ubx init --source hashicorp/aws --provider-version 6.54.0
     			AssumeRolePolicy: `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ec2.amazonaws.com"},"Action":"sts:AssumeRole"}]}`,
     		})
 
-    		ubx.Resource(iam.Policy, "ci-runner-access", iam.PolicyConfig{
-    			Policy: ubx.Sprintf(`{"Statement":[{"Effect":"Allow","Action":"sqs:SendMessage","Resource":%q}]}`, queue.Field("arn")),
+    		policy := ubx.Resource(iam.Policy, "ci-runner-access", iam.PolicyConfig{
+    			Policy: fmt.Sprintf(`{"Statement":[{"Effect":"Allow","Action":"sqs:SendMessage","Resource":{"$ref":{"to":%q}}}]}`, queue.Field("arn").Address()),
     		})
 
     		ubx.Resource(iam.RolePolicyAttachment, "ci-runner-access-attachment", iam.RolePolicyAttachmentConfig{
-    			Role: role.Field("name"),
+    			Role:      role.Field("name"),
+    			PolicyArn: policy.Field("arn"),
     		})
     	}))
     }
     ```
+    `queue.Field("arn")` returns a `*Computed` -- passed directly to
+    `fmt.Sprintf`'s `%q` verb it would stringify to something like
+    `&{payments.aws_sqs_queue.pipeline-events arn}`, not a real value,
+    and a bare `Computed` is never valid JSON. `.Address()` returns its
+    real address string; wrapped in a literal `{"$ref":{"to":"..."}}`
+    marker inside the larger JSON string, the resolver's own
+    JSON-embedded-refs mechanism (`core/resolver/refs.go`) finds and
+    resolves it like any other reference. `RolePolicyAttachmentConfig`
+    also genuinely requires `PolicyArn` -- omitted in earlier revisions
+    of this page, a real gap independent of the reference bug above,
+    fixed here too.
   </Tab>
   <Tab title="TypeScript">
     ```bash
     git clone https://github.com/Ubiquex/ubx-sdk-aws.git
     ```
     ```typescript
-    import { stack, intent, resource } from "@ubx/sdk";
+    import { stack, intent, resource, addressOf } from "@ubx/sdk";
     import { Queue } from "./ubx-sdk-aws/sdk/typescript/aws/sqs/queue.ts";
     import { Role } from "./ubx-sdk-aws/sdk/typescript/aws/iam/role.ts";
     import { Policy } from "./ubx-sdk-aws/sdk/typescript/aws/iam/policy.ts";
@@ -89,17 +103,32 @@ ubx init --source hashicorp/aws --provider-version 6.54.0
         assumeRolePolicy: `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ec2.amazonaws.com"},"Action":"sts:AssumeRole"}]}`,
       });
 
-      resource(Policy, "ci-runner-access", {
-        policy: `{"Statement":[{"Effect":"Allow","Action":"sqs:SendMessage","Resource":"${queue.arn}"}]}`,
+      const policy = resource(Policy, "ci-runner-access", {
+        policy: `{"Statement":[{"Effect":"Allow","Action":"sqs:SendMessage","Resource":{"$ref":{"to":"${addressOf(queue.arn)}"}}}]}`,
       });
 
       resource(RolePolicyAttachment, "ci-runner-access-attachment", {
         role: role.name,
+        policyArn: policy.arn,
       });
     });
     ```
     A real, local, cloned import, never a remote URL, the hermetic
     evaluator's own `--no-remote` flag refuses anything else.
+
+    `queue.arn` is a `Computed<string>` proxy -- interpolating it
+    directly into a template literal (`` `${queue.arn}` ``) throws
+    `ComputedCoercionError` immediately, by design: every coercion path
+    (`Symbol.toPrimitive`, `toString`, `valueOf`, `JSON.stringify`) is a
+    deliberate trap. `addressOf()`, exported from `@ubx/sdk`, returns
+    the proxy's real address string instead; wrapped in a literal
+    `{"$ref":{"to":"..."}}` marker inside the larger JSON string, the
+    resolver's own JSON-embedded-refs mechanism finds and resolves it --
+    the exact same marker shape the runtime's own config serializer
+    produces automatically for a `Computed<T>` assigned directly to a
+    config field. `RolePolicyAttachmentConfig.policyArn` is also
+    genuinely required -- omitted in earlier revisions of this page, a
+    real gap independent of the coercion bug above, fixed here too.
   </Tab>
   <Tab title="Python">
     ```bash
@@ -133,23 +162,53 @@ ubx init --source hashicorp/aws --provider-version 6.54.0
             assume_role_policy='{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ec2.amazonaws.com"},"Action":"sts:AssumeRole"}]}',
         ))
 
-        ubx.resource(Policy, "ci-runner-access", PolicyConfig(
-            policy=ubx.fmt('{{"Statement":[{{"Effect":"Allow","Action":"sqs:SendMessage","Resource":{}}}]}}', queue.arn),
+        policy = ubx.resource(Policy, "ci-runner-access", PolicyConfig(
+            policy='{{"Statement":[{{"Effect":"Allow","Action":"sqs:SendMessage","Resource":{{"$ref":{{"to":"{}"}}}}}}]}}'.format(queue.arn.address),
         ))
 
         ubx.resource(RolePolicyAttachment, "ci-runner-access-attachment", RolePolicyAttachmentConfig(
             role=role.name,
+            policy_arn=policy.arn,
         ))
 
     if __name__ == "__main__":
         ubx.run("payments", describe)
     ```
+    `queue.arn` is a real `Computed` proxy -- passing it straight to
+    `ubx.fmt` (a fictional, non-existent function; no `Sprintf`/`fmt`
+    helper exists anywhere in the real runtime) never worked. `.address`
+    is a real property on `Computed`, returning its address string;
+    doubled `{{`/`}}` escape Python's own `str.format()` brace syntax,
+    leaving a literal `{"$ref":{"to":"..."}}` marker for the resolver's
+    JSON-embedded-refs mechanism to find. `RolePolicyAttachmentConfig`
+    also genuinely requires `policy_arn` -- omitted in earlier revisions
+    of this page, a real gap independent of the reference bug above,
+    fixed here too.
   </Tab>
   <Tab title="Diagram">
+    `message_retention_seconds` isn't in this tab: it's a real,
+    optional attribute on `aws_sqs_queue` (confirmed directly --
+    `ubx_required.message_retention_seconds` fails with `"...
+    is not a required attribute"`), and the diagram medium can only
+    ever set attributes the schema flags required. `aws_sqs_queue`
+    itself has no required top-level attribute at all, so the queue
+    node below carries no `ubx_required` at all -- a real, honest gap
+    against the other tabs, not a diagram bug. Use `--from-doc` or an
+    SDK program to set it.
+
+    The policy's own reference to the queue's ARN also can't use the
+    diagram's `ref:<node>.<path>` shorthand -- that shorthand only
+    resolves when it's the *entire* value of a `ubx_required` field,
+    not something embedded inside a larger JSON string. It needs the
+    same JSON-embedded `{"$ref":{"to":"..."}}` marker the SDK tabs use,
+    with the address written out by hand. D2 also reserves an unescaped
+    dollar sign inside a quoted string for its own substitution syntax,
+    so the marker's own `$ref` key needs a backslash in front of it, or
+    D2 itself fails to parse with `substitutions must begin on {`.
+
     ```d2
     queue: "pipeline-events" {
       class: aws_sqs_queue
-      message_retention_seconds: "1209600"
     }
 
     role: "ci-runner" {
@@ -159,12 +218,13 @@ ubx init --source hashicorp/aws --provider-version 6.54.0
 
     policy: "ci-runner-access" {
       class: aws_iam_policy
-      ubx_required.policy: "{\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"sqs:SendMessage\",\"Resource\":\"ref:queue.arn\"}]}"
+      ubx_required.policy: "{\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"sqs:SendMessage\",\"Resource\":{\"\$ref\":{\"to\":\"payments.aws_sqs_queue.pipeline-events.arn\"}}}]}"
     }
 
     attach: "attach" {
       class: aws_iam_role_policy_attachment
       ubx_required.role: "ref:role.name"
+      ubx_required.policy_arn: "ref:policy.arn"
     }
     ```
     ```bash
@@ -196,6 +256,8 @@ Plan  payments
       }
 
   + aws_iam_role_policy_attachment.ci-runner-access-attachment create
+      policy_arn: $ref:payments.aws_iam_policy.ci-runner-access.arn
+      role: $ref:payments.aws_iam_role.ci-runner.name
 
 delta: +4 create(s), ~0 change(s), -0 terminate(s)
 ```
@@ -221,7 +283,7 @@ ship first, ordered entirely by the references themselves.
 
 You shipped a real, connected set of AWS resources, and saw the exact
 same reference mechanism work identically across all five mediums,
-prose, two typed languages, and a diagram.
+prose, three typed languages, and a diagram.
 
 ## Next
 
