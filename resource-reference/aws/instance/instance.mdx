@@ -6,45 +6,89 @@ description: "Real, generated bindings for `aws_instance`."
 `aws_instance` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/instance"
+    package main
 
-    cfg := instance.InstanceConfig{
-        Ami: "example",
-        AssociatePublicIpAddress: true,
+    import (
+    	instance "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/instance"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own instance"})
+
+    		ubx.Resource(instance.Instance, "ci-runner", instance.InstanceConfig{
+    			ForceDestroy:            true,
+    			GetPasswordData:         true,
+    			Hibernation:             true,
+    			SourceDestCheck:         true,
+    			Tags:                    map[string]string{"managed-by": "ubx"},
+    			UserData:                "example",
+    			UserDataReplaceOnChange: true,
+    			VolumeTags:              map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(instance.Instance, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { Instance } from
-      "jsr:@ubx/sdk-aws/aws/instance/instance";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Instance } from "jsr:@ubx/sdk-aws/aws/instance/instance";
 
-    resource(Instance, "example", {
-      ami: "example",
-      associatePublicIpAddress: true,
+    export default stack("payments", () => {
+      intent({ summary: "payments own instance" });
+
+      resource(Instance, "ci-runner", {
+        forceDestroy: true,
+        getPasswordData: true,
+        hibernation: true,
+        sourceDestCheck: true,
+        tags: { "managed-by": "ubx" },
+        userData: "example",
+        userDataReplaceOnChange: true,
+        volumeTags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.instance import Instance, InstanceConfig
 
-    cfg = InstanceConfig(
-        ami="example",
-        associate_public_ip_address=True,
-    )
-    ubx.resource(Instance, "example", cfg)
+    def describe():
+        ubx.intent("payments own instance")
+
+        ubx.resource(Instance, "ci-runner", InstanceConfig(
+            force_destroy=True,
+            get_password_data=True,
+            hibernation=True,
+            source_dest_check=True,
+            tags={"managed-by": "ubx"},
+            user_data="example",
+            user_data_replace_on_change=True,
+            volume_tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_instance with ami, associate_public_ip_address.
+    Create aws_instance, with force destroy true, get password data
+    true, hibernation true, source dest check true, tags a set value,
+    user data example, user data replace on change true, volume tags
+    a set value.
     ```
   </Tab>
 </Tabs>

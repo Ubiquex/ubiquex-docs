@@ -6,49 +6,69 @@ description: "Real, generated bindings for `aws_s3vectors_vector_bucket`."
 `aws_s3vectors_vector_bucket` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/s3vectors"
+    package main
 
-    cfg := s3vectors.VectorBucketConfig{
-        VectorBucketName: "example-vector-bucket-name",
-        ForceDestroy: true,
-        Tags: map[string]string{"key": "value"},
+    import (
+    	s3vectors "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/s3vectors"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own vector bucket"})
+
+    		ubx.Resource(s3vectors.VectorBucket, "ci-runner", s3vectors.VectorBucketConfig{
+    			VectorBucketName: "example-vector-bucket-name",
+    			Tags:             map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(s3vectors.VectorBucket, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { VectorBucket } from
-      "jsr:@ubx/sdk-aws/aws/s3vectors/vector_bucket";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { VectorBucket } from "jsr:@ubx/sdk-aws/aws/s3vectors/vector_bucket";
 
-    resource(VectorBucket, "example", {
-      vectorBucketName: "example",
-      forceDestroy: true,
-      tags: { key: "value" },
+    export default stack("payments", () => {
+      intent({ summary: "payments own vector bucket" });
+
+      resource(VectorBucket, "ci-runner", {
+        vectorBucketName: "example-vector-bucket-name",
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.s3vectors import VectorBucket, VectorBucketConfig
 
-    cfg = VectorBucketConfig(
-        vector_bucket_name="example",
-        force_destroy=True,
-        tags={"key": "value"},
-    )
-    ubx.resource(VectorBucket, "example", cfg)
+    def describe():
+        ubx.intent("payments own vector bucket")
+
+        ubx.resource(VectorBucket, "ci-runner", VectorBucketConfig(
+            vector_bucket_name="example-vector-bucket-name",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_s3vectors_vector_bucket with vector_bucket_name,
-force_destroy, tags.
+    Create aws_s3vectors_vector_bucket, with vector bucket name
+    example-vector-bucket-name, tags a set value.
     ```
   </Tab>
 </Tabs>

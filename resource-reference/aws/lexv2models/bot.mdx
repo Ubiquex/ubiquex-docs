@@ -6,54 +6,83 @@ description: "Real, generated bindings for `aws_lexv2models_bot`."
 `aws_lexv2models_bot` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/lexv2models"
+    package main
 
-    cfg := lexv2models.BotConfig{
-        IdleSessionTtlInSeconds: 1,
-        Name: "example-name",
-        RoleArn: "example",
-        Description: "example",
-        Tags: map[string]string{"key": "value"},
+    import (
+    	lexv2models "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/lexv2models"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own bot"})
+
+    		ubx.Resource(lexv2models.Bot, "ci-runner", lexv2models.BotConfig{
+    			IdleSessionTtlInSeconds: 7200,
+    			Name:                    "ci-runner",
+    			RoleArn:                 "arn:aws:iam::123456789012:policy/ci",
+    			Description:             "Managed by ubx.",
+    			Tags:                    map[string]string{"managed-by": "ubx"},
+    			TestBotAliasTags:        map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(lexv2models.Bot, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Bot } from "jsr:@ubx/sdk-aws/aws/lexv2models/bot";
 
-    resource(Bot, "example", {
-      idleSessionTtlInSeconds: 1,
-      name: "example",
-      roleArn: "example",
-      description: "example",
-      tags: { key: "value" },
+    export default stack("payments", () => {
+      intent({ summary: "payments own bot" });
+
+      resource(Bot, "ci-runner", {
+        idleSessionTtlInSeconds: 7200,
+        name: "ci-runner",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        description: "Managed by ubx.",
+        tags: { "managed-by": "ubx" },
+        testBotAliasTags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.lexv2models import Bot, BotConfig
 
-    cfg = BotConfig(
-        idle_session_ttl_in_seconds=1,
-        name="example",
-        role_arn="example",
-        description="example",
-        tags={"key": "value"},
-    )
-    ubx.resource(Bot, "example", cfg)
+    def describe():
+        ubx.intent("payments own bot")
+
+        ubx.resource(Bot, "ci-runner", BotConfig(
+            idle_session_ttl_in_seconds=7200,
+            name="ci-runner",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            description="Managed by ubx.",
+            tags={"managed-by": "ubx"},
+            test_bot_alias_tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_lexv2models_bot with idle_session_ttl_in_seconds,
-name, role_arn, description, tags.
+    Create aws_lexv2models_bot called "ci-runner", with idle session
+    ttl in seconds 7200, role arn
+    arn:aws:iam::123456789012:policy/ci, description Managed by ubx.,
+    tags a set value, test bot alias tags a set value.
     ```
   </Tab>
 </Tabs>

@@ -6,49 +6,89 @@ description: "Real, generated bindings for `aws_cloudformation_stack`."
 `aws_cloudformation_stack` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/cloudformation"
+    package main
 
-    cfg := cloudformation.StackConfig{
-        Name: "example-name",
-        Capabilities: []string{"example"},
-        DisableRollback: true,
+    import (
+    	cloudformation "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/cloudformation"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own stack"})
+
+    		ubx.Resource(cloudformation.Stack, "ci-runner", cloudformation.StackConfig{
+    			Name:             "ci-runner",
+    			Capabilities:     []string{"example"},
+    			DisableRollback:  true,
+    			IamRoleArn:       "arn:aws:iam::123456789012:policy/ci",
+    			NotificationArns: []string{"example"},
+    			OnFailure:        "example",
+    			PolicyUrl:        "example",
+    			Tags:             map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(cloudformation.Stack, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { Stack } from
-      "jsr:@ubx/sdk-aws/aws/cloudformation/stack";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Stack } from "jsr:@ubx/sdk-aws/aws/cloudformation/stack";
 
-    resource(Stack, "example", {
-      name: "example",
-      capabilities: ["example"],
-      disableRollback: true,
+    export default stack("payments", () => {
+      intent({ summary: "payments own stack" });
+
+      resource(Stack, "ci-runner", {
+        name: "ci-runner",
+        capabilities: ["example"],
+        disableRollback: true,
+        iamRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        notificationArns: ["example"],
+        onFailure: "example",
+        policyUrl: "example",
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.cloudformation import Stack, StackConfig
 
-    cfg = StackConfig(
-        name="example",
-        capabilities=["example"],
-        disable_rollback=True,
-    )
-    ubx.resource(Stack, "example", cfg)
+    def describe():
+        ubx.intent("payments own stack")
+
+        ubx.resource(Stack, "ci-runner", StackConfig(
+            name="ci-runner",
+            capabilities=["example"],
+            disable_rollback=True,
+            iam_role_arn="arn:aws:iam::123456789012:policy/ci",
+            notification_arns=["example"],
+            on_failure="example",
+            policy_url="example",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_cloudformation_stack with name, capabilities,
-disable_rollback.
+    Create aws_cloudformation_stack called "ci-runner", with
+    capabilities a set value, disable rollback true, iam role arn
+    arn:aws:iam::123456789012:policy/ci, notification arns a set
+    value, on failure example, policy url example, tags a set value.
     ```
   </Tab>
 </Tabs>

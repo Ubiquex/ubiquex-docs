@@ -157,8 +157,15 @@ def pick_richer_example_fields(fields):
     # already uses (eff_flags) -- applied here too now, not
     # independently re-derived a second, looser way.
     name_field = [f for f in fields if f["WireName"] == "name" and f["Optional"] and not f["Required"]]
+    # A second real, found-in-review bug: when "name" is genuinely plain
+    # optional (Optional=True, Required=False, Computed=False -- e.g.
+    # aws_datasync_agent, aws_ivschat_logging_configuration), it satisfies
+    # BOTH name_field's filter above AND this optional_pure filter, so it
+    # was picked twice -- a real Go compile error ("duplicate field name
+    # Name in struct literal"), caught only by the go build verification
+    # pass, not gofmt. Excluded here since name_field already covers it.
     optional_pure = sorted(
-        [f for f in fields if f["Optional"] and not f["Computed"] and not f["Required"]],
+        [f for f in fields if f["Optional"] and not f["Computed"] and not f["Required"] and f["WireName"] != "name"],
         key=lambda f: f["WireName"],
     )
     picked = required + name_field + optional_pure

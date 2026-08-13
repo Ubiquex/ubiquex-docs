@@ -6,55 +6,83 @@ description: "Real, generated bindings for `aws_volume_attachment`."
 `aws_volume_attachment` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/volume"
+    package main
 
-    cfg := volume.AttachmentConfig{
-        DeviceName: "example-device-name",
-        InstanceId: "example",
-        VolumeId: "example",
-        ForceDetach: true,
-        SkipDestroy: true,
+    import (
+    	volume "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/volume"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own attachment"})
+
+    		ubx.Resource(volume.Attachment, "ci-runner", volume.AttachmentConfig{
+    			DeviceName:                  "example-device-name",
+    			InstanceId:                  "example",
+    			VolumeId:                    "example",
+    			ForceDetach:                 true,
+    			SkipDestroy:                 true,
+    			StopInstanceBeforeDetaching: true,
+    		})
+    	}))
     }
-    ubx.Resource(volume.Attachment, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { Attachment } from
-      "jsr:@ubx/sdk-aws/aws/volume/attachment";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Attachment } from "jsr:@ubx/sdk-aws/aws/volume/attachment";
 
-    resource(Attachment, "example", {
-      deviceName: "example",
-      instanceId: "example",
-      volumeId: "example",
-      forceDetach: true,
-      skipDestroy: true,
+    export default stack("payments", () => {
+      intent({ summary: "payments own attachment" });
+
+      resource(Attachment, "ci-runner", {
+        deviceName: "example-device-name",
+        instanceId: "example",
+        volumeId: "example",
+        forceDetach: true,
+        skipDestroy: true,
+        stopInstanceBeforeDetaching: true,
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.volume import Attachment, AttachmentConfig
 
-    cfg = AttachmentConfig(
-        device_name="example",
-        instance_id="example",
-        volume_id="example",
-        force_detach=True,
-        skip_destroy=True,
-    )
-    ubx.resource(Attachment, "example", cfg)
+    def describe():
+        ubx.intent("payments own attachment")
+
+        ubx.resource(Attachment, "ci-runner", AttachmentConfig(
+            device_name="example-device-name",
+            instance_id="example",
+            volume_id="example",
+            force_detach=True,
+            skip_destroy=True,
+            stop_instance_before_detaching=True,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_volume_attachment with device_name, instance_id,
-volume_id, force_detach, skip_destroy.
+    Create aws_volume_attachment, with device name
+    example-device-name, instance id example, volume id example,
+    force detach true, skip destroy true, stop instance before
+    detaching true.
     ```
   </Tab>
 </Tabs>

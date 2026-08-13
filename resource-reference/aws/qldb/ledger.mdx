@@ -6,48 +6,75 @@ description: "Real, generated bindings for `aws_qldb_ledger`."
 `aws_qldb_ledger` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/qldb"
+    package main
 
-    cfg := qldb.LedgerConfig{
-        PermissionsMode: "example",
-        DeletionProtection: true,
-        KmsKey: "example",
+    import (
+    	qldb "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/qldb"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own ledger"})
+
+    		ubx.Resource(qldb.Ledger, "ci-runner", qldb.LedgerConfig{
+    			PermissionsMode:    "example",
+    			Name:               "ci-runner",
+    			DeletionProtection: true,
+    			Tags:               map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(qldb.Ledger, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Ledger } from "jsr:@ubx/sdk-aws/aws/qldb/ledger";
 
-    resource(Ledger, "example", {
-      permissionsMode: "example",
-      deletionProtection: true,
-      kmsKey: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own ledger" });
+
+      resource(Ledger, "ci-runner", {
+        permissionsMode: "example",
+        name: "ci-runner",
+        deletionProtection: true,
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.qldb import Ledger, LedgerConfig
 
-    cfg = LedgerConfig(
-        permissions_mode="example",
-        deletion_protection=True,
-        kms_key="example",
-    )
-    ubx.resource(Ledger, "example", cfg)
+    def describe():
+        ubx.intent("payments own ledger")
+
+        ubx.resource(Ledger, "ci-runner", LedgerConfig(
+            permissions_mode="example",
+            name="ci-runner",
+            deletion_protection=True,
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_qldb_ledger with permissions_mode,
-deletion_protection, kms_key.
+    Create aws_qldb_ledger called "ci-runner", with permissions mode
+    example, deletion protection true, tags a set value.
     ```
   </Tab>
 </Tabs>

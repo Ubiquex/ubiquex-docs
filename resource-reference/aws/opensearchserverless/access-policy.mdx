@@ -6,55 +6,106 @@ description: "Real, generated bindings for `aws_opensearchserverless_access_poli
 `aws_opensearchserverless_access_policy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/opensearchserverless"
+    package main
 
-    cfg := opensearchserverless.AccessPolicyConfig{
-        Name: "example-name",
-        Policy: "example",
-        Type: "example",
-        Description: "example",
+    import (
+    	"encoding/json"
+
+    	opensearchserverless "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/opensearchserverless"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own access policy"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(opensearchserverless.AccessPolicy, "ci-runner", opensearchserverless.AccessPolicyConfig{
+    			Name:        "ci-runner",
+    			Policy:      string(accessPolicy),
+    			Type:        "example",
+    			Description: "Managed by ubx.",
+    		})
+    	}))
     }
-    ubx.Resource(opensearchserverless.AccessPolicy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { AccessPolicy } from
-      "jsr:@ubx/sdk-aws/aws/opensearchserverless/access_policy";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AccessPolicy } from "jsr:@ubx/sdk-aws/aws/opensearchserverless/access_policy";
 
-    resource(AccessPolicy, "example", {
-      name: "example",
-      policy: "example",
-      type: "example",
-      description: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own access policy" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(AccessPolicy, "ci-runner", {
+        name: "ci-runner",
+        policy: accessPolicy,
+        type: "example",
+        description: "Managed by ubx.",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    from ubx.aws.opensearchserverless import (
-        AccessPolicy,
-        AccessPolicyConfig,
-    )
+    import json
+    import ubx_sdk as ubx
+    from ubx.aws.opensearchserverless import AccessPolicy, AccessPolicyConfig
 
-    cfg = AccessPolicyConfig(
-        name="example",
-        policy="example",
-        type="example",
-        description="example",
-    )
-    ubx.resource(AccessPolicy, "example", cfg)
+    def describe():
+        ubx.intent("payments own access policy")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(AccessPolicy, "ci-runner", AccessPolicyConfig(
+            name="ci-runner",
+            policy=access_policy,
+            type="example",
+            description="Managed by ubx.",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_opensearchserverless_access_policy with name,
-policy, type, description.
+    Create aws_opensearchserverless_access_policy called "ci-runner",
+    with policy a real, valid value, type example, description
+    Managed by ubx..
     ```
   </Tab>
 </Tabs>
