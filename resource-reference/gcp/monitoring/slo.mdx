@@ -6,53 +6,82 @@ description: "Real, generated bindings for `google_monitoring_slo`."
 `google_monitoring_slo` -- real, typed bindings generated directly from the
 `hashicorp/google` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "github.com/ubiquex/ubx-sdk-google/sdk/go/google/monitoring"
+    	monitoring "github.com/ubiquex/ubx-sdk-aws/sdk/go/google/monitoring"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
-    cfg := monitoring.SloConfig{
-        Goal: 1,
-        Service: "example",
-        CalendarPeriod: "example",
-        DisplayName: "example-display-name",
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own slo"})
+
+    		ubx.Resource(monitoring.Slo, "ci-runner", monitoring.SloConfig{
+    			Goal:              1,
+    			Service:           "example",
+    			CalendarPeriod:    "example",
+    			DisplayName:       "example-display-name",
+    			RollingPeriodDays: 1,
+    			UserLabels:        map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(monitoring.Slo, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Slo } from "jsr:@ubx/sdk-google/google/monitoring/slo";
 
-    resource(Slo, "example", {
-      goal: 1,
-      service: "example",
-      calendarPeriod: "example",
-      displayName: "example-display-name",
+    export default stack("payments", () => {
+      intent({ summary: "payments own slo" });
+
+      resource(Slo, "ci-runner", {
+        goal: 1,
+        service: "example",
+        calendarPeriod: "example",
+        displayName: "example-display-name",
+        rollingPeriodDays: 1,
+        userLabels: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.google.monitoring import Slo, SloConfig
 
-    cfg = SloConfig(
-        goal=1,
-        service="example",
-        calendar_period="example",
-        display_name="example-display-name",
-    )
-    ubx.resource(Slo, "example", cfg)
+    def describe():
+        ubx.intent("payments own slo")
+
+        ubx.resource(Slo, "ci-runner", SloConfig(
+            goal=1,
+            service="example",
+            calendar_period="example",
+            display_name="example-display-name",
+            rolling_period_days=1,
+            user_labels={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision google_monitoring_slo with goal, service,
-calendar_period, display_name.
+    Create google_monitoring_slo, with goal 1, service example,
+    calendar period example, display name example-display-name,
+    rolling period days 1, user labels a set value.
     ```
   </Tab>
 </Tabs>

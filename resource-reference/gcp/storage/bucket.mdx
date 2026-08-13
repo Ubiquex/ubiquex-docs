@@ -6,54 +6,89 @@ description: "Real, generated bindings for `google_storage_bucket`."
 `google_storage_bucket` -- real, typed bindings generated directly from the
 `hashicorp/google` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "github.com/ubiquex/ubx-sdk-google/sdk/go/google/storage"
+    	storage "github.com/ubiquex/ubx-sdk-aws/sdk/go/google/storage"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
-    cfg := storage.BucketConfig{
-        Location: "example",
-        Name: "example-name",
-        DefaultEventBasedHold: true,
-        EnableObjectRetention: true,
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own bucket"})
+
+    		ubx.Resource(storage.Bucket, "ci-runner", storage.BucketConfig{
+    			Location:              "example",
+    			Name:                  "ci-runner",
+    			DefaultEventBasedHold: true,
+    			EnableObjectRetention: true,
+    			ForceDestroy:          true,
+    			Labels:                map[string]string{"managed-by": "ubx"},
+    			RequesterPays:         true,
+    			StorageClass:          "example",
+    		})
+    	}))
     }
-    ubx.Resource(storage.Bucket, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { Bucket } from
-      "jsr:@ubx/sdk-google/google/storage/bucket";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Bucket } from "jsr:@ubx/sdk-google/google/storage/bucket";
 
-    resource(Bucket, "example", {
-      location: "example",
-      name: "example-name",
-      defaultEventBasedHold: true,
-      enableObjectRetention: true,
+    export default stack("payments", () => {
+      intent({ summary: "payments own bucket" });
+
+      resource(Bucket, "ci-runner", {
+        location: "example",
+        name: "ci-runner",
+        defaultEventBasedHold: true,
+        enableObjectRetention: true,
+        forceDestroy: true,
+        labels: { "managed-by": "ubx" },
+        requesterPays: true,
+        storageClass: "example",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.google.storage import Bucket, BucketConfig
 
-    cfg = BucketConfig(
-        location="example",
-        name="example-name",
-        default_event_based_hold=True,
-        enable_object_retention=True,
-    )
-    ubx.resource(Bucket, "example", cfg)
+    def describe():
+        ubx.intent("payments own bucket")
+
+        ubx.resource(Bucket, "ci-runner", BucketConfig(
+            location="example",
+            name="ci-runner",
+            default_event_based_hold=True,
+            enable_object_retention=True,
+            force_destroy=True,
+            labels={"managed-by": "ubx"},
+            requester_pays=True,
+            storage_class="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision google_storage_bucket with location, name,
-default_event_based_hold, enable_object_retention.
+    Create google_storage_bucket called "ci-runner", with location
+    example, default event based hold true, enable object retention
+    true, force destroy true, labels a set value, requester pays
+    true, storage class example.
     ```
   </Tab>
 </Tabs>

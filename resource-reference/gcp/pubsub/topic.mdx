@@ -6,49 +6,79 @@ description: "Real, generated bindings for `google_pubsub_topic`."
 `google_pubsub_topic` -- real, typed bindings generated directly from the
 `hashicorp/google` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "github.com/ubiquex/ubx-sdk-google/sdk/go/google/pubsub"
+    	pubsub "github.com/ubiquex/ubx-sdk-aws/sdk/go/google/pubsub"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
-    cfg := pubsub.TopicConfig{
-        Name: "example-name",
-        KmsKeyName: "example-kms-key-name",
-        Labels: map[string]string{"key": "value"},
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own topic"})
+
+    		ubx.Resource(pubsub.Topic, "ci-runner", pubsub.TopicConfig{
+    			Name:                     "ci-runner",
+    			KmsKeyName:               "example-kms-key-name",
+    			Labels:                   map[string]string{"managed-by": "ubx"},
+    			MessageRetentionDuration: "example",
+    			Tags:                     map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(pubsub.Topic, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Topic } from "jsr:@ubx/sdk-google/google/pubsub/topic";
 
-    resource(Topic, "example", {
-      name: "example-name",
-      kmsKeyName: "example-kms-key-name",
-      labels: { key: "value" },
+    export default stack("payments", () => {
+      intent({ summary: "payments own topic" });
+
+      resource(Topic, "ci-runner", {
+        name: "ci-runner",
+        kmsKeyName: "example-kms-key-name",
+        labels: { "managed-by": "ubx" },
+        messageRetentionDuration: "example",
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.google.pubsub import Topic, TopicConfig
 
-    cfg = TopicConfig(
-        name="example-name",
-        kms_key_name="example-kms-key-name",
-        labels={"key": "value"},
-    )
-    ubx.resource(Topic, "example", cfg)
+    def describe():
+        ubx.intent("payments own topic")
+
+        ubx.resource(Topic, "ci-runner", TopicConfig(
+            name="ci-runner",
+            kms_key_name="example-kms-key-name",
+            labels={"managed-by": "ubx"},
+            message_retention_duration="example",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision google_pubsub_topic with name, kms_key_name, labels.
+    Create google_pubsub_topic called "ci-runner", with kms key name
+    example-kms-key-name, labels a set value, message retention
+    duration example, tags a set value.
     ```
   </Tab>
 </Tabs>

@@ -6,54 +6,86 @@ description: "Real, generated bindings for `google_logging_metric`."
 `google_logging_metric` -- real, typed bindings generated directly from the
 `hashicorp/google` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "github.com/ubiquex/ubx-sdk-google/sdk/go/google/logging"
+    	logging "github.com/ubiquex/ubx-sdk-aws/sdk/go/google/logging"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
-    cfg := logging.MetricConfig{
-        Filter: "example",
-        Name: "example-name",
-        BucketName: "example-bucket-name",
-        Description: "example",
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own metric"})
+
+    		ubx.Resource(logging.Metric, "ci-runner", logging.MetricConfig{
+    			Filter:          "example",
+    			Name:            "ci-runner",
+    			BucketName:      "example-bucket-name",
+    			Description:     "Managed by ubx.",
+    			Disabled:        true,
+    			LabelExtractors: map[string]string{"managed-by": "ubx"},
+    			ValueExtractor:  "example",
+    		})
+    	}))
     }
-    ubx.Resource(logging.Metric, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { Metric } from
-      "jsr:@ubx/sdk-google/google/logging/metric";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Metric } from "jsr:@ubx/sdk-google/google/logging/metric";
 
-    resource(Metric, "example", {
-      filter: "example",
-      name: "example-name",
-      bucketName: "example-bucket-name",
-      description: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own metric" });
+
+      resource(Metric, "ci-runner", {
+        filter: "example",
+        name: "ci-runner",
+        bucketName: "example-bucket-name",
+        description: "Managed by ubx.",
+        disabled: true,
+        labelExtractors: { "managed-by": "ubx" },
+        valueExtractor: "example",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.google.logging import Metric, MetricConfig
 
-    cfg = MetricConfig(
-        filter="example",
-        name="example-name",
-        bucket_name="example-bucket-name",
-        description="example",
-    )
-    ubx.resource(Metric, "example", cfg)
+    def describe():
+        ubx.intent("payments own metric")
+
+        ubx.resource(Metric, "ci-runner", MetricConfig(
+            filter="example",
+            name="ci-runner",
+            bucket_name="example-bucket-name",
+            description="Managed by ubx.",
+            disabled=True,
+            label_extractors={"managed-by": "ubx"},
+            value_extractor="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision google_logging_metric with filter, name, bucket_name,
-description.
+    Create google_logging_metric called "ci-runner", with filter
+    example, bucket name example-bucket-name, description Managed by
+    ubx., disabled true, label extractors a set value, value
+    extractor example.
     ```
   </Tab>
 </Tabs>

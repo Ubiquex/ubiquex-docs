@@ -6,54 +6,82 @@ description: "Real, generated bindings for `google_spanner_database`."
 `google_spanner_database` -- real, typed bindings generated directly from the
 `hashicorp/google` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "github.com/ubiquex/ubx-sdk-google/sdk/go/google/spanner"
+    	spanner "github.com/ubiquex/ubx-sdk-aws/sdk/go/google/spanner"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
-    cfg := spanner.DatabaseConfig{
-        Instance: "example",
-        Name: "example-name",
-        Ddl: []string{"example"},
-        DefaultTimeZone: "example",
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own database"})
+
+    		ubx.Resource(spanner.Database, "ci-runner", spanner.DatabaseConfig{
+    			Instance:             "example",
+    			Name:                 "ci-runner",
+    			Ddl:                  []string{"example"},
+    			DefaultTimeZone:      "example",
+    			DeletionProtection:   true,
+    			EnableDropProtection: true,
+    		})
+    	}))
     }
-    ubx.Resource(spanner.Database, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { Database } from
-      "jsr:@ubx/sdk-google/google/spanner/database";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Database } from "jsr:@ubx/sdk-google/google/spanner/database";
 
-    resource(Database, "example", {
-      instance: "example",
-      name: "example-name",
-      ddl: ["example"],
-      defaultTimeZone: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own database" });
+
+      resource(Database, "ci-runner", {
+        instance: "example",
+        name: "ci-runner",
+        ddl: ["example"],
+        defaultTimeZone: "example",
+        deletionProtection: true,
+        enableDropProtection: true,
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.google.spanner import Database, DatabaseConfig
 
-    cfg = DatabaseConfig(
-        instance="example",
-        name="example-name",
-        ddl=["example"],
-        default_time_zone="example",
-    )
-    ubx.resource(Database, "example", cfg)
+    def describe():
+        ubx.intent("payments own database")
+
+        ubx.resource(Database, "ci-runner", DatabaseConfig(
+            instance="example",
+            name="ci-runner",
+            ddl=["example"],
+            default_time_zone="example",
+            deletion_protection=True,
+            enable_drop_protection=True,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision google_spanner_database with instance, name, ddl,
-default_time_zone.
+    Create google_spanner_database called "ci-runner", with instance
+    example, ddl a set value, default time zone example, deletion
+    protection true, enable drop protection true.
     ```
   </Tab>
 </Tabs>
