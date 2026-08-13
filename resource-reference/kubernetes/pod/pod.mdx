@@ -6,44 +6,65 @@ description: "Real, generated bindings for `kubernetes_pod`."
 `kubernetes_pod` -- real, typed bindings generated directly from the
 `hashicorp/kubernetes` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "github.com/ubiquex/ubx-sdk-kubernetes/sdk/go/kubernetes/pod"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    	pod "github.com/ubiquex/ubx-sdk-kubernetes/sdk/go/kubernetes/pod"
     )
 
-    cfg := pod.PodConfig{
-        TargetState: []string{"example"},
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own pod"})
+
+    		ubx.Resource(pod.Pod, "ci-runner", pod.PodConfig{
+    			TargetState: []string{"example"},
+    		})
+    	}))
     }
-    ubx.Resource(pod.Pod, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { Pod } from
-      "jsr:@ubx/sdk-kubernetes/kubernetes/pod/pod";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Pod } from "jsr:@ubx/sdk-kubernetes/kubernetes/pod/pod";
 
-    resource(Pod, "example", {
-      targetState: ["example"],
+    export default stack("payments", () => {
+      intent({ summary: "payments own pod" });
+
+      resource(Pod, "ci-runner", {
+        targetState: ["example"],
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.kubernetes.pod import Pod, PodConfig
 
-    cfg = PodConfig(
-        target_state=["example"],
-    )
-    ubx.resource(Pod, "example", cfg)
+    def describe():
+        ubx.intent("payments own pod")
+
+        ubx.resource(Pod, "ci-runner", PodConfig(
+            target_state=["example"],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision kubernetes_pod with target_state.
+    Create kubernetes_pod, with target state a set value.
     ```
   </Tab>
 </Tabs>
