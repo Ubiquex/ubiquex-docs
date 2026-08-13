@@ -6,51 +6,72 @@ description: "Real, generated bindings for `azurerm_storage_queue`."
 `azurerm_storage_queue` -- real, typed bindings generated directly from the
 `hashicorp/azurerm` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "github.com/ubiquex/ubx-sdk-azure/sdk/go/azurerm/storage"
+    	storage "github.com/ubiquex/ubx-sdk-azure/sdk/go/azurerm/storage"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
-    cfg := storage.QueueConfig{
-        Name: "example-name",
-        StorageAccountId: "example",
-        Metadata: map[string]string{"key": "value"},
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own queue"})
+
+    		ubx.Resource(storage.Queue, "ci-runner", storage.QueueConfig{
+    			Name:             "ci-runner",
+    			StorageAccountId: "example",
+    			Metadata:         map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(storage.Queue, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { Queue } from
-      "jsr:@ubx/sdk-azure/azurerm/storage/queue";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Queue } from "jsr:@ubx/sdk-azure/azurerm/storage/queue";
 
-    resource(Queue, "example", {
-      name: "example-name",
-      storageAccountId: "example",
-      metadata: { key: "value" },
+    export default stack("payments", () => {
+      intent({ summary: "payments own queue" });
+
+      resource(Queue, "ci-runner", {
+        name: "ci-runner",
+        storageAccountId: "example",
+        metadata: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.azurerm.storage import Queue, QueueConfig
 
-    cfg = QueueConfig(
-        name="example-name",
-        storage_account_id="example",
-        metadata={"key": "value"},
-    )
-    ubx.resource(Queue, "example", cfg)
+    def describe():
+        ubx.intent("payments own queue")
+
+        ubx.resource(Queue, "ci-runner", QueueConfig(
+            name="ci-runner",
+            storage_account_id="example",
+            metadata={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision azurerm_storage_queue with name, storage_account_id,
-metadata.
+    Create azurerm_storage_queue called "ci-runner", with storage
+    account id example, metadata a set value.
     ```
   </Tab>
 </Tabs>

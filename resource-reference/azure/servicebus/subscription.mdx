@@ -6,61 +6,90 @@ description: "Real, generated bindings for `azurerm_servicebus_subscription`."
 `azurerm_servicebus_subscription` -- real, typed bindings generated directly from the
 `hashicorp/azurerm` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "github.com/ubiquex/ubx-sdk-azure/sdk/go/azurerm/servicebus"
+    	servicebus "github.com/ubiquex/ubx-sdk-azure/sdk/go/azurerm/servicebus"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
-    cfg := servicebus.SubscriptionConfig{
-        MaxDeliveryCount: 1,
-        Name: "example-name",
-        TopicId: "example",
-        AutoDeleteOnIdle: "example",
-        BatchedOperationsEnabled: true,
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own subscription"})
+
+    		ubx.Resource(servicebus.Subscription, "ci-runner", servicebus.SubscriptionConfig{
+    			MaxDeliveryCount:                     1,
+    			Name:                                 "ci-runner",
+    			TopicId:                              "example",
+    			AutoDeleteOnIdle:                     "example",
+    			BatchedOperationsEnabled:             true,
+    			ClientScopedSubscriptionEnabled:      true,
+    			DeadLetteringOnFilterEvaluationError: true,
+    			DeadLetteringOnMessageExpiration:     true,
+    		})
+    	}))
     }
-    ubx.Resource(servicebus.Subscription, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { Subscription } from
-      "jsr:@ubx/sdk-azure/azurerm/servicebus/subscription";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Subscription } from "jsr:@ubx/sdk-azure/azurerm/servicebus/subscription";
 
-    resource(Subscription, "example", {
-      maxDeliveryCount: 1,
-      name: "example-name",
-      topicId: "example",
-      autoDeleteOnIdle: "example",
-      batchedOperationsEnabled: true,
+    export default stack("payments", () => {
+      intent({ summary: "payments own subscription" });
+
+      resource(Subscription, "ci-runner", {
+        maxDeliveryCount: 1,
+        name: "ci-runner",
+        topicId: "example",
+        autoDeleteOnIdle: "example",
+        batchedOperationsEnabled: true,
+        clientScopedSubscriptionEnabled: true,
+        deadLetteringOnFilterEvaluationError: true,
+        deadLetteringOnMessageExpiration: true,
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    from ubx.azurerm.servicebus import (
-        Subscription,
-        SubscriptionConfig,
-    )
+    import ubx_sdk as ubx
+    from ubx.azurerm.servicebus import Subscription, SubscriptionConfig
 
-    cfg = SubscriptionConfig(
-        max_delivery_count=1,
-        name="example-name",
-        topic_id="example",
-        auto_delete_on_idle="example",
-        batched_operations_enabled=True,
-    )
-    ubx.resource(Subscription, "example", cfg)
+    def describe():
+        ubx.intent("payments own subscription")
+
+        ubx.resource(Subscription, "ci-runner", SubscriptionConfig(
+            max_delivery_count=1,
+            name="ci-runner",
+            topic_id="example",
+            auto_delete_on_idle="example",
+            batched_operations_enabled=True,
+            client_scoped_subscription_enabled=True,
+            dead_lettering_on_filter_evaluation_error=True,
+            dead_lettering_on_message_expiration=True,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision azurerm_servicebus_subscription with
-max_delivery_count, name, topic_id, auto_delete_on_idle,
-batched_operations_enabled.
+    Create azurerm_servicebus_subscription called "ci-runner", with
+    max delivery count 1, topic id example, auto delete on idle
+    example, batched operations enabled true, client scoped
+    subscription enabled true, dead lettering on filter evaluation
+    error true, dead lettering on message expiration true.
     ```
   </Tab>
 </Tabs>
