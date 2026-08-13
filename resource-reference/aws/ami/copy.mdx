@@ -6,54 +6,90 @@ description: "Real, generated bindings for `aws_ami_copy`."
 `aws_ami_copy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ami"
+    package main
 
-    cfg := ami.CopyConfig{
-        Name: "example-name",
-        SourceAmiId: "example",
-        SourceAmiRegion: "example",
-        DeprecationTime: "example",
-        Description: "example",
+    import (
+    	ami "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ami"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own copy"})
+
+    		ubx.Resource(ami.Copy, "ci-runner", ami.CopyConfig{
+    			Name:                  "ci-runner",
+    			SourceAmiId:           "example",
+    			SourceAmiRegion:       "example",
+    			DeprecationTime:       "example",
+    			Description:           "Managed by ubx.",
+    			DestinationOutpostArn: "arn:aws:iam::123456789012:policy/ci",
+    			Encrypted:             true,
+    			Tags:                  map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(ami.Copy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Copy } from "jsr:@ubx/sdk-aws/aws/ami/copy";
 
-    resource(Copy, "example", {
-      name: "example",
-      sourceAmiId: "example",
-      sourceAmiRegion: "example",
-      deprecationTime: "example",
-      description: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own copy" });
+
+      resource(Copy, "ci-runner", {
+        name: "ci-runner",
+        sourceAmiId: "example",
+        sourceAmiRegion: "example",
+        deprecationTime: "example",
+        description: "Managed by ubx.",
+        destinationOutpostArn: "arn:aws:iam::123456789012:policy/ci",
+        encrypted: true,
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.ami import Copy, CopyConfig
 
-    cfg = CopyConfig(
-        name="example",
-        source_ami_id="example",
-        source_ami_region="example",
-        deprecation_time="example",
-        description="example",
-    )
-    ubx.resource(Copy, "example", cfg)
+    def describe():
+        ubx.intent("payments own copy")
+
+        ubx.resource(Copy, "ci-runner", CopyConfig(
+            name="ci-runner",
+            source_ami_id="example",
+            source_ami_region="example",
+            deprecation_time="example",
+            description="Managed by ubx.",
+            destination_outpost_arn="arn:aws:iam::123456789012:policy/ci",
+            encrypted=True,
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_ami_copy with name, source_ami_id,
-source_ami_region, deprecation_time, description.
+    Create aws_ami_copy called "ci-runner", with source ami id
+    example, source ami region example, deprecation time example,
+    description Managed by ubx., destination outpost arn
+    arn:aws:iam::123456789012:policy/ci, encrypted true, tags a set
+    value.
     ```
   </Tab>
 </Tabs>

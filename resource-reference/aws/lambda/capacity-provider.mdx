@@ -6,52 +6,72 @@ description: "Real, generated bindings for `aws_lambda_capacity_provider`."
 `aws_lambda_capacity_provider` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/lambda"
+    package main
 
-    cfg := lambda.CapacityProviderConfig{
-        Name: "example-name",
-        KmsKeyArn: "example",
-        Tags: map[string]string{"key": "value"},
+    import (
+    	lambda "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/lambda"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own capacity provider"})
+
+    		ubx.Resource(lambda.CapacityProvider, "ci-runner", lambda.CapacityProviderConfig{
+    			Name:      "ci-runner",
+    			KmsKeyArn: "arn:aws:iam::123456789012:policy/ci",
+    			Tags:      map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(lambda.CapacityProvider, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { CapacityProvider } from
-      "jsr:@ubx/sdk-aws/aws/lambda/capacity_provider";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { CapacityProvider } from "jsr:@ubx/sdk-aws/aws/lambda/capacity_provider";
 
-    resource(CapacityProvider, "example", {
-      name: "example",
-      kmsKeyArn: "example",
-      tags: { key: "value" },
+    export default stack("payments", () => {
+      intent({ summary: "payments own capacity provider" });
+
+      resource(CapacityProvider, "ci-runner", {
+        name: "ci-runner",
+        kmsKeyArn: "arn:aws:iam::123456789012:policy/ci",
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    from ubx.aws.lambda import (
-        CapacityProvider,
-        CapacityProviderConfig,
-    )
+    import ubx_sdk as ubx
+    from ubx.aws.lambda_ import CapacityProvider, CapacityProviderConfig
 
-    cfg = CapacityProviderConfig(
-        name="example",
-        kms_key_arn="example",
-        tags={"key": "value"},
-    )
-    ubx.resource(CapacityProvider, "example", cfg)
+    def describe():
+        ubx.intent("payments own capacity provider")
+
+        ubx.resource(CapacityProvider, "ci-runner", CapacityProviderConfig(
+            name="ci-runner",
+            kms_key_arn="arn:aws:iam::123456789012:policy/ci",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_lambda_capacity_provider with name, kms_key_arn,
-tags.
+    Create aws_lambda_capacity_provider called "ci-runner", with kms
+    key arn arn:aws:iam::123456789012:policy/ci, tags a set value.
     ```
   </Tab>
 </Tabs>

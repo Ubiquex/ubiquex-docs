@@ -6,47 +6,72 @@ description: "Real, generated bindings for `aws_backup_vault`."
 `aws_backup_vault` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/backup"
+    package main
 
-    cfg := backup.VaultConfig{
-        Name: "example-name",
-        ForceDestroy: true,
-        KmsKeyArn: "example",
+    import (
+    	backup "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/backup"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own vault"})
+
+    		ubx.Resource(backup.Vault, "ci-runner", backup.VaultConfig{
+    			Name:         "ci-runner",
+    			ForceDestroy: true,
+    			Tags:         map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(backup.Vault, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Vault } from "jsr:@ubx/sdk-aws/aws/backup/vault";
 
-    resource(Vault, "example", {
-      name: "example",
-      forceDestroy: true,
-      kmsKeyArn: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own vault" });
+
+      resource(Vault, "ci-runner", {
+        name: "ci-runner",
+        forceDestroy: true,
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.backup import Vault, VaultConfig
 
-    cfg = VaultConfig(
-        name="example",
-        force_destroy=True,
-        kms_key_arn="example",
-    )
-    ubx.resource(Vault, "example", cfg)
+    def describe():
+        ubx.intent("payments own vault")
+
+        ubx.resource(Vault, "ci-runner", VaultConfig(
+            name="ci-runner",
+            force_destroy=True,
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_backup_vault with name, force_destroy, kms_key_arn.
+    Create aws_backup_vault called "ci-runner", with force destroy
+    true, tags a set value.
     ```
   </Tab>
 </Tabs>

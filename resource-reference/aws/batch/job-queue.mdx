@@ -6,54 +6,79 @@ description: "Real, generated bindings for `aws_batch_job_queue`."
 `aws_batch_job_queue` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/batch"
+    package main
 
-    cfg := batch.JobQueueConfig{
-        Name: "example-name",
-        Priority: 1,
-        State: "example",
-        SchedulingPolicyArn: "example",
-        Tags: map[string]string{"key": "value"},
+    import (
+    	batch "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/batch"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own job queue"})
+
+    		ubx.Resource(batch.JobQueue, "ci-runner", batch.JobQueueConfig{
+    			Name:                "ci-runner",
+    			Priority:            1,
+    			State:               "example",
+    			SchedulingPolicyArn: "arn:aws:iam::123456789012:policy/ci",
+    			Tags:                map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(batch.JobQueue, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { JobQueue } from "jsr:@ubx/sdk-aws/aws/batch/job_queue";
 
-    resource(JobQueue, "example", {
-      name: "example",
-      priority: 1,
-      state: "example",
-      schedulingPolicyArn: "example",
-      tags: { key: "value" },
+    export default stack("payments", () => {
+      intent({ summary: "payments own job queue" });
+
+      resource(JobQueue, "ci-runner", {
+        name: "ci-runner",
+        priority: 1,
+        state: "example",
+        schedulingPolicyArn: "arn:aws:iam::123456789012:policy/ci",
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.batch import JobQueue, JobQueueConfig
 
-    cfg = JobQueueConfig(
-        name="example",
-        priority=1,
-        state="example",
-        scheduling_policy_arn="example",
-        tags={"key": "value"},
-    )
-    ubx.resource(JobQueue, "example", cfg)
+    def describe():
+        ubx.intent("payments own job queue")
+
+        ubx.resource(JobQueue, "ci-runner", JobQueueConfig(
+            name="ci-runner",
+            priority=1,
+            state="example",
+            scheduling_policy_arn="arn:aws:iam::123456789012:policy/ci",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_batch_job_queue with name, priority, state,
-scheduling_policy_arn, tags.
+    Create aws_batch_job_queue called "ci-runner", with priority 1,
+    state example, scheduling policy arn
+    arn:aws:iam::123456789012:policy/ci, tags a set value.
     ```
   </Tab>
 </Tabs>

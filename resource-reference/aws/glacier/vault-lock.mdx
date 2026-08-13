@@ -6,52 +6,106 @@ description: "Real, generated bindings for `aws_glacier_vault_lock`."
 `aws_glacier_vault_lock` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/glacier"
+    package main
 
-    cfg := glacier.VaultLockConfig{
-        CompleteLock: true,
-        Policy: "example",
-        VaultName: "example-vault-name",
-        IgnoreDeletionError: true,
+    import (
+    	"encoding/json"
+
+    	glacier "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/glacier"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own vault lock"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(glacier.VaultLock, "ci-runner", glacier.VaultLockConfig{
+    			CompleteLock:        true,
+    			Policy:              string(accessPolicy),
+    			VaultName:           "example-vault-name",
+    			IgnoreDeletionError: true,
+    		})
+    	}))
     }
-    ubx.Resource(glacier.VaultLock, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { VaultLock } from
-      "jsr:@ubx/sdk-aws/aws/glacier/vault_lock";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { VaultLock } from "jsr:@ubx/sdk-aws/aws/glacier/vault_lock";
 
-    resource(VaultLock, "example", {
-      completeLock: true,
-      policy: "example",
-      vaultName: "example",
-      ignoreDeletionError: true,
+    export default stack("payments", () => {
+      intent({ summary: "payments own vault lock" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(VaultLock, "ci-runner", {
+        completeLock: true,
+        policy: accessPolicy,
+        vaultName: "example-vault-name",
+        ignoreDeletionError: true,
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import json
+    import ubx_sdk as ubx
     from ubx.aws.glacier import VaultLock, VaultLockConfig
 
-    cfg = VaultLockConfig(
-        complete_lock=True,
-        policy="example",
-        vault_name="example",
-        ignore_deletion_error=True,
-    )
-    ubx.resource(VaultLock, "example", cfg)
+    def describe():
+        ubx.intent("payments own vault lock")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(VaultLock, "ci-runner", VaultLockConfig(
+            complete_lock=True,
+            policy=access_policy,
+            vault_name="example-vault-name",
+            ignore_deletion_error=True,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_glacier_vault_lock with complete_lock, policy,
-vault_name, ignore_deletion_error.
+    Create aws_glacier_vault_lock, with complete lock true, policy a
+    real, valid value, vault name example-vault-name, ignore deletion
+    error true.
     ```
   </Tab>
 </Tabs>

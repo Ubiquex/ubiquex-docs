@@ -6,52 +6,80 @@ description: "Real, generated bindings for `aws_bedrockagentcore_harness`."
 `aws_bedrockagentcore_harness` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/bedrockagentcore"
+    package main
 
-    cfg := bedrockagentcore.HarnessConfig{
-        ExecutionRoleArn: "example",
-        HarnessName: "example-harness-name",
-        AllowedTools: []string{"example"},
-        EnvironmentVariables: map[string]string{"key": "value"},
+    import (
+    	bedrockagentcore "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/bedrockagentcore"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own harness"})
+
+    		ubx.Resource(bedrockagentcore.Harness, "ci-runner", bedrockagentcore.HarnessConfig{
+    			ExecutionRoleArn:     "arn:aws:iam::123456789012:policy/ci",
+    			HarnessName:          "example-harness-name",
+    			EnvironmentVariables: map[string]string{"managed-by": "ubx"},
+    			MaxTokens:            1,
+    			Tags:                 map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(bedrockagentcore.Harness, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { Harness } from
-      "jsr:@ubx/sdk-aws/aws/bedrockagentcore/harness";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Harness } from "jsr:@ubx/sdk-aws/aws/bedrockagentcore/harness";
 
-    resource(Harness, "example", {
-      executionRoleArn: "example",
-      harnessName: "example",
-      allowedTools: ["example"],
-      environmentVariables: { key: "value" },
+    export default stack("payments", () => {
+      intent({ summary: "payments own harness" });
+
+      resource(Harness, "ci-runner", {
+        executionRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        harnessName: "example-harness-name",
+        environmentVariables: { "managed-by": "ubx" },
+        maxTokens: 1,
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.bedrockagentcore import Harness, HarnessConfig
 
-    cfg = HarnessConfig(
-        execution_role_arn="example",
-        harness_name="example",
-        allowed_tools=["example"],
-        environment_variables={"key": "value"},
-    )
-    ubx.resource(Harness, "example", cfg)
+    def describe():
+        ubx.intent("payments own harness")
+
+        ubx.resource(Harness, "ci-runner", HarnessConfig(
+            execution_role_arn="arn:aws:iam::123456789012:policy/ci",
+            harness_name="example-harness-name",
+            environment_variables={"managed-by": "ubx"},
+            max_tokens=1,
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_bedrockagentcore_harness with execution_role_arn,
-harness_name, allowed_tools, environment_variables.
+    Create aws_bedrockagentcore_harness, with execution role arn
+    arn:aws:iam::123456789012:policy/ci, harness name
+    example-harness-name, environment variables a set value, max
+    tokens 1, tags a set value.
     ```
   </Tab>
 </Tabs>

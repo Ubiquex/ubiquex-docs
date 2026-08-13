@@ -6,57 +6,84 @@ description: "Real, generated bindings for `aws_qldb_stream`."
 `aws_qldb_stream` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/qldb"
+    package main
 
-    cfg := qldb.StreamConfig{
-        InclusiveStartTime: "example",
-        LedgerName: "example-ledger-name",
-        RoleArn: "example",
-        StreamName: "example-stream-name",
-        ExclusiveEndTime: "example",
-        Tags: map[string]string{"key": "value"},
+    import (
+    	qldb "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/qldb"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own stream"})
+
+    		ubx.Resource(qldb.Stream, "ci-runner", qldb.StreamConfig{
+    			InclusiveStartTime: "example",
+    			LedgerName:         "example-ledger-name",
+    			RoleArn:            "arn:aws:iam::123456789012:policy/ci",
+    			StreamName:         "example-stream-name",
+    			ExclusiveEndTime:   "example",
+    			Tags:               map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(qldb.Stream, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Stream } from "jsr:@ubx/sdk-aws/aws/qldb/stream";
 
-    resource(Stream, "example", {
-      inclusiveStartTime: "example",
-      ledgerName: "example",
-      roleArn: "example",
-      streamName: "example",
-      exclusiveEndTime: "example",
-      tags: { key: "value" },
+    export default stack("payments", () => {
+      intent({ summary: "payments own stream" });
+
+      resource(Stream, "ci-runner", {
+        inclusiveStartTime: "example",
+        ledgerName: "example-ledger-name",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        streamName: "example-stream-name",
+        exclusiveEndTime: "example",
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.qldb import Stream, StreamConfig
 
-    cfg = StreamConfig(
-        inclusive_start_time="example",
-        ledger_name="example",
-        role_arn="example",
-        stream_name="example",
-        exclusive_end_time="example",
-        tags={"key": "value"},
-    )
-    ubx.resource(Stream, "example", cfg)
+    def describe():
+        ubx.intent("payments own stream")
+
+        ubx.resource(Stream, "ci-runner", StreamConfig(
+            inclusive_start_time="example",
+            ledger_name="example-ledger-name",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            stream_name="example-stream-name",
+            exclusive_end_time="example",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_qldb_stream with inclusive_start_time, ledger_name,
-role_arn, stream_name, exclusive_end_time, tags.
+    Create aws_qldb_stream, with inclusive start time example, ledger
+    name example-ledger-name, role arn
+    arn:aws:iam::123456789012:policy/ci, stream name
+    example-stream-name, exclusive end time example, tags a set
+    value.
     ```
   </Tab>
 </Tabs>

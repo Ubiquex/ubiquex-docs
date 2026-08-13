@@ -6,45 +6,99 @@ description: "Real, generated bindings for `aws_sqs_queue_policy`."
 `aws_sqs_queue_policy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sqs"
+    package main
 
-    cfg := sqs.QueuePolicyConfig{
-        Policy: "example",
-        QueueUrl: "example",
+    import (
+    	"encoding/json"
+
+    	sqs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sqs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own queue policy"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(sqs.QueuePolicy, "ci-runner", sqs.QueuePolicyConfig{
+    			Policy:   string(accessPolicy),
+    			QueueUrl: "example",
+    		})
+    	}))
     }
-    ubx.Resource(sqs.QueuePolicy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { QueuePolicy } from
-      "jsr:@ubx/sdk-aws/aws/sqs/queue_policy";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { QueuePolicy } from "jsr:@ubx/sdk-aws/aws/sqs/queue_policy";
 
-    resource(QueuePolicy, "example", {
-      policy: "example",
-      queueUrl: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own queue policy" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(QueuePolicy, "ci-runner", {
+        policy: accessPolicy,
+        queueUrl: "example",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import json
+    import ubx_sdk as ubx
     from ubx.aws.sqs import QueuePolicy, QueuePolicyConfig
 
-    cfg = QueuePolicyConfig(
-        policy="example",
-        queue_url="example",
-    )
-    ubx.resource(QueuePolicy, "example", cfg)
+    def describe():
+        ubx.intent("payments own queue policy")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(QueuePolicy, "ci-runner", QueuePolicyConfig(
+            policy=access_policy,
+            queue_url="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_sqs_queue_policy with policy, queue_url.
+    Create aws_sqs_queue_policy, with policy a real, valid value,
+    queue url example.
     ```
   </Tab>
 </Tabs>

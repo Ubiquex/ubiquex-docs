@@ -6,49 +6,80 @@ description: "Real, generated bindings for `aws_cloudwatch_event_bus`."
 `aws_cloudwatch_event_bus` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/cloudwatch"
+    package main
 
-    cfg := cloudwatch.EventBusConfig{
-        Name: "example-name",
-        Description: "example",
-        EventSourceName: "example-event-source-name",
+    import (
+    	cloudwatch "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/cloudwatch"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own event bus"})
+
+    		ubx.Resource(cloudwatch.EventBus, "ci-runner", cloudwatch.EventBusConfig{
+    			Name:             "ci-runner",
+    			Description:      "Managed by ubx.",
+    			EventSourceName:  "example-event-source-name",
+    			KmsKeyIdentifier: "example",
+    			Tags:             map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(cloudwatch.EventBus, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { EventBus } from
-      "jsr:@ubx/sdk-aws/aws/cloudwatch/event_bus";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { EventBus } from "jsr:@ubx/sdk-aws/aws/cloudwatch/event_bus";
 
-    resource(EventBus, "example", {
-      name: "example",
-      description: "example",
-      eventSourceName: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own event bus" });
+
+      resource(EventBus, "ci-runner", {
+        name: "ci-runner",
+        description: "Managed by ubx.",
+        eventSourceName: "example-event-source-name",
+        kmsKeyIdentifier: "example",
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.cloudwatch import EventBus, EventBusConfig
 
-    cfg = EventBusConfig(
-        name="example",
-        description="example",
-        event_source_name="example",
-    )
-    ubx.resource(EventBus, "example", cfg)
+    def describe():
+        ubx.intent("payments own event bus")
+
+        ubx.resource(EventBus, "ci-runner", EventBusConfig(
+            name="ci-runner",
+            description="Managed by ubx.",
+            event_source_name="example-event-source-name",
+            kms_key_identifier="example",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_cloudwatch_event_bus with name, description,
-event_source_name.
+    Create aws_cloudwatch_event_bus called "ci-runner", with
+    description Managed by ubx., event source name
+    example-event-source-name, kms key identifier example, tags a set
+    value.
     ```
   </Tab>
 </Tabs>

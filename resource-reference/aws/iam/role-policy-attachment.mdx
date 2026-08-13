@@ -8,52 +8,69 @@ existing, standalone policy to an existing role. Neither the role nor
 the policy alone grants anything, this attachment is what connects
 them.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import iam "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/iam"
+    package main
 
-    cfg := iam.RolePolicyAttachmentConfig{
-        Role:      role.Field("name"),
-        PolicyArn: policy.Field("arn"),
+    import (
+    	iam "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/iam"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own role policy attachment"})
+
+    		ubx.Resource(iam.RolePolicyAttachment, "ci-runner", iam.RolePolicyAttachmentConfig{
+    			PolicyArn: "arn:aws:iam::123456789012:policy/ci",
+    			Role:      "example",
+    		})
+    	}))
     }
-    ubx.Resource(iam.RolePolicyAttachment, "attach", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { RolePolicyAttachment } from
-      "jsr:@ubx/sdk-aws/aws/iam/role_policy_attachment";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { RolePolicyAttachment } from "jsr:@ubx/sdk-aws/aws/iam/role_policy_attachment";
 
-    resource(RolePolicyAttachment, "attach", {
-      role: role.name,
-      policyArn: policy.arn,
+    export default stack("payments", () => {
+      intent({ summary: "payments own role policy attachment" });
+
+      resource(RolePolicyAttachment, "ci-runner", {
+        policyArn: "arn:aws:iam::123456789012:policy/ci",
+        role: "example",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    from ubx.aws.iam import (
-        RolePolicyAttachment,
-        RolePolicyAttachmentConfig,
-    )
+    import ubx_sdk as ubx
+    from ubx.aws.iam import RolePolicyAttachment, RolePolicyAttachmentConfig
 
-    cfg = RolePolicyAttachmentConfig(
-        role=role.name,
-        policy_arn=policy.arn,
-    )
-    ubx.resource(RolePolicyAttachment, "attach", cfg)
+    def describe():
+        ubx.intent("payments own role policy attachment")
+
+        ubx.resource(RolePolicyAttachment, "ci-runner", RolePolicyAttachmentConfig(
+            policy_arn="arn:aws:iam::123456789012:policy/ci",
+            role="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
-  <Tab title="Diagram">
-    ```d2
-    attach: "attach" {
-      class: aws_iam_role_policy_attachment
-      ubx_required.role: "ref:role.name"
-      ubx_required.policy_arn: "ref:policy.arn"
-    }
+  <Tab title="Markdown">
+    ```
+    Create aws_iam_role_policy_attachment, with policy arn
+    arn:aws:iam::123456789012:policy/ci, role example.
     ```
   </Tab>
 </Tabs>

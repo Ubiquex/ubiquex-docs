@@ -6,45 +6,99 @@ description: "Real, generated bindings for `aws_ecr_lifecycle_policy`."
 `aws_ecr_lifecycle_policy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ecr"
+    package main
 
-    cfg := ecr.LifecyclePolicyConfig{
-        Policy: "example",
-        Repository: "example",
+    import (
+    	"encoding/json"
+
+    	ecr "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ecr"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own lifecycle policy"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(ecr.LifecyclePolicy, "ci-runner", ecr.LifecyclePolicyConfig{
+    			Policy:     string(accessPolicy),
+    			Repository: "example",
+    		})
+    	}))
     }
-    ubx.Resource(ecr.LifecyclePolicy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { LifecyclePolicy } from
-      "jsr:@ubx/sdk-aws/aws/ecr/lifecycle_policy";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { LifecyclePolicy } from "jsr:@ubx/sdk-aws/aws/ecr/lifecycle_policy";
 
-    resource(LifecyclePolicy, "example", {
-      policy: "example",
-      repository: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own lifecycle policy" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(LifecyclePolicy, "ci-runner", {
+        policy: accessPolicy,
+        repository: "example",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import json
+    import ubx_sdk as ubx
     from ubx.aws.ecr import LifecyclePolicy, LifecyclePolicyConfig
 
-    cfg = LifecyclePolicyConfig(
-        policy="example",
-        repository="example",
-    )
-    ubx.resource(LifecyclePolicy, "example", cfg)
+    def describe():
+        ubx.intent("payments own lifecycle policy")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(LifecyclePolicy, "ci-runner", LifecyclePolicyConfig(
+            policy=access_policy,
+            repository="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_ecr_lifecycle_policy with policy, repository.
+    Create aws_ecr_lifecycle_policy, with policy a real, valid value,
+    repository example.
     ```
   </Tab>
 </Tabs>

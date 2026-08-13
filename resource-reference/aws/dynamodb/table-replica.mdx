@@ -6,49 +6,76 @@ description: "Real, generated bindings for `aws_dynamodb_table_replica`."
 `aws_dynamodb_table_replica` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/dynamodb"
+    package main
 
-    cfg := dynamodb.TableReplicaConfig{
-        GlobalTableArn: "example",
-        DeletionProtectionEnabled: true,
-        KmsKeyArn: "example",
+    import (
+    	dynamodb "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/dynamodb"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own table replica"})
+
+    		ubx.Resource(dynamodb.TableReplica, "ci-runner", dynamodb.TableReplicaConfig{
+    			GlobalTableArn:      "arn:aws:iam::123456789012:policy/ci",
+    			PointInTimeRecovery: true,
+    			TableClassOverride:  "example",
+    			Tags:                map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(dynamodb.TableReplica, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { TableReplica } from
-      "jsr:@ubx/sdk-aws/aws/dynamodb/table_replica";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { TableReplica } from "jsr:@ubx/sdk-aws/aws/dynamodb/table_replica";
 
-    resource(TableReplica, "example", {
-      globalTableArn: "example",
-      deletionProtectionEnabled: true,
-      kmsKeyArn: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own table replica" });
+
+      resource(TableReplica, "ci-runner", {
+        globalTableArn: "arn:aws:iam::123456789012:policy/ci",
+        pointInTimeRecovery: true,
+        tableClassOverride: "example",
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.dynamodb import TableReplica, TableReplicaConfig
 
-    cfg = TableReplicaConfig(
-        global_table_arn="example",
-        deletion_protection_enabled=True,
-        kms_key_arn="example",
-    )
-    ubx.resource(TableReplica, "example", cfg)
+    def describe():
+        ubx.intent("payments own table replica")
+
+        ubx.resource(TableReplica, "ci-runner", TableReplicaConfig(
+            global_table_arn="arn:aws:iam::123456789012:policy/ci",
+            point_in_time_recovery=True,
+            table_class_override="example",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_dynamodb_table_replica with global_table_arn,
-deletion_protection_enabled, kms_key_arn.
+    Create aws_dynamodb_table_replica, with global table arn
+    arn:aws:iam::123456789012:policy/ci, point in time recovery true,
+    table class override example, tags a set value.
     ```
   </Tab>
 </Tabs>

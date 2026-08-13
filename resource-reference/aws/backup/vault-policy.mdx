@@ -6,45 +6,99 @@ description: "Real, generated bindings for `aws_backup_vault_policy`."
 `aws_backup_vault_policy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/backup"
+    package main
 
-    cfg := backup.VaultPolicyConfig{
-        BackupVaultName: "example-backup-vault-name",
-        Policy: "example",
+    import (
+    	"encoding/json"
+
+    	backup "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/backup"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own vault policy"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(backup.VaultPolicy, "ci-runner", backup.VaultPolicyConfig{
+    			BackupVaultName: "example-backup-vault-name",
+    			Policy:          string(accessPolicy),
+    		})
+    	}))
     }
-    ubx.Resource(backup.VaultPolicy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { VaultPolicy } from
-      "jsr:@ubx/sdk-aws/aws/backup/vault_policy";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { VaultPolicy } from "jsr:@ubx/sdk-aws/aws/backup/vault_policy";
 
-    resource(VaultPolicy, "example", {
-      backupVaultName: "example",
-      policy: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own vault policy" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(VaultPolicy, "ci-runner", {
+        backupVaultName: "example-backup-vault-name",
+        policy: accessPolicy,
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import json
+    import ubx_sdk as ubx
     from ubx.aws.backup import VaultPolicy, VaultPolicyConfig
 
-    cfg = VaultPolicyConfig(
-        backup_vault_name="example",
-        policy="example",
-    )
-    ubx.resource(VaultPolicy, "example", cfg)
+    def describe():
+        ubx.intent("payments own vault policy")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(VaultPolicy, "ci-runner", VaultPolicyConfig(
+            backup_vault_name="example-backup-vault-name",
+            policy=access_policy,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_backup_vault_policy with backup_vault_name, policy.
+    Create aws_backup_vault_policy, with backup vault name
+    example-backup-vault-name, policy a real, valid value.
     ```
   </Tab>
 </Tabs>

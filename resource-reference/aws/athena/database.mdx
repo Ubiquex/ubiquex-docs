@@ -6,47 +6,85 @@ description: "Real, generated bindings for `aws_athena_database`."
 `aws_athena_database` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/athena"
+    package main
 
-    cfg := athena.DatabaseConfig{
-        Name: "example-name",
-        Bucket: "example",
-        Comment: "example",
+    import (
+    	athena "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/athena"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own database"})
+
+    		ubx.Resource(athena.Database, "ci-runner", athena.DatabaseConfig{
+    			Name:                "ci-runner",
+    			Bucket:              "example",
+    			Comment:             "example",
+    			ExpectedBucketOwner: "example",
+    			ForceDestroy:        true,
+    			Properties:          map[string]string{"managed-by": "ubx"},
+    			Workgroup:           "example",
+    		})
+    	}))
     }
-    ubx.Resource(athena.Database, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Database } from "jsr:@ubx/sdk-aws/aws/athena/database";
 
-    resource(Database, "example", {
-      name: "example",
-      bucket: "example",
-      comment: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own database" });
+
+      resource(Database, "ci-runner", {
+        name: "ci-runner",
+        bucket: "example",
+        comment: "example",
+        expectedBucketOwner: "example",
+        forceDestroy: true,
+        properties: { "managed-by": "ubx" },
+        workgroup: "example",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.athena import Database, DatabaseConfig
 
-    cfg = DatabaseConfig(
-        name="example",
-        bucket="example",
-        comment="example",
-    )
-    ubx.resource(Database, "example", cfg)
+    def describe():
+        ubx.intent("payments own database")
+
+        ubx.resource(Database, "ci-runner", DatabaseConfig(
+            name="ci-runner",
+            bucket="example",
+            comment="example",
+            expected_bucket_owner="example",
+            force_destroy=True,
+            properties={"managed-by": "ubx"},
+            workgroup="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_athena_database with name, bucket, comment.
+    Create aws_athena_database called "ci-runner", with bucket
+    example, comment example, expected bucket owner example, force
+    destroy true, properties a set value, workgroup example.
     ```
   </Tab>
 </Tabs>

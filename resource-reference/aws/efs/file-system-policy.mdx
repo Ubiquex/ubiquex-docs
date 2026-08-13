@@ -6,52 +6,103 @@ description: "Real, generated bindings for `aws_efs_file_system_policy`."
 `aws_efs_file_system_policy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/efs"
+    package main
 
-    cfg := efs.FileSystemPolicyConfig{
-        FileSystemId: "example",
-        Policy: "example",
-        BypassPolicyLockoutSafetyCheck: true,
+    import (
+    	"encoding/json"
+
+    	efs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/efs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own file system policy"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(efs.FileSystemPolicy, "ci-runner", efs.FileSystemPolicyConfig{
+    			FileSystemId:                   "example",
+    			Policy:                         string(accessPolicy),
+    			BypassPolicyLockoutSafetyCheck: true,
+    		})
+    	}))
     }
-    ubx.Resource(efs.FileSystemPolicy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { FileSystemPolicy } from
-      "jsr:@ubx/sdk-aws/aws/efs/file_system_policy";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { FileSystemPolicy } from "jsr:@ubx/sdk-aws/aws/efs/file_system_policy";
 
-    resource(FileSystemPolicy, "example", {
-      fileSystemId: "example",
-      policy: "example",
-      bypassPolicyLockoutSafetyCheck: true,
+    export default stack("payments", () => {
+      intent({ summary: "payments own file system policy" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(FileSystemPolicy, "ci-runner", {
+        fileSystemId: "example",
+        policy: accessPolicy,
+        bypassPolicyLockoutSafetyCheck: true,
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    from ubx.aws.efs import (
-        FileSystemPolicy,
-        FileSystemPolicyConfig,
-    )
+    import json
+    import ubx_sdk as ubx
+    from ubx.aws.efs import FileSystemPolicy, FileSystemPolicyConfig
 
-    cfg = FileSystemPolicyConfig(
-        file_system_id="example",
-        policy="example",
-        bypass_policy_lockout_safety_check=True,
-    )
-    ubx.resource(FileSystemPolicy, "example", cfg)
+    def describe():
+        ubx.intent("payments own file system policy")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(FileSystemPolicy, "ci-runner", FileSystemPolicyConfig(
+            file_system_id="example",
+            policy=access_policy,
+            bypass_policy_lockout_safety_check=True,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_efs_file_system_policy with file_system_id, policy,
-bypass_policy_lockout_safety_check.
+    Create aws_efs_file_system_policy, with file system id example,
+    policy a real, valid value, bypass policy lockout safety check
+    true.
     ```
   </Tab>
 </Tabs>

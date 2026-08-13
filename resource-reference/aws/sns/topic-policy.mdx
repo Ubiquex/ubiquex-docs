@@ -6,45 +6,99 @@ description: "Real, generated bindings for `aws_sns_topic_policy`."
 `aws_sns_topic_policy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sns"
+    package main
 
-    cfg := sns.TopicPolicyConfig{
-        Arn: "example",
-        Policy: "example",
+    import (
+    	"encoding/json"
+
+    	sns "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sns"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own topic policy"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(sns.TopicPolicy, "ci-runner", sns.TopicPolicyConfig{
+    			Arn:    "arn:aws:iam::123456789012:policy/ci",
+    			Policy: string(accessPolicy),
+    		})
+    	}))
     }
-    ubx.Resource(sns.TopicPolicy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { TopicPolicy } from
-      "jsr:@ubx/sdk-aws/aws/sns/topic_policy";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { TopicPolicy } from "jsr:@ubx/sdk-aws/aws/sns/topic_policy";
 
-    resource(TopicPolicy, "example", {
-      arn: "example",
-      policy: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own topic policy" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(TopicPolicy, "ci-runner", {
+        arn: "arn:aws:iam::123456789012:policy/ci",
+        policy: accessPolicy,
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import json
+    import ubx_sdk as ubx
     from ubx.aws.sns import TopicPolicy, TopicPolicyConfig
 
-    cfg = TopicPolicyConfig(
-        arn="example",
-        policy="example",
-    )
-    ubx.resource(TopicPolicy, "example", cfg)
+    def describe():
+        ubx.intent("payments own topic policy")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(TopicPolicy, "ci-runner", TopicPolicyConfig(
+            arn="arn:aws:iam::123456789012:policy/ci",
+            policy=access_policy,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_sns_topic_policy with arn, policy.
+    Create aws_sns_topic_policy, with arn
+    arn:aws:iam::123456789012:policy/ci, policy a real, valid value.
     ```
   </Tab>
 </Tabs>

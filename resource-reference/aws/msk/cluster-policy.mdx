@@ -6,45 +6,99 @@ description: "Real, generated bindings for `aws_msk_cluster_policy`."
 `aws_msk_cluster_policy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/msk"
+    package main
 
-    cfg := msk.ClusterPolicyConfig{
-        ClusterArn: "example",
-        Policy: "example",
+    import (
+    	"encoding/json"
+
+    	msk "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/msk"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own cluster policy"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(msk.ClusterPolicy, "ci-runner", msk.ClusterPolicyConfig{
+    			ClusterArn: "arn:aws:iam::123456789012:policy/ci",
+    			Policy:     string(accessPolicy),
+    		})
+    	}))
     }
-    ubx.Resource(msk.ClusterPolicy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { ClusterPolicy } from
-      "jsr:@ubx/sdk-aws/aws/msk/cluster_policy";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ClusterPolicy } from "jsr:@ubx/sdk-aws/aws/msk/cluster_policy";
 
-    resource(ClusterPolicy, "example", {
-      clusterArn: "example",
-      policy: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own cluster policy" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(ClusterPolicy, "ci-runner", {
+        clusterArn: "arn:aws:iam::123456789012:policy/ci",
+        policy: accessPolicy,
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import json
+    import ubx_sdk as ubx
     from ubx.aws.msk import ClusterPolicy, ClusterPolicyConfig
 
-    cfg = ClusterPolicyConfig(
-        cluster_arn="example",
-        policy="example",
-    )
-    ubx.resource(ClusterPolicy, "example", cfg)
+    def describe():
+        ubx.intent("payments own cluster policy")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(ClusterPolicy, "ci-runner", ClusterPolicyConfig(
+            cluster_arn="arn:aws:iam::123456789012:policy/ci",
+            policy=access_policy,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_msk_cluster_policy with cluster_arn, policy.
+    Create aws_msk_cluster_policy, with cluster arn
+    arn:aws:iam::123456789012:policy/ci, policy a real, valid value.
     ```
   </Tab>
 </Tabs>

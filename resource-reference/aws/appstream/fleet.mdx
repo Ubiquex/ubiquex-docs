@@ -6,51 +6,79 @@ description: "Real, generated bindings for `aws_appstream_fleet`."
 `aws_appstream_fleet` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/appstream"
+    package main
 
-    cfg := appstream.FleetConfig{
-        InstanceType: "example",
-        Name: "example-name",
-        Description: "example",
-        DisconnectTimeoutInSeconds: 1,
+    import (
+    	appstream "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/appstream"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own fleet"})
+
+    		ubx.Resource(appstream.Fleet, "ci-runner", appstream.FleetConfig{
+    			InstanceType:                   "example",
+    			Name:                           "ci-runner",
+    			IdleDisconnectTimeoutInSeconds: 7200,
+    			MaxSessionsPerInstance:         1,
+    			Tags:                           map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(appstream.Fleet, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Fleet } from "jsr:@ubx/sdk-aws/aws/appstream/fleet";
 
-    resource(Fleet, "example", {
-      instanceType: "example",
-      name: "example",
-      description: "example",
-      disconnectTimeoutInSeconds: 1,
+    export default stack("payments", () => {
+      intent({ summary: "payments own fleet" });
+
+      resource(Fleet, "ci-runner", {
+        instanceType: "example",
+        name: "ci-runner",
+        idleDisconnectTimeoutInSeconds: 7200,
+        maxSessionsPerInstance: 1,
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.appstream import Fleet, FleetConfig
 
-    cfg = FleetConfig(
-        instance_type="example",
-        name="example",
-        description="example",
-        disconnect_timeout_in_seconds=1,
-    )
-    ubx.resource(Fleet, "example", cfg)
+    def describe():
+        ubx.intent("payments own fleet")
+
+        ubx.resource(Fleet, "ci-runner", FleetConfig(
+            instance_type="example",
+            name="ci-runner",
+            idle_disconnect_timeout_in_seconds=7200,
+            max_sessions_per_instance=1,
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_appstream_fleet with instance_type, name,
-description, disconnect_timeout_in_seconds.
+    Create aws_appstream_fleet called "ci-runner", with instance type
+    example, idle disconnect timeout in seconds 7200, max sessions
+    per instance 1, tags a set value.
     ```
   </Tab>
 </Tabs>

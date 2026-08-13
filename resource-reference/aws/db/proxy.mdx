@@ -6,57 +6,86 @@ description: "Real, generated bindings for `aws_db_proxy`."
 `aws_db_proxy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/db"
+    package main
 
-    cfg := db.ProxyConfig{
-        EngineFamily: "example",
-        Name: "example-name",
-        RoleArn: "example",
-        VpcSubnetIds: []string{"example"},
-        DebugLogging: true,
-        DefaultAuthScheme: "example",
+    import (
+    	db "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/db"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own proxy"})
+
+    		ubx.Resource(db.Proxy, "ci-runner", db.ProxyConfig{
+    			EngineFamily: "example",
+    			Name:         "ci-runner",
+    			RoleArn:      "arn:aws:iam::123456789012:policy/ci",
+    			VpcSubnetIds: []string{"example"},
+    			DebugLogging: true,
+    			RequireTls:   true,
+    			Tags:         map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(db.Proxy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Proxy } from "jsr:@ubx/sdk-aws/aws/db/proxy";
 
-    resource(Proxy, "example", {
-      engineFamily: "example",
-      name: "example",
-      roleArn: "example",
-      vpcSubnetIds: ["example"],
-      debugLogging: true,
-      defaultAuthScheme: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own proxy" });
+
+      resource(Proxy, "ci-runner", {
+        engineFamily: "example",
+        name: "ci-runner",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        vpcSubnetIds: ["example"],
+        debugLogging: true,
+        requireTls: true,
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.db import Proxy, ProxyConfig
 
-    cfg = ProxyConfig(
-        engine_family="example",
-        name="example",
-        role_arn="example",
-        vpc_subnet_ids=["example"],
-        debug_logging=True,
-        default_auth_scheme="example",
-    )
-    ubx.resource(Proxy, "example", cfg)
+    def describe():
+        ubx.intent("payments own proxy")
+
+        ubx.resource(Proxy, "ci-runner", ProxyConfig(
+            engine_family="example",
+            name="ci-runner",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            vpc_subnet_ids=["example"],
+            debug_logging=True,
+            require_tls=True,
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_db_proxy with engine_family, name, role_arn,
-vpc_subnet_ids, debug_logging, default_auth_scheme.
+    Create aws_db_proxy called "ci-runner", with engine family
+    example, role arn arn:aws:iam::123456789012:policy/ci, vpc subnet
+    ids a set value, debug logging true, require tls true, tags a set
+    value.
     ```
   </Tab>
 </Tabs>

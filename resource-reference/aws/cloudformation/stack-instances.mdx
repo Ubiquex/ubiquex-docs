@@ -6,52 +6,76 @@ description: "Real, generated bindings for `aws_cloudformation_stack_instances`.
 `aws_cloudformation_stack_instances` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/cloudformation"
+    package main
 
-    cfg := cloudformation.StackInstancesConfig{
-        StackSetName: "example-stack-set-name",
-        Accounts: []string{"example"},
-        CallAs: "example",
+    import (
+    	cloudformation "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/cloudformation"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own stack instances"})
+
+    		ubx.Resource(cloudformation.StackInstances, "ci-runner", cloudformation.StackInstancesConfig{
+    			StackSetName:       "example-stack-set-name",
+    			CallAs:             "example",
+    			ParameterOverrides: map[string]string{"managed-by": "ubx"},
+    			RetainStacks:       true,
+    		})
+    	}))
     }
-    ubx.Resource(cloudformation.StackInstances, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { StackInstances } from
-      "jsr:@ubx/sdk-aws/aws/cloudformation/stack_instances";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { StackInstances } from "jsr:@ubx/sdk-aws/aws/cloudformation/stack_instances";
 
-    resource(StackInstances, "example", {
-      stackSetName: "example",
-      accounts: ["example"],
-      callAs: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own stack instances" });
+
+      resource(StackInstances, "ci-runner", {
+        stackSetName: "example-stack-set-name",
+        callAs: "example",
+        parameterOverrides: { "managed-by": "ubx" },
+        retainStacks: true,
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    from ubx.aws.cloudformation import (
-        StackInstances,
-        StackInstancesConfig,
-    )
+    import ubx_sdk as ubx
+    from ubx.aws.cloudformation import StackInstances, StackInstancesConfig
 
-    cfg = StackInstancesConfig(
-        stack_set_name="example",
-        accounts=["example"],
-        call_as="example",
-    )
-    ubx.resource(StackInstances, "example", cfg)
+    def describe():
+        ubx.intent("payments own stack instances")
+
+        ubx.resource(StackInstances, "ci-runner", StackInstancesConfig(
+            stack_set_name="example-stack-set-name",
+            call_as="example",
+            parameter_overrides={"managed-by": "ubx"},
+            retain_stacks=True,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_cloudformation_stack_instances with stack_set_name,
-accounts, call_as.
+    Create aws_cloudformation_stack_instances, with stack set name
+    example-stack-set-name, call as example, parameter overrides a
+    set value, retain stacks true.
     ```
   </Tab>
 </Tabs>

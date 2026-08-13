@@ -6,45 +6,99 @@ description: "Real, generated bindings for `aws_oam_sink_policy`."
 `aws_oam_sink_policy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/oam"
+    package main
 
-    cfg := oam.SinkPolicyConfig{
-        Policy: "example",
-        SinkIdentifier: "example",
+    import (
+    	"encoding/json"
+
+    	oam "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/oam"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own sink policy"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(oam.SinkPolicy, "ci-runner", oam.SinkPolicyConfig{
+    			Policy:         string(accessPolicy),
+    			SinkIdentifier: "example",
+    		})
+    	}))
     }
-    ubx.Resource(oam.SinkPolicy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { SinkPolicy } from
-      "jsr:@ubx/sdk-aws/aws/oam/sink_policy";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { SinkPolicy } from "jsr:@ubx/sdk-aws/aws/oam/sink_policy";
 
-    resource(SinkPolicy, "example", {
-      policy: "example",
-      sinkIdentifier: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own sink policy" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(SinkPolicy, "ci-runner", {
+        policy: accessPolicy,
+        sinkIdentifier: "example",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import json
+    import ubx_sdk as ubx
     from ubx.aws.oam import SinkPolicy, SinkPolicyConfig
 
-    cfg = SinkPolicyConfig(
-        policy="example",
-        sink_identifier="example",
-    )
-    ubx.resource(SinkPolicy, "example", cfg)
+    def describe():
+        ubx.intent("payments own sink policy")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(SinkPolicy, "ci-runner", SinkPolicyConfig(
+            policy=access_policy,
+            sink_identifier="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_oam_sink_policy with policy, sink_identifier.
+    Create aws_oam_sink_policy, with policy a real, valid value, sink
+    identifier example.
     ```
   </Tab>
 </Tabs>

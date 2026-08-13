@@ -6,48 +6,99 @@ description: "Real, generated bindings for `aws_schemas_registry_policy`."
 `aws_schemas_registry_policy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/schemas"
+    package main
 
-    cfg := schemas.RegistryPolicyConfig{
-        Policy: "example",
-        RegistryName: "example-registry-name",
+    import (
+    	"encoding/json"
+
+    	schemas "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/schemas"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own registry policy"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(schemas.RegistryPolicy, "ci-runner", schemas.RegistryPolicyConfig{
+    			Policy:       string(accessPolicy),
+    			RegistryName: "example-registry-name",
+    		})
+    	}))
     }
-    ubx.Resource(schemas.RegistryPolicy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { RegistryPolicy } from
-      "jsr:@ubx/sdk-aws/aws/schemas/registry_policy";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { RegistryPolicy } from "jsr:@ubx/sdk-aws/aws/schemas/registry_policy";
 
-    resource(RegistryPolicy, "example", {
-      policy: "example",
-      registryName: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own registry policy" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(RegistryPolicy, "ci-runner", {
+        policy: accessPolicy,
+        registryName: "example-registry-name",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    from ubx.aws.schemas import (
-        RegistryPolicy,
-        RegistryPolicyConfig,
-    )
+    import json
+    import ubx_sdk as ubx
+    from ubx.aws.schemas import RegistryPolicy, RegistryPolicyConfig
 
-    cfg = RegistryPolicyConfig(
-        policy="example",
-        registry_name="example",
-    )
-    ubx.resource(RegistryPolicy, "example", cfg)
+    def describe():
+        ubx.intent("payments own registry policy")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(RegistryPolicy, "ci-runner", RegistryPolicyConfig(
+            policy=access_policy,
+            registry_name="example-registry-name",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_schemas_registry_policy with policy, registry_name.
+    Create aws_schemas_registry_policy, with policy a real, valid
+    value, registry name example-registry-name.
     ```
   </Tab>
 </Tabs>

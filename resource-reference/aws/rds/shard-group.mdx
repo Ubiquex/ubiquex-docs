@@ -6,55 +6,75 @@ description: "Real, generated bindings for `aws_rds_shard_group`."
 `aws_rds_shard_group` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/rds"
+    package main
 
-    cfg := rds.ShardGroupConfig{
-        DbClusterIdentifier: "example",
-        DbShardGroupIdentifier: "example",
-        MaxAcu: 1,
-        ComputeRedundancy: 1,
-        MinAcu: 1,
+    import (
+    	rds "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/rds"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own shard group"})
+
+    		ubx.Resource(rds.ShardGroup, "ci-runner", rds.ShardGroupConfig{
+    			DbClusterIdentifier:    "example",
+    			DbShardGroupIdentifier: "example",
+    			MaxAcu:                 1,
+    			Tags:                   map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(rds.ShardGroup, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { ShardGroup } from
-      "jsr:@ubx/sdk-aws/aws/rds/shard_group";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ShardGroup } from "jsr:@ubx/sdk-aws/aws/rds/shard_group";
 
-    resource(ShardGroup, "example", {
-      dbClusterIdentifier: "example",
-      dbShardGroupIdentifier: "example",
-      maxAcu: 1,
-      computeRedundancy: 1,
-      minAcu: 1,
+    export default stack("payments", () => {
+      intent({ summary: "payments own shard group" });
+
+      resource(ShardGroup, "ci-runner", {
+        dbClusterIdentifier: "example",
+        dbShardGroupIdentifier: "example",
+        maxAcu: 1,
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.rds import ShardGroup, ShardGroupConfig
 
-    cfg = ShardGroupConfig(
-        db_cluster_identifier="example",
-        db_shard_group_identifier="example",
-        max_acu=1,
-        compute_redundancy=1,
-        min_acu=1,
-    )
-    ubx.resource(ShardGroup, "example", cfg)
+    def describe():
+        ubx.intent("payments own shard group")
+
+        ubx.resource(ShardGroup, "ci-runner", ShardGroupConfig(
+            db_cluster_identifier="example",
+            db_shard_group_identifier="example",
+            max_acu=1,
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_rds_shard_group with db_cluster_identifier,
-db_shard_group_identifier, max_acu, compute_redundancy, min_acu.
+    Create aws_rds_shard_group, with db cluster identifier example,
+    db shard group identifier example, max acu 1, tags a set value.
     ```
   </Tab>
 </Tabs>

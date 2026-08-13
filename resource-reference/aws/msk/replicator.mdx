@@ -6,51 +6,77 @@ description: "Real, generated bindings for `aws_msk_replicator`."
 `aws_msk_replicator` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/msk"
+    package main
 
-    cfg := msk.ReplicatorConfig{
-        ReplicatorName: "example-replicator-name",
-        ServiceExecutionRoleArn: "example",
-        Description: "example",
-        Tags: map[string]string{"key": "value"},
+    import (
+    	msk "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/msk"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own replicator"})
+
+    		ubx.Resource(msk.Replicator, "ci-runner", msk.ReplicatorConfig{
+    			ReplicatorName:          "example-replicator-name",
+    			ServiceExecutionRoleArn: "arn:aws:iam::123456789012:policy/ci",
+    			Description:             "Managed by ubx.",
+    			Tags:                    map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(msk.Replicator, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Replicator } from "jsr:@ubx/sdk-aws/aws/msk/replicator";
 
-    resource(Replicator, "example", {
-      replicatorName: "example",
-      serviceExecutionRoleArn: "example",
-      description: "example",
-      tags: { key: "value" },
+    export default stack("payments", () => {
+      intent({ summary: "payments own replicator" });
+
+      resource(Replicator, "ci-runner", {
+        replicatorName: "example-replicator-name",
+        serviceExecutionRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        description: "Managed by ubx.",
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.msk import Replicator, ReplicatorConfig
 
-    cfg = ReplicatorConfig(
-        replicator_name="example",
-        service_execution_role_arn="example",
-        description="example",
-        tags={"key": "value"},
-    )
-    ubx.resource(Replicator, "example", cfg)
+    def describe():
+        ubx.intent("payments own replicator")
+
+        ubx.resource(Replicator, "ci-runner", ReplicatorConfig(
+            replicator_name="example-replicator-name",
+            service_execution_role_arn="arn:aws:iam::123456789012:policy/ci",
+            description="Managed by ubx.",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_msk_replicator with replicator_name,
-service_execution_role_arn, description, tags.
+    Create aws_msk_replicator, with replicator name
+    example-replicator-name, service execution role arn
+    arn:aws:iam::123456789012:policy/ci, description Managed by ubx.,
+    tags a set value.
     ```
   </Tab>
 </Tabs>

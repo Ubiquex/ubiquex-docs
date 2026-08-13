@@ -6,48 +6,99 @@ description: "Real, generated bindings for `aws_ecr_repository_policy`."
 `aws_ecr_repository_policy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ecr"
+    package main
 
-    cfg := ecr.RepositoryPolicyConfig{
-        Policy: "example",
-        Repository: "example",
+    import (
+    	"encoding/json"
+
+    	ecr "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ecr"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own repository policy"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(ecr.RepositoryPolicy, "ci-runner", ecr.RepositoryPolicyConfig{
+    			Policy:     string(accessPolicy),
+    			Repository: "example",
+    		})
+    	}))
     }
-    ubx.Resource(ecr.RepositoryPolicy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { RepositoryPolicy } from
-      "jsr:@ubx/sdk-aws/aws/ecr/repository_policy";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { RepositoryPolicy } from "jsr:@ubx/sdk-aws/aws/ecr/repository_policy";
 
-    resource(RepositoryPolicy, "example", {
-      policy: "example",
-      repository: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own repository policy" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(RepositoryPolicy, "ci-runner", {
+        policy: accessPolicy,
+        repository: "example",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    from ubx.aws.ecr import (
-        RepositoryPolicy,
-        RepositoryPolicyConfig,
-    )
+    import json
+    import ubx_sdk as ubx
+    from ubx.aws.ecr import RepositoryPolicy, RepositoryPolicyConfig
 
-    cfg = RepositoryPolicyConfig(
-        policy="example",
-        repository="example",
-    )
-    ubx.resource(RepositoryPolicy, "example", cfg)
+    def describe():
+        ubx.intent("payments own repository policy")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(RepositoryPolicy, "ci-runner", RepositoryPolicyConfig(
+            policy=access_policy,
+            repository="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_ecr_repository_policy with policy, repository.
+    Create aws_ecr_repository_policy, with policy a real, valid
+    value, repository example.
     ```
   </Tab>
 </Tabs>

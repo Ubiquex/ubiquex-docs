@@ -6,48 +6,83 @@ description: "Real, generated bindings for `aws_ebs_volume`."
 `aws_ebs_volume` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ebs"
+    package main
 
-    cfg := ebs.VolumeConfig{
-        AvailabilityZone: "example",
-        Encrypted: true,
-        FinalSnapshot: true,
+    import (
+    	ebs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ebs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own volume"})
+
+    		ubx.Resource(ebs.Volume, "ci-runner", ebs.VolumeConfig{
+    			AvailabilityZone:         "example",
+    			FinalSnapshot:            true,
+    			MultiAttachEnabled:       true,
+    			OutpostArn:               "arn:aws:iam::123456789012:policy/ci",
+    			Tags:                     map[string]string{"managed-by": "ubx"},
+    			VolumeInitializationRate: 1,
+    		})
+    	}))
     }
-    ubx.Resource(ebs.Volume, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Volume } from "jsr:@ubx/sdk-aws/aws/ebs/volume";
 
-    resource(Volume, "example", {
-      availabilityZone: "example",
-      encrypted: true,
-      finalSnapshot: true,
+    export default stack("payments", () => {
+      intent({ summary: "payments own volume" });
+
+      resource(Volume, "ci-runner", {
+        availabilityZone: "example",
+        finalSnapshot: true,
+        multiAttachEnabled: true,
+        outpostArn: "arn:aws:iam::123456789012:policy/ci",
+        tags: { "managed-by": "ubx" },
+        volumeInitializationRate: 1,
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.ebs import Volume, VolumeConfig
 
-    cfg = VolumeConfig(
-        availability_zone="example",
-        encrypted=True,
-        final_snapshot=True,
-    )
-    ubx.resource(Volume, "example", cfg)
+    def describe():
+        ubx.intent("payments own volume")
+
+        ubx.resource(Volume, "ci-runner", VolumeConfig(
+            availability_zone="example",
+            final_snapshot=True,
+            multi_attach_enabled=True,
+            outpost_arn="arn:aws:iam::123456789012:policy/ci",
+            tags={"managed-by": "ubx"},
+            volume_initialization_rate=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_ebs_volume with availability_zone, encrypted,
-final_snapshot.
+    Create aws_ebs_volume, with availability zone example, final
+    snapshot true, multi attach enabled true, outpost arn
+    arn:aws:iam::123456789012:policy/ci, tags a set value, volume
+    initialization rate 1.
     ```
   </Tab>
 </Tabs>

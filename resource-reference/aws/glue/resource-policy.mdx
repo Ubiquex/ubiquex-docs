@@ -6,45 +6,99 @@ description: "Real, generated bindings for `aws_glue_resource_policy`."
 `aws_glue_resource_policy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/glue"
+    package main
 
-    cfg := glue.ResourcePolicyConfig{
-        Policy: "example",
-        EnableHybrid: "example",
+    import (
+    	"encoding/json"
+
+    	glue "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/glue"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own resource policy"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(glue.ResourcePolicy, "ci-runner", glue.ResourcePolicyConfig{
+    			Policy:       string(accessPolicy),
+    			EnableHybrid: "example",
+    		})
+    	}))
     }
-    ubx.Resource(glue.ResourcePolicy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { ResourcePolicy } from
-      "jsr:@ubx/sdk-aws/aws/glue/resource_policy";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ResourcePolicy } from "jsr:@ubx/sdk-aws/aws/glue/resource_policy";
 
-    resource(ResourcePolicy, "example", {
-      policy: "example",
-      enableHybrid: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own resource policy" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(ResourcePolicy, "ci-runner", {
+        policy: accessPolicy,
+        enableHybrid: "example",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import json
+    import ubx_sdk as ubx
     from ubx.aws.glue import ResourcePolicy, ResourcePolicyConfig
 
-    cfg = ResourcePolicyConfig(
-        policy="example",
-        enable_hybrid="example",
-    )
-    ubx.resource(ResourcePolicy, "example", cfg)
+    def describe():
+        ubx.intent("payments own resource policy")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(ResourcePolicy, "ci-runner", ResourcePolicyConfig(
+            policy=access_policy,
+            enable_hybrid="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_glue_resource_policy with policy, enable_hybrid.
+    Create aws_glue_resource_policy, with policy a real, valid value,
+    enable hybrid example.
     ```
   </Tab>
 </Tabs>

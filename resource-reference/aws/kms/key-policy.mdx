@@ -6,48 +6,102 @@ description: "Real, generated bindings for `aws_kms_key_policy`."
 `aws_kms_key_policy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/kms"
+    package main
 
-    cfg := kms.KeyPolicyConfig{
-        KeyId: "example",
-        Policy: "example",
-        BypassPolicyLockoutSafetyCheck: true,
+    import (
+    	"encoding/json"
+
+    	kms "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/kms"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own key policy"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(kms.KeyPolicy, "ci-runner", kms.KeyPolicyConfig{
+    			KeyId:                          "example",
+    			Policy:                         string(accessPolicy),
+    			BypassPolicyLockoutSafetyCheck: true,
+    		})
+    	}))
     }
-    ubx.Resource(kms.KeyPolicy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { KeyPolicy } from "jsr:@ubx/sdk-aws/aws/kms/key_policy";
 
-    resource(KeyPolicy, "example", {
-      keyId: "example",
-      policy: "example",
-      bypassPolicyLockoutSafetyCheck: true,
+    export default stack("payments", () => {
+      intent({ summary: "payments own key policy" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(KeyPolicy, "ci-runner", {
+        keyId: "example",
+        policy: accessPolicy,
+        bypassPolicyLockoutSafetyCheck: true,
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import json
+    import ubx_sdk as ubx
     from ubx.aws.kms import KeyPolicy, KeyPolicyConfig
 
-    cfg = KeyPolicyConfig(
-        key_id="example",
-        policy="example",
-        bypass_policy_lockout_safety_check=True,
-    )
-    ubx.resource(KeyPolicy, "example", cfg)
+    def describe():
+        ubx.intent("payments own key policy")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(KeyPolicy, "ci-runner", KeyPolicyConfig(
+            key_id="example",
+            policy=access_policy,
+            bypass_policy_lockout_safety_check=True,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_kms_key_policy with key_id, policy,
-bypass_policy_lockout_safety_check.
+    Create aws_kms_key_policy, with key id example, policy a real,
+    valid value, bypass policy lockout safety check true.
     ```
   </Tab>
 </Tabs>

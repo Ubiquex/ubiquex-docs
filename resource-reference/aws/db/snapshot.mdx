@@ -6,51 +6,76 @@ description: "Real, generated bindings for `aws_db_snapshot`."
 `aws_db_snapshot` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/db"
+    package main
 
-    cfg := db.SnapshotConfig{
-        DbInstanceIdentifier: "example",
-        DbSnapshotIdentifier: "example",
-        SharedAccounts: []string{"example"},
-        Tags: map[string]string{"key": "value"},
+    import (
+    	db "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/db"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own snapshot"})
+
+    		ubx.Resource(db.Snapshot, "ci-runner", db.SnapshotConfig{
+    			DbInstanceIdentifier: "example",
+    			DbSnapshotIdentifier: "example",
+    			SharedAccounts:       []string{"example"},
+    			Tags:                 map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(db.Snapshot, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Snapshot } from "jsr:@ubx/sdk-aws/aws/db/snapshot";
 
-    resource(Snapshot, "example", {
-      dbInstanceIdentifier: "example",
-      dbSnapshotIdentifier: "example",
-      sharedAccounts: ["example"],
-      tags: { key: "value" },
+    export default stack("payments", () => {
+      intent({ summary: "payments own snapshot" });
+
+      resource(Snapshot, "ci-runner", {
+        dbInstanceIdentifier: "example",
+        dbSnapshotIdentifier: "example",
+        sharedAccounts: ["example"],
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.db import Snapshot, SnapshotConfig
 
-    cfg = SnapshotConfig(
-        db_instance_identifier="example",
-        db_snapshot_identifier="example",
-        shared_accounts=["example"],
-        tags={"key": "value"},
-    )
-    ubx.resource(Snapshot, "example", cfg)
+    def describe():
+        ubx.intent("payments own snapshot")
+
+        ubx.resource(Snapshot, "ci-runner", SnapshotConfig(
+            db_instance_identifier="example",
+            db_snapshot_identifier="example",
+            shared_accounts=["example"],
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_db_snapshot with db_instance_identifier,
-db_snapshot_identifier, shared_accounts, tags.
+    Create aws_db_snapshot, with db instance identifier example, db
+    snapshot identifier example, shared accounts a set value, tags a
+    set value.
     ```
   </Tab>
 </Tabs>

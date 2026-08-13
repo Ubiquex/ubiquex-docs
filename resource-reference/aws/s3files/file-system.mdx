@@ -6,52 +6,79 @@ description: "Real, generated bindings for `aws_s3files_file_system`."
 `aws_s3files_file_system` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/s3files"
+    package main
 
-    cfg := s3files.FileSystemConfig{
-        Bucket: "example",
-        RoleArn: "example",
-        AcceptBucketWarning: true,
-        KmsKeyId: "example",
+    import (
+    	s3files "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/s3files"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own file system"})
+
+    		ubx.Resource(s3files.FileSystem, "ci-runner", s3files.FileSystemConfig{
+    			Bucket:              "example",
+    			RoleArn:             "arn:aws:iam::123456789012:policy/ci",
+    			AcceptBucketWarning: true,
+    			Prefix:              "example",
+    			Tags:                map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(s3files.FileSystem, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { FileSystem } from
-      "jsr:@ubx/sdk-aws/aws/s3files/file_system";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { FileSystem } from "jsr:@ubx/sdk-aws/aws/s3files/file_system";
 
-    resource(FileSystem, "example", {
-      bucket: "example",
-      roleArn: "example",
-      acceptBucketWarning: true,
-      kmsKeyId: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own file system" });
+
+      resource(FileSystem, "ci-runner", {
+        bucket: "example",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        acceptBucketWarning: true,
+        prefix: "example",
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.aws.s3files import FileSystem, FileSystemConfig
 
-    cfg = FileSystemConfig(
-        bucket="example",
-        role_arn="example",
-        accept_bucket_warning=True,
-        kms_key_id="example",
-    )
-    ubx.resource(FileSystem, "example", cfg)
+    def describe():
+        ubx.intent("payments own file system")
+
+        ubx.resource(FileSystem, "ci-runner", FileSystemConfig(
+            bucket="example",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            accept_bucket_warning=True,
+            prefix="example",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_s3files_file_system with bucket, role_arn,
-accept_bucket_warning, kms_key_id.
+    Create aws_s3files_file_system, with bucket example, role arn
+    arn:aws:iam::123456789012:policy/ci, accept bucket warning true,
+    prefix example, tags a set value.
     ```
   </Tab>
 </Tabs>

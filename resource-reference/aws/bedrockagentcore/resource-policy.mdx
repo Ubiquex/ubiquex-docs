@@ -6,49 +6,99 @@ description: "Real, generated bindings for `aws_bedrockagentcore_resource_policy
 `aws_bedrockagentcore_resource_policy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/bedrockagentcore"
+    package main
 
-    cfg := bedrockagentcore.ResourcePolicyConfig{
-        Policy: "example",
-        ResourceArn: "example",
+    import (
+    	"encoding/json"
+
+    	bedrockagentcore "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/bedrockagentcore"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own resource policy"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(bedrockagentcore.ResourcePolicy, "ci-runner", bedrockagentcore.ResourcePolicyConfig{
+    			Policy:      string(accessPolicy),
+    			ResourceArn: "arn:aws:iam::123456789012:policy/ci",
+    		})
+    	}))
     }
-    ubx.Resource(bedrockagentcore.ResourcePolicy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { ResourcePolicy } from
-      "jsr:@ubx/sdk-aws/aws/bedrockagentcore/resource_policy";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ResourcePolicy } from "jsr:@ubx/sdk-aws/aws/bedrockagentcore/resource_policy";
 
-    resource(ResourcePolicy, "example", {
-      policy: "example",
-      resourceArn: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own resource policy" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(ResourcePolicy, "ci-runner", {
+        policy: accessPolicy,
+        resourceArn: "arn:aws:iam::123456789012:policy/ci",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    from ubx.aws.bedrockagentcore import (
-        ResourcePolicy,
-        ResourcePolicyConfig,
-    )
+    import json
+    import ubx_sdk as ubx
+    from ubx.aws.bedrockagentcore import ResourcePolicy, ResourcePolicyConfig
 
-    cfg = ResourcePolicyConfig(
-        policy="example",
-        resource_arn="example",
-    )
-    ubx.resource(ResourcePolicy, "example", cfg)
+    def describe():
+        ubx.intent("payments own resource policy")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(ResourcePolicy, "ci-runner", ResourcePolicyConfig(
+            policy=access_policy,
+            resource_arn="arn:aws:iam::123456789012:policy/ci",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_bedrockagentcore_resource_policy with policy,
-resource_arn.
+    Create aws_bedrockagentcore_resource_policy, with policy a real,
+    valid value, resource arn arn:aws:iam::123456789012:policy/ci.
     ```
   </Tab>
 </Tabs>

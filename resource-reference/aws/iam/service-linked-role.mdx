@@ -6,52 +6,76 @@ description: "Real, generated bindings for `aws_iam_service_linked_role`."
 `aws_iam_service_linked_role` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/iam"
+    package main
 
-    cfg := iam.ServiceLinkedRoleConfig{
-        AwsServiceName: "example-aws-service-name",
-        CustomSuffix: "example",
-        Description: "example",
+    import (
+    	iam "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/iam"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own service linked role"})
+
+    		ubx.Resource(iam.ServiceLinkedRole, "ci-runner", iam.ServiceLinkedRoleConfig{
+    			AwsServiceName: "example-aws-service-name",
+    			CustomSuffix:   "example",
+    			Description:    "Managed by ubx.",
+    			Tags:           map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(iam.ServiceLinkedRole, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { ServiceLinkedRole } from
-      "jsr:@ubx/sdk-aws/aws/iam/service_linked_role";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ServiceLinkedRole } from "jsr:@ubx/sdk-aws/aws/iam/service_linked_role";
 
-    resource(ServiceLinkedRole, "example", {
-      awsServiceName: "example",
-      customSuffix: "example",
-      description: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own service linked role" });
+
+      resource(ServiceLinkedRole, "ci-runner", {
+        awsServiceName: "example-aws-service-name",
+        customSuffix: "example",
+        description: "Managed by ubx.",
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    from ubx.aws.iam import (
-        ServiceLinkedRole,
-        ServiceLinkedRoleConfig,
-    )
+    import ubx_sdk as ubx
+    from ubx.aws.iam import ServiceLinkedRole, ServiceLinkedRoleConfig
 
-    cfg = ServiceLinkedRoleConfig(
-        aws_service_name="example",
-        custom_suffix="example",
-        description="example",
-    )
-    ubx.resource(ServiceLinkedRole, "example", cfg)
+    def describe():
+        ubx.intent("payments own service linked role")
+
+        ubx.resource(ServiceLinkedRole, "ci-runner", ServiceLinkedRoleConfig(
+            aws_service_name="example-aws-service-name",
+            custom_suffix="example",
+            description="Managed by ubx.",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_iam_service_linked_role with aws_service_name,
-custom_suffix, description.
+    Create aws_iam_service_linked_role, with aws service name
+    example-aws-service-name, custom suffix example, description
+    Managed by ubx., tags a set value.
     ```
   </Tab>
 </Tabs>

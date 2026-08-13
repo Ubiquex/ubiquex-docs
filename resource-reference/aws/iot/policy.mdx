@@ -6,47 +6,102 @@ description: "Real, generated bindings for `aws_iot_policy`."
 `aws_iot_policy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/iot"
+    package main
 
-    cfg := iot.PolicyConfig{
-        Name: "example-name",
-        Policy: "example",
-        Tags: map[string]string{"key": "value"},
+    import (
+    	"encoding/json"
+
+    	iot "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/iot"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own policy"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(iot.Policy, "ci-runner", iot.PolicyConfig{
+    			Name:   "ci-runner",
+    			Policy: string(accessPolicy),
+    			Tags:   map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(iot.Policy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Policy } from "jsr:@ubx/sdk-aws/aws/iot/policy";
 
-    resource(Policy, "example", {
-      name: "example",
-      policy: "example",
-      tags: { key: "value" },
+    export default stack("payments", () => {
+      intent({ summary: "payments own policy" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(Policy, "ci-runner", {
+        name: "ci-runner",
+        policy: accessPolicy,
+        tags: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import json
+    import ubx_sdk as ubx
     from ubx.aws.iot import Policy, PolicyConfig
 
-    cfg = PolicyConfig(
-        name="example",
-        policy="example",
-        tags={"key": "value"},
-    )
-    ubx.resource(Policy, "example", cfg)
+    def describe():
+        ubx.intent("payments own policy")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(Policy, "ci-runner", PolicyConfig(
+            name="ci-runner",
+            policy=access_policy,
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_iot_policy with name, policy, tags.
+    Create aws_iot_policy called "ci-runner", with policy a real,
+    valid value, tags a set value.
     ```
   </Tab>
 </Tabs>

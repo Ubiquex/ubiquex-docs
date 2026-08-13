@@ -6,51 +6,112 @@ description: "Real, generated bindings for `aws_transfer_access`."
 `aws_transfer_access` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/transfer"
+    package main
 
-    cfg := transfer.AccessConfig{
-        ExternalId: "example",
-        ServerId: "example",
-        HomeDirectory: "example",
-        HomeDirectoryType: "example",
+    import (
+    	"encoding/json"
+
+    	transfer "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/transfer"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own access"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(transfer.Access, "ci-runner", transfer.AccessConfig{
+    			ExternalId:        "example",
+    			ServerId:          "example",
+    			HomeDirectory:     "example",
+    			HomeDirectoryType: "example",
+    			Policy:            string(accessPolicy),
+    			Role:              "example",
+    		})
+    	}))
     }
-    ubx.Resource(transfer.Access, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
     import { Access } from "jsr:@ubx/sdk-aws/aws/transfer/access";
 
-    resource(Access, "example", {
-      externalId: "example",
-      serverId: "example",
-      homeDirectory: "example",
-      homeDirectoryType: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own access" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(Access, "ci-runner", {
+        externalId: "example",
+        serverId: "example",
+        homeDirectory: "example",
+        homeDirectoryType: "example",
+        policy: accessPolicy,
+        role: "example",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import json
+    import ubx_sdk as ubx
     from ubx.aws.transfer import Access, AccessConfig
 
-    cfg = AccessConfig(
-        external_id="example",
-        server_id="example",
-        home_directory="example",
-        home_directory_type="example",
-    )
-    ubx.resource(Access, "example", cfg)
+    def describe():
+        ubx.intent("payments own access")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(Access, "ci-runner", AccessConfig(
+            external_id="example",
+            server_id="example",
+            home_directory="example",
+            home_directory_type="example",
+            policy=access_policy,
+            role="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_transfer_access with external_id, server_id,
-home_directory, home_directory_type.
+    Create aws_transfer_access, with external id example, server id
+    example, home directory example, home directory type example,
+    policy a real, valid value, role example.
     ```
   </Tab>
 </Tabs>

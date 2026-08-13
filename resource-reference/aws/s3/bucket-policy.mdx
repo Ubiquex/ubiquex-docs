@@ -6,45 +6,99 @@ description: "Real, generated bindings for `aws_s3_bucket_policy`."
 `aws_s3_bucket_policy` -- real, typed bindings generated directly from the
 `hashicorp/aws` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
-    import "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/s3"
+    package main
 
-    cfg := s3.BucketPolicyConfig{
-        Bucket: "example",
-        Policy: "example",
+    import (
+    	"encoding/json"
+
+    	s3 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/s3"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own bucket policy"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(s3.BucketPolicy, "ci-runner", s3.BucketPolicyConfig{
+    			Bucket: "example",
+    			Policy: string(accessPolicy),
+    		})
+    	}))
     }
-    ubx.Resource(s3.BucketPolicy, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { BucketPolicy } from
-      "jsr:@ubx/sdk-aws/aws/s3/bucket_policy";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { BucketPolicy } from "jsr:@ubx/sdk-aws/aws/s3/bucket_policy";
 
-    resource(BucketPolicy, "example", {
-      bucket: "example",
-      policy: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own bucket policy" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(BucketPolicy, "ci-runner", {
+        bucket: "example",
+        policy: accessPolicy,
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import json
+    import ubx_sdk as ubx
     from ubx.aws.s3 import BucketPolicy, BucketPolicyConfig
 
-    cfg = BucketPolicyConfig(
-        bucket="example",
-        policy="example",
-    )
-    ubx.resource(BucketPolicy, "example", cfg)
+    def describe():
+        ubx.intent("payments own bucket policy")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(BucketPolicy, "ci-runner", BucketPolicyConfig(
+            bucket="example",
+            policy=access_policy,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision aws_s3_bucket_policy with bucket, policy.
+    Create aws_s3_bucket_policy, with bucket example, policy a real,
+    valid value.
     ```
   </Tab>
 </Tabs>
