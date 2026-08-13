@@ -89,6 +89,17 @@ def generate_one(wire, docs_root, schema_dir, idents_all, provider, schema_name,
     # the trailing underscore the real import path needs.
     doc_service_dir = go_service_dir.rstrip("_") or go_service_dir
     go_local = os.path.splitext(os.path.basename(idents["go"]["file"]))[0]
+    # UBI-151: the codegen's own _test.go-collision escape (sdk/codegen/
+    # templates/go/go.go) appends a trailing "_" to the FILENAME only,
+    # for a resource whose real, wire-derived local name ends in "_test"
+    # -- the exported Go identifier (go["binding"]) is deliberately left
+    # untouched. That trailing "_" is a pure Go-build artifact with no
+    # bearing on the resource's own docs identity; undoing it here so
+    # the derived slug/intent text still reads "...-test" (matching the
+    # real, already-existing mechanical-tier page) instead of a bogus
+    # "...-test-" that would never match any real page on disk.
+    if go_local.endswith("_test_"):
+        go_local = go_local[:-1]
     slug = go_local.replace("_", "-")
     out_path = os.path.join(docs_root, "resource-reference", provider, doc_service_dir, f"{slug}.mdx")
     if not os.path.isfile(out_path):
