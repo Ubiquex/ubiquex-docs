@@ -40,6 +40,22 @@ from gen_provider_docs import (
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Real, confirmed per-provider identity of the combined SDK repo
+# (UBI-138 -- "ubx-sdk-<X>", one repo per provider, all three
+# languages), verified directly against the real GitHub org, NEVER
+# reconstructed from schema_name (which is the wire-type prefix / the
+# repo's own INTERNAL path segment, not its identity -- diverges from
+# this for Azure specifically: schema_name "azurerm", repo id
+# "azure"). Every future provider must add a real, confirmed entry
+# here before its own richer-template pages can be generated -- no
+# inferred/guessed fallback, by design.
+REAL_SDK_REPO_ID = {
+    "aws": "aws",
+    "google": "google",
+    "azurerm": "azure",
+    "kubernetes": "kubernetes",
+}
+
 INTRO_NOTE = "\n\n" + wrap_markdown(
     "Every tab below is a complete, runnable program, not a fragment, "
     "real enough to save and run exactly as shown."
@@ -53,6 +69,10 @@ def generate_one(wire, docs_root, schema_dir, idents_all, provider, schema_name,
         return "skip", f"no schema dump at {schema_path}"
     if wire not in idents_all:
         return "skip", "no identifier entry (run extract_idents.py first)"
+
+    if schema_name not in REAL_SDK_REPO_ID:
+        return "error", f"no real, confirmed SDK repo id for schema_name {schema_name!r} in REAL_SDK_REPO_ID -- add it (verified against the real GitHub org) before generating"
+    sdk_repo_id = REAL_SDK_REPO_ID[schema_name]
 
     fields = json.load(open(schema_path))
     idents = idents_all[wire]
@@ -106,6 +126,7 @@ def generate_one(wire, docs_root, schema_dir, idents_all, provider, schema_name,
             stack_name=stack_name,
             intent_summary=f"{stack_name} own {go_local.replace('_', ' ')}",
             companion_markdown=companion_markdown,
+            sdk_repo_id=sdk_repo_id,
         )
     except Exception as e:
         return "error", str(e)

@@ -760,9 +760,26 @@ def fence(lang, code_lines):
     return f"    ```{lang}\n{body}\n    ```"
 
 
+# A real, found-in-review bug (caught auditing GCP ahead of Azure):
+# the real, published combined SDK repo's own identity (UBI-138 --
+# "ubx-sdk-<X>", one repo per provider, all three languages) is a
+# THIRD real concern, independent of both `provider` (the docs URL
+# slug -- "gcp", not "google") and `schema_name` (the internal
+# path segment inside the repo -- "azurerm", not "azure", for Azure
+# specifically). All three happen to collide into the same string for
+# aws/google/kubernetes, which is exactly what let this go unnoticed:
+# `build_resource_page_complete` hardcoded the Go import's own repo
+# name to the literal "aws" for every provider, and separately reused
+# `schema_name` for the TS/JSR package name too (correct only by the
+# same coincidence). Real, confirmed values, not inferred:
+# aws->ubx-sdk-aws/@ubx/sdk-aws, google->ubx-sdk-google/@ubx/sdk-google,
+# azure->ubx-sdk-azure/@ubx/sdk-azure,
+# kubernetes->ubx-sdk-kubernetes/@ubx/sdk-kubernetes -- passed in
+# explicitly as `sdk_repo_id`, never reconstructed from schema_name.
 def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
                                   provider, schema_name, provider_display,
-                                  stack_name, intent_summary, companion_markdown):
+                                  stack_name, intent_summary, companion_markdown,
+                                  sdk_repo_id):
     example_fields = pick_richer_example_fields(fields)
 
     # --- Go: real, complete program ---
@@ -772,7 +789,7 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
         if pre and pre not in go_preambles:
             go_preambles.append(pre)
         go_assigns.append(f"\t\t\t{pascal(f['WireName'])}: {val},")
-    go_pkg_import_path = f'github.com/ubiquex/ubx-sdk-aws/sdk/go/{schema_name}/{go["service_dir"]}'
+    go_pkg_import_path = f'github.com/ubiquex/ubx-sdk-{sdk_repo_id}/sdk/go/{schema_name}/{go["service_dir"]}'
     # "json.Marshal(" (not just a "trustPolicy"-prefix check, which
     # missed the SECOND real preamble that also needs this import,
     # accessPolicy -- a real bug this batch's own verification pass
@@ -811,7 +828,7 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
         if pre and pre not in ts_preambles:
             ts_preambles.append(pre)
         ts_assigns.append(f"    {camel(f['WireName'])}: {val},")
-    ts_import_path = f'jsr:@ubx/sdk-{schema_name}/{schema_name}/{ts["service_dir"]}/{os.path.splitext(os.path.basename(ts["file"]))[0]}'
+    ts_import_path = f'jsr:@ubx/sdk-{sdk_repo_id}/{schema_name}/{ts["service_dir"]}/{os.path.splitext(os.path.basename(ts["file"]))[0]}'
 
     ts_lines = [
         'import { intent, resource, stack } from "@ubx/sdk";',

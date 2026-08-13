@@ -10,7 +10,15 @@ ubx-sdk-go/ubx-sdk-<provider> checkouts, runs a real `go build`.
 
 Usage:
   python3 verify_go_blocks.py --sdk-go-root PATH --sdk-provider-go-root PATH \\
+      --provider-go-module github.com/ubiquex/ubx-sdk-<provider>/sdk/go \\
       <page.mdx> [<page.mdx> ...]
+
+--provider-go-module is REQUIRED, no default -- real per-provider
+values: github.com/ubiquex/ubx-sdk-aws/sdk/go,
+github.com/ubiquex/ubx-sdk-google/sdk/go,
+github.com/ubiquex/ubx-sdk-azure/sdk/go,
+github.com/ubiquex/ubx-sdk-kubernetes/sdk/go (see gen_complete_pages.py's
+own REAL_SDK_REPO_ID for the same, single source of truth).
 """
 import argparse
 import os
@@ -62,8 +70,15 @@ def main():
     p.add_argument("--sdk-go-root", required=True, help="real local checkout of the ubx-sdk-go runtime")
     p.add_argument("--sdk-provider-go-root", required=True,
                     help="real local checkout of the provider's own Go bindings (e.g. ~/Ubiquex/ubx-sdk-aws/sdk/go)")
-    p.add_argument("--provider-go-module", default="github.com/ubiquex/ubx-sdk-aws/sdk/go",
-                    help="the real Go module path the pages' own import lines use")
+    p.add_argument("--provider-go-module", required=True,
+                    help="the real Go module path the pages' own import lines use -- "
+                    "no default: a wrong-but-plausible value (e.g. always defaulting to "
+                    "AWS's own module regardless of which provider is being verified) "
+                    "silently masks a real per-provider import-path bug instead of "
+                    "catching it (this is exactly how a real, live GCP bug -- every "
+                    "generated page importing github.com/ubiquex/ubx-sdk-aws/sdk/go "
+                    "instead of .../ubx-sdk-google/sdk/go -- went undetected across "
+                    "1328 already-committed pages)")
     args = p.parse_args()
 
     fails = []
