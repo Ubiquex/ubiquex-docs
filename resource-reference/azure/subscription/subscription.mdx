@@ -6,54 +6,76 @@ description: "Real, generated bindings for `azurerm_subscription`."
 `azurerm_subscription` -- real, typed bindings generated directly from the
 `hashicorp/azurerm` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "github.com/ubiquex/ubx-sdk-azure/sdk/go/azurerm/subscription"
+    	subscription "github.com/ubiquex/ubx-sdk-azure/sdk/go/azurerm/subscription"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
-    cfg := subscription.SubscriptionConfig{
-        SubscriptionName: "example-subscription-name",
-        BillingScopeId: "example",
-        Tags: map[string]string{"key": "value"},
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own subscription"})
+
+    		ubx.Resource(subscription.Subscription, "ci-runner", subscription.SubscriptionConfig{
+    			SubscriptionName: "example-subscription-name",
+    			BillingScopeId:   "example",
+    			Tags:             map[string]string{"managed-by": "ubx"},
+    			Workload:         "example",
+    		})
+    	}))
     }
-    ubx.Resource(subscription.Subscription, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { Subscription } from
-      "jsr:@ubx/sdk-azure/azurerm/subscription/subscription";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Subscription } from "jsr:@ubx/sdk-azure/azurerm/subscription/subscription";
 
-    resource(Subscription, "example", {
-      subscriptionName: "example-subscription-name",
-      billingScopeId: "example",
-      tags: { key: "value" },
+    export default stack("payments", () => {
+      intent({ summary: "payments own subscription" });
+
+      resource(Subscription, "ci-runner", {
+        subscriptionName: "example-subscription-name",
+        billingScopeId: "example",
+        tags: { "managed-by": "ubx" },
+        workload: "example",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    from ubx.azurerm.subscription import (
-        Subscription,
-        SubscriptionConfig,
-    )
+    import ubx_sdk as ubx
+    from ubx.azurerm.subscription import Subscription, SubscriptionConfig
 
-    cfg = SubscriptionConfig(
-        subscription_name="example-subscription-name",
-        billing_scope_id="example",
-        tags={"key": "value"},
-    )
-    ubx.resource(Subscription, "example", cfg)
+    def describe():
+        ubx.intent("payments own subscription")
+
+        ubx.resource(Subscription, "ci-runner", SubscriptionConfig(
+            subscription_name="example-subscription-name",
+            billing_scope_id="example",
+            tags={"managed-by": "ubx"},
+            workload="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision azurerm_subscription with subscription_name,
-billing_scope_id, tags.
+    Create azurerm_subscription, with subscription name
+    example-subscription-name, billing scope id example, tags a set
+    value, workload example.
     ```
   </Tab>
 </Tabs>

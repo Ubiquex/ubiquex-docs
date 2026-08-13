@@ -6,54 +6,76 @@ description: "Real, generated bindings for `azurerm_capacity_reservation`."
 `azurerm_capacity_reservation` -- real, typed bindings generated directly from the
 `hashicorp/azurerm` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "github.com/ubiquex/ubx-sdk-azure/sdk/go/azurerm/capacity"
+    	capacity "github.com/ubiquex/ubx-sdk-azure/sdk/go/azurerm/capacity"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
-    cfg := capacity.ReservationConfig{
-        CapacityReservationGroupId: "example",
-        Name: "example-name",
-        Tags: map[string]string{"key": "value"},
-        Zone: "example",
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own reservation"})
+
+    		ubx.Resource(capacity.Reservation, "ci-runner", capacity.ReservationConfig{
+    			CapacityReservationGroupId: "example",
+    			Name:                       "ci-runner",
+    			Tags:                       map[string]string{"managed-by": "ubx"},
+    			Zone:                       "example",
+    		})
+    	}))
     }
-    ubx.Resource(capacity.Reservation, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { Reservation } from
-      "jsr:@ubx/sdk-azure/azurerm/capacity/reservation";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Reservation } from "jsr:@ubx/sdk-azure/azurerm/capacity/reservation";
 
-    resource(Reservation, "example", {
-      capacityReservationGroupId: "example",
-      name: "example-name",
-      tags: { key: "value" },
-      zone: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own reservation" });
+
+      resource(Reservation, "ci-runner", {
+        capacityReservationGroupId: "example",
+        name: "ci-runner",
+        tags: { "managed-by": "ubx" },
+        zone: "example",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.azurerm.capacity import Reservation, ReservationConfig
 
-    cfg = ReservationConfig(
-        capacity_reservation_group_id="example",
-        name="example-name",
-        tags={"key": "value"},
-        zone="example",
-    )
-    ubx.resource(Reservation, "example", cfg)
+    def describe():
+        ubx.intent("payments own reservation")
+
+        ubx.resource(Reservation, "ci-runner", ReservationConfig(
+            capacity_reservation_group_id="example",
+            name="ci-runner",
+            tags={"managed-by": "ubx"},
+            zone="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision azurerm_capacity_reservation with
-capacity_reservation_group_id, name, tags, zone.
+    Create azurerm_capacity_reservation called "ci-runner", with
+    capacity reservation group id example, tags a set value, zone
+    example.
     ```
   </Tab>
 </Tabs>

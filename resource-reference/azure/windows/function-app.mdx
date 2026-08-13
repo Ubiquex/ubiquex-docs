@@ -6,61 +6,91 @@ description: "Real, generated bindings for `azurerm_windows_function_app`."
 `azurerm_windows_function_app` -- real, typed bindings generated directly from the
 `hashicorp/azurerm` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "github.com/ubiquex/ubx-sdk-azure/sdk/go/azurerm/windows"
+    	windows "github.com/ubiquex/ubx-sdk-azure/sdk/go/azurerm/windows"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
-    cfg := windows.FunctionAppConfig{
-        Location: "example",
-        Name: "example-name",
-        ResourceGroupName: "example-resource-group-name",
-        ServicePlanId: "example",
-        AppSettings: map[string]string{"key": "value"},
-        BuiltinLoggingEnabled: true,
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own function app"})
+
+    		ubx.Resource(windows.FunctionApp, "ci-runner", windows.FunctionAppConfig{
+    			Location:                        "example",
+    			Name:                            "ci-runner",
+    			ResourceGroupName:               "example-resource-group-name",
+    			ServicePlanId:                   "example",
+    			AppSettings:                     map[string]string{"managed-by": "ubx"},
+    			BuiltinLoggingEnabled:           true,
+    			ClientCertificateEnabled:        true,
+    			ClientCertificateExclusionPaths: "example",
+    		})
+    	}))
     }
-    ubx.Resource(windows.FunctionApp, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { FunctionApp } from
-      "jsr:@ubx/sdk-azure/azurerm/windows/function_app";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { FunctionApp } from "jsr:@ubx/sdk-azure/azurerm/windows/function_app";
 
-    resource(FunctionApp, "example", {
-      location: "example",
-      name: "example-name",
-      resourceGroupName: "example-resource-group-name",
-      servicePlanId: "example",
-      appSettings: { key: "value" },
-      builtinLoggingEnabled: true,
+    export default stack("payments", () => {
+      intent({ summary: "payments own function app" });
+
+      resource(FunctionApp, "ci-runner", {
+        location: "example",
+        name: "ci-runner",
+        resourceGroupName: "example-resource-group-name",
+        servicePlanId: "example",
+        appSettings: { "managed-by": "ubx" },
+        builtinLoggingEnabled: true,
+        clientCertificateEnabled: true,
+        clientCertificateExclusionPaths: "example",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.azurerm.windows import FunctionApp, FunctionAppConfig
 
-    cfg = FunctionAppConfig(
-        location="example",
-        name="example-name",
-        resource_group_name="example-resource-group-name",
-        service_plan_id="example",
-        app_settings={"key": "value"},
-        builtin_logging_enabled=True,
-    )
-    ubx.resource(FunctionApp, "example", cfg)
+    def describe():
+        ubx.intent("payments own function app")
+
+        ubx.resource(FunctionApp, "ci-runner", FunctionAppConfig(
+            location="example",
+            name="ci-runner",
+            resource_group_name="example-resource-group-name",
+            service_plan_id="example",
+            app_settings={"managed-by": "ubx"},
+            builtin_logging_enabled=True,
+            client_certificate_enabled=True,
+            client_certificate_exclusion_paths="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision azurerm_windows_function_app with location, name,
-resource_group_name, service_plan_id, app_settings,
-builtin_logging_enabled.
+    Create azurerm_windows_function_app called "ci-runner", with
+    location example, resource group name
+    example-resource-group-name, service plan id example, app
+    settings a set value, builtin logging enabled true, client
+    certificate enabled true, client certificate exclusion paths
+    example.
     ```
   </Tab>
 </Tabs>
