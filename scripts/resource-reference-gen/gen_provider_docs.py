@@ -84,17 +84,76 @@ def eff_flags(f):
     return req, eff_opt, eff_comp
 
 
+def normalize_schema_description(desc):
+    """UBI-152: the real provider schema's own Description text, collapsed
+    to one line -- real providers (confirmed live: hashicorp/google,
+    hashicorp/kubernetes) embed raw newlines/tabs in this prose (e.g. a
+    multi-paragraph enum explanation), which would otherwise break a
+    ResponseField's own single-line-per-sentence convention every other
+    field on the page already follows. Whitespace-only normalization,
+    never a content change -- real text in, same real text out, just
+    joined onto one line.
+
+    Also downgrades a real em dash (U+2014) to this same repo's own
+    established " -- " convention (every doc comment in this codebase
+    already uses it, UBI-133's own zero-em-dash rule) -- a typographic
+    substitution only, the informational content is unchanged. A real,
+    confirmed-live case this mattered for: hashicorp/aws's own
+    odb_cloud_vm_cluster description reads "...created or cloned —
+    either ECPU or OCPU..." verbatim on the wire.
+
+    Also HTML-entity-escapes real "<"/">"/"{"/"}" characters -- a real,
+    confirmed-live MDX parsing break (113 real pages, a full mint
+    validate pass), not a hypothetical: real provider description text
+    commonly uses literal angle-bracket placeholder notation (e.g.
+    google_kms_autokey_config's own real text, "...projects/
+    <project_id_or_number>/...") or brace-delimited examples, and raw
+    MDX reads "<x>"/"{x}" as an unclosed JSX tag / a live JS expression,
+    not literal prose. HTML-entity escaping renders back to the exact
+    same visible characters without MDX ever attempting to parse them --
+    the same "real text in, same real text out" discipline as the
+    whitespace/em-dash handling above, just for MDX's own reserved
+    syntax instead of typography."""
+    collapsed = " ".join(desc.split())
+    collapsed = collapsed.replace("—", " -- ").replace("–", " -- ")
+    return (
+        collapsed
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("{", "&#123;")
+        .replace("}", "&#125;")
+    )
+
+
 def field_desc(f, provider_display):
     req, eff_opt, eff_comp = eff_flags(f)
     if req:
-        return "Required."
-    if eff_opt and eff_comp:
-        return f"Optional; if omitted, computed by {provider_display}."
-    if eff_opt:
-        return "Optional."
-    if eff_comp:
-        return f"Computed by {provider_display} after `ship`."
-    return "Optional."
+        qualifier = "Required."
+    elif eff_opt and eff_comp:
+        qualifier = f"Optional; if omitted, computed by {provider_display}."
+    elif eff_opt:
+        qualifier = "Optional."
+    elif eff_comp:
+        qualifier = f"Computed by {provider_display} after `ship`."
+    else:
+        qualifier = "Optional."
+
+    # UBI-152: real, schema-sourced prose (f["Description"], threaded
+    # through from the real provider's own wire response -- provider/
+    # schema.go -> sdk/codegen/ir.Field -> this JSON dump) takes
+    # priority when the real provider actually set one. Genuinely empty
+    # for some providers (confirmed live: hashicorp/aws, hashicorp/
+    # azurerm both report this empty for nearly every real attribute --
+    # a real limitation of what their schema RPCs expose, not a docs
+    # gap to paper over) -- those keep exactly today's flag-derived
+    # sentence, unchanged. The qualifier is still appended even when
+    # real prose exists: it carries real, non-redundant information (the
+    # optional-vs-computed-fallback nuance) the "required" badge on
+    # ResponseField itself doesn't show.
+    desc = normalize_schema_description(f.get("Description") or "")
+    if desc:
+        return f"{desc} {qualifier}"
+    return qualifier
 
 
 def render_response_field(f, indent, nested, provider_display):
@@ -229,6 +288,40 @@ def is_path_field(wire):
 
 def is_description_field(wire):
     return wire == "description"
+
+
+def resolve_page_path(docs_root, provider, idents):
+    """A resource's own real docs-identity path -- the existing .mdx page
+    a splice-only generator (gen_complete_pages.py's Example splice,
+    UBI-152's Input/Output properties splice) must locate and write back
+    into. Shared here so both splice tools resolve the identical path,
+    including the UBI-151 escape-undo (a resource whose real,
+    wire-derived local name ends in "_test" carries a trailing "_" in
+    its real Go filename -- a pure Go-build artifact, not part of the
+    resource's own docs identity, undone here) -- extracted from
+    gen_complete_pages.py's own generate_one so this logic lives in
+    exactly one place, not two copies that could drift the next time a
+    _test-suffixed resource is found.
+
+    Returns (out_path, doc_service_dir, go_local, slug).
+    """
+    go_service_dir = idents["go"]["service_dir"]
+    # A real, found-in-review case: a Go package name that collides with
+    # a Go keyword/convention ("default", "main") gets a real trailing
+    # underscore in the real generated package name/import path
+    # (go["service_dir"] == "default_"/"main_") -- but the real docs
+    # directory itself was never given that escape, it's just
+    # "default"/"main". Stripped ONLY for the doc output path here;
+    # go["service_dir"] itself (used for the real Go import path) is
+    # untouched, still correctly carries the trailing underscore the
+    # real import path needs.
+    doc_service_dir = go_service_dir.rstrip("_") or go_service_dir
+    go_local = os.path.splitext(os.path.basename(idents["go"]["file"]))[0]
+    if go_local.endswith("_test_"):
+        go_local = go_local[:-1]
+    slug = go_local.replace("_", "-")
+    out_path = os.path.join(docs_root, "resource-reference", provider, doc_service_dir, f"{slug}.mdx")
+    return out_path, doc_service_dir, go_local, slug
 
 
 # Real trust-policy preamble, one per language -- a real, valid JSON IAM

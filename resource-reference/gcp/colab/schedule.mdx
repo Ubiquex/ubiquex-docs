@@ -96,7 +96,7 @@ real enough to save and run exactly as shown.
 ## Input properties
 
 <ResponseField name="allow_queueing" type="bool">
-  Optional.
+  Whether new scheduled runs can be queued when max_concurrent_runs limit is reached. If set to true, new runs will be queued instead of skipped. Default to false. Optional.
 </ResponseField>
 
 <ResponseField name="create_notebook_execution_job_request" type="list(object)">
@@ -294,23 +294,23 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="cron" type="string" required>
-  Required.
+  Cron schedule (https://en.wikipedia.org/wiki/Cron) to launch scheduled runs. Required.
 </ResponseField>
 
 <ResponseField name="deletion_policy" type="string">
-  Optional; if omitted, computed by GCP.
+  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
 </ResponseField>
 
 <ResponseField name="desired_state" type="string">
-  Optional.
+  Desired state of the Colab Schedule. Set this field to 'ACTIVE' to start/resume the schedule, and 'PAUSED' to pause the schedule. Optional.
 </ResponseField>
 
 <ResponseField name="display_name" type="string" required>
-  Required.
+  Required. The display name of the Schedule. Required.
 </ResponseField>
 
 <ResponseField name="end_time" type="string">
-  Optional.
+  Timestamp after which no new runs can be scheduled. If specified, the schedule will be completed when either end_time is reached or when scheduled_run_count &gt;= max_run_count. Must be in the RFC 3339 (https://www.ietf.org/rfc/rfc3339.txt) format. Optional.
 </ResponseField>
 
 <ResponseField name="id" type="string">
@@ -318,19 +318,19 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="location" type="string" required>
-  Required.
+  The location for the resource: https://cloud.google.com/colab/docs/locations Required.
 </ResponseField>
 
 <ResponseField name="max_concurrent_active_run_count" type="string">
-  Optional.
+  Specifies the maximum number of active runs that can be executed concurrently for this Schedule. This limits the number of runs that can be in a non-terminal state at the same time. Currently, this field is only supported for requests of type CreatePipelineJobRequest. Optional.
 </ResponseField>
 
 <ResponseField name="max_concurrent_run_count" type="string" required>
-  Required.
+  Maximum number of runs that can be started concurrently for this Schedule. This is the limit for starting the scheduled requests and not the execution of the notebook execution jobs created by the requests. Required.
 </ResponseField>
 
 <ResponseField name="max_run_count" type="string">
-  Optional.
+  Maximum run count of the schedule. If specified, The schedule will be completed when either startedRunCount &gt;= maxRunCount or when endTime is reached. If not specified, new runs will keep getting scheduled until this Schedule is paused or deleted. Already scheduled runs will be allowed to complete. Unset if not specified. Optional.
 </ResponseField>
 
 <ResponseField name="project" type="string">
@@ -338,7 +338,7 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="start_time" type="string">
-  Optional; if omitted, computed by GCP.
+  The timestamp after which the first run can be scheduled. Defaults to the schedule creation time. Must be in the RFC 3339 (https://www.ietf.org/rfc/rfc3339.txt) format. Optional; if omitted, computed by GCP.
 </ResponseField>
 
 <ResponseField name="timeouts" type="object">
@@ -356,7 +356,7 @@ real enough to save and run exactly as shown.
 ## Output properties
 
 <ResponseField name="catch_up" type="bool">
-  Computed by GCP after `ship`.
+  Whether to backfill missed runs when the schedule is resumed from PAUSED state. If set to true, all missed runs will be scheduled. New runs will be scheduled after the backfill is complete. Default to false. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="create_notebook_execution_job_request" type="list(object)">
@@ -554,11 +554,11 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="create_time" type="string">
-  Computed by GCP after `ship`.
+  Timestamp when this Schedule was created. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="deletion_policy" type="string">
-  Optional; if omitted, computed by GCP.
+  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
 </ResponseField>
 
 <ResponseField name="id" type="string">
@@ -566,15 +566,15 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="last_pause_time" type="string">
-  Computed by GCP after `ship`.
+  Timestamp when this Schedule was last paused. Unset if never paused. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="last_resume_time" type="string">
-  Computed by GCP after `ship`.
+  Timestamp when this Schedule was last resumed. Unset if never resumed from pause. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="last_scheduled_run_response" type="list(object)">
-  Computed by GCP after `ship`.
+  Status of a scheduled run. Computed by GCP after `ship`.
   <Expandable title="properties">
     <ResponseField name="run_response" type="string">
     </ResponseField>
@@ -584,11 +584,11 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="name" type="string">
-  Computed by GCP after `ship`.
+  The resource name of the Schedule Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="next_run_time" type="string">
-  Computed by GCP after `ship`.
+  Timestamp when this Schedule should schedule the next run. Having a next_run_time in the past means the runs are being started behind schedule. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="project" type="string">
@@ -596,15 +596,15 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="start_time" type="string">
-  Optional; if omitted, computed by GCP.
+  The timestamp after which the first run can be scheduled. Defaults to the schedule creation time. Must be in the RFC 3339 (https://www.ietf.org/rfc/rfc3339.txt) format. Optional; if omitted, computed by GCP.
 </ResponseField>
 
 <ResponseField name="started_run_count" type="string">
-  Computed by GCP after `ship`.
+  The number of runs started by this schedule. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="state" type="string">
-  Computed by GCP after `ship`.
+  Output only. The state of the schedule. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="timeouts" type="object">
@@ -620,5 +620,5 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="update_time" type="string">
-  Computed by GCP after `ship`.
+  Timestamp when this Schedule was updated. Computed by GCP after `ship`.
 </ResponseField>

@@ -94,11 +94,11 @@ real enough to save and run exactly as shown.
 ## Input properties
 
 <ResponseField name="attribute_condition" type="string">
-  Optional.
+  [A Common Expression Language](https://github.com/google/cel-spec) expression, in plain text, to restrict what otherwise valid authentication credentials issued by the provider should not be accepted. The expression must output a boolean representing whether to allow the federation. The following keywords may be referenced in the expressions: * 'assertion': JSON representing the authentication credential issued by the provider. * 'google': The Google attributes mapped from the assertion in the 'attribute_mappings'. * 'attribute': The custom attributes mapped from the assertion in the 'attribute_mappings'. The maximum length of the attribute condition expression is 4096 characters. If unspecified, all valid authentication credential are accepted. The following example shows how to only allow credentials with a mapped 'google.groups' value of 'admins': ''' "'admins' in google.groups" ''' Optional.
 </ResponseField>
 
 <ResponseField name="attribute_mapping" type="map(string)">
-  Optional.
+  Maps attributes from authentication credentials issued by an external identity provider to Google Cloud attributes, such as 'subject' and 'segment'. Each key must be a string specifying the Google Cloud IAM attribute to map to. The following keys are supported: * 'google.subject': The principal IAM is authenticating. You can reference this value in IAM bindings. This is also the subject that appears in Cloud Logging logs. Cannot exceed 127 characters. * 'google.groups': Groups the external identity belongs to. You can grant groups access to resources using an IAM 'principalSet' binding; access applies to all members of the group. You can also provide custom attributes by specifying 'attribute.&#123;custom_attribute&#125;', where '&#123;custom_attribute&#125;' is the name of the custom attribute to be mapped. You can define a maximum of 50 custom attributes. The maximum length of a mapped attribute key is 100 characters, and the key may only contain the characters [a-z0-9_]. You can reference these attributes in IAM policies to define fine-grained access for a workload to Google Cloud resources. For example: * 'google.subject': 'principal://iam.googleapis.com/projects/&#123;project&#125;/locations/&#123;location&#125;/workloadIdentityPools/&#123;pool&#125;/subject/&#123;value&#125;' * 'google.groups': 'principalSet://iam.googleapis.com/projects/&#123;project&#125;/locations/&#123;location&#125;/workloadIdentityPools/&#123;pool&#125;/group/&#123;value&#125;' * 'attribute.&#123;custom_attribute&#125;': 'principalSet://iam.googleapis.com/projects/&#123;project&#125;/locations/&#123;location&#125;/workloadIdentityPools/&#123;pool&#125;/attribute.&#123;custom_attribute&#125;/&#123;value&#125;' Each value must be a [Common Expression Language](https://github.com/google/cel-spec) function that maps an identity provider credential to the normalized attribute specified by the corresponding map key. You can use the 'assertion' keyword in the expression to access a JSON representation of the authentication credential issued by the provider. The maximum length of an attribute mapping expression is 2048 characters. When evaluated, the total size of all mapped attributes must not exceed 8KB. For AWS providers, the following rules apply: - If no attribute mapping is defined, the following default mapping applies: ''' &#123; "google.subject":"assertion.arn", "attribute.aws_role": "assertion.arn.contains('assumed-role')" " ? assertion.arn.extract('&#123;account_arn&#125;assumed-role/')" " + 'assumed-role/'" " + assertion.arn.extract('assumed-role/&#123;role_name&#125;/')" " : assertion.arn", &#125; ''' - If any custom attribute mappings are defined, they must include a mapping to the 'google.subject' attribute. For OIDC providers, the following rules apply: - Custom attribute mappings must be defined, and must include a mapping to the 'google.subject' attribute. For example, the following maps the 'sub' claim of the incoming credential to the 'subject' attribute on a Google token. ''' &#123;"google.subject": "assertion.sub"&#125; ''' Optional.
 </ResponseField>
 
 <ResponseField name="aws" type="list(object)">
@@ -110,19 +110,19 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="deletion_policy" type="string">
-  Optional; if omitted, computed by GCP.
+  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
 </ResponseField>
 
 <ResponseField name="description" type="string">
-  Optional.
+  A description for the provider. Cannot exceed 256 characters. Optional.
 </ResponseField>
 
 <ResponseField name="disabled" type="bool">
-  Optional.
+  Whether the provider is disabled. You cannot use a disabled provider to exchange tokens. However, existing tokens still grant access. Optional.
 </ResponseField>
 
 <ResponseField name="display_name" type="string">
-  Optional.
+  A display name for the provider. Cannot exceed 32 characters. Optional.
 </ResponseField>
 
 <ResponseField name="id" type="string">
@@ -166,11 +166,11 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="workload_identity_pool_id" type="string" required>
-  Required.
+  The ID used for the pool, which is the final component of the pool resource name. This value should be 4-32 characters, and may contain the characters [a-z0-9-]. The prefix 'gcp-' is reserved for use by Google, and may not be specified. Required.
 </ResponseField>
 
 <ResponseField name="workload_identity_pool_provider_id" type="string" required>
-  Required.
+  The ID for the provider, which becomes the final component of the resource name. This value must be 4-32 characters, and may contain the characters [a-z0-9-]. The prefix 'gcp-' is reserved for use by Google, and may not be specified. Required.
 </ResponseField>
 
 <ResponseField name="x509" type="list(object)">
@@ -206,7 +206,7 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="deletion_policy" type="string">
-  Optional; if omitted, computed by GCP.
+  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
 </ResponseField>
 
 <ResponseField name="id" type="string">
@@ -214,7 +214,7 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="name" type="string">
-  Computed by GCP after `ship`.
+  The resource name of the provider as 'projects/&#123;project_number&#125;/locations/global/workloadIdentityPools/&#123;workload_identity_pool_id&#125;/providers/&#123;workload_identity_pool_provider_id&#125;'. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="oidc" type="list(object)">
@@ -242,7 +242,7 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="state" type="string">
-  Computed by GCP after `ship`.
+  The state of the provider. * STATE_UNSPECIFIED: State unspecified. * ACTIVE: The provider is active, and may be used to validate authentication credentials. * DELETED: The provider is soft-deleted. Soft-deleted providers are permanently deleted after approximately 30 days. You can restore a soft-deleted provider using UndeleteWorkloadIdentityPoolProvider. You cannot reuse the ID of a soft-deleted provider until it is permanently deleted. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="timeouts" type="object">

@@ -96,15 +96,15 @@ real enough to save and run exactly as shown.
 ## Input properties
 
 <ResponseField name="delete_destination_volume" type="bool">
-  Optional.
+  A destination volume is created as part of replication creation. The destination volume will not became under Terraform management unless you import it manually. If you delete the replication, this volume will remain. Setting this parameter to true will delete the *current* destination volume when destroying the replication. If you reversed the replication direction, this will be your former source volume! For production use, it is recommended to keep this parameter false to avoid accidental volume deletion. Handle with care. Default is false. Optional.
 </ResponseField>
 
 <ResponseField name="deletion_policy" type="string">
-  Optional; if omitted, computed by GCP.
+  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
 </ResponseField>
 
 <ResponseField name="description" type="string">
-  Optional.
+  An description of this resource. Optional.
 </ResponseField>
 
 <ResponseField name="destination_volume_parameters" type="list(object)">
@@ -130,7 +130,7 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="force_stopping" type="bool">
-  Optional.
+  Only replications with mirror_state=MIRRORED can be stopped. A replication in mirror_state=TRANSFERRING currently receives an update and stopping the update might be undesirable. Set this parameter to true to stop anyway. All data transferred to the destination will be discarded and content of destination volume will remain at the state of the last successful update. Default is false. Optional.
 </ResponseField>
 
 <ResponseField name="id" type="string">
@@ -138,15 +138,15 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="labels" type="map(string)">
-  Optional.
+  Labels as key value pairs. Example: '&#123; "owner": "Bob", "department": "finance", "purpose": "testing" &#125;' **Note**: This field is non-authoritative, and will only manage the labels present in your configuration. Please refer to the field 'effective_labels' for all of the labels present on the resource. Optional.
 </ResponseField>
 
 <ResponseField name="location" type="string" required>
-  Required.
+  Name of region for this resource. The resource needs to be created in the region of the destination volume. Required.
 </ResponseField>
 
 <ResponseField name="name" type="string" required>
-  Required.
+  The name of the replication. Needs to be unique per location. Required.
 </ResponseField>
 
 <ResponseField name="project" type="string">
@@ -154,11 +154,11 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="replication_enabled" type="bool">
-  Optional.
+  Set to false to stop/break the mirror. Stopping the mirror makes the destination volume read-write and act independently from the source volume. Set to true to enable/resume the mirror. WARNING: Resuming a mirror overwrites any changes done to the destination volume with the content of the source volume. Optional.
 </ResponseField>
 
 <ResponseField name="replication_schedule" type="string" required>
-  Required.
+  Specifies the replication interval. Possible values: ["EVERY_10_MINUTES", "HOURLY", "DAILY"] Required.
 </ResponseField>
 
 <ResponseField name="timeouts" type="object">
@@ -174,25 +174,25 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="volume_name" type="string" required>
-  Required.
+  The name of the existing source volume. Required.
 </ResponseField>
 
 <ResponseField name="wait_for_mirror" type="bool">
-  Optional.
+  Replication resource state is independent of mirror_state. With enough data, it can take many hours for mirror_state to reach MIRRORED. If you want Terraform to wait for the mirror to finish on create/stop/resume operations, set this parameter to true. Default is false. Optional.
 </ResponseField>
 
 ## Output properties
 
 <ResponseField name="create_time" type="string">
-  Computed by GCP after `ship`.
+  Create time of the active directory. A timestamp in RFC3339 UTC "Zulu" format. Examples: "2023-06-22T09:13:01.617Z". Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="deletion_policy" type="string">
-  Optional; if omitted, computed by GCP.
+  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
 </ResponseField>
 
 <ResponseField name="destination_volume" type="string">
-  Computed by GCP after `ship`.
+  Full resource name of destination volume with format: 'projects/&#123;&#123;project&#125;&#125;/locations/&#123;&#123;location&#125;&#125;/volumes/&#123;&#123;volumeId&#125;&#125;' Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="destination_volume_parameters" type="list(object)">
@@ -218,15 +218,15 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="effective_labels" type="map(string)">
-  Computed by GCP after `ship`.
+  All of labels (key/value pairs) present on the resource in GCP, including the labels configured through Terraform, other clients and services. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="healthy" type="bool">
-  Computed by GCP after `ship`.
+  Condition of the relationship. Can be one of the following: - true: The replication relationship is healthy. It has not missed the most recent scheduled transfer. - false: The replication relationship is not healthy. It has missed the most recent scheduled transfer. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="hybrid_peering_details" type="list(object)">
-  Computed by GCP after `ship`.
+  HybridPeeringDetails contains details about the hybrid peering. Computed by GCP after `ship`.
   <Expandable title="properties">
     <ResponseField name="command" type="string">
     </ResponseField>
@@ -246,11 +246,11 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="hybrid_replication_type" type="string">
-  Computed by GCP after `ship`.
+  Hybrid replication type. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="hybrid_replication_user_commands" type="list(object)">
-  Computed by GCP after `ship`.
+  Copy pastable snapmirror commands to be executed on onprem cluster by the customer. Computed by GCP after `ship`.
   <Expandable title="properties">
     <ResponseField name="commands" type="list(string)">
     </ResponseField>
@@ -262,7 +262,7 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="mirror_state" type="string">
-  Computed by GCP after `ship`.
+  Indicates the state of the mirror between source and destination volumes. Depending on the amount of data in your source volume, PREPARING phase can take hours or days. mirrorState = MIRRORED indicates your baseline transfer ended and destination volume became accessible read-only. TRANSFERRING means a MIRRORED volume currently receives an update. Updated every 5 minutes. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="project" type="string">
@@ -270,23 +270,23 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="role" type="string">
-  Computed by GCP after `ship`.
+  Reverting a replication can swap source and destination volume roles. This field indicates if the 'location' hosts the source or destination volume. For resume and revert and resume operations it is critical to understand which volume is the source volume, since it will overwrite changes done to the destination volume. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="source_volume" type="string">
-  Computed by GCP after `ship`.
+  Full resource name of source volume with format: 'projects/&#123;&#123;project&#125;&#125;/locations/&#123;&#123;location&#125;&#125;/volumes/&#123;&#123;volumeId&#125;&#125;' Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="state" type="string">
-  Computed by GCP after `ship`.
+  Indicates the state of replication resource. State of the mirror itself is indicated in mirrorState. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="state_details" type="string">
-  Computed by GCP after `ship`.
+  State details of the replication resource. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="terraform_labels" type="map(string)">
-  Computed by GCP after `ship`.
+  The combination of labels configured directly on the resource and default labels configured on the provider. Computed by GCP after `ship`.
 </ResponseField>
 
 <ResponseField name="timeouts" type="object">
@@ -302,7 +302,7 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="transfer_stats" type="list(object)">
-  Computed by GCP after `ship`.
+  Replication transfer statistics. All statistics are updated every 5 minutes. Computed by GCP after `ship`.
   <Expandable title="properties">
     <ResponseField name="lag_duration" type="string">
     </ResponseField>
