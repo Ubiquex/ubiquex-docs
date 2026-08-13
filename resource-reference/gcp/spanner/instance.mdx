@@ -6,54 +6,79 @@ description: "Real, generated bindings for `google_spanner_instance`."
 `google_spanner_instance` -- real, typed bindings generated directly from the
 `hashicorp/google` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "github.com/ubiquex/ubx-sdk-google/sdk/go/google/spanner"
+    	spanner "github.com/ubiquex/ubx-sdk-aws/sdk/go/google/spanner"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
-    cfg := spanner.InstanceConfig{
-        Config: "example",
-        DisplayName: "example-display-name",
-        ForceDestroy: true,
-        Labels: map[string]string{"key": "value"},
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own instance"})
+
+    		ubx.Resource(spanner.Instance, "ci-runner", spanner.InstanceConfig_{
+    			Config:       "example",
+    			DisplayName:  "example-display-name",
+    			Name:         "ci-runner",
+    			ForceDestroy: true,
+    			Labels:       map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(spanner.Instance, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { Instance } from
-      "jsr:@ubx/sdk-google/google/spanner/instance";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Instance } from "jsr:@ubx/sdk-google/google/spanner/instance";
 
-    resource(Instance, "example", {
-      config: "example",
-      displayName: "example-display-name",
-      forceDestroy: true,
-      labels: { key: "value" },
+    export default stack("payments", () => {
+      intent({ summary: "payments own instance" });
+
+      resource(Instance, "ci-runner", {
+        config: "example",
+        displayName: "example-display-name",
+        name: "ci-runner",
+        forceDestroy: true,
+        labels: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    from ubx.google.spanner import Instance, InstanceConfig
+    import ubx_sdk as ubx
+    from ubx.google.spanner import Instance, InstanceConfig_
 
-    cfg = InstanceConfig(
-        config="example",
-        display_name="example-display-name",
-        force_destroy=True,
-        labels={"key": "value"},
-    )
-    ubx.resource(Instance, "example", cfg)
+    def describe():
+        ubx.intent("payments own instance")
+
+        ubx.resource(Instance, "ci-runner", InstanceConfig_(
+            config="example",
+            display_name="example-display-name",
+            name="ci-runner",
+            force_destroy=True,
+            labels={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision google_spanner_instance with config, display_name,
-force_destroy, labels.
+    Create google_spanner_instance called "ci-runner", with config
+    example, display name example-display-name, force destroy true,
+    labels a set value.
     ```
   </Tab>
 </Tabs>

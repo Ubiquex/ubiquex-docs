@@ -1,5 +1,35 @@
 import re, glob, json, os, sys
 
+def resolve_config_go(text, binding):
+    # A real, found-in-review collision: when a resource's own naive
+    # "<Binding>Config" name collides with ANOTHER real resource's own
+    # binding VAR name in the same package (e.g. google_workstations_
+    # workstation's naive "WorkstationConfig" collides with sibling
+    # google_workstations_workstation_config's own `var WorkstationConfig
+    # = ubx.ResourceBinding{...}`), the real codegen renames the LOSING
+    # side's own Config struct with a trailing underscore
+    # (`WorkstationConfig_`) rather than guess-deriving it, read the
+    # real declared type straight out of the source (same discipline
+    # `binding` above already uses for the binding var itself).
+    if not binding:
+        return None
+    naive = binding + "Config"
+    if re.search(r"\btype " + re.escape(naive) + r" struct\b", text):
+        return naive
+    if re.search(r"\btype " + re.escape(naive) + r"_ struct\b", text):
+        return naive + "_"
+    return naive
+
+def resolve_config_py(text, binding):
+    if not binding:
+        return None
+    naive = binding + "Config"
+    if re.search(r"^class " + re.escape(naive) + r":", text, re.M):
+        return naive
+    if re.search(r"^class " + re.escape(naive) + r"_:", text, re.M):
+        return naive + "_"
+    return naive
+
 def scan_go(root, provider):
     out = {}
     for f in glob.glob(root + f"/{provider}/**/*.go", recursive=True):
@@ -35,7 +65,7 @@ def scan_go(root, provider):
             "package": pkg_m.group(1) if pkg_m else None,
             "service_dir": service_dir,
             "binding": binding,
-            "config": (binding + "Config") if binding else None,
+            "config": resolve_config_go(text, binding),
         }
     return out
 
@@ -59,7 +89,7 @@ def scan_py(root, provider):
             "module": "ubx." + module,
             "service_dir": service_dir,
             "binding": binding,
-            "config": (binding + "Config") if binding else None,
+            "config": resolve_config_py(text, binding),
         }
     return out
 

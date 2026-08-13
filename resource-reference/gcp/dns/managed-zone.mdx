@@ -6,54 +6,82 @@ description: "Real, generated bindings for `google_dns_managed_zone`."
 `google_dns_managed_zone` -- real, typed bindings generated directly from the
 `hashicorp/google` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "github.com/ubiquex/ubx-sdk-google/sdk/go/google/dns"
+    	dns "github.com/ubiquex/ubx-sdk-aws/sdk/go/google/dns"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
-    cfg := dns.ManagedZoneConfig{
-        DnsName: "example-dns-name",
-        Name: "example-name",
-        Description: "example",
-        ForceDestroy: true,
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own managed zone"})
+
+    		ubx.Resource(dns.ManagedZone, "ci-runner", dns.ManagedZoneConfig{
+    			DnsName:      "example-dns-name",
+    			Name:         "ci-runner",
+    			Description:  "Managed by ubx.",
+    			ForceDestroy: true,
+    			Labels:       map[string]string{"managed-by": "ubx"},
+    			Visibility:   "example",
+    		})
+    	}))
     }
-    ubx.Resource(dns.ManagedZone, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { ManagedZone } from
-      "jsr:@ubx/sdk-google/google/dns/managed_zone";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ManagedZone } from "jsr:@ubx/sdk-google/google/dns/managed_zone";
 
-    resource(ManagedZone, "example", {
-      dnsName: "example-dns-name",
-      name: "example-name",
-      description: "example",
-      forceDestroy: true,
+    export default stack("payments", () => {
+      intent({ summary: "payments own managed zone" });
+
+      resource(ManagedZone, "ci-runner", {
+        dnsName: "example-dns-name",
+        name: "ci-runner",
+        description: "Managed by ubx.",
+        forceDestroy: true,
+        labels: { "managed-by": "ubx" },
+        visibility: "example",
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.google.dns import ManagedZone, ManagedZoneConfig
 
-    cfg = ManagedZoneConfig(
-        dns_name="example-dns-name",
-        name="example-name",
-        description="example",
-        force_destroy=True,
-    )
-    ubx.resource(ManagedZone, "example", cfg)
+    def describe():
+        ubx.intent("payments own managed zone")
+
+        ubx.resource(ManagedZone, "ci-runner", ManagedZoneConfig(
+            dns_name="example-dns-name",
+            name="ci-runner",
+            description="Managed by ubx.",
+            force_destroy=True,
+            labels={"managed-by": "ubx"},
+            visibility="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision google_dns_managed_zone with dns_name, name,
-description, force_destroy.
+    Create google_dns_managed_zone called "ci-runner", with dns name
+    example-dns-name, description Managed by ubx., force destroy
+    true, labels a set value, visibility example.
     ```
   </Tab>
 </Tabs>

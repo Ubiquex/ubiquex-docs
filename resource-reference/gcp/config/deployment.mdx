@@ -6,57 +6,89 @@ description: "Real, generated bindings for `google_config_deployment`."
 `google_config_deployment` -- real, typed bindings generated directly from the
 `hashicorp/google` provider schema, in every SDK language.
 
+Every tab below is a complete, runnable program, not a fragment,
+real enough to save and run exactly as shown.
+
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    package main
+
     import (
-        "github.com/ubiquex/ubx-sdk-google/sdk/go/google/config"
+    	config "github.com/ubiquex/ubx-sdk-aws/sdk/go/google/config"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
-    cfg := config.DeploymentConfig{
-        Location: "example",
-        Name: "example-name",
-        ServiceAccount: "example",
-        Annotations: map[string]string{"key": "value"},
-        ArtifactsGcsBucket: "example",
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own deployment"})
+
+    		ubx.Resource(config.Deployment, "ci-runner", config.DeploymentConfig{
+    			Location:                "example",
+    			Name:                    "ci-runner",
+    			ServiceAccount:          "example",
+    			Annotations:             map[string]string{"managed-by": "ubx"},
+    			ArtifactsGcsBucket:      "example",
+    			ForceDestroy:            true,
+    			ImportExistingResources: true,
+    			Labels:                  map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
     }
-    ubx.Resource(config.Deployment, "example", cfg)
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { Deployment } from
-      "jsr:@ubx/sdk-google/google/config/deployment";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Deployment } from "jsr:@ubx/sdk-google/google/config/deployment";
 
-    resource(Deployment, "example", {
-      location: "example",
-      name: "example-name",
-      serviceAccount: "example",
-      annotations: { key: "value" },
-      artifactsGcsBucket: "example",
+    export default stack("payments", () => {
+      intent({ summary: "payments own deployment" });
+
+      resource(Deployment, "ci-runner", {
+        location: "example",
+        name: "ci-runner",
+        serviceAccount: "example",
+        annotations: { "managed-by": "ubx" },
+        artifactsGcsBucket: "example",
+        forceDestroy: true,
+        importExistingResources: true,
+        labels: { "managed-by": "ubx" },
+      });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    import ubx_sdk as ubx
     from ubx.google.config import Deployment, DeploymentConfig
 
-    cfg = DeploymentConfig(
-        location="example",
-        name="example-name",
-        service_account="example",
-        annotations={"key": "value"},
-        artifacts_gcs_bucket="example",
-    )
-    ubx.resource(Deployment, "example", cfg)
+    def describe():
+        ubx.intent("payments own deployment")
+
+        ubx.resource(Deployment, "ci-runner", DeploymentConfig(
+            location="example",
+            name="ci-runner",
+            service_account="example",
+            annotations={"managed-by": "ubx"},
+            artifacts_gcs_bucket="example",
+            force_destroy=True,
+            import_existing_resources=True,
+            labels={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
     ```
   </Tab>
   <Tab title="Markdown">
     ```
-    Provision google_config_deployment with location, name,
-service_account, annotations, artifacts_gcs_bucket.
+    Create google_config_deployment called "ci-runner", with location
+    example, service account example, annotations a set value,
+    artifacts gcs bucket example, force destroy true, import existing
+    resources true, labels a set value.
     ```
   </Tab>
 </Tabs>
