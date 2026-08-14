@@ -19,20 +19,51 @@ assumed to mirror any of the four platforms already covered.
   a substitute for that, it's what's real today.
 </Note>
 
-## The same real gap as the other three
+## Merge-derived acceptance, and a real VCS-pairing question already resolved
 
-Confirmed once, directly against `ubx`'s own source
-(`cli/accept.go`'s `--github-repo`-only flag, the `github/` package's
-GitHub REST API calls), and true for every non-GitHub platform:
-`ubx accept --from-merge` has no CircleCI equivalent. As with GitLab,
-Azure DevOps, and Bamboo, this is a real gap in `ubx` itself, not a
-platform limitation -- CircleCI has no bearing on it either way, since
-the derivation would need to talk to whatever VCS host the project is
-on, not to CircleCI. The honest fallback is the same: a merge-
-triggered workflow here ships an **already-accepted** proposal;
-acceptance itself still happens through `ubx accept`'s local-file
-path, by a real person, not derived automatically from the merge
-event.
+CircleCI poses the same real VCS-pairing question Bamboo did, but with
+a genuinely different answer -- confirmed directly against CircleCI's
+own current documentation, not assumed GitHub-primary just because
+that's the most common real pairing. CircleCI Cloud integrates with
+four real, current VCS hosts: GitHub (GitHub.com, GitHub Enterprise
+Cloud, and GitHub Enterprise Server), GitLab (GitLab SaaS and
+self-managed), Bitbucket Cloud, and Bitbucket Data Center. (CircleCI
+Server, the self-hosted product, is GitHub-only -- not relevant here,
+since every workflow on this page targets CircleCI Cloud, the real,
+current product name for what most teams run.)
+
+`ubx accept --from-merge` has no awareness of which CI system
+triggered the job it's running in -- confirmed directly against
+`cli/accept.go`'s own dispatch, which only ever consumes a merge SHA,
+a local repo directory, and one of its four platform flags. That means
+three of CircleCI's four real pairings are **already covered, with
+zero new code this phase**: a GitHub-paired, GitLab-paired, or
+Bitbucket-Data-Center-paired CircleCI project gets a real,
+independently-derived acceptance today from the same `--github-repo`,
+`--gitlab-project`, and `--bitbucket-server-url`/
+`--bitbucket-server-project` flags the [GitHub
+Actions](/integrations/github-actions), [GitLab
+CI/CD](/integrations/gitlab-ci#merge-derived-acceptance), and
+[Bamboo](/integrations/bamboo) guides each already document. This is
+the same real finding the Bamboo guide reached for its own
+GitHub-paired case, reached independently here rather than assumed to
+carry over.
+
+Bitbucket Cloud is the one real, genuine gap, and for the same reason
+Bamboo's own guide left it out: a different API from Bitbucket
+Server/Data Center's self-hosted one (a fixed `api.bitbucket.org`
+host, OAuth-consumer or App Password authentication, no on-prem base
+URL to configure), and `ubx` has no client for it today -- a real,
+separate scope decision, not built out this phase. A
+Bitbucket-Cloud-paired CircleCI project still gets Workflows 1 and 2
+below unaffected; only the `Accept from merge` step in Workflow 3
+doesn't apply to it yet.
+
+The rest of this guide's own real examples (`GH_USER`/`GH_TOKEN`,
+`api.github.com`) assume a GitHub-paired project, the most common real
+pairing -- a GitLab- or Bitbucket-Data-Center-paired project should
+substitute that platform's own credential and flag pair instead,
+covered in the GitLab CI/CD and Bamboo guides linked above.
 
 ## Prerequisites
 
@@ -339,11 +370,27 @@ another platform's own workflow:
   last act, failing the job on a genuine error without swallowing it
   in the comment-posting logic.
 
-## Workflow 3: ship on merge (real scope, stated above)
+## Workflow 3: ship on merge
 
-Given the gap above, this workflow ships whatever is **already**
-accepted in the ledger, triggered by a push to `main`. It does not
-derive or verify acceptance itself.
+This is the automation half of [PR-Merge
+Acceptance](/concepts/pr-merge-acceptance): a proposal file, committed
+to a pull request whose body carries a real `ubx-proposal: <hash>`
+trailer, reviewed and merged like any other change. Once it lands on
+`main`, `ubx accept --from-merge` derives the acceptance from real,
+external evidence -- the merge commit's real existence in git history,
+the proposal file's real content at that commit, the real pull request
+it belongs to, and its real, current approving reviewers, read
+directly from the GitHub API (reusing the same self-provisioned
+`GH_TOKEN` from Workflow 2 above -- CircleCI has no built-in credential
+for calling a VCS host's own API, the same real gap covered there).
+Nothing about who approved it is trusted from a typed claim.
+
+CircleCI's own built-in `checkout` step clones full branch history by
+default, not a shallow one -- confirmed directly against CircleCI's
+own current documentation, the opposite default from GitHub Actions'
+and Azure Pipelines' own checkout actions. No extra depth flag is
+needed here for `ubx accept --from-merge`'s own real git-history check
+against `--repo-dir` (defaulting to `.`) to have what it needs.
 
 ```yaml
 workflows:
@@ -373,6 +420,12 @@ jobs:
             curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
             sudo mv ubx /usr/local/bin/
       - run:
+          name: Accept from merge
+          command: |
+            ubx accept --from-merge $CIRCLE_SHA1 \
+              --proposal-file proposals/db-replica.json \
+              --github-repo $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
+      - run:
           name: Ship
           command: |
             ubx ship --yes \
@@ -384,13 +437,30 @@ jobs:
             - ~/.ubx/providers
 ```
 
+`$CIRCLE_SHA1` (the built-in commit-SHA variable, populated in every
+job regardless of which VCS host the project is paired with -- it
+reflects what `checkout` actually pulled, not a VCS-API call) and
+`$CIRCLE_PROJECT_USERNAME`/`$CIRCLE_PROJECT_REPONAME` (already used in
+Workflow 2's own PR lookup above) are the same real, current
+predefined variables reused here, not new ones. A GitLab- or
+Bitbucket-Data-Center-paired project should swap the final line for
+that platform's own flag pair and credential instead (`--gitlab-project`
+with a Project Access Token, or `--bitbucket-server-url`/
+`--bitbucket-server-project` with a Bitbucket personal access token --
+see the GitLab CI/CD and Bamboo guides linked above), reusing
+`$CIRCLE_SHA1` unchanged either way.
+
 `ubx ship` with no `hash` resolves to the most recent unshipped,
 already-accepted proposal for the stack -- see [`ubx
-ship`](/cli-reference/ship). If nothing has been accepted since the
-last ship, the run is a real no-op, not a failure. `--confirm-destroys`
-is deliberately absent for the same reason it's absent from every
-other platform's example: that acknowledgment has to already have
-happened at accept time, not be silently implied by an unattended job.
+ship`](/cli-reference/ship). If `ubx accept --from-merge` finds
+nothing new to accept (a push to `main` that didn't come from a
+proposal's own merge, or one already accepted), `ubx accept` itself
+fails loudly rather than the ship step silently no-oping on the wrong
+assumption -- match this pipeline's own real proposal-file path and
+stack layout before relying on it. `--confirm-destroys` is
+deliberately absent for the same reason it's absent from every other
+platform's example: that acknowledgment has to already have happened
+at accept time, not be silently implied by an unattended job.
 
 ## See also
 
