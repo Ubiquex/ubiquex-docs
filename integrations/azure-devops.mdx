@@ -1,0 +1,242 @@
+---
+title: "Azure DevOps Pipelines"
+description: "Nightly drift watch and merge-triggered shipping, running in Azure Pipelines."
+---
+
+Two independent pipelines, adapted from the [GitHub
+Actions](/integrations/github-actions) reference implementation --
+same real CLI contract underneath, but Azure Pipelines' own real
+mechanisms for credentials, scheduling, and notifications, each
+verified independently rather than assumed to mirror GitHub's or
+GitLab's.
+
+<Note>
+  This covers scheduled and merge-triggered automation only --
+  `ubx-agent` (UBI-28, parked) exists for the case this structurally
+  can't cover: tight detection latency and an event-driven loop, not a
+  cron tick or a merge hook. Nothing here is a substitute for that,
+  it's what's real today.
+</Note>
+
+## The same real gap as GitLab
+
+Confirmed once, directly against `ubx`'s own source
+(`cli/accept.go`'s `--github-repo`-only flag, the `github/` package's
+GitHub REST API calls), and true for every platform besides GitHub:
+`ubx accept --from-merge` has no Azure DevOps equivalent. There's no
+`--azure-devops-project` flag, no Azure Repos pull request API
+integration. As with [GitLab](/integrations/gitlab-ci), this is a real
+gap in `ubx` itself, not a limitation of the platform -- Azure Repos'
+own Pull Request API exposes reviewer/vote data just as real as
+GitHub's. The honest fallback is the same: a merge-triggered pipeline
+here ships an **already-accepted** proposal; acceptance itself still
+happens through `ubx accept`'s local-file path, by a real person, not
+derived automatically from the merge event.
+
+## Prerequisites
+
+Same as the other platforms: a stack repository with a real
+`.ubx/config` and a git-local ledger already committed (see [Install
+and initialize your first stack](/tutorial/setup/install)). Nothing
+here runs `ubx init`.
+
+### Installing ubx in the agent
+
+```bash
+curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+sudo mv ubx /usr/local/bin/
+```
+
+Pin an exact released version, not `latest`.
+
+### Provider credentials: OIDC to AWS, a real but less first-party story
+
+Azure Pipelines' own OIDC mechanism (workload identity federation) is
+built for authenticating *to Azure*. Federating from Azure Pipelines
+*to AWS* isn't a native, first-party feature the way it is on GitHub
+or GitLab -- Microsoft removed the AWS OIDC option from the standard
+service connection wizard at one point, and the real, current, working
+path runs through the **AWS Toolkit for Azure DevOps** extension
+(`AmazonWebServices.aws-vsts-tools`, confirmed real and AWS-maintained
+at `github.com/aws/aws-toolkit-azure-devops`, v1.20.0+), not a
+Microsoft-built one.
+
+1. Install the AWS Toolkit for Azure DevOps extension from the
+   Visual Studio Marketplace into your organization.
+2. Create a new **AWS** service connection (Project Settings → Service
+   connections), check **Use OIDC**, and supply the ARN of the IAM
+   role to assume. No access key or secret key.
+3. On first run, the task logs the real OIDC token's `issuer` and
+   `sub` -- capture these, since the issuer is per-organization
+   (`vstoken.dev.azure.com/<ORG_ID>`), not a fixed, documentable URL
+   the way GitHub's or GitLab's is.
+4. In AWS, create an IAM OIDC identity provider using that issuer URL,
+   and an IAM role with a trust policy scoped to the service
+   connection:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {
+      "Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/vstoken.dev.azure.com/<ORG_ID>"
+    },
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Condition": {
+      "StringEquals": {
+        "vstoken.dev.azure.com/<ORG_ID>:sub": "sc://<ORG_NAME>/<PROJECT_NAME>/<SERVICE_CONNECTION_NAME>",
+        "vstoken.dev.azure.com/<ORG_ID>:aud": "api://AzureADTokenExchange"
+      }
+    }
+  }]
+}
+```
+
+As on the other platforms, drift-watch and ship-on-merge want
+different real permissions -- two separate service connections (one
+per role) is the least-privilege choice.
+
+The toolkit's own `AWSShellScript@1` task runs a script with the
+resolved credentials already set as the standard `AWS_ACCESS_KEY_ID` /
+`AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN` / `AWS_REGION`
+environment variables -- `ubx` needs nothing beyond that, since it
+reads AWS credentials from the process environment like any other
+AWS-SDK-based tool.
+
+### Caching provider binaries
+
+```yaml
+- task: Cache@2
+  inputs:
+    key: 'ubx-providers-hashicorp-aws-6.54.0'
+    path: $(HOME)/.ubx/providers
+```
+
+## Workflow 1: nightly drift watch
+
+Azure Pipelines supports inline `schedules:` cron in the YAML file
+itself, closer to GitHub's model than GitLab's separate schedule
+object -- but a real, easy-to-miss trap: `always: false` is the
+default, meaning a scheduled run is silently **skipped** if nothing in
+the repo has changed since the last successful run. That default is
+correct for a build pipeline, wrong for drift-watch, which needs to
+check *live infrastructure state* on every tick regardless of whether
+any code changed. `always: true` is required here, not optional.
+
+Also worth knowing: scheduled triggers configured through the pipeline
+settings UI take precedence over the YAML `schedules:` block below --
+if both exist, only the UI-defined ones run.
+
+```yaml
+trigger: none
+
+schedules:
+- cron: '0 6 * * *'
+  displayName: Nightly drift watch
+  branches:
+    include:
+    - main
+  always: true
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - bash: |
+      curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+      sudo mv ubx /usr/local/bin/
+    displayName: Install ubx
+
+  - task: Cache@2
+    inputs:
+      key: 'ubx-providers-hashicorp-aws-6.54.0'
+      path: $(HOME)/.ubx/providers
+    displayName: Cache provider binaries
+
+  - task: AWSShellScript@1
+    inputs:
+      awsCredentials: 'ubx-drift-watch'
+      regionName: 'us-east-1'
+      scriptType: 'inline'
+      inlineScript: |
+        ubx status --drift --stack payments \
+          --source hashicorp/aws --provider-version 6.54.0 \
+          --provider-config '{"region":"us-east-1"}'
+    displayName: Check for drift
+```
+
+`ubx status --drift`'s exit code (`0` clean, `1` drift found, `2`
+unreadable, worse always wins -- see [`ubx
+status`](/cli-reference/status)) fails the step and the run directly.
+
+Azure DevOps' native alerting is real but more team-scoped than
+GitHub's or GitLab's own creator/owner-based model -- there's no
+natural "the person who set up this schedule" analog for a scheduled
+run the way there is on the other two platforms. The reliable,
+verifiable path is an explicit notification subscription (Project
+Settings → Notifications → New subscription → **Build completes**,
+filtered to `Status = Failed` and `Trigger type = Scheduled`),
+targeting a team or group rather than relying on a default that may or
+may not already be enabled for your project. As with the other
+platforms, no custom step or webhook is required inside the pipeline
+itself to get a real alert out of this, and no automatic PR or receipt
+gets posted anywhere -- that's `ubx-agent`'s job (UBI-28), not this
+pipeline's.
+
+## Workflow 2: ship on merge (real scope, stated above)
+
+Given the gap above, this pipeline ships whatever is **already**
+accepted in the ledger, triggered by a push to `main`. It does not
+derive or verify acceptance itself.
+
+```yaml
+trigger:
+  branches:
+    include:
+    - main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - bash: |
+      curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+      sudo mv ubx /usr/local/bin/
+    displayName: Install ubx
+
+  - task: Cache@2
+    inputs:
+      key: 'ubx-providers-hashicorp-aws-6.54.0'
+      path: $(HOME)/.ubx/providers
+    displayName: Cache provider binaries
+
+  - task: AWSShellScript@1
+    inputs:
+      awsCredentials: 'ubx-ship-on-merge'
+      regionName: 'us-east-1'
+      scriptType: 'inline'
+      inlineScript: |
+        ubx ship --yes \
+          --source hashicorp/aws --provider-version 6.54.0 \
+          --provider-config '{"region":"us-east-1"}'
+    displayName: Ship
+```
+
+`ubx ship` with no `hash` resolves to the most recent unshipped,
+already-accepted proposal for the stack -- see [`ubx
+ship`](/cli-reference/ship). If nothing has been accepted since the
+last ship, the run is a real no-op, not a failure. `--confirm-destroys`
+is deliberately absent for the same reason it's absent from the
+GitHub and GitLab examples: that acknowledgment has to already have
+happened at accept time, not be silently implied by an unattended
+pipeline run.
+
+## See also
+
+- [GitHub Actions](/integrations/github-actions)
+- [GitLab CI/CD](/integrations/gitlab-ci)
+- [`ubx status`](/cli-reference/status)
+- [`ubx accept`](/cli-reference/accept)
+- [`ubx ship`](/cli-reference/ship)
+- [PR-Merge Acceptance](/concepts/pr-merge-acceptance)
