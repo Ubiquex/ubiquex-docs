@@ -1,18 +1,20 @@
 ---
 title: "GitLab CI/CD"
-description: "Nightly drift watch and merge-triggered shipping, running in GitLab's own pipelines."
+description: "Nightly drift watch, plan-on-push, and merge-triggered shipping, running in GitLab's own pipelines."
 ---
 
-Two independent pipelines, adapted from the [GitHub
+Three independent pipelines, adapted from the [GitHub
 Actions](/integrations/github-actions) reference implementation --
 same real CLI contract underneath (`ubx status --drift`'s exit codes,
-`ubx ship`'s own resolution rules), but GitLab's own real mechanisms
-for scheduling, credentials, and merge automation, verified
-independently rather than assumed to mirror GitHub's.
+`ubx plan`'s own receipt, `ubx ship`'s own resolution rules), but
+GitLab's own real mechanisms for scheduling, credentials, merge-request
+events, and merge automation, verified independently rather than
+assumed to mirror GitHub's.
 
 <Note>
-  This covers scheduled and merge-triggered automation only --
-  `ubx-agent` (UBI-28, parked) exists for the case this structurally
+  This covers scheduled, merge-request-triggered, and merge-triggered
+  automation only -- `ubx-agent` (UBI-28, parked) exists for the case
+  this structurally
   can't cover: tight detection latency and an event-driven loop, not a
   cron tick or a merge hook. Nothing here is a substitute for that,
   it's what's real today.
@@ -64,9 +66,15 @@ pinning a provider version.
 
 ### Provider credentials: OIDC to AWS, no stored keys
 
-GitLab's OIDC mechanism is structurally different from GitHub's, not
-just differently named. A job requests a token explicitly with the
-`id_tokens` keyword, and there's no GitLab-maintained equivalent of
+Drift-watch and ship-on-merge both need real AWS credentials.
+Plan-on-merge-request, covered below, is a real, deliberate exception
+the same way it is in the GitHub guide -- `ubx plan`'s own resolve
+step never makes a live call, so it needs none.
+
+GitLab's OIDC mechanism, for the two jobs that do need credentials, is
+structurally different from GitHub's, not just differently named. A
+job requests a token explicitly with the `id_tokens` keyword, and
+there's no GitLab-maintained equivalent of
 `aws-actions/configure-aws-credentials` -- the real, current, GitLab-
 documented pattern calls `aws sts assume-role-with-web-identity`
 directly:
@@ -189,7 +197,72 @@ notification step or webhook is required to get a real alert out of
 this, and no automatic PR or receipt gets posted anywhere -- that's
 `ubx-agent`'s job (UBI-28), not this pipeline's.
 
-## Workflow 2: ship on merge (real scope, stated above)
+## Workflow 2: plan on merge request
+
+`ubx plan` renders the same real receipt covered in [GitHub
+Actions](/integrations/github-actions#workflow-2-plan-on-push) --
+delta, blast radius, and a cost delta line when the resource's own
+cost data is available -- without ever touching the ledger. Unlike
+drift-watch and ship-on-merge, this pipeline needs no AWS credentials
+at all: `ubx plan`'s resolve step only ever queries the provider's
+schema (confirmed directly against `core/resolver/resolver.go`, same
+finding as GitHub's own guide), never a live read.
+
+GitLab's own merge-request-pipeline mechanism is real and current, but
+different in kind from GitHub's `opened`/`synchronize` event pair --
+one pipeline source, `merge_request_event`, covers every pipeline run
+associated with an MR, including the first one and every subsequent
+push to its source branch, selected the same `rules:` way as
+drift-watch's own schedule condition:
+
+```yaml
+plan:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  cache:
+    key: ubx-providers-hashicorp-aws-6.54.0
+    paths:
+      - ~/.ubx/providers
+  script:
+    - curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+    - mv ubx /usr/local/bin/
+    - curl -L https://gitlab.com/api/v4/projects/gitlab-org%2Fcli/packages/generic/glab/1.113.0/glab_1.113.0_linux_amd64.tar.gz | tar xz --strip-components=1 bin/glab
+    - mv glab /usr/local/bin/
+    - export GLAB_ENABLE_CI_AUTOLOGIN=true
+    - >
+      ubx plan --ledger-dir .
+      --source hashicorp/aws --provider-version 6.54.0
+      > plan-output.txt 2>&1
+    - glab mr note create $CI_MERGE_REQUEST_IID -m "$(cat plan-output.txt)"
+```
+
+Two real GitLab-specific details, neither obvious from copying
+GitHub's own workflow:
+
+`GLAB_ENABLE_CI_AUTOLOGIN=true` is required, not automatic -- unlike
+`gh` on a GitHub-hosted runner, `glab` does not auto-detect
+`CI_JOB_TOKEN` by default; without this variable set, `glab mr note
+create` fails with an auth error rather than silently using the job's
+own real token. `glab` itself isn't preinstalled the way `gh` is on
+GitHub's own runners either, so it's downloaded the same way `ubx` is
+above.
+
+`glab mr note create` has no equivalent to `gh pr comment --edit-last`
+-- confirmed directly against the real, current `glab` CLI reference,
+not assumed absent. Its only related flag, `--unique`, skips posting
+only if a note with byte-identical content already exists, which a
+changed plan output never will be; there's no "find and update my own
+last note" mechanism built in. Every push to the MR posts a genuinely
+new note here, not an updated one -- a real, material difference from
+GitHub's guide worth knowing before relying on it, not a corner cut
+silently. A team that wants GitHub's exact dedup behavior would need
+to script it directly against the [Notes
+API](https://docs.gitlab.com/api/notes/) (list, find the bot's last
+note, `PUT` to update) -- real and possible, just genuinely more work
+than the one flag GitHub's `gh` provides, not built out here to keep
+this guide's own complexity proportionate to what's actually native.
+
+## Workflow 3: ship on merge (real scope, stated above)
 
 Given the gap in the section above, this pipeline's real job is
 narrower than GitHub's: ship whatever is **already** accepted in the
@@ -245,6 +318,7 @@ by the pipeline running unattended.
 - [Bamboo](/integrations/bamboo)
 - [CircleCI](/integrations/circleci)
 - [`ubx status`](/cli-reference/status)
+- [`ubx plan`](/cli-reference/plan)
 - [`ubx accept`](/cli-reference/accept)
 - [`ubx ship`](/cli-reference/ship)
 - [PR-Merge Acceptance](/concepts/pr-merge-acceptance)
