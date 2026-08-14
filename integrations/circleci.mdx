@@ -1,0 +1,278 @@
+---
+title: "CircleCI"
+description: "Nightly drift watch and merge-triggered shipping, running in CircleCI."
+---
+
+Two independent workflows, adapted from the [GitHub
+Actions](/integrations/github-actions) reference implementation --
+same real CLI contract underneath, but CircleCI's own real mechanisms
+for credentials, scheduling, and notifications, verified independently
+rather than assumed to mirror any of the four platforms already
+covered.
+
+<Note>
+  This covers scheduled and merge-triggered automation only --
+  `ubx-agent` (UBI-28, parked) exists for the case this structurally
+  can't cover: tight detection latency and an event-driven loop, not a
+  cron tick or a merge hook. Nothing here is a substitute for that,
+  it's what's real today.
+</Note>
+
+## The same real gap as the other three
+
+Confirmed once, directly against `ubx`'s own source
+(`cli/accept.go`'s `--github-repo`-only flag, the `github/` package's
+GitHub REST API calls), and true for every non-GitHub platform:
+`ubx accept --from-merge` has no CircleCI equivalent. As with GitLab,
+Azure DevOps, and Bamboo, this is a real gap in `ubx` itself, not a
+platform limitation -- CircleCI has no bearing on it either way, since
+the derivation would need to talk to whatever VCS host the project is
+on, not to CircleCI. The honest fallback is the same: a merge-
+triggered workflow here ships an **already-accepted** proposal;
+acceptance itself still happens through `ubx accept`'s local-file
+path, by a real person, not derived automatically from the merge
+event.
+
+## Prerequisites
+
+Same as the other platforms: a stack repository with a real
+`.ubx/config` and a git-local ledger already committed (see [Install
+and initialize your first stack](/tutorial/setup/install)). Nothing
+here runs `ubx init`.
+
+### Installing ubx in the job
+
+```bash
+curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+sudo mv ubx /usr/local/bin/
+```
+
+Pin an exact released version, not `latest`.
+
+### Provider credentials: OIDC to AWS, real and first-party
+
+Of the four non-GitHub platforms covered, CircleCI's OIDC story is the
+closest to GitHub's own -- a real, current, first-party mechanism, not
+a third-party add-on. Every job gets a real OIDC ID token
+automatically in `$CIRCLE_OIDC_TOKEN` (`$CIRCLE_OIDC_TOKEN_V2` adds
+VCS origin/ref claims), no extra permission block required to request
+it. CircleCI's own `circleci/aws-cli` orb wraps the STS exchange:
+
+```yaml
+version: 2.1
+
+orbs:
+  aws-cli: circleci/aws-cli@5.4.2
+
+jobs:
+  drift-watch:
+    docker:
+      - image: cimg/aws:2026.07
+    steps:
+      - checkout
+      - aws-cli/setup:
+          role_arn: "arn:aws:iam::<ACCOUNT_ID>:role/ubx-drift-watch"
+          region: us-east-1
+          role_session_name: "ubx-drift-watch"
+      - run:
+          name: Install ubx
+          command: |
+            curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+            sudo mv ubx /usr/local/bin/
+      - run:
+          name: Check for drift
+          command: |
+            ubx status --drift --stack payments \
+              --source hashicorp/aws --provider-version 6.54.0 \
+              --provider-config '{"region":"us-east-1"}'
+```
+
+`aws-cli/setup` exchanges `$CIRCLE_OIDC_TOKEN` for temporary AWS
+credentials via `sts:AssumeRoleWithWebIdentity` and configures the AWS
+CLI's default profile with them -- `ubx` needs nothing beyond that,
+since it reads AWS credentials from the process environment like any
+other AWS-SDK-based tool.
+
+Setup on the AWS side:
+
+1. Create an IAM OIDC identity provider with the provider URL
+   `https://oidc.circleci.com/org/<ORG_ID>` (your CircleCI
+   organization's own UUID, found in Organization Settings) and
+   audience matching that same URL.
+2. Create an IAM role with a trust policy scoped to the token's `sub`
+   claim:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {
+      "Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/oidc.circleci.com/org/<ORG_ID>"
+    },
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Condition": {
+      "StringEquals": {
+        "oidc.circleci.com/org/<ORG_ID>:aud": "https://oidc.circleci.com/org/<ORG_ID>"
+      },
+      "StringLike": {
+        "oidc.circleci.com/org/<ORG_ID>:sub": "org/<ORG_ID>/project/<PROJECT_ID>/user/*"
+      }
+    }
+  }]
+}
+```
+
+As on every other platform, drift-watch and ship-on-merge want
+different real permissions -- two separate IAM roles is the least-
+privilege choice.
+
+### Caching provider binaries
+
+```yaml
+- save_cache:
+    key: ubx-providers-hashicorp-aws-6.54.0
+    paths:
+      - ~/.ubx/providers
+- restore_cache:
+    keys:
+      - ubx-providers-hashicorp-aws-6.54.0
+```
+
+## Workflow 1: nightly drift watch
+
+CircleCI's scheduling model is structurally closer to GitLab's than to
+GitHub's or Azure DevOps' -- the schedule itself isn't declared in
+`.circleci/config.yml` at all. It's a real, separate object (a
+"Trigger," confirmed current terminology -- the older
+`workflows.triggers.schedule` YAML block is deprecated) configured
+through Project Settings → Triggers or the API, with its own cron
+expression, target branch, and an assigned "actor" whose permissions
+and notification preferences the scheduled run inherits.
+
+Because a schedule trigger fires the *whole* pipeline, and a single
+`config.yml` commonly defines more than one workflow, a workflow-level
+condition is what actually keeps drift-watch from also running on
+every ordinary push, and ship-on-merge from running on every scheduled
+tick -- `pipeline.trigger_source` is the real, current pipeline value
+for this:
+
+```yaml
+version: 2.1
+
+orbs:
+  aws-cli: circleci/aws-cli@5.4.2
+
+jobs:
+  drift-watch:
+    docker:
+      - image: cimg/aws:2026.07
+    steps:
+      - checkout
+      - aws-cli/setup:
+          role_arn: "arn:aws:iam::<ACCOUNT_ID>:role/ubx-drift-watch"
+          region: us-east-1
+      - restore_cache:
+          keys:
+            - ubx-providers-hashicorp-aws-6.54.0
+      - run:
+          name: Install ubx
+          command: |
+            curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+            sudo mv ubx /usr/local/bin/
+      - run:
+          name: Check for drift
+          command: |
+            ubx status --drift --stack payments \
+              --source hashicorp/aws --provider-version 6.54.0 \
+              --provider-config '{"region":"us-east-1"}'
+      - save_cache:
+          key: ubx-providers-hashicorp-aws-6.54.0
+          paths:
+            - ~/.ubx/providers
+
+workflows:
+  scheduled-drift-watch:
+    when: pipeline.trigger_source == "scheduled_pipeline"
+    jobs:
+      - drift-watch
+```
+
+`ubx status --drift`'s exit code (`0` clean, `1` drift found, `2`
+unreadable, worse always wins -- see [`ubx
+status`](/cli-reference/status)) fails the step, and the job, directly.
+
+CircleCI's native alerting is individually configured, similar in
+spirit to GitHub's own model: each person sets their own notification
+preference (Notifications page -- "All builds," "My branches," "My
+work," or none), and a scheduled trigger's assigned actor is credited
+as the one who ran it, so that actor's own "My work" preference is
+what determines whether a failure alert goes out. As with the other
+platforms, no custom step or webhook is required inside the job itself
+to get a real alert out of a properly configured preference, and no
+automatic PR or receipt gets posted anywhere -- that's `ubx-agent`'s
+job (UBI-28), not this pipeline's.
+
+## Workflow 2: ship on merge (real scope, stated above)
+
+Given the gap above, this workflow ships whatever is **already**
+accepted in the ledger, triggered by a push to `main`. It does not
+derive or verify acceptance itself.
+
+```yaml
+workflows:
+  ship-on-merge:
+    when: pipeline.trigger_source != "scheduled_pipeline"
+    jobs:
+      - ship:
+          filters:
+            branches:
+              only: main
+
+jobs:
+  ship:
+    docker:
+      - image: cimg/aws:2026.07
+    steps:
+      - checkout
+      - aws-cli/setup:
+          role_arn: "arn:aws:iam::<ACCOUNT_ID>:role/ubx-ship-on-merge"
+          region: us-east-1
+      - restore_cache:
+          keys:
+            - ubx-providers-hashicorp-aws-6.54.0
+      - run:
+          name: Install ubx
+          command: |
+            curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+            sudo mv ubx /usr/local/bin/
+      - run:
+          name: Ship
+          command: |
+            ubx ship --yes \
+              --source hashicorp/aws --provider-version 6.54.0 \
+              --provider-config '{"region":"us-east-1"}'
+      - save_cache:
+          key: ubx-providers-hashicorp-aws-6.54.0
+          paths:
+            - ~/.ubx/providers
+```
+
+`ubx ship` with no `hash` resolves to the most recent unshipped,
+already-accepted proposal for the stack -- see [`ubx
+ship`](/cli-reference/ship). If nothing has been accepted since the
+last ship, the run is a real no-op, not a failure. `--confirm-destroys`
+is deliberately absent for the same reason it's absent from every
+other platform's example: that acknowledgment has to already have
+happened at accept time, not be silently implied by an unattended job.
+
+## See also
+
+- [GitHub Actions](/integrations/github-actions)
+- [GitLab CI/CD](/integrations/gitlab-ci)
+- [Azure DevOps Pipelines](/integrations/azure-devops)
+- [Bamboo](/integrations/bamboo)
+- [`ubx status`](/cli-reference/status)
+- [`ubx accept`](/cli-reference/accept)
+- [`ubx ship`](/cli-reference/ship)
+- [PR-Merge Acceptance](/concepts/pr-merge-acceptance)
