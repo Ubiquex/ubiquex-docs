@@ -1,0 +1,124 @@
+---
+title: "ubx server"
+description: "Run a self-hosted GitHub App automating plan/accept/ship/drift-watch."
+---
+
+`ubx server` turns the same real `plan`/`accept`/`ship`/`status --drift` flow into a
+continuously-running daemon, reacting to GitHub webhook events instead of a human or a CI job
+invoking each command by hand.
+
+Real, current scope: GitHub only, as a real, installable GitHub App. GitLab, Azure DevOps, and
+Bamboo are real, planned follow-up phases, not yet built.
+
+Same binary as `ubx` itself, not a second codebase -- every actual plan/accept/ship/scan operation
+shells back out to this exact executable, reusing its real safety properties (confirm-destroys
+enforcement, freshness re-verification) exactly as a human invoking it directly would.
+
+<Note>
+  This is a raw flag reference. For the full setup walkthrough, the complete real flow, and the
+  configuration file's own schema, see the [ubx server](/server/overview) tab.
+</Note>
+
+## Usage
+
+```bash
+ubx server [flags]
+```
+
+Configuration cascades flags > environment variables (`UBX_SERVER_*`) > `--config`'s own YAML
+file > built-in defaults -- see [Configuration](/server/configuration) for the complete, real key
+mapping.
+
+## Flags
+
+<ResponseField name="--config" type="string">
+  Path to a YAML config file. See [Configuration](/server/configuration) for the real schema.
+</ResponseField>
+
+<ResponseField name="--listen-addr" type="string" default=":8080">
+  Address to listen for GitHub webhooks on.
+</ResponseField>
+
+<ResponseField name="--work-dir" type="string" default="/var/lib/ubx-server/repos">
+  Directory to clone/fetch watched repos into.
+</ResponseField>
+
+<ResponseField name="--github-app-id" type="int">
+  The GitHub App's own numeric ID.
+</ResponseField>
+
+<ResponseField name="--github-app-private-key-path" type="string">
+  Path to the GitHub App's own PEM private key.
+</ResponseField>
+
+<ResponseField name="--github-bot-login" type="string" default="ubx[bot]">
+  The GitHub App's own bot user login, `"<app-slug>[bot]"` -- a real GitHub App's bot login is
+  always this shape, but the slug is whatever name its operator gave the App at creation time, so
+  this isn't derived automatically.
+</ResponseField>
+
+<ResponseField name="--github-webhook-secret" type="string">
+  The webhook secret configured on the GitHub App. Required. Also settable via
+  `UBX_SERVER_GITHUB_WEBHOOK_SECRET` -- never via the YAML file, deliberately: a webhook secret
+  shouldn't sit in a config file that might get committed.
+</ResponseField>
+
+<ResponseField name="--github-api-base-url" type="string">
+  Override the GitHub API base URL. Test-only.
+</ResponseField>
+
+<ResponseField name="--provider-source" type="string">
+  Provider source for plan/ship/status --drift, e.g. `hashicorp/aws`.
+</ResponseField>
+
+<ResponseField name="--provider-version" type="string">
+  Provider version to acquire.
+</ResponseField>
+
+<ResponseField name="--provider-config" type="string" default="{}">
+  JSON object configuring the provider.
+</ResponseField>
+
+<ResponseField name="--ship-on-merge" type="bool" default="true">
+  Attempt an automatic ship when a watched PR merges.
+</ResponseField>
+
+<ResponseField name="--allow-destroy" type="bool" default="false">
+  Allow a manual `ubx ship --confirm-destroys` comment to actually pass `--confirm-destroys`
+  through. Destroy is disabled by default -- turning this on does not, by itself, let an automatic
+  merge-triggered ship destroy anything; that path never passes `--confirm-destroys`, no exception.
+  Even with this on, a manual ship comment still needs the human's own explicit
+  `--confirm-destroys` in the comment text itself, every time.
+</ResponseField>
+
+<ResponseField name="--surface-as" type="string" default="issue">
+  How drift-watch surfaces real drift: `"issue"` or `"pr"`. Same flag, same real meaning, as
+  [`ubx scan --surface-as`](/cli-reference/scan).
+</ResponseField>
+
+<ResponseField name="--drift-watch-interval" type="string" default="24h">
+  How often to run the drift-watch loop, a Go duration string (e.g. `"24h"`, `"30m"`).
+</ResponseField>
+
+<ResponseField name="--repo" type="stringArray">
+  A watched repo, `"owner/name"` or `"owner/name:ledger_dir"` (repeatable). The YAML file's own
+  `repos:` list is the real alternative for more than a few repos.
+</ResponseField>
+
+## Notes
+
+`ubx server` never derives acceptance for a destructive proposal from a review, regardless of
+`--allow-destroy` -- a destroy is only ever accepted locally with
+[`ubx accept --confirm-destroys`](/cli-reference/accept), by a real person, never automatically.
+
+## See also
+
+- [ubx server overview](/server/overview)
+- [GitHub App setup](/server/github-setup)
+- [Configuration](/server/configuration)
+- [The real workflow](/server/workflow)
+- [Docker deployment](/server/docker)
+- [`ubx plan`](/cli-reference/plan)
+- [`ubx accept`](/cli-reference/accept)
+- [`ubx ship`](/cli-reference/ship)
+- [`ubx status`](/cli-reference/status)

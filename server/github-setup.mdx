@@ -1,0 +1,97 @@
+---
+title: "GitHub App setup"
+description: "Create and install the real GitHub App ubx server runs as."
+---
+
+`ubx server` runs as a real, installable GitHub App -- fine-grained permissions, short-lived
+installation tokens, a real bot identity (`<your-app-slug>[bot]`) -- never a raw shared webhook
+secret bolted onto a personal access token.
+
+## Create the App
+
+Go to **Settings → Developer settings → GitHub Apps → New GitHub App** (an organization's own
+Settings page has the identical flow, under the organization's own Developer settings).
+
+<Steps>
+  <Step title="GitHub App name">
+    Any real, unique name -- this becomes your App's own slug, and its bot identity is always
+    `<slug>[bot]` (confirmed against GitHub's own docs: this is a fixed, real naming convention,
+    never configurable separately). Set `--github-bot-login`/`github_bot_login` to match once
+    you've picked one -- see [Configuration](/server/configuration).
+  </Step>
+
+  <Step title="Homepage URL">
+    Any real URL -- your team's own internal docs page, or this one.
+  </Step>
+
+  <Step title="Webhook">
+    Check **Active**. Set **Webhook URL** to `https://<your-host>/webhook` -- `ubx server` exposes
+    exactly one real route, `/webhook`, on `--listen-addr` (default `:8080`). Set **Webhook
+    secret** to a real, random value -- generate one with `openssl rand -hex 32`. This exact value
+    becomes `--github-webhook-secret`/`UBX_SERVER_GITHUB_WEBHOOK_SECRET`.
+  </Step>
+
+  <Step title="Repository permissions">
+    Real, fine-grained, only what the core flow actually needs:
+
+    | Permission | Level | Why |
+    | --- | --- | --- |
+    | Contents | Read-only (Read & write if using `--surface-as pr`) | Clone/fetch the watched repo; `pr` drift-watch mode also opens a branch |
+    | Issues | Read & write | Comment editing (`ubx plan`/`ubx ship` comments use the Issues API), `--surface-as issue` drift-watch |
+    | Pull requests | Read & write | Read PR metadata/files, post/edit comments, read reviews |
+    | Metadata | Read-only | Mandatory for every GitHub App, set automatically |
+
+    Least privilege applies here exactly like [`ubx scan
+    --surface-as`](/cli-reference/scan)'s own default: `--surface-as issue` (this server's own
+    default) never needs Contents write access at all; only turn it on if you've deliberately
+    chosen `--surface-as pr`.
+  </Step>
+
+  <Step title="Subscribe to events">
+    Three real events, matching the three webhook handlers `ubx server` actually has:
+
+    - **Pull request** (opened/synchronize/closed -- steps 1 and 5 of the [core
+      flow](/server/overview#the-core-flow))
+    - **Issue comment** (created -- step 3's re-plan and step 4's manual ship)
+    - **Pull request review** (submitted -- step 4's Approve-derived acceptance)
+  </Step>
+
+  <Step title="Where can this GitHub App be installed?">
+    **Only on this account** for a single org's own use; **Any account** only if you're actually
+    distributing this App beyond your own org.
+  </Step>
+
+  <Step title="Create, then generate a private key">
+    After creation, scroll to **Private keys** and **Generate a private key** -- downloads a real
+    `.pem` file. This path becomes `--github-app-private-key-path`. Note the **App ID** shown near
+    the top of the same page -- this becomes `--github-app-id`.
+  </Step>
+</Steps>
+
+## Install it
+
+From the App's own settings page, **Install App** in the left sidebar, then choose the real
+organization or account and either **All repositories** or **Only select repositories** -- GitHub's
+own native installation picker, not a custom scoping UI `ubx server` builds itself.
+
+<Note>
+  Each repository `ubx server` watches needs a real, current [remote ledger
+  store](/tutorial/remote-stores) configured in its own `.ubx/config` -- `ubx` itself never runs
+  `git commit`/`git push`, so an `accept`/`ship` written to a local git-directory ledger inside
+  this server's own working clone never persists anywhere once that clone is next re-fetched. A
+  remote store (S3, GCS, Azure Blob) is the real, correct setup for any repo this server writes to,
+  the same requirement the existing CI/CD ship-on-merge workflows already carry.
+</Note>
+
+## Verify the installation
+
+Once installed, note the numeric **Installation ID** from the URL of the App's installation
+settings page (`.../installations/<id>`) -- useful for confirming `ubx server`'s own logs show the
+right installation resolving for a webhook delivery, though the server itself reads this directly
+off each event's own payload, never needing it supplied separately.
+
+## See also
+
+- [Configuration](/server/configuration)
+- [The real workflow](/server/workflow)
+- [`ubx server`](/cli-reference/server)

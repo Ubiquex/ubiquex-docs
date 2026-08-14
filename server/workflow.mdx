@@ -1,0 +1,135 @@
+---
+title: "The real workflow"
+description: "The complete flow, walked through step by step against real, verified behavior."
+---
+
+This walks through [the core flow](/server/overview#the-core-flow) in order, against the real,
+tested behavior of `ubx server`'s own code -- not a hypothetical. A full live run needs a real
+GitHub App installation on a real repository, not reproducible inside this documentation build;
+every mechanic below is instead grounded in the same real, adversarial test suite that verifies it
+(`server/*_test.go`) and a real, captured transcript of the one piece that doesn't need a GitHub
+App at all -- the webhook endpoint itself.
+
+## Prerequisites
+
+- A real GitHub App, installed on the repo(s) you want watched -- see [GitHub App
+  setup](/server/github-setup).
+- Each watched repo's own `.ubx/config` pointing at a real [remote ledger
+  store](/tutorial/remote-stores) (S3, GCS, or Azure Blob) -- `ubx` itself never runs `git commit`/
+  `git push`, so a local git-directory ledger written inside this server's own working clone never
+  persists once that clone is next re-fetched.
+- `ubx server` itself running and reachable at the Webhook URL the App is configured with -- see
+  [Docker deployment](/server/docker).
+
+## 1. A PR opens
+
+GitHub delivers a real `pull_request` event (`action: "opened"`) to `/webhook`. `ubx server`:
+
+1. Validates the delivery's own `X-Hub-Signature-256` against the configured webhook secret --
+   confirmed live below.
+2. Resolves an installation-scoped API client from the event's own `installation.id` (never a
+   separate lookup call -- every webhook payload already carries it).
+3. Clones (or fetches, if already cloned) the repo into `--work-dir`, checks out the PR's own real
+   head commit.
+4. Runs `ubx plan --ledger-dir <configured>` [--source ... --provider-version ...]` as a real
+   subprocess of the exact same `ubx` binary.
+5. Posts the captured stdout/stderr as a single PR comment, prefixed with a hidden
+   `<!-- ubx:plan -->` marker.
+
+## 2. Re-plan via comment
+
+A new commit lands on the PR (`synchronize`) -- the same real steps run again, editing the
+existing marked comment in place rather than posting a new one, the exact `--edit-last` mechanism
+[GitHub Actions' own plan-on-push guide](/integrations/github-actions#workflow-2-plan-on-push)
+already documents.
+
+The PR's own creator can also comment `ubx plan` directly to force a re-run. `ubx server` reads the
+comment, confirms it starts with `ubx plan`, and checks a real, live authorization rule before
+running anything:
+
+- **The commenter is the PR's own real creator** (read from the PR object itself, via the API,
+  never assumed from the comment's own claim) -- authorized.
+- **The PR was opened by this server's own bot** (a drift-watch-opened PR, step 6 below) -- there's
+  no real human creator to compare against, so the rule falls back to the commenter's own real,
+  live write access on the repository (GitHub's collaborator-permissions API, checked fresh every
+  time, never cached).
+- Anyone else -- refused, with a comment explaining why.
+
+## 3. Approve derives acceptance
+
+GitHub's own native **Approve** review action -- never a comment -- fires a real
+`pull_request_review` event (`state: "approved"`). `ubx server`:
+
+1. Reads the PR's own body for a real `ubx-proposal: <hash>` trailer.
+2. Reads the proposal file at **the review's own commit** specifically (`review.commit_id`), never
+   the PR's current head -- a real, deliberate choice: new commits can land on a PR after a review
+   without invalidating it (unless branch protection requires re-review), so reading at the PR's
+   current head could silently accept something nobody actually reviewed.
+3. Recomputes the file's own hash and requires it to match the trailer exactly -- the identical
+   "hash mismatch is a hard failure" rule [`ubx accept
+   --from-merge`](/cli-reference/accept#notes) already enforces for the merge-derived tier.
+4. **Refuses outright if `blast_radius.destroys > 0`** -- a destroy is never accepted from a
+   review, regardless of any configuration. See [Configuration](/server/configuration)'s own
+   `allow_destroy` note; that flag governs ship, never acceptance. A human accepts a real destroy
+   locally with [`ubx accept --confirm-destroys`](/cli-reference/accept) instead.
+5. Otherwise calls `core.AcceptFromReview` directly (in-process, not a subprocess -- the one real
+   flow step that doesn't shell back out to `ubx` itself, since it needs no provider round trip and
+   the acceptance logic is small enough to call as a library function safely), recording the
+   approver and their own review comment in the ledger.
+6. Posts a real confirmation comment: `accepted <hash> (stack <name>) via PR #<n>, approved by
+   @<reviewer>`.
+
+## 4. Ship
+
+**Automatically on merge**, when `ship_on_merge` is on (the default): a real `pull_request` event
+(`action: "closed"`, `merged: true`) checks out the PR's own base branch (now carrying the merge
+commit) and runs `ubx ship --yes` -- **never** with `--confirm-destroys`, no exception, regardless
+of `allow_destroy`. There's no human present in an unattended, merge-triggered path to give the
+real, separate confirmation a destroy needs, so a destructive proposal always fails `ubx ship`'s
+own existing confirm-destroys enforcement here, by design -- the manual path below is what a real
+destroy actually needs.
+
+**Manually via comment**, `ubx ship [--confirm-destroys]`: `ubx server` checks the commenter
+against the repository's own real `CODEOWNERS` file -- real gitignore-style glob matching (via
+`github.com/hmarr/codeowners`) against the PR's own actual changed files, a team owner resolved via
+a real, live GitHub team-membership call. Unauthorized -- refused, with a comment explaining why.
+Authorized, and the comment included `--confirm-destroys` explicitly, and the server's own
+`allow_destroy` is also on -- **both** real, both required -- `--confirm-destroys` is forwarded to
+the real `ubx ship` subprocess.
+
+## 5. Drift-watch
+
+On `drift_watch_interval` (default `24h`), for every repo in `Config.Repos`: checks out its own
+main branch and runs `ubx status --drift --surface-as <issue|pr>` -- the exact same, already-existing
+[`--surface-as`](/cli-reference/scan) machinery `ubx scan` uses directly, opening a real issue or
+draft PR when real drift is found. A drift-opened PR is attributed to the bot's own login
+(`github_bot_login`) -- see step 2 above for what that means for its own re-plan authorization.
+
+## Verified: the webhook endpoint itself
+
+A real, captured transcript against a running container (see [Docker deployment](/server/docker)):
+
+```bash
+curl -s -o /dev/null -w "no-signature: %{http_code}\n" -X POST http://localhost:8080/webhook -d '{}'
+
+curl -s -o /dev/null -w "bad-signature: %{http_code}\n" -X POST http://localhost:8080/webhook \
+  -H "X-Hub-Signature-256: sha256=deadbeef" -H "X-GitHub-Event: ping" -d '{}'
+
+payload='{"zen":"test"}'
+sig=$(echo -n "$payload" | openssl dgst -sha256 -hmac "test-secret" | sed 's/^.* //')
+curl -s -o /dev/null -w "valid-signature: %{http_code}\n" -X POST http://localhost:8080/webhook \
+  -H "X-Hub-Signature-256: sha256=$sig" -H "X-GitHub-Event: ping" -H "Content-Type: application/json" -d "$payload"
+```
+
+```bash
+no-signature: 401
+bad-signature: 401
+valid-signature: 202
+```
+
+## See also
+
+- [GitHub App setup](/server/github-setup)
+- [Configuration](/server/configuration)
+- [`ubx server`](/cli-reference/server)
+- [PR-Merge Acceptance](/concepts/pr-merge-acceptance)

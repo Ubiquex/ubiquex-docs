@@ -1,0 +1,105 @@
+---
+title: "Configuration"
+description: "Every real flag, environment variable, and YAML key ubx server reads, and how they cascade."
+---
+
+Real, confirmed precedence: **flags override environment variables, environment variables override
+the YAML file, YAML overrides these built-in defaults.** Every layer only overwrites a value the
+layer above it actually set -- an unset flag never blanks out whatever the YAML/env layers already
+established underneath it.
+
+## The real key mapping
+
+Every scalar setting has a real YAML key, a real environment variable
+(`UBX_SERVER_<UPPER_SNAKE_CASE>`), and a real flag (`--kebab-case`):
+
+| YAML key | Environment variable | Flag | Default |
+| --- | --- | --- | --- |
+| `listen_addr` | `UBX_SERVER_LISTEN_ADDR` | `--listen-addr` | `:8080` |
+| `work_dir` | `UBX_SERVER_WORK_DIR` | `--work-dir` | `/var/lib/ubx-server/repos` |
+| `github_app_id` | `UBX_SERVER_GITHUB_APP_ID` | `--github-app-id` | -- |
+| `github_app_private_key_path` | `UBX_SERVER_GITHUB_APP_PRIVATE_KEY_PATH` | `--github-app-private-key-path` | -- |
+| `github_bot_login` | `UBX_SERVER_GITHUB_BOT_LOGIN` | `--github-bot-login` | `ubx[bot]` |
+| -- | `UBX_SERVER_GITHUB_WEBHOOK_SECRET` | `--github-webhook-secret` | -- |
+| `provider_source` | `UBX_SERVER_PROVIDER_SOURCE` | `--provider-source` | -- |
+| `provider_version` | `UBX_SERVER_PROVIDER_VERSION` | `--provider-version` | -- |
+| `provider_config` | `UBX_SERVER_PROVIDER_CONFIG` | `--provider-config` | -- |
+| `ship_on_merge` | `UBX_SERVER_SHIP_ON_MERGE` | `--ship-on-merge` | `true` |
+| `allow_destroy` | `UBX_SERVER_ALLOW_DESTROY` | `--allow-destroy` | `false` |
+| `surface_as` | `UBX_SERVER_SURFACE_AS` | `--surface-as` | `issue` |
+| `drift_watch_interval` | `UBX_SERVER_DRIFT_WATCH_INTERVAL` | `--drift-watch-interval` | `24h` |
+| `repos` (list, see below) | -- | `--repo` (repeatable) | -- |
+
+**`github_webhook_secret` has no YAML key, deliberately.** A webhook secret is exactly the kind of
+value that shouldn't sit in a config file that might get committed -- set it via
+`UBX_SERVER_GITHUB_WEBHOOK_SECRET` or `--github-webhook-secret` only, the same "self-provisioned,
+masked variable, never literally in the file" discipline every [CI/CD
+guide](/integrations/github-actions) already applies to its own platform tokens.
+
+**`repos` is YAML-only, for the opposite reason:** it's a real list of structured objects (owner,
+name, and each repo's own ledger directory), not a scalar a single flag or environment variable can
+sensibly represent. `--repo` is a real, repeatable flag covering the common one-or-few-repos case
+without needing a YAML file at all -- not a full substitute for the list.
+
+## The YAML file
+
+```yaml
+listen_addr: ":8080"
+work_dir: "/var/lib/ubx-server/repos"
+
+github_app_id: 123456
+github_app_private_key_path: "/etc/ubx-server/github-app.pem"
+github_bot_login: "ubx[bot]"
+
+provider_source: "hashicorp/aws"
+provider_version: "6.54.0"
+provider_config: '{"region":"us-east-1"}'
+
+ship_on_merge: true
+allow_destroy: false
+surface_as: "issue"
+drift_watch_interval: "24h"
+
+repos:
+  - owner: "acme"
+    name: "infra"
+    ledger_dir: "."
+  - owner: "acme"
+    name: "payments-infra"
+    ledger_dir: "stacks/payments"
+```
+
+Point `ubx server` at it with `--config /etc/ubx-server/ubx-server.yaml`.
+
+## `--repo`'s own shorthand
+
+```bash
+ubx server --repo acme/infra --repo acme/payments-infra:stacks/payments
+```
+
+`owner/name` alone defaults `ledger_dir` to `"."`, matching [`ubx
+plan`](/cli-reference/plan)'s own default; `owner/name:ledger_dir` sets it explicitly, the same
+real shape a YAML `repos` entry carries.
+
+## A worked example: env overrides YAML
+
+```yaml
+# ubx-server.yaml
+listen_addr: ":9090"
+```
+
+```bash
+UBX_SERVER_LISTEN_ADDR=:7070 ubx server --config ubx-server.yaml
+```
+
+`ubx server` listens on `:7070` -- the environment variable wins over the YAML file, exactly the
+confirmed cascade order. Add `--listen-addr :6060` to the same command and it listens on `:6060`
+instead -- the flag wins over both.
+
+## See also
+
+- [GitHub App setup](/server/github-setup)
+- [The real workflow](/server/workflow)
+- [Docker deployment](/server/docker)
+- [`ubx server`](/cli-reference/server)
+- [Remote Ledger Stores](/tutorial/remote-stores)

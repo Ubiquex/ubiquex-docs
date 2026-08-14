@@ -1,0 +1,99 @@
+---
+title: "Overview"
+description: "A self-hosted GitHub App turning ubx's own CLI flow into a continuously-running daemon."
+---
+
+`ubx server` runs the same real `plan`/`accept`/`ship`/`status --drift` flow every
+[CI/CD integration](/integrations/github-actions) already exercises, but as a continuously-running
+daemon reacting to GitHub webhook events, not a job that runs once per push and exits.
+
+Real, current scope: GitHub only, as a real, installable GitHub App. GitLab, Azure DevOps, and
+Bamboo are real, planned follow-up phases (the same platforms [`ubx accept
+--from-merge`](/cli-reference/accept) already covers), not yet built.
+
+## Real value versus Actions-only automation
+
+The [GitHub Actions guide](/integrations/github-actions) already covers plan-on-push and
+ship-on-merge -- both real, both useful, both push-triggered. `ubx server` adds exactly one real
+capability neither a push-triggered job nor a scheduled one can: **continuous drift-watch**, a
+long-lived process that notices real drift between scheduled ticks are meaningfully close together
+without needing a separate cron entry per repo, plus a **single place** that already holds the
+GitHub App credentials every repo it watches needs, rather than a repository secret configured
+per-repo for every CI workflow.
+
+Everything else -- plan-on-push, ship-on-merge -- `ubx server` does too, through the exact same
+underlying commands, just triggered by a webhook event instead of a workflow file. Teams already
+happy with Actions-only automation have no real reason to add this; teams watching many repos, or
+wanting drift-watch tighter than a nightly cron tick, are the real audience.
+
+<Note>
+  This still isn't `ubx-agent` (UBI-28, parked before this rewrite) -- even continuous drift-watch
+  here is a polling loop with a real, configured interval, not an event-driven reaction to a live
+  cloud-side change the instant it happens. Nothing here closes that latency gap; it's a real,
+  separate, still-unbuilt capability.
+</Note>
+
+## The core flow
+
+1. **A PR opens.** `ubx plan` runs automatically, posted as a single PR comment once it completes
+   -- no live/streaming updates, one comment, posted after the fact.
+2. **The PR's own creator can comment `ubx plan [flags]`** to re-run it, editing the same comment
+   in place rather than posting a new one each time -- the exact `--edit-last` mechanism the
+   [GitHub Actions guide](/integrations/github-actions#workflow-2-plan-on-push) already documents.
+   A real, live authorization check runs first: the commenter must be the PR's own real creator,
+   confirmed via GitHub's API, never assumed from the app's own installation scope.
+3. **GitHub's own native Approve review action -- never a comment -- derives acceptance,**
+   preserving the same "derived signature, not a comment command" principle
+   [PR-Merge Acceptance](/concepts/pr-merge-acceptance) already establishes for the merge-derived
+   tier. The approving reviewer is recorded as the accepter in the ledger, with their own review
+   comment captured alongside it.
+4. **Ship, two real paths:** automatically on merge (gated by policy, see
+   [Configuration](/server/configuration)), or manually via a `ubx ship` comment, authorized
+   against the repository's own real `CODEOWNERS` file.
+5. **Destroy is disabled by default.** Turning it on for the whole server still isn't enough by
+   itself -- a manual ship comment needs the human's own explicit `--confirm-destroys` in the
+   comment text, every time, and an automatic merge-triggered ship never passes it at all, no
+   exception.
+6. **Drift-watch runs on a real, configured interval,** scheduled `status --drift`/scan per
+   watched stack, automatically opening an issue or draft PR through the same
+   [`--surface-as`](/cli-reference/scan) machinery `ubx scan` already has, when real drift is
+   found.
+
+See [The real workflow](/server/workflow) for the complete, verified walkthrough.
+
+## Core safety properties
+
+- **Same binary as `ubx` itself**, not a second codebase -- every actual plan/accept/ship/scan
+  operation shells back out to the exact same executable, reusing its real safety properties
+  (confirm-destroys enforcement, freshness re-verification) exactly as a human invoking it directly
+  would, not a second, parallel implementation of any of them.
+- **Near-stateless.** The ledger and the VCS host are the real state; kill the process, restart it,
+  it re-derives everything it needs from them.
+- **No signing authority beyond what's described above.** It can only execute signatures a human
+  already produced through a native platform action (an Approve review, a merge), never invent one
+  of its own.
+- **Freshness is re-verified immediately before every automatic ship**, the same real,
+  live-resource re-check [`ubx ship`](/cli-reference/ship) already performs for any ship.
+
+## Get started
+
+<CardGroup cols={2}>
+  <Card title="GitHub App setup" icon="github" href="/server/github-setup">
+    Create and install a real GitHub App, verified step by step.
+  </Card>
+  <Card title="Configuration" icon="gear" href="/server/configuration">
+    Every real flag, environment variable, and YAML key, and how they cascade.
+  </Card>
+  <Card title="The real workflow" icon="diagram-project" href="/server/workflow">
+    The complete flow above, walked through against a real PR.
+  </Card>
+  <Card title="Docker deployment" icon="docker" href="/server/docker">
+    A real, verified Dockerfile for running this as a long-lived daemon.
+  </Card>
+</CardGroup>
+
+## See also
+
+- [`ubx server`](/cli-reference/server)
+- [GitHub Actions](/integrations/github-actions)
+- [PR-Merge Acceptance](/concepts/pr-merge-acceptance)

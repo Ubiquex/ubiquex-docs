@@ -1,0 +1,128 @@
+---
+title: "Docker deployment"
+description: "A real, verified Dockerfile for running ubx server as a long-lived daemon."
+---
+
+`ubx server` is a long-lived daemon, not a one-shot CLI invocation -- the real `Dockerfile` at the
+repository root is a two-stage build: a `golang` build stage compiling the exact same binary
+[`make build`](https://github.com/Ubiquex/ubiquex/blob/main/Makefile) produces, and a minimal
+`debian:bookworm-slim` runtime stage carrying only what `ubx server` genuinely needs at runtime --
+the real `git` binary (every clone/fetch shells out to it) and real CA certificates (every GitHub
+API call and every git-over-HTTPS operation is TLS).
+
+```dockerfile
+# syntax=docker/dockerfile:1
+
+FROM golang:1.26-bookworm AS build
+
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+# sdk/ts/ and sdk/py/ are real git submodules -- the build context
+# passed to `docker build` must already have them populated
+# (`git submodule update --init --recursive` on the host first, exactly
+# what `make build` already requires).
+COPY . .
+
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/ubx ./cmd/ubx
+
+FROM debian:bookworm-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /out/ubx /usr/local/bin/ubx
+
+RUN useradd --create-home --shell /usr/sbin/nologin ubx \
+    && mkdir -p /var/lib/ubx-server/repos \
+    && chown -R ubx:ubx /var/lib/ubx-server
+USER ubx
+
+EXPOSE 8080
+
+ENTRYPOINT ["ubx", "server"]
+```
+
+Runs as a real, non-root user (`ubx`) from the start -- `Config.WorkDir`'s own default,
+`/var/lib/ubx-server/repos`, is created and owned by that user in the image itself, not root.
+
+## Build it
+
+```bash
+git submodule update --init --recursive
+docker build -t ubx-server .
+```
+
+Real, verified: this exact build was run end to end, producing a working, real image.
+
+## Run it
+
+```bash
+docker run -d --name ubx-server -p 8080:8080 \
+  -v /etc/ubx-server/github-app.pem:/etc/ubx-server/github-app.pem:ro \
+  -v /etc/ubx-server/ubx-server.yaml:/etc/ubx-server/ubx-server.yaml:ro \
+  -e UBX_SERVER_GITHUB_WEBHOOK_SECRET=<your real webhook secret> \
+  ubx-server --config /etc/ubx-server/ubx-server.yaml
+```
+
+Mount the App's own private key and (optionally) a YAML config as read-only volumes; pass the
+webhook secret as an environment variable, never baked into the image or the YAML file -- see
+[Configuration](/server/configuration).
+
+Real, verified: this exact container was started, and its own logs showed a real, successful
+listen:
+
+```bash
+2026/08/14 20:20:20 INFO ubx server: listening addr=:8080
+```
+
+`git --version` and `whoami` inside the running container confirmed the real runtime dependencies
+and non-root user:
+
+```bash
+$ docker exec ubx-server git --version
+git version 2.39.5
+$ docker exec ubx-server whoami
+ubx
+```
+
+## docker-compose
+
+```yaml
+services:
+  ubx-server:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - /etc/ubx-server/github-app.pem:/etc/ubx-server/github-app.pem:ro
+      - /etc/ubx-server/ubx-server.yaml:/etc/ubx-server/ubx-server.yaml:ro
+      - ubx-server-repos:/var/lib/ubx-server/repos
+    environment:
+      UBX_SERVER_GITHUB_WEBHOOK_SECRET: "${UBX_SERVER_GITHUB_WEBHOOK_SECRET}"
+    command: ["--config", "/etc/ubx-server/ubx-server.yaml"]
+    restart: unless-stopped
+
+volumes:
+  ubx-server-repos:
+```
+
+`ubx-server-repos` is a real, named volume for `--work-dir` -- keeping each watched repo's own
+clone across container restarts avoids a full re-clone every time, the same reasoning
+`--drift-watch-interval`'s own "not immediately at startup" default already applies for a different
+reason (see [the workflow](/server/workflow#5-drift-watch)).
+
+## Exposing it publicly
+
+GitHub needs to reach `--listen-addr` at a real, public HTTPS URL (the Webhook URL configured in
+[GitHub App setup](/server/github-setup)) -- put a real reverse proxy or load balancer in front of
+this container for TLS termination; `ubx server` itself only ever speaks plain HTTP.
+
+## See also
+
+- [GitHub App setup](/server/github-setup)
+- [Configuration](/server/configuration)
+- [The real workflow](/server/workflow)
