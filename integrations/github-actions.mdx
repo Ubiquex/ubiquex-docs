@@ -1,17 +1,20 @@
 ---
 title: "GitHub Actions"
-description: "Nightly drift watch and ship-on-merge, running in GitHub's own CI."
+description: "Nightly drift watch, plan-on-push, and ship-on-merge, running in GitHub's own CI."
 ---
 
-Two independent workflows, each doing one real job: a scheduled job
-that reads live state and reports drift, and a merge-triggered job that
-signs and ships whatever a reviewed, merged pull request already
-approved. Neither workflow talks to the other -- `ubx status --drift`
-never writes anything, and ship-on-merge never runs on a schedule.
+Three independent workflows, each doing one real job: a scheduled job
+that reads live state and reports drift, a pull-request job that
+previews a proposed change as a PR comment before anyone merges it, and
+a merge-triggered job that signs and ships whatever a reviewed, merged
+pull request already approved. None of the three talks to the others --
+`ubx status --drift` never writes anything, `ubx plan` never touches
+the ledger, and ship-on-merge never runs on a schedule or a PR event.
 
 <Note>
-  This covers scheduled and merge-triggered automation only -- the two
-  shapes any CI platform can run without a long-lived process.
+  This covers scheduled, pull-request-triggered, and merge-triggered
+  automation only -- the shapes any CI platform can run without a
+  long-lived process.
   `ubx-agent` (UBI-28, parked) exists for the case this structurally
   can't cover: tight detection latency and an event-driven loop, not a
   cron tick or a merge hook. Nothing here is a substitute for that,
@@ -20,7 +23,7 @@ never writes anything, and ship-on-merge never runs on a schedule.
 
 ## Prerequisites
 
-Both workflows assume a stack repository that already has a real
+All three workflows assume a stack repository that already has a real
 `.ubx/config` and a git-local ledger committed to it (see
 [Install and initialize your first stack](/tutorial/setup/install) if
 you don't have one yet). Nothing here runs `ubx init` -- CI operates on
@@ -40,11 +43,17 @@ a real, avoidable source of drift in the automation itself.
 
 ### Provider credentials: OIDC to AWS, no stored keys
 
-Both workflows launch the real `hashicorp/aws` provider binary, and it
-reads credentials the same way any AWS SDK-based tool does -- from the
-process environment, nothing ubx-specific. The standard, current
-mechanism for getting real credentials into a GitHub Actions runner
-without a stored access key is OIDC federation:
+Drift-watch and ship-on-merge both launch the real `hashicorp/aws`
+provider binary against live infrastructure, and it reads credentials
+the same way any AWS SDK-based tool does -- from the process
+environment, nothing ubx-specific. Plan-on-push, covered below, is a
+real, deliberate exception -- `ubx plan`'s own resolve step only ever
+queries a provider's schema (confirmed directly against
+`core/resolver/resolver.go`: no `Configure`, no live read, ever), so it
+needs no AWS credentials at all. The standard, current mechanism for
+getting real credentials into a GitHub Actions runner without a stored
+access key, for the two workflows that do need them, is OIDC
+federation:
 
 1. In the target AWS account, create an IAM OIDC identity provider for
    `https://token.actions.githubusercontent.com` (audience
@@ -165,7 +174,101 @@ The job's own exit code is `ubx status`'s exit code -- no extra `if`
 logic needed to fail the job on drift; a non-zero exit from the last
 step already does that.
 
-## Workflow 2: ship-on-merge
+## Workflow 2: plan on push
+
+`ubx plan` renders the same real receipt a human would see locally --
+`delta:` (create/change/terminate counts), `blast radius:`, and a
+`cost delta:` line when the resource's own cost data is available
+(`Proposal.CostDelta`) -- without ever touching the ledger or applying
+anything. Posted as a PR comment, it turns "what does this change
+actually do" from something a reviewer has to run locally into
+something already sitting in the PR before they open it.
+
+<Note>
+  **A real, checked finding, not assumed**: unlike drift-watch and
+  ship-on-merge, this workflow needs no AWS credentials at all.
+  `ubx plan`'s resolve step only ever queries the provider's schema
+  (type names, required/computed attributes) to type-check the
+  proposed change -- never a live read, confirmed directly against
+  `core/resolver/resolver.go`. The provider binary itself still needs
+  acquiring (a public download, cached the same way as the other two
+  workflows), just never configured with real credentials.
+</Note>
+
+```yaml
+name: Plan on push
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install ubx
+        run: |
+          curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+          sudo mv ubx /usr/local/bin/
+
+      - name: Cache provider binaries
+        uses: actions/cache@v6
+        with:
+          path: ~/.ubx/providers
+          key: ubx-providers-hashicorp-aws-6.54.0
+
+      - name: Render the plan
+        run: |
+          ubx plan --ledger-dir . \
+            --source hashicorp/aws --provider-version 6.54.0 \
+            > plan-output.txt 2>&1
+
+      - name: Post the plan as a PR comment
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo '## ubx plan'
+            echo '```'
+            cat plan-output.txt
+            echo '```'
+          } > comment-body.txt
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body-file comment-body.txt --edit-last --create-if-none
+```
+
+Bare `ubx plan --ledger-dir .` auto-detects a single authoring-medium
+file the same way it does in [Keeping provider versions
+current](/integrations/provider-version-watch) -- name a hand-written
+`ubx:intent/v1` file explicitly instead (`ubx plan intent.json
+--ledger-dir .`) if that's what the PR actually changes; auto-detection
+does not cover it.
+
+`--edit-last --create-if-none` is a deliberate choice, not the
+simplest option: without it, every `synchronize` event (every new push
+to the PR) would post a brand new comment, burying the real review
+history under a growing pile of stale plans. Editing the same
+comment's own last version keeps exactly one, current plan visible.
+
+`if: always()` on the comment step is deliberate too, paired with
+deliberately *not* adding `continue-on-error` to the render step
+above it. A proposal that fails to resolve (a real provider
+incompatibility, a missing required field) should fail the job -- a
+real, visible CI check a branch protection rule can require -- while
+still getting posted to the PR either way, success or failure;
+`> plan-output.txt 2>&1` captures the real error text regardless of
+which stream `ubx plan` writes it to. Masking a real resolve failure as
+a green check just because the comment still posted would hide exactly
+the thing this workflow exists to catch.
+
+## Workflow 3: ship-on-merge
 
 This is the automation half of [PR-Merge
 Acceptance](/concepts/pr-merge-acceptance): a proposal file, committed
@@ -262,6 +365,7 @@ on CI's non-TTY; the receipt still renders in the job log.
 - [CircleCI](/integrations/circleci)
 - [Keeping provider versions current](/integrations/provider-version-watch)
 - [`ubx status`](/cli-reference/status)
+- [`ubx plan`](/cli-reference/plan)
 - [`ubx accept`](/cli-reference/accept)
 - [`ubx ship`](/cli-reference/ship)
 - [PR-Merge Acceptance](/concepts/pr-merge-acceptance)
