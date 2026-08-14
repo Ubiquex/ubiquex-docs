@@ -31,6 +31,10 @@ Every scalar setting has a real YAML key, a real environment variable
 | `azure_devops_webhook_secret_header` | `UBX_SERVER_AZURE_DEVOPS_WEBHOOK_SECRET_HEADER` | `--azure-devops-webhook-secret-header` | `X-Ubx-Webhook-Secret` |
 | -- | `UBX_SERVER_AZURE_DEVOPS_WEBHOOK_SECRET` | `--azure-devops-webhook-secret` | -- |
 | -- | `UBX_SERVER_AZURE_DEVOPS_API_BASE_URL` | `--azure-devops-api-base-url` | -- |
+| `bitbucket_server_url` | `UBX_SERVER_BITBUCKET_SERVER_URL` | `--bitbucket-server-url` | -- |
+| -- | `UBX_SERVER_BITBUCKET_SERVER_TOKEN` | `--bitbucket-server-token` | -- |
+| `bitbucket_server_bot_name` | `UBX_SERVER_BITBUCKET_SERVER_BOT_NAME` | `--bitbucket-server-bot-name` | -- |
+| -- | `UBX_SERVER_BITBUCKET_SERVER_WEBHOOK_SECRET` | `--bitbucket-server-webhook-secret` | -- |
 | -- | `UBX_SERVER_INTENT_PROVIDER_KEY` | `--intent-provider-key` | -- |
 | `provider_source` | `UBX_SERVER_PROVIDER_SOURCE` | `--provider-source` | -- |
 | `provider_version` | `UBX_SERVER_PROVIDER_VERSION` | `--provider-version` | -- |
@@ -56,12 +60,21 @@ own to defer to (confirmed directly against Microsoft's own current Service Hook
 cryptographic webhook signature scheme exists at all, only an optional custom header the operator
 names and values themselves).
 
+**`bitbucket_server_token`/`bitbucket_server_webhook_secret` have no YAML key either, same
+reasoning.** An HTTP access token and a real, bundled HMAC-SHA256 webhook secret are exactly the
+same kind of credential `github_webhook_secret`'s own doc comment describes. `bitbucket_server_url`
+itself, by contrast, is real, non-secret config -- it does have a YAML key, and unlike every other
+platform's own API base, it has **no default at all**: Bitbucket Server is self-hosted, with no
+single fixed host the way `gitlab.com`/`dev.azure.com` each are (confirmed directly against
+`bitbucketserver.Client`'s own doc comment) -- always required for Bitbucket Server support.
+
 **`repos` is YAML-only, for the opposite reason:** it's a real list of structured objects
 (platform, owner/name or project, or project/repository, and each repo's own ledger directory), not
 a scalar a single flag or environment variable can sensibly represent. `--repo` is a real,
 repeatable flag covering the common one-or-few-repos case without needing a YAML file at all -- not
 a full substitute for the list. An entry with no `platform` key defaults to `"github"`, real
-backward compatibility for every config written before GitLab/Azure DevOps support existed.
+backward compatibility for every config written before GitLab/Azure DevOps/Bitbucket Server support
+existed.
 
 **`intent_provider_key` has no YAML key either, for the same reason.** It's a real LLM/intent-
 provider API key ([markdown-authored proposals](/tutorial/markdown), [`ubx
@@ -91,6 +104,9 @@ azure_devops_organization: "acme-org"
 azure_devops_bot_display_name: "ubx-bot"
 azure_devops_webhook_secret_header: "X-Ubx-Webhook-Secret"
 
+bitbucket_server_url: "https://bitbucket.example.com"
+bitbucket_server_bot_name: "ubx-bot"
+
 provider_source: "hashicorp/aws"
 provider_version: "6.54.0"
 provider_config: '{"region":"us-east-1"}'
@@ -116,11 +132,16 @@ repos:
     project: "acme-infra"
     repository: "payments-infra"
     ledger_dir: "stacks/payments"
+  - platform: "bitbucketserver"
+    project: "INFRA"
+    repository: "payments-infra"
+    ledger_dir: "stacks/payments"
 ```
 
 Point `ubx server` at it with `--config /etc/ubx-server/ubx-server.yaml`. `gitlab_token`,
-`gitlab_webhook_secret`, `azure_devops_token`, `azure_devops_webhook_secret`, `github_webhook_secret`,
-and `intent_provider_key` are deliberately absent here -- real secrets, set only via their own
+`gitlab_webhook_secret`, `azure_devops_token`, `azure_devops_webhook_secret`,
+`bitbucket_server_token`, `bitbucket_server_webhook_secret`, `github_webhook_secret`, and
+`intent_provider_key` are deliberately absent here -- real secrets, set only via their own
 environment variables or flags.
 
 ## `--repo`'s own shorthand
@@ -128,7 +149,8 @@ environment variables or flags.
 ```bash
 ubx server --repo acme/infra --repo acme/payments-infra:stacks/payments \
   --repo gitlab:acme/infra --repo gitlab:acme/backend/infra:stacks/payments \
-  --repo azuredevops:acme-infra/infra --repo azuredevops:acme-infra/payments-infra:stacks/payments
+  --repo azuredevops:acme-infra/infra --repo azuredevops:acme-infra/payments-infra:stacks/payments \
+  --repo bitbucketserver:INFRA/infra --repo bitbucketserver:INFRA/payments-infra:stacks/payments
 ```
 
 `owner/name` alone defaults `ledger_dir` to `"."`, matching [`ubx
@@ -141,7 +163,12 @@ the full, real GitLab configuration walkthrough. A real `azuredevops:` prefix se
 DevOps shorthand -- `azuredevops:project/repository` or `azuredevops:project/repository:ledger_dir`
 -- project and repository kept as two real, separate identifiers (never one opaque string) since a
 real Azure DevOps project can host many real repositories. See [Azure DevOps
-setup](/server/azure-devops-setup) for the full, real Azure DevOps configuration walkthrough.
+setup](/server/azure-devops-setup) for the full, real Azure DevOps configuration walkthrough. A
+real `bitbucketserver:` prefix selects the identical two-real-identifier shape for Bitbucket
+Server -- `bitbucketserver:PROJECTKEY/repository-slug` or
+`bitbucketserver:PROJECTKEY/repository-slug:ledger_dir` -- matching the existing `ubx accept
+--bitbucket-server-project PROJECTKEY/repository-slug` flag's own real format. See [Bamboo
+setup](/server/bamboo-setup) for the full, real Bitbucket Server configuration walkthrough.
 
 ## A worked example: env overrides YAML
 
@@ -163,6 +190,7 @@ instead -- the flag wins over both.
 - [GitHub App setup](/server/github-setup)
 - [GitLab setup](/server/gitlab-setup)
 - [Azure DevOps setup](/server/azure-devops-setup)
+- [Bamboo setup](/server/bamboo-setup)
 - [The real workflow](/server/workflow)
 - [Docker deployment](/server/docker)
 - [`ubx server`](/cli-reference/server)

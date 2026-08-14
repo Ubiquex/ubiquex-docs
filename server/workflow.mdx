@@ -5,20 +5,23 @@ description: "The complete flow, walked through step by step against real, verif
 
 This walks through [the core flow](/server/overview#the-core-flow) in order, against the real,
 tested behavior of `ubx server`'s own code -- not a hypothetical. A full live run needs a real
-GitHub App installation (or a real GitLab Group Access Token, or a real Azure DevOps Personal
-Access Token) on a real repository, not reproducible inside this documentation build; every
-mechanic below is instead grounded in the same real, adversarial test suite that verifies it
-(`server/*_test.go`) and a real, captured transcript of the one piece that doesn't need any
-platform's own credentials at all -- the webhook endpoints themselves. The steps below are written
-against GitHub; see [the GitLab section](#gitlab) and [the Azure DevOps section](#azure-devops) for
+GitHub App installation (or a real GitLab Group Access Token, a real Azure DevOps Personal Access
+Token, or a real Bitbucket Server HTTP access token) on a real repository, not reproducible inside
+this documentation build; every mechanic below is instead grounded in the same real, adversarial
+test suite that verifies it (`server/*_test.go`) and a real, captured transcript of the one piece
+that doesn't need any platform's own credentials at all -- the webhook endpoints themselves. The
+steps below are written against GitHub; see [the GitLab section](#gitlab), [the Azure DevOps
+section](#azure-devops), and [the Bamboo/Bitbucket Server section](#bamboo-bitbucket-server) for
 the real, structural differences on each platform.
 
 ## Prerequisites
 
 - A real GitHub App installed on the repo(s) you want watched (see [GitHub App
   setup](/server/github-setup)), a real GitLab Group Access Token plus webhook signing token (see
-  [GitLab setup](/server/gitlab-setup)), or a real Azure DevOps Personal Access Token plus Service
-  Hooks shared secret (see [Azure DevOps setup](/server/azure-devops-setup)).
+  [GitLab setup](/server/gitlab-setup)), a real Azure DevOps Personal Access Token plus Service
+  Hooks shared secret (see [Azure DevOps setup](/server/azure-devops-setup)), or a real Bitbucket
+  Server HTTP access token plus its own bundled webhook shared secret (see [Bamboo
+  setup](/server/bamboo-setup)).
 - Each watched repo's own `.ubx/config` pointing at a real [remote ledger
   store](/tutorial/remote-stores) (S3, GCS, or Azure Blob) -- `ubx` itself never runs `git commit`/
   `git push`, so a local git-directory ledger written inside this server's own working clone never
@@ -112,9 +115,10 @@ draft PR when real drift is found. A drift-opened PR is attributed to the bot's 
 
 <Note>
   GitHub-only for now (tracked separately as UBI-165) -- `ubx status --drift --surface-as` itself
-  has no real GitLab/Azure DevOps surfacing path yet (`cli/surface.go` is GitHub-only:
-  `--github-repo`, `GITHUB_TOKEN`), a real CLI-level gap independent of this server's own webhook/
-  auth model for either platform. Steps 1-4 below work identically for GitLab and Azure DevOps.
+  has no real GitLab/Azure DevOps/Bitbucket Server surfacing path yet (`cli/surface.go` is
+  GitHub-only: `--github-repo`, `GITHUB_TOKEN`), a real CLI-level gap independent of this server's
+  own webhook/auth model for any of the three. Steps 1-4 below work identically for GitLab, Azure
+  DevOps, and Bitbucket Server.
 </Note>
 
 ## GitLab
@@ -163,10 +167,46 @@ here, genuinely distinct from both GitHub's and GitLab's own:
   opaque path or a fixed owner/name pair -- see [Azure DevOps
   setup](/server/azure-devops-setup#--repo-s-own-azure-devops-shorthand).
 
+## Bamboo/Bitbucket Server
+
+The identical core flow again, against Bitbucket Server's own real structural differences --
+confirmed directly against Atlassian's own current API/docs. See [Bamboo
+setup](/server/bamboo-setup) for the full walkthrough, including why Bitbucket Server (not Bamboo
+itself) is the real integration surface. Real differences worth calling out here, genuinely
+distinct from GitHub's, GitLab's, and Azure DevOps' own:
+
+- **A real, bundled webhook signature scheme, no plugin required.** Bitbucket Server/Data Center
+  has shipped native webhooks since version 5.4 -- confirmed directly against Atlassian's own
+  current docs, contradicting an earlier "likely a plugin" assumption; every delivery carries a
+  real HMAC-SHA256 digest in a header literally named `X-Hub-Signature` (a real naming collision
+  with GitHub's own older, deprecated SHA-1 header -- the *value* format, `sha256=<hex>`, matches
+  GitHub's newer scheme instead, never assumed from the header name alone).
+- **Every semantic PR change gets its own separate, real event key** (`pr:opened`,
+  `pr:from_ref_updated`, `pr:reviewer:approved`, `pr:merged`, `pr:comment:added`, ...) -- no folded
+  event needing a query-parameter disambiguation trick the way Azure DevOps' single
+  `git.pullrequest.updated` needs.
+- **The TOCTOU safety check uses a real per-reviewer commit reference, delivered on the approval
+  event itself.** Unlike GitLab's project-wide setting or Azure DevOps' branch-policy fallback (no
+  per-vote commit reference exists there at all), Bitbucket Server's own real
+  `pr:reviewer:approved` payload carries the approving reviewer's own `lastReviewedCommit` directly
+  alongside the PR's own current head -- no separate live query needed at all; a mismatch (a push
+  landed after the approval) refuses outright.
+- **No native CODEOWNERS support at all**, the identical real gap every other platform has -- `ubx
+  server` overlays its own consistent CODEOWNERS-file convention. Bitbucket Server does have a real,
+  stable username (unlike Azure DevOps' DisplayName-only fallback), so CODEOWNERS "username" owner
+  entries match directly; a CODEOWNERS "team" owner entry is a real, deliberate non-match against
+  Bitbucket Server (no group-membership-by-name lookup exists for this package's own scope).
+- **A genuine, single-call "does this user have write access" check exists**, unlike Azure DevOps'
+  own ACL/security-namespace model (which needed a Contributors-group-membership approximation
+  instead) -- Bitbucket Server's own repository permissions API answers this directly.
+- **Two real, separate identifiers address a repository** (project key and repository slug), the
+  identical shape Azure DevOps' own project/repository pair has -- see [Bamboo
+  setup](/server/bamboo-setup#--repo-s-own-bitbucket-server-shorthand).
+
 ## Verified: the webhook endpoints themselves
 
 A real, captured transcript against a running container (see [Docker deployment](/server/docker)),
-all three real routes:
+all four real routes:
 
 ```bash
 # GitHub -- /webhook/github
@@ -233,11 +273,31 @@ wrong-secret: 401
 valid-secret: 202
 ```
 
+```bash
+# Bitbucket Server -- /webhook/bitbucketserver (a real, bundled HMAC-SHA256 X-Hub-Signature scheme)
+curl -s -o /dev/null -w "no-signature: %{http_code}\n" -X POST http://localhost:8080/webhook/bitbucketserver -d '{}'
+
+curl -s -o /dev/null -w "bad-signature: %{http_code}\n" -X POST http://localhost:8080/webhook/bitbucketserver \
+  -H "X-Hub-Signature: sha256=deadbeef" -d '{}'
+
+payload='{"eventKey":"unknown.event"}'
+sig=$(echo -n "$payload" | openssl dgst -sha256 -hmac "bb-test-secret" | sed 's/^.* //')
+curl -s -o /dev/null -w "valid-signature: %{http_code}\n" -X POST http://localhost:8080/webhook/bitbucketserver \
+  -H "X-Hub-Signature: sha256=$sig" -H "Content-Type: application/json" -d "$payload"
+```
+
+```bash
+no-signature: 401
+bad-signature: 401
+valid-signature: 202
+```
+
 ## See also
 
 - [GitHub App setup](/server/github-setup)
 - [GitLab setup](/server/gitlab-setup)
 - [Azure DevOps setup](/server/azure-devops-setup)
+- [Bamboo setup](/server/bamboo-setup)
 - [Configuration](/server/configuration)
 - [`ubx server`](/cli-reference/server)
 - [PR-Merge Acceptance](/concepts/pr-merge-acceptance)

@@ -7,22 +7,25 @@ description: "A self-hosted GitHub App turning ubx's own CLI flow into a continu
 [CI/CD integration](/integrations/github-actions) already exercises, but as a continuously-running
 daemon reacting to webhook events, not a job that runs once per push and exits.
 
-Real, current scope: **GitHub**, as a real, installable GitHub App; **GitLab**, as a real Group
-Access Token plus a separately-configured webhook signing token -- GitLab has no unified "App"
-concept the way GitHub does, confirmed directly against GitLab's own current docs; and **Azure
-DevOps**, as a real Personal Access Token plus a real, static shared-secret Service Hooks header --
-Azure DevOps has no unified "App" concept either, and no cryptographic webhook signature scheme at
-all, confirmed directly against Microsoft's own current docs. Bamboo is a real, planned follow-up
-phase (the same platforms [`ubx accept --from-merge`](/cli-reference/accept) already covers), not
-yet built.
+Real, current scope, final (UBI-28): **GitHub**, as a real, installable GitHub App; **GitLab**, as
+a real Group Access Token plus a separately-configured webhook signing token -- GitLab has no
+unified "App" concept the way GitHub does, confirmed directly against GitLab's own current docs;
+**Azure DevOps**, as a real Personal Access Token plus a real, static shared-secret Service Hooks
+header -- Azure DevOps has no unified "App" concept either, and no cryptographic webhook signature
+scheme at all, confirmed directly against Microsoft's own current docs; and **Bamboo/Bitbucket
+Server**, as a real HTTP access token plus Bitbucket Server's own real, bundled HMAC-SHA256
+webhook signature -- Bamboo itself has no single native git host, so Bitbucket Server/Data Center
+(the real, deliberately scoped integration surface, mirroring [`ubx accept
+--from-merge`](/cli-reference/accept)'s own earlier VCS-pairing finding) is what this server
+actually watches.
 
 <Note>
   Drift-watch (core-flow step 6 below) is GitHub-only for now, tracked separately as UBI-165 --
-  `ubx status --drift --surface-as` itself has no real GitLab/Azure DevOps surfacing path yet
-  (`cli/surface.go` is GitHub-only: `--github-repo`, `GITHUB_TOKEN`), a real CLI-level gap
-  independent of `ubx server`'s own webhook/auth model for either platform. Steps 1-5 work
-  identically on all three platforms; a GitLab- or Azure-DevOps-watched repo simply never produces
-  a drift-opened PR yet.
+  `ubx status --drift --surface-as` itself has no real GitLab/Azure DevOps/Bitbucket Server
+  surfacing path yet (`cli/surface.go` is GitHub-only: `--github-repo`, `GITHUB_TOKEN`), a real
+  CLI-level gap independent of `ubx server`'s own webhook/auth model for any of them. Steps 1-5
+  work identically on all four platforms; a GitLab-, Azure-DevOps-, or Bitbucket-Server-watched
+  repo simply never produces a drift-opened PR yet.
 </Note>
 
 ## Real value versus Actions-only automation
@@ -57,11 +60,12 @@ wanting drift-watch tighter than a nightly cron tick, are the real audience.
    A real, live authorization check runs first: the commenter must be the PR's own real creator,
    confirmed via GitHub's API, never assumed from the app's own installation scope.
 3. **A native Approve action -- GitHub's own review, GitLab's own approval, Azure DevOps' own
-   vote -- never a comment, derives acceptance,** preserving the same "derived signature, not a
-   comment command" principle [PR-Merge Acceptance](/concepts/pr-merge-acceptance) already
-   establishes for the merge-derived tier. The approving reviewer is recorded as the accepter in
-   the ledger, with their own review comment captured alongside it (GitHub only -- neither GitLab's
-   nor Azure DevOps' own Approve action carries a comment field).
+   vote, Bitbucket Server's own approval -- never a comment, derives acceptance,** preserving the
+   same "derived signature, not a comment command" principle [PR-Merge
+   Acceptance](/concepts/pr-merge-acceptance) already establishes for the merge-derived tier. The
+   approving reviewer is recorded as the accepter in the ledger, with their own review comment
+   captured alongside it (GitHub only -- none of GitLab's, Azure DevOps', or Bitbucket Server's own
+   Approve action carries a comment field).
 4. **Ship, two real paths:** automatically on merge (gated by policy, see
    [Configuration](/server/configuration)), or manually via a `ubx ship` comment, authorized
    against the repository's own real `CODEOWNERS` file.
@@ -101,6 +105,9 @@ See [The real workflow](/server/workflow) for the complete, verified walkthrough
   </Card>
   <Card title="Azure DevOps setup" icon="microsoft" href="/server/azure-devops-setup">
     Configure a real Personal Access Token and Service Hooks shared secret, step by step.
+  </Card>
+  <Card title="Bamboo setup" icon="bitbucket" href="/server/bamboo-setup">
+    Configure a real Bitbucket Server HTTP access token and bundled webhook secret, step by step.
   </Card>
   <Card title="Configuration" icon="gear" href="/server/configuration">
     Every real flag, environment variable, and YAML key, and how they cascade.

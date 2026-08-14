@@ -94,15 +94,26 @@ docker run -d --name ubx-server -p 8080:8080 \
   ubx-server --config /etc/ubx-server/ubx-server.yaml
 ```
 
-All three platforms' own env vars can be set together on the same real container -- every worked
-example above was verified against one, single running container with all three configured at
+Add Bamboo/Bitbucket Server support the same way (see [Bamboo setup](/server/bamboo-setup)):
+
+```bash
+docker run -d --name ubx-server -p 8080:8080 \
+  -e UBX_SERVER_BITBUCKET_SERVER_URL=<your real, self-hosted Bitbucket Server base URL> \
+  -e UBX_SERVER_BITBUCKET_SERVER_TOKEN=<your real HTTP access token> \
+  -e UBX_SERVER_BITBUCKET_SERVER_BOT_NAME=<the token's own real, current username> \
+  -e UBX_SERVER_BITBUCKET_SERVER_WEBHOOK_SECRET=<your real, bundled webhook shared secret> \
+  ubx-server --config /etc/ubx-server/ubx-server.yaml
+```
+
+All four platforms' own env vars can be set together on the same real container -- every worked
+example above was verified against one, single running container with all four configured at
 once.
 
 Real, verified: this exact container was started, and its own logs showed a real, successful
 listen:
 
 ```bash
-2026/08/14 20:20:20 INFO ubx server: listening addr=:8080
+2026/08/14 23:12:28 INFO ubx server: listening addr=:8080
 ```
 
 `git --version` and `whoami` inside the running container confirmed the real runtime dependencies
@@ -143,16 +154,17 @@ reason (see [the workflow](/server/workflow#5-drift-watch)).
 
 ## Exposing it publicly
 
-GitHub, GitLab, and Azure DevOps each need to reach `--listen-addr` at a real, public HTTPS URL
-(the Webhook URL configured in [GitHub App setup](/server/github-setup)/[GitLab
-setup](/server/gitlab-setup)/[Azure DevOps setup](/server/azure-devops-setup)) -- put a real
-reverse proxy or load balancer in front of this container for TLS termination; `ubx server` itself
-only ever speaks plain HTTP.
+GitHub, GitLab, Azure DevOps, and Bitbucket Server each need to reach `--listen-addr` at a real,
+public HTTPS URL (the Webhook URL configured in [GitHub App setup](/server/github-setup)/[GitLab
+setup](/server/gitlab-setup)/[Azure DevOps setup](/server/azure-devops-setup)/[Bamboo
+setup](/server/bamboo-setup)) -- put a real reverse proxy or load balancer in front of this
+container for TLS termination; `ubx server` itself only ever speaks plain HTTP.
 
 ## See also
 
 - [GitHub App setup](/server/github-setup)
 - [GitLab setup](/server/gitlab-setup)
 - [Azure DevOps setup](/server/azure-devops-setup)
+- [Bamboo setup](/server/bamboo-setup)
 - [Configuration](/server/configuration)
 - [The real workflow](/server/workflow)

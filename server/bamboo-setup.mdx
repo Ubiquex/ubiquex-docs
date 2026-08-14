@@ -1,0 +1,172 @@
+---
+title: "Bamboo setup"
+description: "Configure the real Bitbucket Server HTTP access token and bundled webhook secret ubx server runs against for Bamboo."
+---
+
+`ubx server` authenticates to Bitbucket Server with a real **HTTP access token**, and verifies
+webhook deliveries with Bitbucket Server's own real, **bundled HMAC-SHA256 signature** -- confirmed
+directly against Atlassian's own current API/docs, not assumed symmetric with GitHub, GitLab, or
+Azure DevOps.
+
+## Bamboo itself has no single native git host -- Bitbucket Server is the real integration surface
+
+A Bamboo plan's linked repository can be Bitbucket Server/Data Center, Bitbucket Cloud, or GitHub
+-- confirmed directly against Atlassian's own current documentation, not assumed. A GitHub-paired
+Bamboo plan is already fully covered by this server's own [GitHub App setup](/server/github-setup);
+nothing Bamboo-specific is needed for that pairing. Bitbucket Server/Data Center is the real,
+deliberately scoped target here -- it's Bamboo's own deepest, most natively integrated pairing
+(bidirectional commit/build/deployment linking via Application Links), the same scoping decision
+[`ubx accept --from-merge`](/integrations/bamboo#merge-derived-acceptance-and-a-real-vcs-pairing-question-resolved-first)
+already made. `ubx server` watches Bitbucket Server's own real webhook events directly; Bamboo
+itself observes the resulting PR builds/comments through its own real plan-branch mechanism (see
+[the Bamboo CI/CD guide](/integrations/bamboo)) -- the two are complementary, not the same
+integration point.
+
+## Create the HTTP access token
+
+From your Bitbucket Server profile, **Manage account → HTTP access tokens → Create token**.
+
+<Steps>
+  <Step title="Name and expiration">
+    Any real, descriptive name. Bitbucket Server requires a real expiration date -- rotate before
+    it lapses.
+  </Step>
+
+  <Step title="Permissions">
+    **Project read/write** and **Repository read/write** on every project/repository this server
+    will watch -- real, current REPO_WRITE (or above) is also what
+    `--bitbucket-server-bot-name`'s own two-tier re-plan fallback checks live via Bitbucket
+    Server's own repository permissions API.
+  </Step>
+
+  <Step title="Create, then copy the token">
+    Shown once, never retrievable again -- this exact value becomes
+    `--bitbucket-server-token`/`UBX_SERVER_BITBUCKET_SERVER_TOKEN`.
+  </Step>
+</Steps>
+
+<Note>
+  An HTTP access token authenticates as whichever real user created it -- Bitbucket Server has no
+  fixed bot-naming convention the way a GitHub App's `<slug>[bot]` is. Note that user's own real,
+  current username and set `--bitbucket-server-bot-name`/`bitbucket_server_bot_name` to match --
+  used to attribute drift-watch-opened PRs, to find this bot's own last comment for the
+  edit-in-place mechanism, and as the real git-over-HTTPS clone username (Bitbucket Server's own
+  HTTP access tokens clone as `https://<username>:<token>@...`, unlike GitHub's placeholder
+  `x-access-token` or GitLab's/Azure DevOps' placeholder `oauth2` convention -- confirmed directly
+  against Atlassian's own current HTTP access tokens docs).
+</Note>
+
+Also set `--bitbucket-server-url`/`bitbucket_server_url` to your real, self-hosted base URL (e.g.
+`https://bitbucket.example.com`) -- Bitbucket Server, unlike GitHub/GitLab/Azure DevOps, has no
+single fixed default host at all, so this is always required.
+
+## Configure the webhook
+
+For each watched repository (or the project, to cover every repository under it), go to
+**Repository settings → Webhooks → Create webhook**.
+
+<Steps>
+  <Step title="Bundled, no plugin required">
+    Bitbucket Server/Data Center has shipped native webhooks since version 5.4 -- confirmed
+    directly against Atlassian's own current docs (an earlier "likely an installable plugin"
+    assumption for this integration turned out to be wrong; the "Web Post Hooks for Bitbucket"
+    Marketplace plugin was made obsolete by this exact bundled feature). No separate install step.
+  </Step>
+
+  <Step title="URL">
+    `https://<your-host>/webhook/bitbucketserver` -- `ubx server` exposes four real routes,
+    `/webhook/github`, `/webhook/gitlab`, `/webhook/azuredevops`, and `/webhook/bitbucketserver`,
+    on `--listen-addr` (default `:8080`). Unlike Azure DevOps, every semantic PR change here gets
+    its own separate, real event key -- no query-parameter disambiguation needed.
+  </Step>
+
+  <Step title="Events">
+    Five real, distinct event keys, matching the five webhook handlers `ubx server` actually has:
+
+    - **Pull Request → Opened** (`pr:opened`) -- step 1 of the [core
+      flow](/server/overview#the-core-flow)
+    - **Pull Request → Source branch updated** (`pr:from_ref_updated`) -- step 2's re-plan on push
+    - **Pull Request → Approved** (`pr:reviewer:approved`) -- step 3's acceptance trigger
+    - **Pull Request → Merged** (`pr:merged`) -- step 4's automatic ship
+    - **Pull Request → Comment added** (`pr:comment:added`) -- step 2's manual re-plan and step 4's
+      manual ship, via `ubx plan`/`ubx ship` comments
+  </Step>
+
+  <Step title="Secret">
+    A real, random shared secret -- generate one with `openssl rand -hex 32`. Bitbucket Server
+    signs every delivery with this secret via HMAC-SHA256 over the raw request body, carried in a
+    real `X-Hub-Signature` header as `sha256=<hex>` -- **the header name is a real, easy-to-misread
+    naming collision with GitHub's own older, deprecated SHA-1-only header; the value format
+    matches GitHub's newer SHA-256 scheme instead**, confirmed directly against Atlassian's own
+    current docs, never assumed from the header name alone. This exact value becomes
+    `--bitbucket-server-webhook-secret`/`UBX_SERVER_BITBUCKET_SERVER_WEBHOOK_SECRET`. Leaving the
+    secret field blank is possible in Bitbucket Server's own UI, but `ubx server` always rejects an
+    unsigned delivery -- configure a real secret on both sides.
+  </Step>
+
+  <Step title="SSL verification">
+    Enabled, for any real deployment -- clear it only to integrate with an internal URL using a
+    self-signed certificate.
+  </Step>
+</Steps>
+
+<Note>
+  Same remote-ledger-store requirement as every other platform -- see [GitHub App
+  setup](/server/github-setup#install-it)'s own note. `ubx` never runs `git commit`/`git push`
+  itself, so any accept/ship written to a local git-directory ledger inside this server's own
+  working clone never persists once that clone is next re-fetched.
+</Note>
+
+## The TOCTOU safety mechanism: a real per-reviewer commit reference
+
+Real, load-bearing, and structurally different from every other platform this server covers: a
+Bitbucket Server approval's own real `participant` object -- delivered directly on the
+`pr:reviewer:approved` webhook payload itself -- carries `lastReviewedCommit`, the exact commit
+SHA the approving reviewer actually reviewed, confirmed both against the real Go client generated
+from Atlassian's own API spec and independently against Atlassian's own current, real webhook
+payload example. `ubx server` compares that value directly against the same payload's own
+`pullRequest.fromRef.latestCommit` (the PR's current head) -- no separate live query needed at
+all. A mismatch means a push landed on the PR after (or concurrently with) the approval; `ubx
+server` refuses to derive acceptance from it, posting a real, explanatory comment and pointing at
+`ubx accept` as the manual alternative.
+
+This is a genuine, per-approval commit reference -- unlike GitLab's project-wide
+`reset_approvals_on_push` setting, and unlike Azure DevOps' branch-policy fallback (Azure DevOps'
+own vote objects carry no per-vote commit reference at all) -- closer in spirit to GitHub's own
+`review.commit_id`, achieved here through a genuinely different, Bitbucket-Server-specific real
+mechanism. No extra branch policy or project setting needs configuring for this to work correctly.
+
+## `--repo`'s own Bitbucket Server shorthand
+
+```bash
+ubx server --repo bitbucketserver:INFRA/infra --repo bitbucketserver:INFRA/payments-infra:stacks/payments
+```
+
+`bitbucketserver:PROJECTKEY/repository-slug` alone defaults `ledger_dir` to `"."`;
+`bitbucketserver:PROJECTKEY/repository-slug:ledger_dir` sets it explicitly -- the identical
+two-real-identifier shape Azure DevOps' own shorthand has, and matching the existing `ubx accept
+--bitbucket-server-project PROJECTKEY/repository-slug` flag's own real format.
+
+## CODEOWNERS on Bitbucket Server
+
+Bitbucket Server has no native CODEOWNERS support at all -- the same real gap every other platform
+this server covers has. `ubx server` overlays its own real, consistent, cross-platform
+CODEOWNERS-file convention on top anyway (the same real file, checked at the same three
+locations), so a `ubx ship` comment's own authorization works identically everywhere.
+
+Bitbucket Server does have a real, stable **username** (`name`, confirmed against both the real
+webhook payload's own `author`/`actor` shape and the Go client's own `UserWithLinks` struct) --
+unlike Azure DevOps' DisplayName-only fallback, a CODEOWNERS **user** owner entry matches directly
+against it. A CODEOWNERS **team** owner entry is a real, deliberate non-match here: this server has
+no group-membership-by-name lookup for Bitbucket Server (its own two-tier re-plan authorization
+instead checks a genuine, single-call REPO_WRITE-or-above permission, not group membership, the
+same real check the "Permissions" step above describes), so a `@group-name` CODEOWNERS entry never
+authorizes a `ubx ship` comment against a Bitbucket-Server-watched repository. Use individual
+usernames in CODEOWNERS entries for files owned by a Bitbucket Server-watched stack.
+
+## See also
+
+- [Configuration](/server/configuration)
+- [The real workflow](/server/workflow)
+- [`ubx server`](/cli-reference/server)
+- [Bamboo](/integrations/bamboo)
