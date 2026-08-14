@@ -1,14 +1,14 @@
 ---
 title: "ubx accept"
-description: "Sign a proposal, locally or by deriving acceptance from a merged GitHub pull request, GitLab merge request, or Azure DevOps pull request."
+description: "Sign a proposal, locally or by deriving acceptance from a merged GitHub, Azure DevOps, or Bitbucket Server pull request, or a GitLab merge request."
 ---
 
 Accepting is the real signing moment, the point where a proposal stops
 being a draft and becomes a permanent, binding decision in the ledger.
 `ubx accept` supports two genuinely different ways to do that: a local
 file you sign directly, or deriving the signature entirely from a
-merged, reviewed pull request (GitHub, Azure DevOps) or merge request
-(GitLab).
+merged, reviewed pull request (GitHub, Azure DevOps, Bitbucket Server)
+or merge request (GitLab).
 
 Before anything else, accept checks whether the proposal is fresh (has
 the live resource moved since this was resolved?) and, if it destroys
@@ -22,11 +22,17 @@ ubx accept [proposal.json] [flags]
 ubx accept --from-merge <commit-sha> --proposal-file <path> --github-repo <owner/name>
 ubx accept --from-merge <commit-sha> --proposal-file <path> --gitlab-project <namespace/project>
 ubx accept --from-merge <commit-sha> --proposal-file <path> --azure-devops-project <organization/project/repository>
+ubx accept --from-merge <commit-sha> --proposal-file <path> --bitbucket-server-url <url> --bitbucket-server-project <PROJECTKEY/repository-slug>
 ```
 
 `--from-merge` always derives against exactly one platform -- exactly
-one of `--github-repo`/`--gitlab-project`/`--azure-devops-project` is
-required, never more than one, never none.
+one of `--github-repo`/`--gitlab-project`/`--azure-devops-project`/
+`--bitbucket-server-project` is required, never more than one, never
+none. `--bitbucket-server-project` is the one exception to "one flag
+per platform": Bitbucket Server is self-hosted, with no single fixed
+default host the other three platforms each have, so
+`--bitbucket-server-url` is a real, always-required companion, not an
+optional extra.
 
 ## Examples
 
@@ -76,6 +82,19 @@ ubx accept --from-merge 8c1d2e... \
 accepted 45f63ce10849... (stack payments) via PR 17, 1 approver(s)
 ```
 
+Deriving acceptance from a real, merged Bitbucket Server pull request:
+
+```bash
+ubx accept --from-merge 8c1d2e... \
+  --proposal-file proposals/db-replica.json \
+  --bitbucket-server-url https://bitbucket.example.com \
+  --bitbucket-server-project PAYMENTS/payments-infra
+```
+
+```bash
+accepted 45f63ce10849... (stack payments) via PR #17, 1 approver(s)
+```
+
 ## Flags
 
 <ResponseField name="--ledger-dir" type="string" default=".">
@@ -91,15 +110,23 @@ accepted 45f63ce10849... (stack payments) via PR 17, 1 approver(s)
 </ResponseField>
 
 <ResponseField name="--github-repo" type="string">
-  `owner/name` of the GitHub repository. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project` is required with `--from-merge`.
+  `owner/name` of the GitHub repository. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project`/`--bitbucket-server-project` is required with `--from-merge`.
 </ResponseField>
 
 <ResponseField name="--gitlab-project" type="string">
-  `namespace/project` (or a numeric project ID) of the GitLab project. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project` is required with `--from-merge`.
+  `namespace/project` (or a numeric project ID) of the GitLab project. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project`/`--bitbucket-server-project` is required with `--from-merge`.
 </ResponseField>
 
 <ResponseField name="--azure-devops-project" type="string">
-  `organization/project/repository` of the Azure DevOps repo -- one more segment than the other two platforms' flags, since Azure DevOps genuinely needs three real identifiers to address a repository, not two. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project` is required with `--from-merge`.
+  `organization/project/repository` of the Azure DevOps repo -- one more segment than GitHub's/GitLab's own flags, since Azure DevOps genuinely needs three real identifiers to address a repository, not two. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project`/`--bitbucket-server-project` is required with `--from-merge`.
+</ResponseField>
+
+<ResponseField name="--bitbucket-server-url" type="string">
+  Base URL of the self-hosted Bitbucket Server/Data Center instance, e.g. `https://bitbucket.example.com`. Required with `--bitbucket-server-project` -- Bitbucket Server, unlike the other three platforms, has no single fixed default host.
+</ResponseField>
+
+<ResponseField name="--bitbucket-server-project" type="string">
+  `PROJECTKEY/repository-slug` of the Bitbucket Server repo. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project`/`--bitbucket-server-project` is required with `--from-merge`; requires `--bitbucket-server-url`.
 </ResponseField>
 
 <ResponseField name="--repo-dir" type="string" default=".">
@@ -148,24 +175,27 @@ content at that commit, the real pull/merge request it belongs to, and
 its real, current approving reviewers are all independently derived
 from git and the platform's own API (GitHub's REST API with
 `--github-repo`, GitLab's REST API with `--gitlab-project`, Azure
-DevOps' REST API with `--azure-devops-project`). See [PR-Merge
-Acceptance](/concepts/pr-merge-acceptance) for the full mechanism.
+DevOps' REST API with `--azure-devops-project`, Bitbucket Server's own
+REST API with `--bitbucket-server-url`/`--bitbucket-server-project`).
+See [PR-Merge Acceptance](/concepts/pr-merge-acceptance) for the full
+mechanism.
 
-GitLab's and Azure DevOps' own approval models are each genuinely
-different from GitHub's, not just differently named. GitLab has no
-CHANGES_REQUESTED-supersedes-APPROVED concept -- its own merge request
-approvals endpoint already returns the authoritative, current set of
-approvers directly, and by default clears every existing approval when
-a new commit lands on the MR's source branch
-(`reset_approvals_on_push`). Azure DevOps isn't binary approve/reject
-at all -- a reviewer's vote is a real five-value scale (`10` approved,
-`5` approved with suggestions, `0` no vote, `-5` waiting for author,
-`-10` rejected); only `10` counts as an approver here, since `5` is a
-real, qualified vote, not a full approval. On every platform,
-`approvers` may legitimately be empty -- a merge with zero approving
-reviews is recorded exactly as it happened, never rejected; enforcing
-"this needed N approvals" is entirely the platform's own job (branch
-or merge-request protection), never `ubx`'s.
+Each platform's own approval model is genuinely different, not just
+differently named. GitLab has no CHANGES_REQUESTED-supersedes-APPROVED
+concept -- its own merge request approvals endpoint already returns
+the authoritative, current set of approvers directly, and by default
+clears every existing approval when a new commit lands on the MR's
+source branch (`reset_approvals_on_push`). Azure DevOps isn't binary
+approve/reject at all -- a reviewer's vote is a real five-value scale
+(`10` approved, `5` approved with suggestions, `0` no vote, `-5`
+waiting for author, `-10` rejected); only `10` counts as an approver
+here, since `5` is a real, qualified vote, not a full approval.
+Bitbucket Server is the simplest of the four: a direct `approved`
+boolean per reviewer, no fold or scale to interpret. On every
+platform, `approvers` may legitimately be empty -- a merge with zero
+approving reviews is recorded exactly as it happened, never rejected;
+enforcing "this needed N approvals" is entirely the platform's own job
+(branch or merge-request protection), never `ubx`'s.
 
 ## See also
 

@@ -22,19 +22,47 @@ per job.
   a substitute for that, it's what's real today.
 </Note>
 
-## The same real gap as GitLab and Azure DevOps
+## Merge-derived acceptance, and a real VCS-pairing question resolved first
 
-Confirmed once, directly against `ubx`'s own source
-(`cli/accept.go`'s `--github-repo`-only flag, the `github/` package's
-GitHub REST API calls), and true for every platform besides GitHub:
-`ubx accept --from-merge` has no Bamboo equivalent. There's no
-derivation from a Bitbucket, GitHub, or GitLab pull/merge request's
-own review state through `ubx`. As with the other two, this is a real
-gap in `ubx` itself, not a limitation of whatever VCS host a Bamboo
-plan is watching. The honest fallback is the same: a merge-triggered
-plan here ships an **already-accepted** proposal; acceptance itself
-still happens through `ubx accept`'s local-file path, by a real
-person, not derived automatically from the merge event.
+Bamboo has no single native git host the way GitHub Actions, GitLab
+CI, and Azure Pipelines each do -- confirmed directly against
+Atlassian's own current documentation, not assumed: a Bamboo plan's
+linked repository can be Bitbucket Server/Data Center, Bitbucket
+Cloud, or GitHub. A GitHub-paired Bamboo plan is **already** covered
+by the existing `--github-repo` flag on `ubx accept --from-merge` --
+nothing new needed for that pairing. Bitbucket Server/Data Center is
+the real, deliberately scoped target for the new mechanism below: it's
+Bamboo's own deepest, most natively integrated pairing (bidirectional
+commit/build/deployment linking via Application Links, confirmed
+against Atlassian's own docs), and every other real mechanism this
+guide already documents -- plan branches, native build-status posting,
+the PR-comment call above -- already assumes it. Bitbucket Cloud is a
+real, genuinely different API (different base URL, different token
+model) -- a real, separate scope decision, not built out here.
+
+For a Bitbucket Server-paired plan, `ubx accept --from-merge` derives
+acceptance directly from a merged, reviewed pull request, the same
+real guarantee the GitHub, GitLab, and Azure DevOps guides each
+provide: the merge commit's real existence in git history, the
+proposal file's real content at that commit, the real pull request it
+belongs to, and its real, current reviewer approvals, read directly
+from the Bitbucket Server API. `--from-merge` takes two flags together
+here, not one -- `--bitbucket-server-url` (the self-hosted instance's
+own base URL; Bitbucket Server, unlike the other three platforms, has
+no single fixed default host) and `--bitbucket-server-project
+PROJECTKEY/repository-slug` -- confirmed against `cli/accept.go` and
+the real `bitbucketserver/` package directly, not assumed symmetric
+with any of the three already covered.
+
+Bitbucket Server's own approval model is genuinely simpler than any of
+the other three's, not just differently named -- confirmed directly
+against a real, current Go client generated from Atlassian's own API
+spec. A reviewer's approval is a direct boolean, no most-recent-
+review-wins fold (GitHub), no reset-on-push default (GitLab), no
+five-value vote scale (Azure DevOps) to account for. Reviewers are
+embedded directly on the pull request object itself, so deriving
+acceptance needs only **one** real API call here, the same real
+economy Azure DevOps' own guide already found.
 
 ## Prerequisites
 
@@ -297,11 +325,22 @@ do, so the whole sequence lives in one script task, with the real
 resolve failure re-asserted at the very end so the job still fails on
 a genuine error while the PR still gets the plan output either way.
 
-## Workflow 3: ship on merge (real scope, stated above)
+## Workflow 3: ship on merge
 
-Given the gap above, this plan ships whatever is **already** accepted
-in the ledger, triggered by new commits landing on `main`. It does not
-derive or verify acceptance itself.
+This is the automation half of [PR-Merge
+Acceptance](/concepts/pr-merge-acceptance): a proposal file, committed
+to a pull request whose description carries a real `ubx-proposal:
+<hash>` trailer, reviewed and merged like any other change. Once it
+lands on `main`, `ubx accept --from-merge` derives the acceptance from
+real, external evidence -- the merge commit's real existence in git
+history, the proposal file's real content at that commit, the real
+pull request it belongs to, and its real, current reviewer approvals,
+read directly from the Bitbucket Server API. Nothing about who
+approved it is trusted from a typed claim -- the same real guarantee
+the GitHub, GitLab, and Azure DevOps guides each provide, not a
+weaker, ships-blind version of it (and, as stated above, only for a
+Bitbucket Server-paired plan -- a GitHub-paired one already gets this
+from `--github-repo` today).
 
 Bamboo's own real trigger types are mostly tied to a specific VCS host
 (`bitbucket-server-trigger`, `bitbucket-cloud-trigger`,
@@ -343,19 +382,40 @@ Ship:
           sudo mv ubx /usr/local/bin/
           export AWS_ACCESS_KEY_ID=${bamboo.aws_access_key_id}
           export AWS_SECRET_ACCESS_KEY=${bamboo.aws_secret_access_key.password}
+          export BITBUCKET_SERVER_TOKEN=${bamboo.bitbucket_pat.password}
+          ubx accept --from-merge ${bamboo.planRepository.revision} \
+            --proposal-file proposals/db-replica.json \
+            --bitbucket-server-url https://bitbucket.example.com \
+            --bitbucket-server-project PAYMENTS/payments-infra
           ubx ship --yes \
             --source hashicorp/aws --provider-version 6.54.0 \
             --provider-config '{"region":"us-east-1"}'
 ```
 
+`${bamboo.planRepository.revision}` is the real, current, Git-specific
+predefined Bamboo variable for the exact commit this build checked out
+-- confirmed directly against Atlassian's own current variables
+reference, not assumed from the similarly-named but real, genuinely
+different, VCS-agnostic (and Mercurial-flavored) `${bamboo.repository.
+revision.number}`, which Atlassian's own docs mark deprecated for new
+use. `BITBUCKET_SERVER_TOKEN` reuses the same real Bitbucket personal
+access token and credential-masking caveat already covered above for
+the plan-on-pull-request workflow's own comment-posting call.
+
 `ubx ship` with no `hash` resolves to the most recent unshipped,
 already-accepted proposal for the stack -- see [`ubx
-ship`](/cli-reference/ship). If nothing has been accepted since the
-last ship, the run is a real no-op, not a failure. `--confirm-destroys`
-is deliberately absent for the same reason it's absent from every
-other platform's example: that acknowledgment has to already have
-happened at accept time, not be silently implied by an unattended
-plan run.
+ship`](/cli-reference/ship). If `ubx accept --from-merge` finds
+nothing new to accept (a push to `main` that didn't come from a
+proposal's own merge, or one already accepted), `ubx accept` itself
+fails loudly rather than the ship step silently no-oping on the wrong
+assumption -- match this plan's own real proposal-file path and stack
+layout before relying on it. `--confirm-destroys` is deliberately
+absent for the same reason it's absent from every other platform's
+example: a PR-merge-derived acceptance carries the same explicit human
+acknowledgment as a local one (see [`ubx
+accept`](/cli-reference/accept)'s own notes) -- a stack whose changes
+can destroy real resources needs that flag added consciously, not
+silently implied by an unattended plan run.
 
 ## See also
 
