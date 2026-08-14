@@ -1,0 +1,239 @@
+---
+title: "Bamboo"
+description: "Nightly drift watch and merge-triggered shipping, running in Atlassian Bamboo."
+---
+
+Two independent plans, adapted from the [GitHub
+Actions](/integrations/github-actions) reference implementation --
+same real CLI contract underneath, but Bamboo's own real mechanisms
+for credentials, scheduling, and notifications, verified independently
+rather than assumed to mirror the three platforms already covered.
+Bamboo is meaningfully different in character from all three: a
+self-hosted, Data Center product with long-lived build agents, not a
+SaaS runner spun up fresh per job.
+
+<Note>
+  This covers scheduled and merge-triggered automation only --
+  `ubx-agent` (UBI-28, parked) exists for the case this structurally
+  can't cover: tight detection latency and an event-driven loop, not a
+  cron tick or a merge hook. Nothing here is a substitute for that,
+  it's what's real today.
+</Note>
+
+## The same real gap as GitLab and Azure DevOps
+
+Confirmed once, directly against `ubx`'s own source
+(`cli/accept.go`'s `--github-repo`-only flag, the `github/` package's
+GitHub REST API calls), and true for every platform besides GitHub:
+`ubx accept --from-merge` has no Bamboo equivalent. There's no
+derivation from a Bitbucket, GitHub, or GitLab pull/merge request's
+own review state through `ubx`. As with the other two, this is a real
+gap in `ubx` itself, not a limitation of whatever VCS host a Bamboo
+plan is watching. The honest fallback is the same: a merge-triggered
+plan here ships an **already-accepted** proposal; acceptance itself
+still happens through `ubx accept`'s local-file path, by a real
+person, not derived automatically from the merge event.
+
+## Prerequisites
+
+Same as the other platforms: a stack repository with a real
+`.ubx/config` and a git-local ledger already committed (see [Install
+and initialize your first stack](/tutorial/setup/install)). Nothing
+here runs `ubx init`.
+
+### Installing ubx on the agent
+
+```bash
+curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+sudo mv ubx /usr/local/bin/
+```
+
+Pin an exact released version, not `latest`.
+
+### Provider credentials: no native or AWS-maintained OIDC path
+
+This is a real, material difference from the other three platforms,
+not a smaller version of the same story. Bamboo itself has no native
+OpenID Connect *issuer* capability the direction this needs -- its own
+"OpenID Connect for Data Center" feature is for humans logging in to
+Bamboo via an external identity provider, the opposite direction from
+a build agent requesting a token that AWS trusts. There's no
+AWS-maintained equivalent of GitHub's `aws-actions/configure-aws-
+credentials` or the GitLab/Azure DevOps mechanisms already covered.
+
+The only OIDC-capable path found is a **paid, third-party** Atlassian
+Marketplace app -- Utoolity's "Identity Federation for AWS (Bamboo)"
+-- and even that leans on Atlassian-group-to-AWS-role mapping rather
+than the clean per-job workload identity federation GitHub, GitLab,
+and Azure DevOps each provide natively or through an official
+extension. Real, current, and worth naming honestly rather than
+glossed over.
+
+The realistic default, and what most real Bamboo/AWS setups actually
+use: a long-lived IAM user's access key and secret key, stored as
+Bamboo **Shared Credentials** or plan variables with a `.password`-
+suffixed name (`${bamboo.aws_secret_access_key.password}`), which
+masks the value in build logs. One honest caveat worth knowing:
+Bamboo's own documentation describes this masking as the
+`EncryptionService` *obfuscating* the value in its database, not a
+substitute for real secret management -- genuine encryption-at-rest
+for these values is, again, gated behind the same paid third-party
+app. Scope the IAM user narrowly (drift-watch read-only, ship-on-merge
+write) and rotate it like any other long-lived credential, since
+there's no short-lived-token mechanism doing that for you here.
+
+```yaml
+tasks:
+  - script:
+      interpreter: /bin/sh
+      scripts: |
+        export AWS_ACCESS_KEY_ID=${bamboo.aws_access_key_id}
+        export AWS_SECRET_ACCESS_KEY=${bamboo.aws_secret_access_key.password}
+        ubx status --drift --stack payments \
+          --source hashicorp/aws --provider-version 6.54.0 \
+          --provider-config '{"region":"us-east-1"}'
+```
+
+### Caching provider binaries
+
+Bamboo doesn't have a dedicated cache feature the way the other three
+platforms do -- but it doesn't need one for this. Bamboo Data Center
+agents are typically long-lived, self-hosted machines, not ephemeral
+per-run containers, so `~/.ubx/providers` naturally persists on the
+agent's own disk across runs with no explicit caching step at all. If
+your setup instead uses genuinely ephemeral remote agents, the
+provider cache directory would need to be restored from a shared
+artifact each run -- real, but strictly worse than the other three
+platforms' dedicated cache mechanisms, named honestly rather than
+worked around with an unverified pattern.
+
+## Workflow 1: nightly drift watch
+
+Bamboo Specs YAML uses **Quartz-style, 6-field cron** (seconds,
+minutes, hours, day-of-month, month, day-of-week), not the 5-field
+Unix cron GitHub, GitLab, and Azure DevOps all use -- a real,
+easy-to-get-wrong difference, not a cosmetic one. `0 0 6 ? * *` is 6am
+UTC daily (`?` is Quartz's own wildcard, required in exactly one of
+the day-of-month/day-of-week fields). Unlike Azure Pipelines, a
+cron-triggered Bamboo build always runs at the scheduled time
+regardless of whether anything changed -- no `always: true`-style
+override needed here.
+
+```yaml
+version: 2
+plan:
+  project-key: PAYMENTS
+  key: DRIFTWATCH
+  name: Nightly drift watch
+
+triggers:
+  - cron: 0 0 6 ? * *
+
+stages:
+  - Drift check:
+      jobs:
+        - Check drift
+
+Check drift:
+  tasks:
+    - checkout: default
+    - script:
+        interpreter: /bin/sh
+        scripts: |
+          curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+          sudo mv ubx /usr/local/bin/
+          export AWS_ACCESS_KEY_ID=${bamboo.aws_access_key_id}
+          export AWS_SECRET_ACCESS_KEY=${bamboo.aws_secret_access_key.password}
+          ubx status --drift --stack payments \
+            --source hashicorp/aws --provider-version 6.54.0 \
+            --provider-config '{"region":"us-east-1"}'
+```
+
+`ubx status --drift`'s exit code (`0` clean, `1` drift found, `2`
+unreadable, worse always wins -- see [`ubx
+status`](/cli-reference/status)) fails the script task, and the job,
+directly.
+
+Bamboo's native alerting is real but the most manual of the four
+platforms covered so far: unlike GitHub/GitLab's creator-scoped or
+Azure DevOps' team-scoped defaults, a Bamboo plan sends no failure
+notification at all until one is explicitly configured (Plan
+Configuration → Notifications, or a `notifications:` block in Specs).
+For a scheduled plan, "Committers" as a recipient scheme doesn't make
+sense -- nobody necessarily committed anything near the failure --
+so a specific "Responsible users" assignment or an explicit
+recipient (email or group) is the real, workable choice, configured
+for the "Failed Builds" event. As with the other platforms, no custom
+script step is required to get an alert out of a *configured*
+subscription, and no automatic PR or receipt gets posted anywhere --
+that's `ubx-agent`'s job (UBI-28), not this plan's.
+
+## Workflow 2: ship on merge (real scope, stated above)
+
+Given the gap above, this plan ships whatever is **already** accepted
+in the ledger, triggered by new commits landing on `main`. It does not
+derive or verify acceptance itself.
+
+Bamboo's own real trigger types are mostly tied to a specific VCS host
+(`bitbucket-server-trigger`, `bitbucket-cloud-trigger`,
+`github-trigger`); `polling` is the one genuinely host-agnostic
+mechanism, and Bamboo's own real default behavior -- polling the
+repository on an interval, restricted to the plan's configured branch
+-- covers "triggered by a push to main" honestly, if with poll-
+interval latency rather than a webhook's immediacy. Teams on a
+specific host should use that host's own named trigger instead for a
+faster, webhook-driven equivalent.
+
+```yaml
+version: 2
+plan:
+  project-key: PAYMENTS
+  key: SHIPONMERGE
+  name: Ship on merge
+
+triggers:
+  - polling: 150
+
+branches:
+  create: manually
+  default-branch:
+    name: main
+
+stages:
+  - Ship:
+      jobs:
+        - Ship
+
+Ship:
+  tasks:
+    - checkout: default
+    - script:
+        interpreter: /bin/sh
+        scripts: |
+          curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+          sudo mv ubx /usr/local/bin/
+          export AWS_ACCESS_KEY_ID=${bamboo.aws_access_key_id}
+          export AWS_SECRET_ACCESS_KEY=${bamboo.aws_secret_access_key.password}
+          ubx ship --yes \
+            --source hashicorp/aws --provider-version 6.54.0 \
+            --provider-config '{"region":"us-east-1"}'
+```
+
+`ubx ship` with no `hash` resolves to the most recent unshipped,
+already-accepted proposal for the stack -- see [`ubx
+ship`](/cli-reference/ship). If nothing has been accepted since the
+last ship, the run is a real no-op, not a failure. `--confirm-destroys`
+is deliberately absent for the same reason it's absent from every
+other platform's example: that acknowledgment has to already have
+happened at accept time, not be silently implied by an unattended
+plan run.
+
+## See also
+
+- [GitHub Actions](/integrations/github-actions)
+- [GitLab CI/CD](/integrations/gitlab-ci)
+- [Azure DevOps Pipelines](/integrations/azure-devops)
+- [`ubx status`](/cli-reference/status)
+- [`ubx accept`](/cli-reference/accept)
+- [`ubx ship`](/cli-reference/ship)
+- [PR-Merge Acceptance](/concepts/pr-merge-acceptance)
