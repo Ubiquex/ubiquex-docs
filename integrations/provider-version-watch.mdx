@@ -1,0 +1,215 @@
+---
+title: "Keeping provider versions current"
+description: "A real GitHub Actions workflow that detects, bumps, and verifies a stack's own pinned Terraform provider version -- Dependabot, but for [providers]"
+---
+
+`.ubx/config`'s own `[providers]` table pins a real, specific provider
+version -- deliberately never "latest" (reproducibility: a proposal's
+provider version is part of what was reviewed). That pin doesn't move on
+its own, by design. This guide covers the automation that watches it for
+you: a scheduled GitHub Actions workflow that detects a newer real
+release, opens a PR bumping the pin, and -- the real value-add over a
+blind version bump -- runs a real `ubx plan` against the bumped version
+first, so a provider-side breaking change surfaces in the PR itself,
+never after merge.
+
+<Note>
+  **Not the same thing as [`ubx sdk gen`](/cli-reference/sdk)'s own
+  bindings automation.** This project's own real, live `ubx-sdk-*`
+  repos (one combined repo per provider -- AWS, Google, Azure,
+  Kubernetes -- each with Go/TypeScript/Python as sibling
+  subdirectories, UBI-138) already have a version-watch workflow of
+  their own, keeping GENERATED SDK BINDINGS current against the latest
+  provider schema. This guide is the user-facing counterpart: keeping
+  the actual provider BINARY VERSION a stack's own `.ubx/config` pins
+  current, in *your* infrastructure repo, not a bindings repo `ubx`
+  itself publishes.
+</Note>
+
+<Note>
+  This guide covers one specific, self-contained workflow: provider
+  version-pin watching, genuinely different from [drift detection and
+  ship-on-merge automation](/integrations/github-actions) -- read this
+  page on its own, it doesn't assume or depend on that one.
+</Note>
+
+## The workflow
+
+Add `.github/workflows/provider-version-watch.yml` to your own
+infrastructure repo:
+
+```yaml .github/workflows/provider-version-watch.yml
+name: provider-version-watch
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # every Monday, 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out this stack's own repo
+        uses: actions/checkout@v4
+
+      - name: Install ubx
+        run: |
+          set -euo pipefail
+          # Replace with however you distribute ubx internally -- a
+          # release binary download, a container image, etc. This step
+          # only needs `ubx` on PATH by the time it finishes.
+
+      - name: Check for a newer pinned provider version
+        id: check
+        run: |
+          set -euo pipefail
+          set +e
+          ubx providers check
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            echo "newer=false" >> "$GITHUB_OUTPUT"
+          elif [ "$code" -eq 1 ]; then
+            echo "newer=true" >> "$GITHUB_OUTPUT"
+          else
+            exit "$code"
+          fi
+
+      - name: Bump the pin
+        if: steps.check.outputs.newer == 'true'
+        run: |
+          # GitHub Actions invokes every `run:` step as `bash -e {0}` --
+          # `set -e` is already active before this script's first line,
+          # so an explicit `set +e` is required to actually tolerate the
+          # expected exit 1 below (merely not writing your own `set -e`
+          # does NOT disable the outer invocation's).
+          set +e
+          ubx providers check --write | tee "$RUNNER_TEMP/bump-report.txt"
+          code=${PIPESTATUS[0]}
+          set -e
+          # Exit 1 here means "found and wrote a newer version" -- the
+          # expected, successful outcome for this step. Anything else is
+          # a real error.
+          [ "$code" -eq 1 ]
+
+      - name: Verify the stack still resolves cleanly against the bumped version
+        id: verify
+        if: steps.check.outputs.newer == 'true'
+        run: |
+          set +e
+          # Bare `ubx plan` (no args) auto-detects a single AUTHORING-
+          # medium file (a .md doc, a .d2 diagram, or a .ts/.go/.py SDK
+          # program) -- name your own hand-written ubx:intent/v1 file
+          # explicitly instead (`ubx plan intent.json ...`) if that's
+          # what your repo actually has; auto-detection does not cover
+          # it (confirmed live -- see the Note below).
+          ubx plan --ledger-dir . > "$RUNNER_TEMP/verify-report.txt" 2>&1
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Open PR
+        if: steps.check.outputs.newer == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "ubx-bot"
+          git config user.email "actions@users.noreply.github.com"
+          branch="provider-bump/$(date +%s)"
+          git checkout -b "$branch"
+          git add -A
+          git commit -m "providers: bump pinned version(s)"
+          git push origin "$branch" --force
+
+          if [ "${{ steps.verify.outputs.exit_code }}" = "0" ]; then
+            status="Resolved cleanly against the bumped version(s)."
+          else
+            status="FAILED against the bumped version(s) -- do not merge without investigating."
+          fi
+          { echo "## Version check"; echo '```'; cat "$RUNNER_TEMP/bump-report.txt"; echo '```'
+            echo "## Verification"; echo "$status"; echo '```'; cat "$RUNNER_TEMP/verify-report.txt"; echo '```'
+          } > "$RUNNER_TEMP/pr-body.txt"
+          gh pr create --title "providers: check for a newer pinned version" \
+            --body-file "$RUNNER_TEMP/pr-body.txt" --base main --head "$branch"
+```
+
+Three moving pieces, each a thin wrapper over one real `ubx` primitive:
+
+1. **[`ubx providers check`](/cli-reference/providers)** -- queries the
+   real Terraform Registry, no auth needed. Exit `0` (current) skips
+   everything below; exit `1` (newer available) continues; exit `2` (a
+   real error) fails the job loudly.
+2. **`ubx providers check --write`** -- bumps the pin, in place, in
+   whichever real file your `.ubx/config` cascade actually declares it
+   in.
+3. **`ubx plan --ledger-dir .`** -- resolve-only, never applies anything.
+   This is the step that catches a real provider incompatibility BEFORE
+   a human merges the bump.
+
+<Note>
+  **Auto-detection covers authoring documents, not a hand-written intent
+  file -- a real distinction found live, not assumed.** Bare `ubx plan`
+  (no arguments) auto-detects a single `.md`/`.d2`/`.ts`/`.go`/`.py`
+  authoring-medium file in the working directory. A hand-written
+  `ubx:intent/v1` JSON file is a genuinely different input shape and is
+  NOT auto-detected -- pass it as the positional argument explicitly
+  (`ubx plan intent.json --ledger-dir .`). This first surfaced as a real
+  failed verification step during this guide's own live dispatch
+  (`plan: requires exactly one of an intent-file argument, --from-code,
+  --from-doc, or --from-diagram`), not predicted in advance -- adjust
+  this one line to match however your own repo's stack is actually
+  authored.
+</Note>
+
+Never auto-merges, matching every other `ubx`-adjacent automation
+pattern -- a human reviews the diff and the verification output in the
+PR body before merging.
+
+<Note>
+  **A real, live-observed side effect of `git add -A`, worth knowing
+  about rather than a surprise in your own first real PR**: `ubx plan`
+  writes its own resolved-but-unaccepted proposal to
+  `.ubx/plans/<hash>.json` as a real side effect of running. Since this
+  workflow's own commit step stages everything (`git add -A`), that file
+  rides along into the PR diff -- in practice a small bonus (the PR
+  literally contains the real resolved delta as a durable file, not just
+  in the PR body's own text), but add `.ubx/plans/` to your own
+  `.gitignore` first if you'd rather this workflow's own PRs stay to
+  exactly the version-pin line.
+</Note>
+
+## Confirmed: the verification step catches a real incompatibility, not just a blind bump
+
+This isn't a theoretical safety net. A real, deliberately constructed
+case: `hashicorp/aws@6.50.0` has no `aws_cloudwatch_log_storage_tier_policy`
+resource type at all -- it was added in a later release. A stack that
+declares one:
+
+```text
+$ ubx resolve intent.json --ledger-dir .
+resolve: resolve: provider schema has no such type: "aws_cloudwatch_log_storage_tier_policy" -- checked: hashicorp/aws
+```
+
+fails cleanly against the old pin. After `ubx providers check --write`
+bumps it to a real newer version that has the type:
+
+```text
+$ ubx resolve intent.json --ledger-dir .
+resolved: logging: 1 create(s), 0 change(s), 0 terminate(s)
+```
+
+it resolves cleanly. Exactly the shape of problem this workflow's own
+verification step exists to catch, live-confirmed both ways -- not
+assumed to work from the step merely existing.
+
+## Related
+
+- [`ubx providers check`](/cli-reference/providers) -- the full command reference
+- [`ubx sdk gen`](/cli-reference/sdk) -- the SDK-bindings-specific automation this guide's own workflow is the user-facing counterpart to
+- [Multi-Provider Stacks](/concepts/multi-provider) -- the `[providers]` table this workflow watches
+- [`ubx plan`](/cli-reference/plan) -- the resolve-only verification step this workflow runs before a human ever sees the PR
+- [GitHub Actions](/integrations/github-actions) -- the broader drift-watch/ship-on-merge guide this one is deliberately separate from
