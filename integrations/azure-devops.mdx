@@ -19,20 +19,43 @@ rather than assumed to mirror GitHub's or GitLab's.
   a substitute for that, it's what's real today.
 </Note>
 
-## The same real gap as GitLab
+## Merge-derived acceptance
 
-Confirmed once, directly against `ubx`'s own source
-(`cli/accept.go`'s `--github-repo`-only flag, the `github/` package's
-GitHub REST API calls), and true for every platform besides GitHub:
-`ubx accept --from-merge` has no Azure DevOps equivalent. There's no
-`--azure-devops-project` flag, no Azure Repos pull request API
-integration. As with [GitLab](/integrations/gitlab-ci), this is a real
-gap in `ubx` itself, not a limitation of the platform -- Azure Repos'
-own Pull Request API exposes reviewer/vote data just as real as
-GitHub's. The honest fallback is the same: a merge-triggered pipeline
-here ships an **already-accepted** proposal; acceptance itself still
-happens through `ubx accept`'s local-file path, by a real person, not
-derived automatically from the merge event.
+`ubx accept --from-merge` derives acceptance directly from a merged,
+reviewed pull request, the Azure DevOps counterpart to GitHub's and
+GitLab's own PR-merge tier: the merge commit's real existence in git
+history, the proposal file's real content at that commit, the real
+pull request it belongs to, and its real, current reviewer votes,
+read directly from the Azure DevOps API. `--from-merge` takes a
+`--azure-devops-project organization/project/repository` flag --
+structurally parallel to `--github-repo`/`--gitlab-project`, but with
+one more segment: Azure DevOps genuinely needs three real identifiers
+to address a repository (organization, project, repository), not two
+-- confirmed against `cli/accept.go` and the real `azuredevops/`
+package directly, not assumed symmetric with either other guide.
+
+Azure DevOps' own reviewer model is genuinely different from both
+GitHub's and GitLab's, not just differently named -- confirmed
+directly against Microsoft's own current REST API docs. A vote isn't
+binary approve/reject: it's a real five-value scale (`10` approved,
+`5` approved with suggestions, `0` no vote, `-5` waiting for author,
+`-10` rejected). Only `10` counts as an approver here -- `5` is a
+real, qualified vote, not a full approval, and isn't rounded up.
+Reviewers are embedded directly on the pull request object itself, so
+unlike GitHub or GitLab, deriving acceptance needs only **one** real
+API call here, not two.
+
+<Note>
+  A real credential difference from the plan-on-pull-request workflow
+  below, worth knowing before relying on it: that workflow's own
+  comment-posting call authenticates with the job's own
+  `System.AccessToken` (a Bearer-style OAuth token). `ubx`'s own Azure
+  DevOps client authenticates with Basic auth instead, the standard
+  way a Personal Access Token works against the Azure DevOps REST API
+  -- `System.AccessToken` itself won't work here without a real,
+  separately provisioned PAT (`Code (Read)` scope is enough), stored
+  as a masked pipeline variable.
+</Note>
 
 ## Prerequisites
 
@@ -348,11 +371,20 @@ real resolve failure so the job -- and, if **Required**, the branch
 policy -- still fails on a genuine error, not silently absorbed by the
 comment step succeeding.
 
-## Workflow 3: ship on merge (real scope, stated above)
+## Workflow 3: ship on merge
 
-Given the gap above, this pipeline ships whatever is **already**
-accepted in the ledger, triggered by a push to `main`. It does not
-derive or verify acceptance itself.
+This is the automation half of [PR-Merge
+Acceptance](/concepts/pr-merge-acceptance): a proposal file, committed
+to a pull request whose description carries a real `ubx-proposal:
+<hash>` trailer, reviewed and merged like any other change. Once it
+lands on `main`, `ubx accept --from-merge` derives the acceptance from
+real, external evidence -- the merge commit's real existence in git
+history, the proposal file's real content at that commit, the real
+pull request it belongs to, and its real, current reviewer votes,
+read directly from the Azure DevOps API. Nothing about who approved it
+is trusted from a typed claim -- the same real guarantee the GitHub
+and GitLab guides both provide, not a weaker, ships-blind version of
+it.
 
 ```yaml
 trigger:
@@ -364,6 +396,9 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
+  - checkout: self
+    fetchDepth: 0
+
   - bash: |
       curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
       sudo mv ubx /usr/local/bin/
@@ -374,6 +409,14 @@ steps:
       key: 'ubx-providers-hashicorp-aws-6.54.0'
       path: $(HOME)/.ubx/providers
     displayName: Cache provider binaries
+
+  - bash: |
+      ubx accept --from-merge $(Build.SourceVersion) \
+        --proposal-file proposals/db-replica.json \
+        --azure-devops-project '<ORGANIZATION>/$(System.TeamProject)/$(Build.Repository.Name)'
+    displayName: Accept from merge
+    env:
+      AZURE_DEVOPS_TOKEN: $(AZURE_DEVOPS_PAT)
 
   - task: AWSShellScript@1
     inputs:
@@ -387,14 +430,39 @@ steps:
     displayName: Ship
 ```
 
+`fetchDepth: 0` on the checkout step is required, not optional, same
+reasoning as the GitHub guide's own equivalent note: `ubx accept
+--from-merge` verifies the merge commit against real, local git
+history (`--repo-dir`, defaulting to `.`), and Azure Pipelines' own
+default shallow checkout genuinely doesn't have that history to check
+against.
+
+`<ORGANIZATION>` is a real placeholder, not something derivable from a
+predefined variable the clean way `$(System.TeamProject)` and
+`$(Build.Repository.Name)` are -- Azure Pipelines has no dedicated
+"organization name only" variable; it only appears embedded in
+`$(System.CollectionUri)` (`https://dev.azure.com/<ORGANIZATION>/`),
+which would need parsing. Filling in the one real, fixed value by hand
+here is simpler and just as honest as parsing it out at runtime.
+`AZURE_DEVOPS_PAT` is the real Personal Access Token from the Note
+above, added as a masked pipeline variable (Pipelines → Edit → Variables),
+mapped here through an explicit `env:` block the same way
+`System.AccessToken` needed one on the plan-on-pull-request workflow.
+
 `ubx ship` with no `hash` resolves to the most recent unshipped,
 already-accepted proposal for the stack -- see [`ubx
-ship`](/cli-reference/ship). If nothing has been accepted since the
-last ship, the run is a real no-op, not a failure. `--confirm-destroys`
-is deliberately absent for the same reason it's absent from the
-GitHub and GitLab examples: that acknowledgment has to already have
-happened at accept time, not be silently implied by an unattended
-pipeline run.
+ship`](/cli-reference/ship). If `ubx accept --from-merge` finds
+nothing new to accept (a push to `main` that didn't come from a
+proposal's own merge, or one already accepted), `ubx accept` itself
+fails loudly rather than the ship step silently no-oping on the wrong
+assumption -- match this pipeline's own real proposal-file path and
+stack layout before relying on it. `--confirm-destroys` is
+deliberately absent from the example above, same reasoning as the
+GitHub and GitLab guides' own: a PR-merge-derived acceptance carries
+the same explicit human acknowledgment as a local one (see [`ubx
+accept`](/cli-reference/accept)'s own notes) -- a stack whose changes
+can destroy real resources needs that flag added consciously, not
+silently implied by an unattended pipeline run.
 
 ## See also
 
