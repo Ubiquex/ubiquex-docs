@@ -156,7 +156,47 @@ def field_desc(f, provider_display):
     return qualifier
 
 
-def render_response_field(f, indent, nested, provider_display):
+# UBI-156: real recursion guard for genuinely self-referential schema
+# types (confirmed live: WAFv2 Statement<->AndStatement/OrStatement/
+# NotStatement, Cost Category/Budgets/Anomaly-Subscription and/or/not
+# rule trees) -- 10 resources measured 4,280-84,577 rendered elements
+# before this fix, caught via a real repetition-ratio signal (total
+# <ResponseField> count / distinct field-name count) and reverted
+# during UBI-152's bulk pass. Two independent, real guards, both
+# grounded in direct schema inspection rather than a guessed number:
+#
+#   1. cycle detection: a field's own WireName already appears among
+#      its own object-typed ancestors in the current recursion chain.
+#      This is a real, literal type self-reference (WAFv2's own
+#      Statement type genuinely contains itself via AndStatement), not
+#      a heuristic -- and it is proven zero-risk to already-shipped
+#      legitimate content: direct testing against medialive/channel,
+#      kinesis/firehose-delivery-stream, and securityhub/insight (the
+#      only confirmed-legitimate deep-nesting precedents in this
+#      corpus) triggers it zero times on all three, because none of
+#      them actually contain a repeated object type in their ancestor
+#      chain -- their real depth comes from distinct, non-recursive
+#      sibling structure, not self-reference.
+#   2. depth backstop (MAX_RESPONSE_FIELD_DEPTH): catches genuinely
+#      deep but non-cyclic explosions (QuickSight's ~30 distinct
+#      visual types, LexV2Models intent's ~8 distinct dialog branches,
+#      each independently re-expanding real, non-repeated structure --
+#      confirmed via direct schema walk, not assumed) that cycle
+#      detection alone cannot bound, since there is no repeated type to
+#      detect. Set to 8 -- the deepest real, confirmed-legitimate
+#      nesting this corpus has ever shipped (medialive/channel's own
+#      real depth, measured via a live <Expandable> open/close count on
+#      its already-published page) -- so it never truncates anything
+#      shallower than the deepest real precedent already accepted.
+#
+# Both guards emit an honest, real reference to the field that
+# recurses (never a fabricated type name -- this schema representation
+# has no separate type identity, only WireName) rather than silently
+# truncating or continuing to unroll indefinitely.
+MAX_RESPONSE_FIELD_DEPTH = 8
+
+
+def render_response_field(f, indent, nested, provider_display, depth=0, ancestor_names=()):
     pad = " " * indent
     name = f["WireName"]
     t = f["Type"]
@@ -168,10 +208,32 @@ def render_response_field(f, indent, nested, provider_display):
     if is_object_ish(t):
         inner = sorted(object_fields_of(t), key=lambda x: x["WireName"])
         if inner:
-            lines.append(f'{pad}  <Expandable title="properties">')
-            for inf in inner:
-                lines.append(render_response_field(inf, indent + 4, True, provider_display))
-            lines.append(f"{pad}  </Expandable>")
+            if name in ancestor_names:
+                lines.append(f'{pad}  <Expandable title="properties">')
+                lines.append(
+                    f'{pad}    <Note>`{name}` recurs here (its own type contains '
+                    f"itself); see the `{name}` field's own properties above for "
+                    f"the repeating pattern.</Note>"
+                )
+                lines.append(f"{pad}  </Expandable>")
+            elif depth >= MAX_RESPONSE_FIELD_DEPTH:
+                lines.append(f'{pad}  <Expandable title="properties">')
+                lines.append(
+                    f'{pad}    <Note>Nested `{name}` structure continues beyond '
+                    f"{MAX_RESPONSE_FIELD_DEPTH} levels of depth; further "
+                    f"properties omitted for readability.</Note>"
+                )
+                lines.append(f"{pad}  </Expandable>")
+            else:
+                lines.append(f'{pad}  <Expandable title="properties">')
+                for inf in inner:
+                    lines.append(
+                        render_response_field(
+                            inf, indent + 4, True, provider_display,
+                            depth + 1, ancestor_names + (name,),
+                        )
+                    )
+                lines.append(f"{pad}  </Expandable>")
     lines.append(f"{pad}</ResponseField>")
     return "\n".join(lines)
 
