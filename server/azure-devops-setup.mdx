@@ -1,0 +1,153 @@
+---
+title: "Azure DevOps setup"
+description: "Configure the real Personal Access Token and Service Hooks shared secret ubx server runs against on Azure DevOps."
+---
+
+`ubx server` authenticates to Azure DevOps with a real **Personal Access Token**, and verifies
+webhook deliveries with a real **shared-secret header** -- confirmed directly against Microsoft's
+own current API/docs, not assumed symmetric with GitHub or GitLab. Azure DevOps has no unified
+"App" concept and no cryptographic webhook signature scheme at all: one real, static token
+authenticates every call this server makes, and Microsoft's own documented security
+recommendation (a shared secret in a custom header, verified on every incoming request) is what
+this server implements instead of a signature it doesn't have.
+
+## Create the Personal Access Token
+
+From your Azure DevOps profile, **User settings → Personal access tokens → New Token**.
+
+<Steps>
+  <Step title="Name and expiration">
+    Any real, descriptive name. Azure DevOps requires a real expiration date -- rotate before it
+    lapses.
+  </Step>
+
+  <Step title="Organization">
+    The real organization this server will watch repos in -- becomes
+    `--azure-devops-organization`/`azure_devops_organization`. A single server instance
+    authenticates against exactly one real organization; watching repos across more than one
+    organization needs a second, separately-run instance.
+  </Step>
+
+  <Step title="Scopes">
+    **Code (Read & Write)** -- every git/policy/comment-thread call this package makes -- and
+    **Graph (Read)** -- the user/group lookups re-plan authorization and CODEOWNERS ownership need.
+    Real, fine-grained scopes Azure DevOps itself defines, not a broader "Full access" grant.
+  </Step>
+
+  <Step title="Create, then copy the token">
+    Shown once, never retrievable again -- this exact value becomes
+    `--azure-devops-token`/`UBX_SERVER_AZURE_DEVOPS_TOKEN`.
+  </Step>
+</Steps>
+
+<Note>
+  A Personal Access Token authenticates as whichever real user or service account created it --
+  Azure DevOps has no fixed bot-naming convention the way a GitHub App's `<slug>[bot]` is. Note
+  that identity's own real, current display name and set
+  `--azure-devops-bot-display-name`/`azure_devops_bot_display_name` to match -- used to attribute
+  drift-watch-opened PRs and to find this bot's own last comment thread for the edit-in-place
+  mechanism.
+</Note>
+
+## Configure the Service Hook
+
+For each watched project, go to **Project settings → Service hooks → Create subscription**.
+
+<Steps>
+  <Step title="Service">
+    **Web Hooks**.
+  </Step>
+
+  <Step title="Trigger">
+    Azure DevOps folds push/reviewer-list/status/vote changes into one real event type,
+    `git.pullrequest.updated`, distinguished only by which of several real, separately-configured
+    subscriptions delivers it -- confirmed directly against Microsoft's own current docs, not
+    inspectable in the payload itself. Create these real, separate subscriptions, each targeting
+    the URL shown:
+
+    | Trigger | Filter | Target URL |
+    | --- | --- | --- |
+    | Pull request created | -- | `https://<your-host>/webhook/azuredevops` |
+    | Pull request updated | Change: **Code pushed** | `https://<your-host>/webhook/azuredevops?notification=push` |
+    | Pull request updated | Change: **Reviewer's vote changed** | `https://<your-host>/webhook/azuredevops?notification=vote` |
+    | Pull request merge attempted | -- | `https://<your-host>/webhook/azuredevops` |
+    | Pull request commented on | -- | `https://<your-host>/webhook/azuredevops` |
+
+    The `notification` query parameter is `ubx server`'s own real, deterministic way to recover
+    which real change triggered a given delivery -- there's no other way to tell, since Azure
+    DevOps itself doesn't put it in the payload.
+  </Step>
+
+  <Step title="Action">
+    On the **Action** tab, expand **Advanced options** and set a real **HTTP header** named
+    `X-Ubx-Webhook-Secret` (or whatever real header name you configure via
+    `--azure-devops-webhook-secret-header`) to a real, random shared-secret value -- generate one
+    with `openssl rand -hex 32`. This exact value becomes
+    `--azure-devops-webhook-secret`/`UBX_SERVER_AZURE_DEVOPS_WEBHOOK_SECRET`. Microsoft's own
+    documented security recommendation for Service Hooks, since there's no cryptographic signature
+    to verify instead.
+  </Step>
+
+  <Step title="Test it">
+    Use the subscription's own **Test** action to confirm a real delivery reaches your server --
+    `ubx server` responds `202` to a correctly-secreted delivery, `401` otherwise.
+  </Step>
+</Steps>
+
+<Note>
+  Same remote-ledger-store requirement as GitHub/GitLab -- see [GitHub App
+  setup](/server/github-setup#install-it)'s own note. `ubx` never runs `git commit`/`git push`
+  itself, so any accept/ship written to a local git-directory ledger inside this server's own
+  working clone never persists once that clone is next re-fetched.
+</Note>
+
+## The "Minimum number of reviewers" branch policy
+
+Real, load-bearing project setting for step 3's Approve-derived acceptance (**Repos → Branches →
+`···` next to your branch → Branch policies → Minimum number of reviewers**): Azure DevOps' own
+vote objects carry no per-vote commit/iteration reference at all -- structurally different from
+both GitHub's `review.commit_id` and GitLab's `reset_approvals_on_push` project setting. Instead,
+`ubx server` relies on this branch policy's own **"Reset code reviewer votes when there are new
+changes"** option (on, and specifically **"Reset all code reviewer votes"**, not just the
+approval-only variant) already guaranteeing a currently-recorded approval corresponds to the PR's
+own current head commit.
+
+**If this policy is missing entirely, or exists but doesn't reset votes on push**, `ubx server`
+refuses to derive acceptance from an approval on that branch at all -- there's no real way left to
+correlate the approval with any specific commit. It posts a note explaining this and pointing at
+`ubx accept` as the manual alternative. Turn this policy on, with reset-on-push enabled, for every
+branch this server watches.
+
+## `--repo`'s own Azure DevOps shorthand
+
+```bash
+ubx server --repo azuredevops:acme-infra/infra --repo azuredevops:acme-infra/payments-infra:stacks/payments
+```
+
+`azuredevops:project/repository` alone defaults `ledger_dir` to `"."`;
+`azuredevops:project/repository:ledger_dir` sets it explicitly. Unlike GitLab's single opaque
+project path, Azure DevOps genuinely needs two real, separate identifiers -- a real, current
+organization can host many real repositories per project, so project name alone never uniquely
+addresses one.
+
+## CODEOWNERS on Azure DevOps
+
+Azure DevOps has no native CODEOWNERS support at all -- confirmed directly against Microsoft's own
+current docs; "Automatically included reviewers" is its own real, different, UI/API-configured
+equivalent, not a repo file. `ubx server` overlays its own real, consistent, cross-platform
+CODEOWNERS-file convention on top anyway (the same real file, checked at the same three locations
+as GitHub/GitLab), so a `ubx ship` comment's own authorization works identically everywhere.
+
+A CODEOWNERS group owner resolves as one whole, real Azure DevOps group **display name**
+(`@acme/backend-team`), checked via Azure DevOps' own Graph API -- never split at a delimiter.
+Since Azure DevOps has no fixed "username" concept either (a real user is addressed by display
+name, email, or a real, stable Graph descriptor, never one canonical login string), a CODEOWNERS
+**user** owner entry is matched against that user's own real, current display name -- keep
+CODEOWNERS entries space-free (real CODEOWNERS syntax is whitespace-delimited per line either way).
+
+## See also
+
+- [Configuration](/server/configuration)
+- [The real workflow](/server/workflow)
+- [`ubx server`](/cli-reference/server)
+- [`ubx accept` -- Azure DevOps](/integrations/azure-devops)

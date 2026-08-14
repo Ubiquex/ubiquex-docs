@@ -5,18 +5,20 @@ description: "The complete flow, walked through step by step against real, verif
 
 This walks through [the core flow](/server/overview#the-core-flow) in order, against the real,
 tested behavior of `ubx server`'s own code -- not a hypothetical. A full live run needs a real
-GitHub App installation (or a real GitLab Group Access Token) on a real repository, not reproducible
-inside this documentation build; every mechanic below is instead grounded in the same real,
-adversarial test suite that verifies it (`server/*_test.go`) and a real, captured transcript of the
-one piece that doesn't need either platform's own credentials at all -- the webhook endpoints
-themselves. The steps below are written against GitHub; see [the GitLab
-section](#gitlab) for the real, structural differences on that platform.
+GitHub App installation (or a real GitLab Group Access Token, or a real Azure DevOps Personal
+Access Token) on a real repository, not reproducible inside this documentation build; every
+mechanic below is instead grounded in the same real, adversarial test suite that verifies it
+(`server/*_test.go`) and a real, captured transcript of the one piece that doesn't need any
+platform's own credentials at all -- the webhook endpoints themselves. The steps below are written
+against GitHub; see [the GitLab section](#gitlab) and [the Azure DevOps section](#azure-devops) for
+the real, structural differences on each platform.
 
 ## Prerequisites
 
 - A real GitHub App installed on the repo(s) you want watched (see [GitHub App
-  setup](/server/github-setup)), or a real GitLab Group Access Token plus webhook signing token
-  (see [GitLab setup](/server/gitlab-setup)).
+  setup](/server/github-setup)), a real GitLab Group Access Token plus webhook signing token (see
+  [GitLab setup](/server/gitlab-setup)), or a real Azure DevOps Personal Access Token plus Service
+  Hooks shared secret (see [Azure DevOps setup](/server/azure-devops-setup)).
 - Each watched repo's own `.ubx/config` pointing at a real [remote ledger
   store](/tutorial/remote-stores) (S3, GCS, or Azure Blob) -- `ubx` itself never runs `git commit`/
   `git push`, so a local git-directory ledger written inside this server's own working clone never
@@ -108,6 +110,13 @@ main branch and runs `ubx status --drift --surface-as <issue|pr>` -- the exact s
 draft PR when real drift is found. A drift-opened PR is attributed to the bot's own login
 (`github_bot_login`) -- see step 2 above for what that means for its own re-plan authorization.
 
+<Note>
+  GitHub-only for now (tracked separately as UBI-165) -- `ubx status --drift --surface-as` itself
+  has no real GitLab/Azure DevOps surfacing path yet (`cli/surface.go` is GitHub-only:
+  `--github-repo`, `GITHUB_TOKEN`), a real CLI-level gap independent of this server's own webhook/
+  auth model for either platform. Steps 1-4 below work identically for GitLab and Azure DevOps.
+</Note>
+
 ## GitLab
 
 The identical core flow, against GitLab's own real structural differences -- confirmed directly
@@ -122,10 +131,42 @@ setup](/server/gitlab-setup) for the full walkthrough. Two real differences wort
   verifies the project's own `reset_approvals_on_push` setting is on before trusting any approval at
   all -- see [GitLab setup](/server/gitlab-setup#reset_approvals_on_push).
 
+## Azure DevOps
+
+The identical core flow again, against Azure DevOps' own real structural differences -- confirmed
+directly against Microsoft's own current API/docs. See [Azure DevOps
+setup](/server/azure-devops-setup) for the full walkthrough. Real differences worth calling out
+here, genuinely distinct from both GitHub's and GitLab's own:
+
+- **No webhook signature scheme at all.** Azure DevOps Service Hooks carry no cryptographic
+  signature; `ubx server` verifies a real, static shared-secret custom header instead (Microsoft's
+  own documented recommendation), configurable via `--azure-devops-webhook-secret-header`.
+- **`git.pullrequest.updated` folds push/vote/status/reviewer-list changes into one real event
+  type**, distinguished only by which of several real, separately-configured Service Hook
+  subscriptions delivers it -- never a payload field. `ubx server` asks the operator to encode that
+  distinction in the subscription's own target URL via a `notification` query parameter
+  (`?notification=push`, `?notification=vote`) -- see [Azure DevOps
+  setup](/server/azure-devops-setup) for the real, complete subscription table.
+- **Step 3's acceptance trigger is a real vote of `10` ("approved")** on the real five-value vote
+  scale (10 approved, 5 approved-with-suggestions, 0 no vote, -5 waiting-for-author, -10 rejected)
+  -- only `10` counts; `5` is a real, distinct, qualified vote, never rounded up.
+- **The TOCTOU safety check uses a real branch policy instead of a project-wide setting.** Azure
+  DevOps' own vote objects carry no per-vote commit/iteration reference at all (like GitLab, unlike
+  GitHub); `ubx server` checks the target branch's own "Minimum number of reviewers" policy for its
+  real `resetOnSourcePush` setting before trusting any approval -- refusing outright if no such
+  enabled policy exists at all, a real, distinct outcome from "exists but doesn't reset."
+- **No native CODEOWNERS support at all.** `ubx server` overlays its own real, consistent
+  CODEOWNERS-file convention anyway (same file, same three locations as GitHub/GitLab); Azure
+  DevOps' own real "Automatically included reviewers" feature is a separate, UI/API-configured
+  mechanism, not read by `ubx server` at all.
+- **Two real, separate identifiers address a repository** (project and repository), never one
+  opaque path or a fixed owner/name pair -- see [Azure DevOps
+  setup](/server/azure-devops-setup#--repo-s-own-azure-devops-shorthand).
+
 ## Verified: the webhook endpoints themselves
 
 A real, captured transcript against a running container (see [Docker deployment](/server/docker)),
-both real routes:
+all three real routes:
 
 ```bash
 # GitHub -- /webhook/github
@@ -174,10 +215,29 @@ bad-signature: 401
 valid-signature: 202
 ```
 
+```bash
+# Azure DevOps -- /webhook/azuredevops (a real, static shared-secret header, no signature scheme)
+curl -s -o /dev/null -w "no-secret: %{http_code}\n" -X POST http://localhost:8080/webhook/azuredevops -d '{}'
+
+curl -s -o /dev/null -w "wrong-secret: %{http_code}\n" -X POST http://localhost:8080/webhook/azuredevops \
+  -H "X-Ubx-Webhook-Secret: wrong-value" -d '{}'
+
+curl -s -o /dev/null -w "valid-secret: %{http_code}\n" -X POST http://localhost:8080/webhook/azuredevops \
+  -H "X-Ubx-Webhook-Secret: azdo-test-secret" -H "Content-Type: application/json" \
+  -d '{"eventType":"git.pullrequest.created","resource":{}}'
+```
+
+```bash
+no-secret: 401
+wrong-secret: 401
+valid-secret: 202
+```
+
 ## See also
 
 - [GitHub App setup](/server/github-setup)
 - [GitLab setup](/server/gitlab-setup)
+- [Azure DevOps setup](/server/azure-devops-setup)
 - [Configuration](/server/configuration)
 - [`ubx server`](/cli-reference/server)
 - [PR-Merge Acceptance](/concepts/pr-merge-acceptance)
