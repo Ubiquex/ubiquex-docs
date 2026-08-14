@@ -1,0 +1,263 @@
+---
+title: "GitHub Actions"
+description: "Nightly drift watch and ship-on-merge, running in GitHub's own CI."
+---
+
+Two independent workflows, each doing one real job: a scheduled job
+that reads live state and reports drift, and a merge-triggered job that
+signs and ships whatever a reviewed, merged pull request already
+approved. Neither workflow talks to the other -- `ubx status --drift`
+never writes anything, and ship-on-merge never runs on a schedule.
+
+<Note>
+  This covers scheduled and merge-triggered automation only -- the two
+  shapes any CI platform can run without a long-lived process.
+  `ubx-agent` (UBI-28, parked) exists for the case this structurally
+  can't cover: tight detection latency and an event-driven loop, not a
+  cron tick or a merge hook. Nothing here is a substitute for that,
+  it's what's real today.
+</Note>
+
+## Prerequisites
+
+Both workflows assume a stack repository that already has a real
+`.ubx/config` and a git-local ledger committed to it (see
+[Install and initialize your first stack](/tutorial/setup/install) if
+you don't have one yet). Nothing here runs `ubx init` -- CI operates on
+a stack that already exists.
+
+### Installing ubx in the runner
+
+```bash
+curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+sudo mv ubx /usr/local/bin/
+```
+
+Pin an exact released version in CI rather than tracking `latest` --
+the same reasoning as pinning a provider version: a workflow that
+silently starts running a different `ubx` build on its own schedule is
+a real, avoidable source of drift in the automation itself.
+
+### Provider credentials: OIDC to AWS, no stored keys
+
+Both workflows launch the real `hashicorp/aws` provider binary, and it
+reads credentials the same way any AWS SDK-based tool does -- from the
+process environment, nothing ubx-specific. The standard, current
+mechanism for getting real credentials into a GitHub Actions runner
+without a stored access key is OIDC federation:
+
+1. In the target AWS account, create an IAM OIDC identity provider for
+   `https://token.actions.githubusercontent.com` (audience
+   `sts.amazonaws.com`), if the account doesn't already have one.
+2. Create an IAM role with a trust policy scoped to this specific repo
+   and branch, using the token's `sub` claim:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {
+      "Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com"
+    },
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Condition": {
+      "StringEquals": {
+        "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+      },
+      "StringLike": {
+        "token.actions.githubusercontent.com:sub": "repo:<OWNER>/<REPO>:ref:refs/heads/main"
+      }
+    }
+  }]
+}
+```
+
+3. In the workflow, grant the job `permissions: id-token: write` and
+   use `aws-actions/configure-aws-credentials` to assume the role --
+   no secrets stored in the repo or org at all, a short-lived token per
+   run.
+
+Drift-watch and ship-on-merge want different real permissions on that
+role -- drift-watch only ever reads, ship-on-merge writes. Two
+separate roles (or one role, two policies attached per workflow) is
+the least-privilege choice; both examples below reference
+`ubx-drift-watch` and `ubx-ship-on-merge` as if they're two distinct
+roles.
+
+### Caching provider binaries
+
+`ubx` verifies and caches every provider binary it downloads at
+`~/.ubx/providers`. Without a cache, each run re-downloads and
+re-verifies the same `hashicorp/aws` binary from scratch -- a real,
+avoidable cold start on every scheduled run. `actions/cache`, keyed on
+the exact provider source and version, fixes this:
+
+```yaml
+- uses: actions/cache@v6
+  with:
+    path: ~/.ubx/providers
+    key: ubx-providers-hashicorp-aws-6.54.0
+```
+
+## Workflow 1: nightly drift watch
+
+`ubx status --drift` is read-only -- it never writes a proposal, never
+touches the ledger. It reads every resource's live state and reports
+whichever ones no longer match what the ledger last recorded. The real
+CI contract is the exit code: `0` clean, `1` drift found, `2` something
+was unreadable, worse always wins (see [`ubx
+status`](/cli-reference/status)).
+
+A scheduled job that exits non-zero is already a real failure signal --
+GitHub Actions itself handles the alerting from there. Scheduled
+workflow notifications go to whoever created the workflow (or whoever
+last edited its cron line), through that person's own GitHub
+notification settings (Settings → Notifications, with an explicit
+"only notify on failure" option). No custom notification step, no
+webhook, no Slack integration required to get a real alert out of this
+-- and no automatic PR or receipt gets posted anywhere either; that's
+`ubx-agent`'s job (UBI-28), not this workflow's.
+
+```yaml
+name: Nightly drift watch
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  drift-watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install ubx
+        run: |
+          curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+          sudo mv ubx /usr/local/bin/
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/ubx-drift-watch
+          aws-region: us-east-1
+
+      - name: Cache provider binaries
+        uses: actions/cache@v6
+        with:
+          path: ~/.ubx/providers
+          key: ubx-providers-hashicorp-aws-6.54.0
+
+      - name: Check for drift
+        run: |
+          ubx status --drift --stack payments \
+            --source hashicorp/aws --provider-version 6.54.0 \
+            --provider-config '{"region":"us-east-1"}'
+```
+
+The job's own exit code is `ubx status`'s exit code -- no extra `if`
+logic needed to fail the job on drift; a non-zero exit from the last
+step already does that.
+
+## Workflow 2: ship-on-merge
+
+This is the automation half of [PR-Merge
+Acceptance](/concepts/pr-merge-acceptance): a proposal file, committed
+to a pull request whose body carries a real `ubx-proposal: <hash>`
+trailer, reviewed and merged like any other change. Once it lands on
+`main`, `ubx accept --from-merge` derives the acceptance from real,
+external evidence -- the merge commit's real existence in git history,
+the proposal file's real content at that commit, the real pull request
+it belongs to, and its real, current approving reviewers, read
+directly from the GitHub API (`GITHUB_TOKEN`, the same token GitHub
+Actions already injects into every job). Nothing about who approved it
+is trusted from a typed claim.
+
+```yaml
+name: Ship on merge
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  ship:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install ubx
+        run: |
+          curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+          sudo mv ubx /usr/local/bin/
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/ubx-ship-on-merge
+          aws-region: us-east-1
+
+      - name: Cache provider binaries
+        uses: actions/cache@v6
+        with:
+          path: ~/.ubx/providers
+          key: ubx-providers-hashicorp-aws-6.54.0
+
+      - name: Accept from merge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ubx accept --from-merge ${{ github.sha }} \
+            --proposal-file proposals/db-replica.json \
+            --github-repo ${{ github.repository }}
+
+      - name: Ship
+        run: |
+          ubx ship --yes \
+            --source hashicorp/aws --provider-version 6.54.0 \
+            --provider-config '{"region":"us-east-1"}'
+```
+
+Two real details easy to get wrong here:
+
+`fetch-depth: 0` on the checkout step is required, not optional --
+`ubx accept --from-merge` verifies the merge commit against real,
+local git history (`--repo-dir`, defaulting to `.`), and a shallow
+clone (the checkout action's own default) genuinely doesn't have that
+history to check against.
+
+`--confirm-destroys` is deliberately absent from the example above.
+Nothing about `--from-merge` weakens the destroy-confirmation
+requirement -- a PR-merge-derived acceptance carries "the same
+explicit human acknowledgment" as a local one (see [`ubx
+accept`](/cli-reference/accept)'s own notes). A stack whose changes can
+destroy real resources needs that flag added consciously, with real
+thought about whether an unattended merge-to-main job is the right
+place for that acknowledgment to live at all, not copied in by
+default because the workflow otherwise fails.
+
+`ubx ship` with no `hash` argument resolves to the most recent
+unshipped, already-accepted proposal for the stack -- exactly what the
+previous step just accepted, so no hash needs to be threaded between
+the two steps by hand. `--yes` skips the interactive prompt, required
+on CI's non-TTY; the receipt still renders in the job log.
+
+## See also
+
+- [`ubx status`](/cli-reference/status)
+- [`ubx accept`](/cli-reference/accept)
+- [`ubx ship`](/cli-reference/ship)
+- [PR-Merge Acceptance](/concepts/pr-merge-acceptance)
+- [The Executor](/concepts/executor)
