@@ -21,6 +21,11 @@ Every scalar setting has a real YAML key, a real environment variable
 | `github_app_private_key_path` | `UBX_SERVER_GITHUB_APP_PRIVATE_KEY_PATH` | `--github-app-private-key-path` | -- |
 | `github_bot_login` | `UBX_SERVER_GITHUB_BOT_LOGIN` | `--github-bot-login` | `ubx[bot]` |
 | -- | `UBX_SERVER_GITHUB_WEBHOOK_SECRET` | `--github-webhook-secret` | -- |
+| -- | `UBX_SERVER_GITLAB_TOKEN` | `--gitlab-token` | -- |
+| `gitlab_bot_username` | `UBX_SERVER_GITLAB_BOT_USERNAME` | `--gitlab-bot-username` | -- |
+| -- | `UBX_SERVER_GITLAB_WEBHOOK_SECRET` | `--gitlab-webhook-secret` | -- |
+| -- | `UBX_SERVER_GITLAB_API_BASE_URL` | `--gitlab-api-base-url` | `https://gitlab.com` |
+| -- | `UBX_SERVER_INTENT_PROVIDER_KEY` | `--intent-provider-key` | -- |
 | `provider_source` | `UBX_SERVER_PROVIDER_SOURCE` | `--provider-source` | -- |
 | `provider_version` | `UBX_SERVER_PROVIDER_VERSION` | `--provider-version` | -- |
 | `provider_config` | `UBX_SERVER_PROVIDER_CONFIG` | `--provider-config` | -- |
@@ -36,10 +41,24 @@ value that shouldn't sit in a config file that might get committed -- set it via
 masked variable, never literally in the file" discipline every [CI/CD
 guide](/integrations/github-actions) already applies to its own platform tokens.
 
-**`repos` is YAML-only, for the opposite reason:** it's a real list of structured objects (owner,
-name, and each repo's own ledger directory), not a scalar a single flag or environment variable can
-sensibly represent. `--repo` is a real, repeatable flag covering the common one-or-few-repos case
-without needing a YAML file at all -- not a full substitute for the list.
+**`repos` is YAML-only, for the opposite reason:** it's a real list of structured objects
+(platform, owner/name or project, and each repo's own ledger directory), not a scalar a single flag
+or environment variable can sensibly represent. `--repo` is a real, repeatable flag covering the
+common one-or-few-repos case without needing a YAML file at all -- not a full substitute for the
+list. An entry with no `platform` key defaults to `"github"`, real backward compatibility for every
+config written before GitLab support existed.
+
+**`intent_provider_key` has no YAML key either, for the same reason.** It's a real LLM/intent-
+provider API key ([markdown-authored proposals](/tutorial/markdown), [`ubx
+plan`](/cli-reference/plan)'s own `--from-doc`), not a VCS credential, but the same secrets
+discipline applies. When set, `ubx server` forwards it into every `ubx plan` subprocess as a fixed
+environment variable, `UBX_INTENT_PROVIDER_KEY` -- point a watched repo's own `.ubx/config`
+`[intent]` table's `key_ref.env` at that exact name so `ubx plan --from-doc`'s own configured
+intent-provider adapter can read it. Leave it unset if you never accept markdown-authored
+(`--from-doc`) proposals through this server at all; a markdown-authored PR/MR's automatic plan step
+then fails with `ubx plan`'s own real, existing error (`key_ref.env names "...", but that
+environment variable is unset or empty`), posted as an ordinary plan-failure comment -- not a silent
+hang.
 
 ## The YAML file
 
@@ -51,6 +70,8 @@ github_app_id: 123456
 github_app_private_key_path: "/etc/ubx-server/github-app.pem"
 github_bot_login: "ubx[bot]"
 
+gitlab_bot_username: "group_1234_bot_5678"
+
 provider_source: "hashicorp/aws"
 provider_version: "6.54.0"
 provider_config: '{"region":"us-east-1"}'
@@ -61,25 +82,37 @@ surface_as: "issue"
 drift_watch_interval: "24h"
 
 repos:
-  - owner: "acme"
+  - platform: "github"
+    owner: "acme"
     name: "infra"
     ledger_dir: "."
-  - owner: "acme"
+  - platform: "github"
+    owner: "acme"
     name: "payments-infra"
+    ledger_dir: "stacks/payments"
+  - platform: "gitlab"
+    project: "acme/backend/infra"
     ledger_dir: "stacks/payments"
 ```
 
-Point `ubx server` at it with `--config /etc/ubx-server/ubx-server.yaml`.
+Point `ubx server` at it with `--config /etc/ubx-server/ubx-server.yaml`. `gitlab_token`,
+`gitlab_webhook_secret`, `github_webhook_secret`, and `intent_provider_key` are deliberately absent
+here -- real secrets, set only via their own environment variables or flags.
 
 ## `--repo`'s own shorthand
 
 ```bash
-ubx server --repo acme/infra --repo acme/payments-infra:stacks/payments
+ubx server --repo acme/infra --repo acme/payments-infra:stacks/payments \
+  --repo gitlab:acme/infra --repo gitlab:acme/backend/infra:stacks/payments
 ```
 
 `owner/name` alone defaults `ledger_dir` to `"."`, matching [`ubx
 plan`](/cli-reference/plan)'s own default; `owner/name:ledger_dir` sets it explicitly, the same
-real shape a YAML `repos` entry carries.
+real shape a YAML `repos` entry carries. A real `gitlab:` prefix selects the GitLab shorthand
+instead -- `gitlab:namespace/project` or `gitlab:namespace/project:ledger_dir` -- the project path
+kept as one whole, opaque string (never split into separate fields) since a real GitLab project can
+be nested under any number of real groups/subgroups. See [GitLab setup](/server/gitlab-setup) for
+the full, real GitLab configuration walkthrough.
 
 ## A worked example: env overrides YAML
 
@@ -99,6 +132,7 @@ instead -- the flag wins over both.
 ## See also
 
 - [GitHub App setup](/server/github-setup)
+- [GitLab setup](/server/gitlab-setup)
 - [The real workflow](/server/workflow)
 - [Docker deployment](/server/docker)
 - [`ubx server`](/cli-reference/server)

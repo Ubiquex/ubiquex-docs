@@ -1,0 +1,125 @@
+---
+title: "GitLab setup"
+description: "Configure the real Group Access Token and webhook signing token ubx server runs against on GitLab."
+---
+
+`ubx server` authenticates to GitLab with a real **Group Access Token**, and verifies webhook
+deliveries with GitLab's own real **webhook signing token** -- confirmed directly against GitLab's
+own current API/docs, not assumed symmetric with GitHub. GitLab has no unified "App" concept: no
+per-installation short-lived tokens, no fixed bot-username convention. One real, static token
+authenticates every call this server makes against every GitLab-watched repo.
+
+## Create the Group Access Token
+
+Go to your group's own **Settings → Access tokens → Add new token**.
+
+<Steps>
+  <Step title="Token name and expiration">
+    Any real, descriptive name. GitLab requires a real expiration date -- rotate before it lapses,
+    the same operational discipline any long-lived credential needs.
+  </Step>
+
+  <Step title="Role">
+    **Owner** or **Maintainer** -- needs real write access on every project the token will manage
+    notes/approvals/project-settings reads on. **Maintainer** is the minimum real role that can read
+    a project's own approval configuration (`GET /projects/:id/approvals`, the TOCTOU safety check
+    below).
+  </Step>
+
+  <Step title="Scopes">
+    **`api`** (Notes, Merge Requests, Approvals, project-settings reads -- everything `ubx server`'s
+    own GitLab handlers call) and **`read_repository`** (git clone/fetch over HTTPS). Real,
+    fine-grained scopes GitLab itself defines -- not a broader "admin" scope.
+  </Step>
+
+  <Step title="Create, then copy the token">
+    Shown once, never retrievable again -- this exact value becomes
+    `--gitlab-token`/`UBX_SERVER_GITLAB_TOKEN`.
+  </Step>
+</Steps>
+
+<Note>
+  Creating the token also creates a real, GitLab-chosen **bot user** -- visible in the group's own
+  **Members** list right after creation, filterable by "bot". Unlike a GitHub App's fixed
+  `<slug>[bot]` convention, GitLab picks this username itself; note it down and set
+  `--gitlab-bot-username`/`gitlab_bot_username` to match. It's used to attribute drift-watch-opened
+  MRs and to find this bot's own last note for the edit-in-place comment mechanism.
+</Note>
+
+## Configure the webhook
+
+Go to each watched project's own (or the group's own, for every project under it) **Settings →
+Webhooks → Add new webhook**.
+
+<Steps>
+  <Step title="URL">
+    `https://<your-host>/webhook/gitlab` -- `ubx server` exposes two real routes,
+    `/webhook/github` and `/webhook/gitlab`, on `--listen-addr` (default `:8080`).
+  </Step>
+
+  <Step title="Trigger">
+    **Merge request events** (open/update/approval/merge -- steps 1, 3's re-plan-via-push, 4's
+    Approve-derived acceptance, and 5 of the [core flow](/server/overview#the-core-flow)) and
+    **Comments** (step 3's manual re-plan and step 4's manual ship, via `ubx plan`/`ubx ship`
+    notes).
+  </Step>
+
+  <Step title="SSL verification">
+    Enabled, for any real deployment.
+  </Step>
+
+  <Step title="Generate a signing token">
+    After saving the webhook, click **Edit**, then **Generate signing token** -- GitLab's own real,
+    current, recommended webhook-authentication mechanism (a `whsec_`-prefixed value, shown once,
+    never returned by the API again), not the older, GitLab-labeled "not recommended" plain-text
+    `X-Gitlab-Token` header, which this server doesn't support at all. This exact value becomes
+    `--gitlab-webhook-secret`/`UBX_SERVER_GITLAB_WEBHOOK_SECRET`.
+  </Step>
+</Steps>
+
+<Note>
+  Same remote-ledger-store requirement as GitHub -- see [GitHub App
+  setup](/server/github-setup#install-it)'s own note. `ubx` never runs `git commit`/`git push`
+  itself, so any accept/ship written to a local git-directory ledger inside this server's own
+  working clone never persists once that clone is next re-fetched.
+</Note>
+
+## `reset_approvals_on_push`
+
+Real, load-bearing project setting for step 3's Approve-derived acceptance (**Settings → Merge
+requests → Approval settings**): **Prevent approval by author** aside, GitLab's approvals API
+carries no per-approval commit SHA at all -- structurally different from GitHub's own
+`review.commit_id`. Instead, `ubx server` relies on `reset_approvals_on_push` (on by default)
+clearing every existing approval outright when a new commit lands on the MR's source branch, which
+already guarantees a currently-recorded approval corresponds to the MR's own current head commit.
+
+**If this setting is off for a project**, `ubx server` refuses to derive acceptance from an
+approval on it at all -- there's no real way left to correlate the approval with any specific
+commit. It posts a note explaining this and pointing at `ubx accept` as the manual alternative.
+Turn `reset_approvals_on_push` on for every project this server watches.
+
+## `--repo`'s own GitLab shorthand
+
+```bash
+ubx server --repo gitlab:acme/infra --repo gitlab:acme/backend/infra:stacks/payments
+```
+
+`gitlab:namespace/project` alone defaults `ledger_dir` to `"."`;
+`gitlab:namespace/project:ledger_dir` sets it explicitly. The project path is never split into
+separate fields the way GitHub's owner/name pair is -- a real GitLab project path can carry any
+number of nested group/subgroup segments (`acme/backend/infra` is a real project nested under real,
+nested groups `acme` → `backend`), so it's kept as one whole, opaque string throughout.
+
+## CODEOWNERS group ownership
+
+A `CODEOWNERS` group owner resolves as one whole, real GitLab group path
+(`@acme/platform/backend-team`), checked via GitLab's own inherited-group-membership API -- never
+split at the first slash the way GitHub's org+team-slug pair is. `ubx server` never parses a group
+path into segments; it hands the whole string straight to GitLab's own API.
+
+## See also
+
+- [Configuration](/server/configuration)
+- [The real workflow](/server/workflow)
+- [`ubx server`](/cli-reference/server)
+- [`ubx accept` -- GitLab CI/CD](/integrations/gitlab-ci)
