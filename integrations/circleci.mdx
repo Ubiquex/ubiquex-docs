@@ -1,21 +1,22 @@
 ---
 title: "CircleCI"
-description: "Nightly drift watch and merge-triggered shipping, running in CircleCI."
+description: "Nightly drift watch, plan-on-pull-request, and merge-triggered shipping, running in CircleCI."
 ---
 
-Two independent workflows, adapted from the [GitHub
+Three independent workflows, adapted from the [GitHub
 Actions](/integrations/github-actions) reference implementation --
-same real CLI contract underneath, but CircleCI's own real mechanisms
-for credentials, scheduling, and notifications, verified independently
-rather than assumed to mirror any of the four platforms already
-covered.
+same real CLI contract underneath (`ubx status --drift`'s exit codes,
+`ubx plan`'s own receipt, `ubx ship`'s own resolution rules), but
+CircleCI's own real mechanisms for credentials, scheduling, pull
+request builds, and notifications, verified independently rather than
+assumed to mirror any of the four platforms already covered.
 
 <Note>
-  This covers scheduled and merge-triggered automation only --
-  `ubx-agent` (UBI-28, parked) exists for the case this structurally
-  can't cover: tight detection latency and an event-driven loop, not a
-  cron tick or a merge hook. Nothing here is a substitute for that,
-  it's what's real today.
+  This covers scheduled, pull-request-triggered, and merge-triggered
+  automation only -- `ubx-agent` (UBI-28, parked) exists for the case
+  this structurally can't cover: tight detection latency and an
+  event-driven loop, not a cron tick or a merge hook. Nothing here is
+  a substitute for that, it's what's real today.
 </Note>
 
 ## The same real gap as the other three
@@ -50,6 +51,14 @@ sudo mv ubx /usr/local/bin/
 Pin an exact released version, not `latest`.
 
 ### Provider credentials: OIDC to AWS, real and first-party
+
+Drift-watch and ship-on-merge both need real AWS credentials.
+Plan-on-pull-request, covered below, is a real, deliberate exception
+the same way it is on every other platform -- `ubx plan`'s own resolve
+step never makes a live provider call (confirmed directly against
+`core/resolver/resolver.go`: no `Configure`, no live read, ever), so
+it needs none. Everything below is for the two jobs that do need a
+real AWS role.
 
 Of the four non-GitHub platforms covered, CircleCI's OIDC story is the
 closest to GitHub's own -- a real, current, first-party mechanism, not
@@ -213,7 +222,124 @@ to get a real alert out of a properly configured preference, and no
 automatic PR or receipt gets posted anywhere -- that's `ubx-agent`'s
 job (UBI-28), not this pipeline's.
 
-## Workflow 2: ship on merge (real scope, stated above)
+## Workflow 2: plan on pull request
+
+`ubx plan` renders the same real receipt covered in [GitHub
+Actions](/integrations/github-actions#workflow-2-plan-on-push) --
+delta, blast radius, and a cost delta line when the resource's own
+cost data is available -- without ever touching the ledger. As stated
+above, this job needs no AWS credentials at all.
+
+### Enabling this: a project setting, not a workflow-level trigger
+
+CircleCI's own real mechanism here is coarser than the other four
+platforms' own `pr:`/`rules:`/branch-policy trigger types, confirmed
+directly against CircleCI's own current documentation, not assumed
+finer-grained than it is. There's no dedicated "pull request opened"
+event CircleCI exposes to a workflow -- the real, current control is
+a **project-level** toggle: **Project Settings → Advanced → "Only
+build pull requests."** Off by default. Once on, CircleCI skips
+triggering a pipeline for an ordinary branch push that has no open
+pull request against it, and still builds normal commits to the
+default branch -- which is what lets `main`-triggered ship-on-merge,
+below, keep working unaffected once this is turned on.
+
+<Note>
+  This setting is project-wide, not scoped to one workflow -- there's
+  no way to make only the plan job PR-gated while leaving another
+  workflow ungated at the trigger level the way GitLab's `rules:` or
+  Azure DevOps' branch policy can. The `filters:` block on the `plan`
+  job below (`branches: ignore: main`) is what keeps it from also
+  running on the `main`-branch push that triggers ship-on-merge --
+  the two mechanisms work together, not either alone.
+</Note>
+
+### The workflow
+
+```yaml
+workflows:
+  plan-on-pull-request:
+    when: pipeline.trigger_source != "scheduled_pipeline"
+    jobs:
+      - plan:
+          filters:
+            branches:
+              ignore: main
+
+jobs:
+  plan:
+    docker:
+      - image: cimg/base:2026.07
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - ubx-providers-hashicorp-aws-6.54.0
+      - run:
+          name: Install ubx
+          command: |
+            curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+            sudo mv ubx /usr/local/bin/
+      - run:
+          name: Render the plan and post it as a PR comment
+          command: |
+            set +e
+            ubx plan --ledger-dir . \
+              --source hashicorp/aws --provider-version 6.54.0 \
+              > plan-output.txt 2>&1
+            plan_exit=$?
+
+            comments_url=$(curl -sf \
+              "https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/pulls?head=$CIRCLE_PROJECT_USERNAME:$CIRCLE_BRANCH&state=open" \
+              -u "$GH_USER:$GH_TOKEN" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d[0]["comments_url"] if d else "")')
+
+            if [ -n "$comments_url" ]; then
+              python3 -c '
+              import json
+              print(json.dumps({"body": open("plan-output.txt").read()}))
+              ' > comment-body.json
+              curl -sf -X POST "$comments_url" \
+                -u "$GH_USER:$GH_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d @comment-body.json
+            fi
+
+            exit $plan_exit
+      - save_cache:
+          key: ubx-providers-hashicorp-aws-6.54.0
+          paths:
+            - ~/.ubx/providers
+```
+
+Three real, CircleCI-specific details, none obvious from copying
+another platform's own workflow:
+
+- **The PR lookup goes by branch, not by a predefined PR variable, on
+  purpose.** CircleCI does expose `$CIRCLE_PULL_REQUEST`, but
+  confirmed directly against CircleCI's own support documentation:
+  it's populated only under the older, OAuth-based GitHub integration
+  -- **projects using the GitHub Apps integration never get it set at
+  all**, regardless of timing. The `pulls?head=...&state=open` lookup
+  above is CircleCI's own officially documented workaround for exactly
+  this gap, and works under either integration type -- used here
+  rather than the narrower variable for that reason, not by accident.
+- **`$GH_USER` / `$GH_TOKEN` are real, but self-provisioned.** Unlike
+  GitHub Actions' automatic, scoped-to-the-run `GITHUB_TOKEN`, CircleCI
+  has no built-in credential for calling GitHub's own API -- these are
+  a real GitHub personal access token (`repo` scope, write access to
+  pull requests) stored as CircleCI project environment variables, the
+  same self-provisioned pattern as Bamboo's Bitbucket token and Azure
+  DevOps' branch-policy Build Service grant, each real and necessary
+  in its own way, none of them automatic.
+- **`set +e` / capture `plan_exit` / `exit $plan_exit`** is the same
+  single-script pattern used on Bamboo: CircleCI's own `run:` steps
+  don't have a per-step `if: always()`/`condition:` keyword the other
+  platforms expose, so the comment always posts (when a PR is found)
+  and the real resolve failure is still re-asserted as the step's own
+  last act, failing the job on a genuine error without swallowing it
+  in the comment-posting logic.
+
+## Workflow 3: ship on merge (real scope, stated above)
 
 Given the gap above, this workflow ships whatever is **already**
 accepted in the ledger, triggered by a push to `main`. It does not
@@ -273,6 +399,7 @@ happened at accept time, not be silently implied by an unattended job.
 - [Azure DevOps Pipelines](/integrations/azure-devops)
 - [Bamboo](/integrations/bamboo)
 - [`ubx status`](/cli-reference/status)
+- [`ubx plan`](/cli-reference/plan)
 - [`ubx accept`](/cli-reference/accept)
 - [`ubx ship`](/cli-reference/ship)
 - [PR-Merge Acceptance](/concepts/pr-merge-acceptance)
