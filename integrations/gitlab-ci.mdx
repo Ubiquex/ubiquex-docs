@@ -1,0 +1,247 @@
+---
+title: "GitLab CI/CD"
+description: "Nightly drift watch and merge-triggered shipping, running in GitLab's own pipelines."
+---
+
+Two independent pipelines, adapted from the [GitHub
+Actions](/integrations/github-actions) reference implementation --
+same real CLI contract underneath (`ubx status --drift`'s exit codes,
+`ubx ship`'s own resolution rules), but GitLab's own real mechanisms
+for scheduling, credentials, and merge automation, verified
+independently rather than assumed to mirror GitHub's.
+
+<Note>
+  This covers scheduled and merge-triggered automation only --
+  `ubx-agent` (UBI-28, parked) exists for the case this structurally
+  can't cover: tight detection latency and an event-driven loop, not a
+  cron tick or a merge hook. Nothing here is a substitute for that,
+  it's what's real today.
+</Note>
+
+## A real gap, stated plainly
+
+GitHub Actions' ship-on-merge workflow uses `ubx accept --from-merge`
+to derive acceptance directly from a merged, reviewed pull request --
+the merge commit's real existence, the PR it belongs to, and its real,
+current approving reviewers, all read from the GitHub API. That
+derivation is GitHub-specific: `--from-merge` takes a `--github-repo
+owner/name` flag and talks to the real GitHub REST API
+(`ListPullRequestsWithCommit`, `ListReviews`) to do it. There is no
+GitLab equivalent in `ubx` today -- no `--gitlab-project` flag, no
+GitLab Merge Request API integration, confirmed by reading
+`cli/accept.go` and the `github/` package directly rather than assumed
+absent.
+
+This isn't a GitLab limitation -- GitLab's own Merge Request Approvals
+API exposes exactly the same kind of data GitHub's does. It's a real,
+current gap in `ubx` itself: only one platform's merge-derivation is
+built. The honest fallback below is a merge-triggered pipeline that
+**ships an already-accepted proposal** -- acceptance itself still
+needs to happen through `ubx accept`'s local-file path (a real person
+running it, typically as part of the review process, not
+automatically at merge time). That's a materially different, weaker
+automation story than GitHub's, not a cosmetic difference -- said
+here directly rather than papered over with a workflow that looks
+symmetrical but silently drops the "reviewers are independently
+verified" guarantee GitHub's version actually provides.
+
+## Prerequisites
+
+Same as GitHub Actions: a stack repository with a real `.ubx/config`
+and a git-local ledger already committed (see [Install and initialize
+your first stack](/tutorial/setup/install)). Nothing here runs `ubx
+init`.
+
+### Installing ubx in the runner
+
+```bash
+curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+mv ubx /usr/local/bin/
+```
+
+Pin an exact released version, not `latest` -- same reasoning as
+pinning a provider version.
+
+### Provider credentials: OIDC to AWS, no stored keys
+
+GitLab's OIDC mechanism is structurally different from GitHub's, not
+just differently named. A job requests a token explicitly with the
+`id_tokens` keyword, and there's no GitLab-maintained equivalent of
+`aws-actions/configure-aws-credentials` -- the real, current, GitLab-
+documented pattern calls `aws sts assume-role-with-web-identity`
+directly:
+
+```yaml
+ship:
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://gitlab.com
+  script:
+    - >
+      creds=$(aws sts assume-role-with-web-identity
+      --role-arn ${AWS_ROLE_ARN}
+      --role-session-name "ubx-${CI_PROJECT_ID}-${CI_PIPELINE_ID}"
+      --web-identity-token ${GITLAB_OIDC_TOKEN}
+      --duration-seconds 3600
+      --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'
+      --output text)
+    - export AWS_ACCESS_KEY_ID=$(echo $creds | cut -d' ' -f1)
+    - export AWS_SECRET_ACCESS_KEY=$(echo $creds | cut -d' ' -f2)
+    - export AWS_SESSION_TOKEN=$(echo $creds | cut -d' ' -f3)
+```
+
+Setup on the AWS side:
+
+1. Create an IAM OIDC identity provider with the provider URL set to
+   your GitLab instance (`https://gitlab.com` for GitLab.com itself),
+   audience `https://gitlab.com` (matching the `aud` claim requested
+   above -- GitLab's own convention, not `sts.amazonaws.com` the way
+   GitHub's is).
+2. Create an IAM role with a trust policy scoped to the token's `sub`
+   claim, which GitLab composes from the project path and ref:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {
+      "Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/gitlab.com"
+    },
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Condition": {
+      "StringEquals": {
+        "gitlab.com:sub": "project_path:<GROUP>/<PROJECT>:ref_type:branch:ref:main"
+      }
+    }
+  }]
+}
+```
+
+As with GitHub, drift-watch and ship-on-merge want different real
+permissions on that role -- read-only for drift-watch, write for
+ship-on-merge. Two separate roles is the least-privilege choice.
+
+### Caching provider binaries
+
+```yaml
+cache:
+  key: ubx-providers-hashicorp-aws-6.54.0
+  paths:
+    - ~/.ubx/providers
+```
+
+## Workflow 1: nightly drift watch
+
+Scheduling in GitLab isn't part of the pipeline file the way GitHub's
+`on: schedule:` is -- a **Pipeline Schedule** is a separate object,
+created in the project's CI/CD → Schedules settings (or the [Pipeline
+Schedules API](https://docs.gitlab.com/api/pipeline_schedules/)), with
+its own cron expression, target branch, and owner. `.gitlab-ci.yml`
+only needs a `rules:` condition to select which jobs actually run when
+that schedule fires:
+
+```yaml
+drift-watch:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://gitlab.com
+  cache:
+    key: ubx-providers-hashicorp-aws-6.54.0
+    paths:
+      - ~/.ubx/providers
+  script:
+    - curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+    - mv ubx /usr/local/bin/
+    - >
+      creds=$(aws sts assume-role-with-web-identity
+      --role-arn ${AWS_ROLE_ARN_DRIFT_WATCH}
+      --role-session-name "ubx-drift-${CI_PIPELINE_ID}"
+      --web-identity-token ${GITLAB_OIDC_TOKEN}
+      --duration-seconds 3600
+      --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'
+      --output text)
+    - export AWS_ACCESS_KEY_ID=$(echo $creds | cut -d' ' -f1)
+    - export AWS_SECRET_ACCESS_KEY=$(echo $creds | cut -d' ' -f2)
+    - export AWS_SESSION_TOKEN=$(echo $creds | cut -d' ' -f3)
+    - >
+      ubx status --drift --stack payments
+      --source hashicorp/aws --provider-version 6.54.0
+      --provider-config '{"region":"us-east-1"}'
+```
+
+`ubx status --drift`'s exit code (`0` clean, `1` drift found, `2`
+unreadable, worse always wins -- see [`ubx
+status`](/cli-reference/status)) is exactly the job's own exit code,
+same as GitHub -- the last `script` line's exit status fails the job
+directly, no extra logic needed.
+
+GitLab's own native alerting is real but differently scoped than
+GitHub's: pipeline event notifications are sent to the **pipeline's
+creator**, and for a scheduled pipeline that's the schedule's owner --
+the user who created the Pipeline Schedule object, since a scheduled
+pipeline runs with that user's own project permissions. Each user
+configures their own notification level (Profile → Notifications),
+including a failure-only option. As with GitHub, no custom
+notification step or webhook is required to get a real alert out of
+this, and no automatic PR or receipt gets posted anywhere -- that's
+`ubx-agent`'s job (UBI-28), not this pipeline's.
+
+## Workflow 2: ship on merge (real scope, stated above)
+
+Given the gap in the section above, this pipeline's real job is
+narrower than GitHub's: ship whatever is **already** accepted in the
+ledger, triggered by a push to `main`. It does not derive or verify
+acceptance itself.
+
+```yaml
+ship:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"'
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://gitlab.com
+  cache:
+    key: ubx-providers-hashicorp-aws-6.54.0
+    paths:
+      - ~/.ubx/providers
+  script:
+    - curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+    - mv ubx /usr/local/bin/
+    - >
+      creds=$(aws sts assume-role-with-web-identity
+      --role-arn ${AWS_ROLE_ARN_SHIP}
+      --role-session-name "ubx-ship-${CI_PIPELINE_ID}"
+      --web-identity-token ${GITLAB_OIDC_TOKEN}
+      --duration-seconds 3600
+      --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'
+      --output text)
+    - export AWS_ACCESS_KEY_ID=$(echo $creds | cut -d' ' -f1)
+    - export AWS_SECRET_ACCESS_KEY=$(echo $creds | cut -d' ' -f2)
+    - export AWS_SESSION_TOKEN=$(echo $creds | cut -d' ' -f3)
+    - >
+      ubx ship --yes
+      --source hashicorp/aws --provider-version 6.54.0
+      --provider-config '{"region":"us-east-1"}'
+```
+
+`ubx ship` with no `hash` resolves to the most recent unshipped,
+already-accepted proposal for the stack -- see [`ubx
+ship`](/cli-reference/ship). If nothing has been accepted since the
+last ship, there's nothing to do and the job is a real no-op, not a
+failure. `--confirm-destroys` is deliberately absent here for the same
+reason it's absent from the GitHub example: a stack whose changes can
+destroy real resources needs that flag added consciously, and since
+this pipeline never performs acceptance itself, that acknowledgment
+has to have already happened at accept time, not be silently implied
+by the pipeline running unattended.
+
+## See also
+
+- [GitHub Actions](/integrations/github-actions)
+- [`ubx status`](/cli-reference/status)
+- [`ubx accept`](/cli-reference/accept)
+- [`ubx ship`](/cli-reference/ship)
+- [PR-Merge Acceptance](/concepts/pr-merge-acceptance)
