@@ -1,13 +1,13 @@
 ---
 title: "ubx accept"
-description: "Sign a proposal, locally or by deriving acceptance from a merged GitHub pull request."
+description: "Sign a proposal, locally or by deriving acceptance from a merged GitHub pull request or GitLab merge request."
 ---
 
 Accepting is the real signing moment, the point where a proposal stops
 being a draft and becomes a permanent, binding decision in the ledger.
 `ubx accept` supports two genuinely different ways to do that: a local
 file you sign directly, or deriving the signature entirely from a
-merged, reviewed pull request.
+merged, reviewed pull request (GitHub) or merge request (GitLab).
 
 Before anything else, accept checks whether the proposal is fresh (has
 the live resource moved since this was resolved?) and, if it destroys
@@ -19,7 +19,12 @@ can be skipped by accident.
 ```bash
 ubx accept [proposal.json] [flags]
 ubx accept --from-merge <commit-sha> --proposal-file <path> --github-repo <owner/name>
+ubx accept --from-merge <commit-sha> --proposal-file <path> --gitlab-project <namespace/project>
 ```
+
+`--from-merge` always derives against exactly one platform -- exactly
+one of `--github-repo`/`--gitlab-project` is required, never both,
+never neither.
 
 ## Examples
 
@@ -45,6 +50,18 @@ ubx accept --from-merge 8c1d2e... \
 accepted 45f63ce10849... (stack payments) via PR #42, 1 approver(s)
 ```
 
+Deriving acceptance from a real, merged GitLab merge request:
+
+```bash
+ubx accept --from-merge 8c1d2e... \
+  --proposal-file proposals/db-replica.json \
+  --gitlab-project acme/infra
+```
+
+```bash
+accepted 45f63ce10849... (stack payments) via MR !17, 1 approver(s)
+```
+
 ## Flags
 
 <ResponseField name="--ledger-dir" type="string" default=".">
@@ -60,7 +77,11 @@ accepted 45f63ce10849... (stack payments) via PR #42, 1 approver(s)
 </ResponseField>
 
 <ResponseField name="--github-repo" type="string">
-  `owner/name` of the GitHub repository. Required with `--from-merge`.
+  `owner/name` of the GitHub repository. Exactly one of `--github-repo`/`--gitlab-project` is required with `--from-merge`.
+</ResponseField>
+
+<ResponseField name="--gitlab-project" type="string">
+  `namespace/project` (or a numeric project ID) of the GitLab project. Exactly one of `--github-repo`/`--gitlab-project` is required with `--from-merge`.
 </ResponseField>
 
 <ResponseField name="--repo-dir" type="string" default=".">
@@ -105,10 +126,23 @@ network call.
 
 For `--from-merge`, nothing about the acceptance is trusted from a
 typed claim. The merge commit's real existence, the proposal's real
-content at that commit, the real pull request it belongs to, and its
-real, current approving reviewers are all independently derived from
-git and the GitHub API. See [PR-Merge
-Acceptance](/concepts/pr-merge-acceptance) for the full mechanism.
+content at that commit, the real pull/merge request it belongs to, and
+its real, current approving reviewers are all independently derived
+from git and the platform's own API (GitHub's REST API with
+`--github-repo`, GitLab's REST API with `--gitlab-project`). See
+[PR-Merge Acceptance](/concepts/pr-merge-acceptance) for the full
+mechanism.
+
+GitLab's own approval model is genuinely different from GitHub's, not
+just differently named: there's no CHANGES_REQUESTED-supersedes-
+APPROVED concept -- GitLab's own merge request approvals endpoint
+already returns the authoritative, current set of approvers directly,
+and by default clears every existing approval when a new commit lands
+on the MR's source branch (`reset_approvals_on_push`). Either way,
+`approvers` may legitimately be empty -- a merge with zero approving
+reviews is recorded exactly as it happened, never rejected; enforcing
+"this needed N approvals" is entirely the platform's own job (branch
+or merge-request protection), never `ubx`'s.
 
 ## See also
 

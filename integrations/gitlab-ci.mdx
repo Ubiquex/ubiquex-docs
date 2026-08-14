@@ -20,32 +20,45 @@ assumed to mirror GitHub's.
   it's what's real today.
 </Note>
 
-## A real gap, stated plainly
+## Merge-derived acceptance
 
-GitHub Actions' ship-on-merge workflow uses `ubx accept --from-merge`
-to derive acceptance directly from a merged, reviewed pull request --
-the merge commit's real existence, the PR it belongs to, and its real,
-current approving reviewers, all read from the GitHub API. That
-derivation is GitHub-specific: `--from-merge` takes a `--github-repo
-owner/name` flag and talks to the real GitHub REST API
-(`ListPullRequestsWithCommit`, `ListReviews`) to do it. There is no
-GitLab equivalent in `ubx` today -- no `--gitlab-project` flag, no
-GitLab Merge Request API integration, confirmed by reading
-`cli/accept.go` and the `github/` package directly rather than assumed
-absent.
+`ubx accept --from-merge` derives acceptance directly from a merged,
+reviewed merge request, the GitLab counterpart to GitHub's own PR-merge
+tier: the merge commit's real existence in git history, the proposal
+file's real content at that commit, the real MR it belongs to, and its
+real, current approving reviewers, read directly from the GitLab API.
+`--from-merge` takes a `--gitlab-project namespace/project` flag,
+structurally parallel to GitHub's own `--github-repo` -- confirmed
+against `cli/accept.go` and the real `gitlab/` package directly, not
+assumed symmetric with the GitHub guide.
 
-This isn't a GitLab limitation -- GitLab's own Merge Request Approvals
-API exposes exactly the same kind of data GitHub's does. It's a real,
-current gap in `ubx` itself: only one platform's merge-derivation is
-built. The honest fallback below is a merge-triggered pipeline that
-**ships an already-accepted proposal** -- acceptance itself still
-needs to happen through `ubx accept`'s local-file path (a real person
-running it, typically as part of the review process, not
-automatically at merge time). That's a materially different, weaker
-automation story than GitHub's, not a cosmetic difference -- said
-here directly rather than papered over with a workflow that looks
-symmetrical but silently drops the "reviewers are independently
-verified" guarantee GitHub's version actually provides.
+GitLab's own approval model is genuinely different from GitHub's, not
+just differently named -- confirmed against GitLab's own current API
+docs. There's no CHANGES_REQUESTED-supersedes-APPROVED concept at
+all: GitLab's merge request approvals endpoint already returns the
+authoritative, current `approved_by` set directly, and by default
+clears every existing approval outright when a new commit lands on the
+MR's source branch (`reset_approvals_on_push`, on unless a project
+turns it off). Read from an already-merged MR, `approved_by` reflects
+exactly who approved the version that was actually merged either way
+-- a merge with zero recorded approvers (because nobody re-approved
+after a late push, or because it was never reviewed at all) is
+recorded as it happened, never rejected; enforcing "this needed N
+approvals" is GitLab's own job (merge request approval rules), never
+`ubx`'s.
+
+<Note>
+  A real credential gap, confirmed directly against GitLab's own
+  current `CI_JOB_TOKEN` documentation, not assumed working: the job
+  token GitLab automatically injects into every pipeline can resolve a
+  commit to its merge request, but is **not** authorized for the
+  approvals endpoint at all. `ubx accept --from-merge
+  --gitlab-project` needs a real, separately-provisioned **Project
+  Access Token** (`read_api` scope is enough) stored as a masked,
+  protected CI/CD variable -- `CI_JOB_TOKEN` alone silently isn't
+  enough here, unlike GitHub Actions' own `GITHUB_TOKEN`, which already
+  has read access to PR reviews out of the box.
+</Note>
 
 ## Prerequisites
 
@@ -262,12 +275,20 @@ note, `PUT` to update) -- real and possible, just genuinely more work
 than the one flag GitHub's `gh` provides, not built out here to keep
 this guide's own complexity proportionate to what's actually native.
 
-## Workflow 3: ship on merge (real scope, stated above)
+## Workflow 3: ship on merge
 
-Given the gap in the section above, this pipeline's real job is
-narrower than GitHub's: ship whatever is **already** accepted in the
-ledger, triggered by a push to `main`. It does not derive or verify
-acceptance itself.
+This is the automation half of [PR-Merge
+Acceptance](/concepts/pr-merge-acceptance): a proposal file, committed
+to a merge request whose description carries a real `ubx-proposal:
+<hash>` trailer, reviewed and merged like any other change. Once it
+lands on `main`, `ubx accept --from-merge` derives the acceptance from
+real, external evidence -- the merge commit's real existence in git
+history, the proposal file's real content at that commit, the real
+merge request it belongs to, and its real, current approving
+reviewers, read directly from the GitLab API. Nothing about who
+approved it is trusted from a typed claim -- the same real guarantee
+GitHub's own ship-on-merge guide provides, not a weaker, ships-blind
+version of it.
 
 ```yaml
 ship:
@@ -294,22 +315,41 @@ ship:
     - export AWS_ACCESS_KEY_ID=$(echo $creds | cut -d' ' -f1)
     - export AWS_SECRET_ACCESS_KEY=$(echo $creds | cut -d' ' -f2)
     - export AWS_SESSION_TOKEN=$(echo $creds | cut -d' ' -f3)
+    - export GITLAB_TOKEN=${GITLAB_API_TOKEN}
+    - >
+      ubx accept --from-merge $CI_COMMIT_SHA
+      --proposal-file proposals/db-replica.json
+      --gitlab-project $CI_PROJECT_PATH
     - >
       ubx ship --yes
       --source hashicorp/aws --provider-version 6.54.0
       --provider-config '{"region":"us-east-1"}'
 ```
 
+`GITLAB_API_TOKEN` is the real Project Access Token from the Note
+above, added as a masked, protected CI/CD variable (Settings → CI/CD →
+Variables) -- exported here as `GITLAB_TOKEN` because that's the real,
+current environment variable `ubx accept --from-merge --gitlab-project`
+reads by convention, the same way `GITHUB_TOKEN` already works on the
+GitHub guide. `$CI_COMMIT_SHA` and `$CI_PROJECT_PATH` are both real,
+current GitLab predefined variables -- the commit that triggered this
+exact pipeline run, and the project's own `namespace/project` path,
+respectively.
+
 `ubx ship` with no `hash` resolves to the most recent unshipped,
 already-accepted proposal for the stack -- see [`ubx
-ship`](/cli-reference/ship). If nothing has been accepted since the
-last ship, there's nothing to do and the job is a real no-op, not a
-failure. `--confirm-destroys` is deliberately absent here for the same
-reason it's absent from the GitHub example: a stack whose changes can
-destroy real resources needs that flag added consciously, and since
-this pipeline never performs acceptance itself, that acknowledgment
-has to have already happened at accept time, not be silently implied
-by the pipeline running unattended.
+ship`](/cli-reference/ship). If `ubx accept --from-merge` finds nothing
+new to accept (a push to `main` that didn't come from a proposal's own
+merge, or one already accepted), `ubx accept` itself fails loudly
+rather than the ship step silently no-oping on the wrong assumption --
+match this pipeline's own real proposal-file path and stack layout
+before relying on it. `--confirm-destroys` is deliberately absent from
+the example above, same reasoning as the GitHub guide's own: a
+PR/MR-merge-derived acceptance carries the same explicit human
+acknowledgment as a local one (see [`ubx
+accept`](/cli-reference/accept)'s own notes) -- a stack whose changes
+can destroy real resources needs that flag added consciously, not
+silently implied by an unattended merge-to-main job.
 
 ## See also
 
