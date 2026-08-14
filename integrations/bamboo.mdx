@@ -1,23 +1,25 @@
 ---
 title: "Bamboo"
-description: "Nightly drift watch and merge-triggered shipping, running in Atlassian Bamboo."
+description: "Nightly drift watch, plan-on-pull-request, and merge-triggered shipping, running in Atlassian Bamboo."
 ---
 
-Two independent plans, adapted from the [GitHub
+Three independent plans, adapted from the [GitHub
 Actions](/integrations/github-actions) reference implementation --
-same real CLI contract underneath, but Bamboo's own real mechanisms
-for credentials, scheduling, and notifications, verified independently
-rather than assumed to mirror the three platforms already covered.
-Bamboo is meaningfully different in character from all three: a
-self-hosted, Data Center product with long-lived build agents, not a
-SaaS runner spun up fresh per job.
+same real CLI contract underneath (`ubx status --drift`'s exit codes,
+`ubx plan`'s own receipt, `ubx ship`'s own resolution rules), but
+Bamboo's own real mechanisms for credentials, scheduling, pull request
+builds, and notifications, verified independently rather than assumed
+to mirror the three platforms already covered. Bamboo is meaningfully
+different in character from all three: a self-hosted, Data Center
+product with long-lived build agents, not a SaaS runner spun up fresh
+per job.
 
 <Note>
-  This covers scheduled and merge-triggered automation only --
-  `ubx-agent` (UBI-28, parked) exists for the case this structurally
-  can't cover: tight detection latency and an event-driven loop, not a
-  cron tick or a merge hook. Nothing here is a substitute for that,
-  it's what's real today.
+  This covers scheduled, pull-request-triggered, and merge-triggered
+  automation only -- `ubx-agent` (UBI-28, parked) exists for the case
+  this structurally can't cover: tight detection latency and an
+  event-driven loop, not a cron tick or a merge hook. Nothing here is
+  a substitute for that, it's what's real today.
 </Note>
 
 ## The same real gap as GitLab and Azure DevOps
@@ -51,6 +53,14 @@ sudo mv ubx /usr/local/bin/
 Pin an exact released version, not `latest`.
 
 ### Provider credentials: no native or AWS-maintained OIDC path
+
+Drift-watch and ship-on-merge both need real AWS credentials.
+Plan-on-pull-request, covered below, is a real, deliberate exception
+the same way it is on the other three platforms -- `ubx plan`'s own
+resolve step never makes a live provider call (confirmed directly
+against `core/resolver/resolver.go`: no `Configure`, no live read,
+ever), so it needs none. Everything below is for the two jobs that do
+need a real AWS credential.
 
 This is a real, material difference from the other three platforms,
 not a smaller version of the same story. Bamboo itself has no native
@@ -168,7 +178,126 @@ script step is required to get an alert out of a *configured*
 subscription, and no automatic PR or receipt gets posted anywhere --
 that's `ubx-agent`'s job (UBI-28), not this plan's.
 
-## Workflow 2: ship on merge (real scope, stated above)
+## Workflow 2: plan on pull request
+
+`ubx plan` renders the same real receipt covered in [GitHub
+Actions](/integrations/github-actions#workflow-2-plan-on-push) --
+delta, blast radius, and a cost delta line when the resource's own
+cost data is available -- without ever touching the ledger. As stated
+above, this job needs no AWS credentials at all.
+
+### Enabling this: plan branches, not a dedicated PR trigger type
+
+Bamboo's own real mechanism for this is **plan branches**, confirmed
+directly against Atlassian's own current documentation, not assumed
+to work the way a GitHub/GitLab-style `pr:`/`rules:` trigger does.
+When a plan's linked repository is Bitbucket Server, Data Center, or
+Cloud, Bamboo can automatically create a plan branch -- and run it --
+for every pull request opened against it. In the UI: **Plan
+Configuration → Branches tab → "When a pull request is created."** In
+Specs YAML, the real, equivalent key (the direct YAML counterpart of
+the Java Specs API's own confirmed `createForPullRequest()` method) is:
+
+```yaml
+branches:
+  create: for-pull-request
+```
+
+<Note>
+  A real, honest limitation confirmed against Atlassian's own
+  documentation, not glossed over: build status for a PR from a
+  **forked** repository doesn't automatically appear back in
+  Bitbucket, unlike a same-repository PR's. Bamboo's own real, default
+  behavior already posts a same-repo PR's build status back to
+  Bitbucket automatically once linked -- no scripting needed for that
+  part. What still needs a script, on every platform this guide
+  covers, is posting the actual `ubx plan` receipt as PR text, not
+  just a pass/fail indicator.
+</Note>
+
+### The plan
+
+```yaml
+version: 2
+plan:
+  project-key: PAYMENTS
+  key: PLANONPR
+  name: Plan on pull request
+
+branches:
+  create: for-pull-request
+
+stages:
+  - Plan:
+      jobs:
+        - Plan
+
+Plan:
+  tasks:
+    - checkout: default
+    - script:
+        interpreter: /bin/sh
+        scripts: |
+          set +e
+          curl -L https://github.com/Ubiquex/ubiquex/releases/download/v0.2.0/ubx_0.2.0_linux_amd64.tar.gz | tar xz
+          sudo mv ubx /usr/local/bin/
+          ubx plan --ledger-dir . \
+            --source hashicorp/aws --provider-version 6.54.0 \
+            > plan-output.txt 2>&1
+          plan_exit=$?
+
+          python3 -c '
+          import json
+          body = {"text": open("plan-output.txt").read()}
+          open("comment-body.json", "w").write(json.dumps(body))
+          '
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${bamboo.bitbucket_pat.password}" \
+            -H "Content-Type: application/json" \
+            -d @comment-body.json \
+            "https://bitbucket.example.com/rest/api/1.0/projects/PAYMENTS/repos/payments-infra/pull-requests/${bamboo.repository.pr.key}/comments"
+
+          exit $plan_exit
+```
+
+Three real, Bamboo-specific details, none obvious from copying the
+other three platforms' own workflow:
+
+- **`${bamboo.repository.pr.key}`** is the real, predefined Bamboo
+  variable holding the pull request's own identifier when a plan
+  branch was created from one -- confirmed directly against Atlassian's
+  own current Bamboo variables reference. Bamboo calls it a "key," but
+  it's the same value Bitbucket's own REST API paths expect as
+  `{pullRequestId}` -- Bitbucket pull requests don't have any separate
+  "key"-style identifier the way Jira issues or Bitbucket projects do.
+- **There's no `bitbucket` CLI equivalent to `gh`/`glab` at all.** The
+  real, current mechanism is a direct call to [Bitbucket Server's own
+  pull request comments REST
+  API](https://developer.atlassian.com/server/bitbucket/how-tos/updating-build-status-for-commits/)
+  (`POST .../pull-requests/{pullRequestId}/comments`, a JSON body with
+  a `text` field), authenticated with a Bitbucket personal access
+  token stored as a Bamboo shared credential, the same
+  `.password`-suffixed pattern already used for the AWS keys above --
+  `${bamboo.bitbucket_pat.password}`. As on every other platform, this
+  guide's own honest caveat about Bamboo's credential masking (stated
+  above) applies to this token too.
+- **No predefined variable exists for the Bitbucket project key or
+  repository slug** -- confirmed absent from Atlassian's own variables
+  reference, unlike the PR key. The plan's own `project-key: PAYMENTS`
+  is already hardcoded at the top of every example in this guide, so
+  the comment-posting URL above just reuses that same real, stated
+  example rather than inventing an unconfirmed variable.
+
+`set +e` at the top and capturing `plan_exit` before the comment-
+posting call -- then `exit $plan_exit` as the script's own last line
+-- is a single-script version of the `if: always()` pattern used on
+GitHub Actions and Azure Pipelines: Bamboo Specs YAML has no separate
+per-step `condition:`/`if:` keyword the way the other three platforms
+do, so the whole sequence lives in one script task, with the real
+resolve failure re-asserted at the very end so the job still fails on
+a genuine error while the PR still gets the plan output either way.
+
+## Workflow 3: ship on merge (real scope, stated above)
 
 Given the gap above, this plan ships whatever is **already** accepted
 in the ledger, triggered by new commits landing on `main`. It does not
@@ -235,6 +364,7 @@ plan run.
 - [Azure DevOps Pipelines](/integrations/azure-devops)
 - [CircleCI](/integrations/circleci)
 - [`ubx status`](/cli-reference/status)
+- [`ubx plan`](/cli-reference/plan)
 - [`ubx accept`](/cli-reference/accept)
 - [`ubx ship`](/cli-reference/ship)
 - [PR-Merge Acceptance](/concepts/pr-merge-acceptance)
