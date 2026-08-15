@@ -22,12 +22,17 @@ variant of it: a different auth model, completely different event keys, and no u
 account at all.
 
 <Note>
-  Drift-watch (core-flow step 6 below) is GitHub-only for now, tracked separately as UBI-165 --
-  `ubx status --drift --surface-as` itself has no real GitLab/Azure DevOps/Bitbucket Server
-  surfacing path yet (`cli/surface.go` is GitHub-only: `--github-repo`, `GITHUB_TOKEN`), a real
-  CLI-level gap independent of `ubx server`'s own webhook/auth model for any of them. Steps 1-5
-  work identically on all four platforms; a GitLab-, Azure-DevOps-, or Bitbucket-Server-watched
-  repo simply never produces a drift-opened PR yet.
+  **Drift-watch (core-flow step 6 below) works on all five platforms since UBI-165.** It used to
+  work on none of them: the loop shelled out to `ubx status --drift --surface-as ...`, and
+  `ubx status` has no `--surface-as` flag and never had one, so every sweep died on `unknown flag`
+  before reaching any API. The surfacing machinery itself was also GitHub-only. Both are fixed, and
+  the loop now runs `ubx scan --surface-as`, which is where that machinery actually lives.
+
+  One real, structural exception remains, and it is a property of the product rather than a gap in
+  ubx: **Bitbucket Server has no issue tracker at all** (Atlassian's model is Jira), so
+  `surface_as: "issue"` is refused there with an explanatory error rather than silently opening a
+  pull request. Use `surface_as: "pr"` for Bitbucket-Server-watched repos. See
+  [the workflow](/server/workflow#5-drift-watch).
 </Note>
 
 ## Real value versus Actions-only automation

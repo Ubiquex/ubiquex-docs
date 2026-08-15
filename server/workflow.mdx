@@ -120,19 +120,57 @@ the real `ubx ship` subprocess.
 
 ## 5. Drift-watch
 
-On `drift_watch_interval` (default `24h`), for every repo in `Config.Repos`: checks out its own
-main branch and runs `ubx status --drift --surface-as <issue|pr>` -- the exact same, already-existing
-[`--surface-as`](/cli-reference/scan) machinery `ubx scan` uses directly, opening a real issue or
-draft PR when real drift is found. A drift-opened PR is attributed to the bot's own login
-(`github_bot_login`) -- see step 2 above for what that means for its own re-plan authorization.
+On `drift_watch_interval` (default `24h`), for every repo in `Config.Repos`, on every platform:
+checks the repository out at its own main branch and runs
+[`ubx scan --surface-as <issue|pr>`](/cli-reference/scan) over every stack that repository declares,
+opening one real issue or draft pull request **per drifted resource** when real drift is found. A
+drift-opened pull request is attributed to that platform's own configured bot identity -- see step 2
+above for what that means for its own re-plan authorization.
 
-<Note>
-  GitHub-only for now (tracked separately as UBI-165) -- `ubx status --drift --surface-as` itself
-  has no real GitLab/Azure DevOps/Bitbucket Server surfacing path yet (`cli/surface.go` is
-  GitHub-only: `--github-repo`, `GITHUB_TOKEN`), a real CLI-level gap independent of this server's
-  own webhook/auth model for any of the three. Steps 1-4 below work identically for GitLab, Azure
-  DevOps, and Bitbucket Server.
-</Note>
+<Warning>
+  Before UBI-165 (2026-08-15) this step worked on **no** platform, GitHub included. Two separate
+  defects, both fixed:
+
+  - The loop shelled out to `ubx status --drift --surface-as ... --github-repo ...`. `ubx status`
+    has no `--surface-as` flag and never had one, so every drift sweep ever run died on
+    `unknown flag` before reaching any API. The loop now runs `ubx scan`, which is where the
+    `--surface-as` machinery has always lived.
+  - The surfacing itself was GitHub-only, and the loop resolved a GitHub App installation for every
+    configured repository regardless of its platform.
+
+  If you were relying on drift-watch before this fix, it was silently doing nothing. Check your
+  server logs for the `unknown flag` line.
+</Warning>
+
+### What each platform actually opens
+
+The receipt is byte-identical everywhere. What differs is where it goes, and that is genuinely
+per-platform rather than one API with five names:
+
+| Platform | `--surface-as issue` opens | `--surface-as pr` opens |
+| --- | --- | --- |
+| GitHub | an issue | a draft pull request |
+| GitLab | an issue | a merge request, `Draft:` in the title |
+| Azure DevOps | a **work item** | a pull request, real `isDraft` flag |
+| Bitbucket Server | **refused, see below** | a pull request, `Draft:` in the title |
+| Bitbucket Cloud | an issue | a pull request, `Draft:` in the title |
+
+Three real consequences worth knowing before you configure `surface_as`:
+
+- **Bitbucket Server has no issue tracker at all.** Atlassian's own model is that issue tracking
+  lives in Jira, a separate product with separate credentials. `surface_as: "issue"` is refused
+  there with an explanatory error, never silently downgraded to a pull request: an operator who
+  asked for an issue and got a commit to their repository instead would be getting something
+  materially more privileged than they asked for.
+- **Azure DevOps has work items, not issues,** and they live in Azure Boards, a separate service
+  from Repos that a project can have disabled. Their type comes from the project's own process
+  template: `Issue` exists in the Agile and Basic processes and is the default, but a Scrum project
+  needs `Product Backlog Item` and a CMMI project needs `Requirement`. Set
+  `--azure-devops-work-item-type` accordingly; ubx cannot infer a project's process and will not
+  guess.
+- **Bitbucket Cloud's issue tracker is opt-in per repository.** A repository with it switched off
+  rejects the call, which is the right place for that to surface rather than being hidden behind a
+  fallback.
 
 ## GitLab
 
