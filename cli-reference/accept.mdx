@@ -23,12 +23,13 @@ ubx accept --from-merge <commit-sha> --proposal-file <path> --github-repo <owner
 ubx accept --from-merge <commit-sha> --proposal-file <path> --gitlab-project <namespace/project>
 ubx accept --from-merge <commit-sha> --proposal-file <path> --azure-devops-project <organization/project/repository>
 ubx accept --from-merge <commit-sha> --proposal-file <path> --bitbucket-server-url <url> --bitbucket-server-project <PROJECTKEY/repository-slug>
+ubx accept --from-merge <commit-sha> --proposal-file <path> --bitbucket-cloud-repo <workspace/repo-slug>
 ```
 
 `--from-merge` always derives against exactly one platform -- exactly
 one of `--github-repo`/`--gitlab-project`/`--azure-devops-project`/
-`--bitbucket-server-project` is required, never more than one, never
-none. `--bitbucket-server-project` is the one exception to "one flag
+`--bitbucket-server-project`/`--bitbucket-cloud-repo` is required, never
+more than one, never none. `--bitbucket-server-project` is the one exception to "one flag
 per platform": Bitbucket Server is self-hosted, with no single fixed
 default host the other three platforms each have, so
 `--bitbucket-server-url` is a real, always-required companion, not an
@@ -95,6 +96,19 @@ ubx accept --from-merge 8c1d2e... \
 accepted 45f63ce10849... (stack payments) via PR #17, 1 approver(s)
 ```
 
+Deriving acceptance from a real, merged Bitbucket Cloud pull request:
+
+```bash
+ubx accept --from-merge 9601cb6... \
+  --proposal-file proposals/db-replica.json \
+  --bitbucket-cloud-repo acme/payments-infra
+```
+
+Bitbucket Cloud is a genuinely different platform from Bitbucket Server, not a hosted variant of
+it, so it has its own flag and its own `BITBUCKET_CLOUD_TOKEN`. It needs no base URL companion:
+Bitbucket Cloud is SaaS with one real, fixed host. See [Bitbucket
+Cloud](/integrations/bitbucket-cloud).
+
 ## Flags
 
 <ResponseField name="--ledger-dir" type="string" default=".">
@@ -110,15 +124,15 @@ accepted 45f63ce10849... (stack payments) via PR #17, 1 approver(s)
 </ResponseField>
 
 <ResponseField name="--github-repo" type="string">
-  `owner/name` of the GitHub repository. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project`/`--bitbucket-server-project` is required with `--from-merge`.
+  `owner/name` of the GitHub repository. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project`/`--bitbucket-server-project`/`--bitbucket-cloud-repo` is required with `--from-merge`.
 </ResponseField>
 
 <ResponseField name="--gitlab-project" type="string">
-  `namespace/project` (or a numeric project ID) of the GitLab project. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project`/`--bitbucket-server-project` is required with `--from-merge`.
+  `namespace/project` (or a numeric project ID) of the GitLab project. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project`/`--bitbucket-server-project`/`--bitbucket-cloud-repo` is required with `--from-merge`.
 </ResponseField>
 
 <ResponseField name="--azure-devops-project" type="string">
-  `organization/project/repository` of the Azure DevOps repo -- one more segment than GitHub's/GitLab's own flags, since Azure DevOps genuinely needs three real identifiers to address a repository, not two. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project`/`--bitbucket-server-project` is required with `--from-merge`.
+  `organization/project/repository` of the Azure DevOps repo -- one more segment than GitHub's/GitLab's own flags, since Azure DevOps genuinely needs three real identifiers to address a repository, not two. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project`/`--bitbucket-server-project`/`--bitbucket-cloud-repo` is required with `--from-merge`.
 </ResponseField>
 
 <ResponseField name="--bitbucket-server-url" type="string">
@@ -126,7 +140,11 @@ accepted 45f63ce10849... (stack payments) via PR #17, 1 approver(s)
 </ResponseField>
 
 <ResponseField name="--bitbucket-server-project" type="string">
-  `PROJECTKEY/repository-slug` of the Bitbucket Server repo. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project`/`--bitbucket-server-project` is required with `--from-merge`; requires `--bitbucket-server-url`.
+  `PROJECTKEY/repository-slug` of the Bitbucket Server repo. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project`/`--bitbucket-server-project`/`--bitbucket-cloud-repo` is required with `--from-merge`; requires `--bitbucket-server-url`.
+</ResponseField>
+
+<ResponseField name="--bitbucket-cloud-repo" type="string">
+  `workspace/repo-slug` of the Bitbucket Cloud repository. Exactly one of `--github-repo`/`--gitlab-project`/`--azure-devops-project`/`--bitbucket-server-project`/`--bitbucket-cloud-repo` is required with `--from-merge`. No base URL companion: Bitbucket Cloud is SaaS with one real, fixed host, unlike Bitbucket Server. Approvers are recorded as `account_id`s, because a Bitbucket Cloud account has no username at all.
 </ResponseField>
 
 <ResponseField name="--repo-dir" type="string" default=".">

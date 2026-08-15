@@ -1,0 +1,99 @@
+---
+title: "Bitbucket Cloud"
+description: "Derive pr_merge acceptance from a real Bitbucket Cloud pull request merge, in Bitbucket Pipelines or anywhere else."
+---
+
+`ubx accept --from-merge` derives a real `pr_merge` acceptance from a merge commit: it finds the
+pull request that commit belongs to, reads the `ubx-proposal: <hash>` trailer out of the pull
+request's own description, and records the real, current set of approvers in the ledger.
+
+This page covers **Bitbucket Cloud**. For the self-hosted product, see
+[Bamboo](/integrations/bamboo), which covers Bitbucket Server.
+
+<Warning>
+  Bitbucket Cloud and Bitbucket Server are genuinely different platforms with different APIs, not
+  one product in two deployment shapes. They use separate flags
+  (`--bitbucket-cloud-repo` and `--bitbucket-server-project`), separate token env vars, and
+  separate derivation code paths.
+</Warning>
+
+## The flag
+
+```bash
+ubx accept --from-merge "$MERGE_SHA" \
+  --repo-dir . \
+  --proposal-file proposals/db-replica.json \
+  --bitbucket-cloud-repo acme/infra
+```
+
+`--bitbucket-cloud-repo` takes `workspace/repo-slug`, the same two-segment shape
+`--github-repo`'s own `owner/name` has. Use the repository **slug**, not its display name.
+
+Unlike `--bitbucket-server-project`, there is no separate base URL flag: Bitbucket Cloud is SaaS
+with one real, fixed host, so there is nothing per-deployment to declare.
+
+## The token
+
+Set `BITBUCKET_CLOUD_TOKEN` to a real Bitbucket Cloud **access token** (repository, project, or
+workspace scoped), sent as a Bearer token. Atlassian's own current documentation states that **app
+passwords are deprecated**; use an access token. It needs read access to the repository and its
+pull requests.
+
+An empty token is valid for a public repository, at a much lower rate limit, the same as every
+other platform ubx supports.
+
+## In Bitbucket Pipelines
+
+A real, minimal `bitbucket-pipelines.yml` step that accepts on merge to the main branch:
+
+```yaml
+pipelines:
+  branches:
+    main:
+      - step:
+          name: ubx accept --from-merge
+          script:
+            - export BITBUCKET_CLOUD_TOKEN=$UBX_BITBUCKET_TOKEN
+            - >
+              ubx accept --from-merge "$BITBUCKET_COMMIT"
+              --repo-dir .
+              --proposal-file proposals/db-replica.json
+              --bitbucket-cloud-repo "$BITBUCKET_REPO_FULL_NAME"
+```
+
+`BITBUCKET_COMMIT` and `BITBUCKET_REPO_FULL_NAME` are Bitbucket Pipelines' own real, built-in
+variables. `BITBUCKET_REPO_FULL_NAME` is already `workspace/repo-slug`, exactly the shape the flag
+takes. Set `UBX_BITBUCKET_TOKEN` as a real, secured repository variable, never literally in the
+file.
+
+## What gets recorded, and one real difference
+
+The ledger entry records the merge SHA, the pull request number, the proposal file, and the
+approvers.
+
+**The approvers are `account_id`s, not names.** A Bitbucket Cloud account has no username field at
+all; the only stable identifiers are `account_id` and `uuid`, while `nickname` and `display_name`
+are both changeable by their owner at any time. An append-only ledger recording a mutable label
+would stop meaning anything the moment somebody renamed themselves, so ubx records the stable one.
+
+Every other platform ubx supports has a stable login and records that instead. This is a real,
+structural difference in Bitbucket Cloud, not an inconsistency in ubx.
+
+## Two real behaviors worth knowing
+
+**Two API calls, not one.** Bitbucket Cloud's own commit-to-pull-request endpoint returns a minimal
+pull request representation carrying no description and no participants, so ubx fetches the full
+representation separately. You will see two requests per acceptance; that is correct.
+
+**An unindexed repository is refused, not treated as "no pull request".** Bitbucket Cloud's
+response carries its own `repo_indexed` flag, and an unindexed repository returns an empty result
+that genuinely means "not known yet". Treating that as "this commit has no pull request" would
+silently skip a real acceptance, so ubx refuses with a distinct error instead. Retry once indexing
+completes.
+
+## See also
+
+- [`ubx accept`](/cli-reference/accept)
+- [PR-Merge Acceptance](/concepts/pr-merge-acceptance)
+- [Bitbucket Cloud setup](/server/bitbucket-cloud-setup), for the continuously-running `ubx server` integration
+- [Bamboo](/integrations/bamboo), the Bitbucket Server counterpart

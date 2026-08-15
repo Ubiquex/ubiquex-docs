@@ -7,12 +7,14 @@ description: "Run a self-hosted GitHub App automating plan/accept/ship/drift-wat
 continuously-running daemon, reacting to webhook events instead of a human or a CI job invoking
 each command by hand.
 
-Real, current scope (UBI-28, all four phases complete): **GitHub**, as a real, installable GitHub
+Real, current scope: **GitHub**, as a real, installable GitHub
 App; **GitLab**, as a real Group Access Token plus a webhook signing token; **Azure DevOps**, as a
 real Personal Access Token plus a shared-secret Service Hooks header; and **Bitbucket
 Server/Data Center**, as a real HTTP access token plus its own bundled HMAC-SHA256 webhook
-signature. Webhooks land on `/webhook/github`, `/webhook/gitlab`, `/webhook/azuredevops`, and
-`/webhook/bitbucketserver` respectively.
+signature; and **Bitbucket Cloud**, as a real access token plus its own HMAC `X-Hub-Signature`
+webhook signature. Bitbucket Cloud is a genuinely different platform from Bitbucket Server, not a
+hosted variant of it. Webhooks land on `/webhook/github`, `/webhook/gitlab`,
+`/webhook/azuredevops`, `/webhook/bitbucketserver`, and `/webhook/bitbucketcloud` respectively.
 
 Same binary as `ubx` itself, not a second codebase -- every actual plan/accept/ship/scan operation
 shells back out to this exact executable, reusing its real safety properties (confirm-destroys
@@ -104,8 +106,25 @@ mapping.
   How often to run the drift-watch loop, a Go duration string (e.g. `"24h"`, `"30m"`).
 </ResponseField>
 
+<ResponseField name="--bitbucket-cloud-token" type="string">
+  The Bitbucket Cloud access token to authenticate as, repository/project/workspace scoped
+  (required for Bitbucket Cloud support). App passwords are deprecated by Atlassian; use an access
+  token. Also settable via `UBX_SERVER_BITBUCKET_CLOUD_TOKEN`, never the YAML file.
+</ResponseField>
+
+<ResponseField name="--bitbucket-cloud-bot-account-id" type="string">
+  The access token's own real, current `account_id`. Bitbucket Cloud accounts carry no username at
+  all, and `nickname`/`display_name` are both user-changeable, so identity here is an `account_id`.
+</ResponseField>
+
+<ResponseField name="--bitbucket-cloud-webhook-secret" type="string">
+  The real, static secret configured on every Bitbucket Cloud webhook, verified via its own HMAC
+  `X-Hub-Signature` header (required for Bitbucket Cloud support). Also settable via
+  `UBX_SERVER_BITBUCKET_CLOUD_WEBHOOK_SECRET`, never the YAML file.
+</ResponseField>
+
 <ResponseField name="--repo" type="stringArray">
-  A repo `ubx server` is allowed to act on, `"owner/name"` (repeatable). Repository identity only:
+  A repo `ubx server` is allowed to act on, `"owner/name"` for GitHub or `"bitbucketcloud:workspace/repo-slug"` for Bitbucket Cloud (repeatable). Repository identity only:
   each stack's own location is discovered from that repository's real `.ubx/config`, never declared
   here. The YAML file's own `repos:` list is the real alternative for more than a few repos.
 </ResponseField>
