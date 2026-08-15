@@ -69,8 +69,8 @@ single fixed host the way `gitlab.com`/`dev.azure.com` each are (confirmed direc
 `bitbucketserver.Client`'s own doc comment) -- always required for Bitbucket Server support.
 
 **`repos` is YAML-only, for the opposite reason:** it's a real list of structured objects
-(platform, owner/name or project, or project/repository, and each repo's own ledger directory), not
-a scalar a single flag or environment variable can sensibly represent. `--repo` is a real,
+(platform, and owner/name or project, or project/repository), not a scalar a single flag or
+environment variable can sensibly represent. `--repo` is a real,
 repeatable flag covering the common one-or-few-repos case without needing a YAML file at all -- not
 a full substitute for the list. An entry with no `platform` key defaults to `"github"`, real
 backward compatibility for every config written before GitLab/Azure DevOps/Bitbucket Server support
@@ -107,19 +107,59 @@ was never opted into this server's own automation at all) -- the refusal is loud
 operator's own logs, watch them for exactly this line if a webhook you expected to trigger
 automation appears to do nothing.
 
+## Stack locations are auto-discovered, never declared here (UBI-167)
+
+`repos` entries carry **repository identity only**. There is no `ledger_dir` key, and no path of any
+kind, anywhere in `ubx server`'s own configuration.
+
+Where a stack lives inside a repository is a property of that repository, declared by its own
+[`.ubx/config`](/concepts/config-cascade) -- so that is where `ubx server` reads it from. Once an event's
+repository clears the `repos` allowlist above, `ubx server` checks that repository out at the
+event's own real commit and discovers every directory in it that actually contains a `.ubx/config`
+(any of the four real file names the config cascade recognizes: `config.hcl`, `config.toml`,
+`config`, `config.yaml`). Those directories are the stacks. Nothing has to be declared centrally,
+and nothing has to be kept in sync by hand when a repository adds, moves, or removes a stack.
+
+<Warning>
+  Before UBI-167 (2026-08-15), each `repos` entry declared its own `ledger_dir`. That key is gone.
+  `ubx server` now **refuses to start** if a config file still declares it, rather than silently
+  ignoring it and resolving paths a different way than the file says:
+
+  ```
+  server: config file /etc/ubx-server/ubx-server.yaml: repos[1] declares ledger_dir "stacks/payments", which ubx server no longer accepts (UBI-167) -- a stack's location is auto-discovered from the repository's own .ubx/config now, so remove the key; repos entries carry repository identity only
+  ```
+
+  Delete the `ledger_dir` keys (and any `:ledger_dir` suffix on a `--repo` value, which is refused
+  the same way). No replacement setting is needed: make sure each stack in the repository has its
+  own real `.ubx/config`, which it needs anyway to be a stack at all.
+</Warning>
+
 ### Two real stacks in one repository
 
-A single repository can have more than one `repos` entry (same platform/owner/project, different
-`ledger_dir`) -- a real, legitimate multi-stack configuration, not a misconfiguration. UBI-166 also
-fixed a real, latent bug this uncovered: before it, only the **first-listed** entry for a given
-repository was ever consulted, for every event, regardless of which stack a given PR's own changes
-actually touched. Now, when more than one entry matches, `ubx server` fetches the event's own real
-changed files and picks the most specific configured `ledger_dir` whose own subtree contains at
-least one of them (a nested stack wins over a coexisting repo-root stack, the same "most specific
-route wins" convention path-based routing already uses elsewhere) -- refusing outright, loudly
-logged, if the changed files touch zero or more than one configured stack at once, rather than
-guessing. This extra resolution only runs for a genuinely multi-stack repository; a repository with
-exactly one `repos` entry never pays for it.
+A single repository can contain more than one real stack -- a repo-root stack and a nested one, or
+several sibling stacks under `stacks/` -- a legitimate layout, not a misconfiguration. When
+discovery finds more than one, `ubx server` fetches the event's own real changed files and picks the
+most specific discovered stack whose own subtree contains at least one of them (a nested stack wins
+over a coexisting repo-root stack, the same "most specific route wins" convention path-based routing
+already uses elsewhere) -- refusing outright, loudly logged, if the changed files touch zero or more
+than one equally-specific stack at once, rather than guessing:
+
+```
+ERROR ubx server: refusing event -- cannot resolve to exactly one discovered stack (UBI-167) platform=github repo=acme/infra pr=42 event=pull_request:opened error="this event's own changed files do not resolve to exactly one discovered stack: this event's own changed files touch 2 equally-specific discovered stacks at once"
+```
+
+Unlike an unlisted repository, this one **is** allowlisted, so the same refusal is also posted back
+as an ordinary PR/MR comment -- a human watching that repository gets told directly that its own
+`.ubx/config` layout is what needs fixing.
+
+This extra resolution only runs for a genuinely multi-stack repository; the common single-stack case
+never fetches changed files at all. A repository with **no** `.ubx/config` anywhere is refused too,
+on its own distinct terms (`no .ubx/config found anywhere in this repository's own checkout`) --
+never silently run at the repo root.
+
+The drift-watch loop has no triggering event, and therefore no changed files to disambiguate with.
+It doesn't need any: drift applies to every stack a repository declares, so each discovered stack
+gets its own real `ubx status --drift` pass.
 
 **`intent_provider_key` has no YAML key either, for the same reason.** It's a real LLM/intent-
 provider API key ([markdown-authored proposals](/tutorial/markdown), [`ubx
@@ -165,22 +205,17 @@ repos:
   - platform: "github"
     owner: "acme"
     name: "infra"
-    ledger_dir: "."
   - platform: "github"
     owner: "acme"
     name: "payments-infra"
-    ledger_dir: "stacks/payments"
   - platform: "gitlab"
     project: "acme/backend/infra"
-    ledger_dir: "stacks/payments"
   - platform: "azuredevops"
     project: "acme-infra"
     repository: "payments-infra"
-    ledger_dir: "stacks/payments"
   - platform: "bitbucketserver"
     project: "INFRA"
     repository: "payments-infra"
-    ledger_dir: "stacks/payments"
 ```
 
 Point `ubx server` at it with `--config /etc/ubx-server/ubx-server.yaml`. `gitlab_token`,
@@ -192,27 +227,25 @@ environment variables or flags.
 ## `--repo`'s own shorthand
 
 ```bash
-ubx server --repo acme/infra --repo acme/payments-infra:stacks/payments \
-  --repo gitlab:acme/infra --repo gitlab:acme/backend/infra:stacks/payments \
-  --repo azuredevops:acme-infra/infra --repo azuredevops:acme-infra/payments-infra:stacks/payments \
-  --repo bitbucketserver:INFRA/infra --repo bitbucketserver:INFRA/payments-infra:stacks/payments
+ubx server --repo acme/infra --repo acme/payments-infra \
+  --repo gitlab:acme/infra --repo gitlab:acme/backend/infra \
+  --repo azuredevops:acme-infra/infra --repo azuredevops:acme-infra/payments-infra \
+  --repo bitbucketserver:INFRA/infra --repo bitbucketserver:INFRA/payments-infra
 ```
 
-`owner/name` alone defaults `ledger_dir` to `"."`, matching [`ubx
-plan`](/cli-reference/plan)'s own default; `owner/name:ledger_dir` sets it explicitly, the same
-real shape a YAML `repos` entry carries. A real `gitlab:` prefix selects the GitLab shorthand
-instead -- `gitlab:namespace/project` or `gitlab:namespace/project:ledger_dir` -- the project path
-kept as one whole, opaque string (never split into separate fields) since a real GitLab project can
-be nested under any number of real groups/subgroups. See [GitLab setup](/server/gitlab-setup) for
-the full, real GitLab configuration walkthrough. A real `azuredevops:` prefix selects the Azure
-DevOps shorthand -- `azuredevops:project/repository` or `azuredevops:project/repository:ledger_dir`
--- project and repository kept as two real, separate identifiers (never one opaque string) since a
-real Azure DevOps project can host many real repositories. See [Azure DevOps
-setup](/server/azure-devops-setup) for the full, real Azure DevOps configuration walkthrough. A
-real `bitbucketserver:` prefix selects the identical two-real-identifier shape for Bitbucket
-Server -- `bitbucketserver:PROJECTKEY/repository-slug` or
-`bitbucketserver:PROJECTKEY/repository-slug:ledger_dir` -- matching the existing `ubx accept
---bitbucket-server-project PROJECTKEY/repository-slug` flag's own real format. See [Bamboo
+Repository identity only, exactly like a YAML `repos` entry -- no path component (a leftover
+`:ledger_dir` suffix is refused by name, see the UBI-167 warning above). `owner/name` is the GitHub
+shorthand. A real `gitlab:` prefix selects the GitLab shorthand instead --
+`gitlab:namespace/project` -- the project path kept as one whole, opaque string (never split into
+separate fields) since a real GitLab project can be nested under any number of real
+groups/subgroups. See [GitLab setup](/server/gitlab-setup) for the full, real GitLab configuration
+walkthrough. A real `azuredevops:` prefix selects the Azure DevOps shorthand --
+`azuredevops:project/repository` -- project and repository kept as two real, separate identifiers
+(never one opaque string) since a real Azure DevOps project can host many real repositories. See
+[Azure DevOps setup](/server/azure-devops-setup) for the full, real Azure DevOps configuration
+walkthrough. A real `bitbucketserver:` prefix selects the identical two-real-identifier shape for
+Bitbucket Server -- `bitbucketserver:PROJECTKEY/repository-slug` -- matching the existing `ubx
+accept --bitbucket-server-project PROJECTKEY/repository-slug` flag's own real format. See [Bamboo
 setup](/server/bamboo-setup) for the full, real Bitbucket Server configuration walkthrough.
 
 ## A worked example: env overrides YAML
