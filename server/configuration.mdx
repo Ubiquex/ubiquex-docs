@@ -76,6 +76,51 @@ a full substitute for the list. An entry with no `platform` key defaults to `"gi
 backward compatibility for every config written before GitLab/Azure DevOps/Bitbucket Server support
 existed.
 
+## `repos` is a real, enforced allowlist (UBI-166)
+
+**Every webhook-triggered action -- plan, re-plan, approval-derived acceptance, ship, whether
+automatic or via comment -- refuses outright unless the event's own repository is explicitly
+listed in `repos`.** This applies identically on all four platforms, GitHub included: a GitHub
+App's own installation scope (which repos it's installed on) is a real, coarser gate, but `repos`
+is checked independently and additionally, not assumed to already cover it. For GitLab/Azure
+DevOps/Bitbucket Server -- each authenticating with one real, static credential that can reach
+every repository it has permissions on, with no narrower per-repo concept at all -- `repos` is the
+**only** real scope boundary that exists; nothing else stops a webhook pointed at this server from
+an unintended repository from triggering automation.
+
+<Warning>
+  Before UBI-166 (fixed 2026-08-15), an unlisted repository was never refused -- it silently
+  defaulted to `ledger_dir "."` and ran anyway. If you deployed `ubx server` before this fix,
+  re-check your own `repos` list names every real repository you intend to watch; anything missing
+  now refuses instead of silently running at the repo root.
+</Warning>
+
+A refusal is never silent: `ubx server` logs a real, structured `ERROR`-level line naming the
+platform, the repository, and the event -- for example:
+
+```
+ERROR ubx server: refusing pull_request event -- repository not in Config.Repos allowlist (UBI-166) platform=github repo=acme/unlisted-repo action=opened pr=1
+```
+
+No comment is posted back to an unlisted repository itself (there's nothing to say to a repo that
+was never opted into this server's own automation at all) -- the refusal is loud only to the
+operator's own logs, watch them for exactly this line if a webhook you expected to trigger
+automation appears to do nothing.
+
+### Two real stacks in one repository
+
+A single repository can have more than one `repos` entry (same platform/owner/project, different
+`ledger_dir`) -- a real, legitimate multi-stack configuration, not a misconfiguration. UBI-166 also
+fixed a real, latent bug this uncovered: before it, only the **first-listed** entry for a given
+repository was ever consulted, for every event, regardless of which stack a given PR's own changes
+actually touched. Now, when more than one entry matches, `ubx server` fetches the event's own real
+changed files and picks the most specific configured `ledger_dir` whose own subtree contains at
+least one of them (a nested stack wins over a coexisting repo-root stack, the same "most specific
+route wins" convention path-based routing already uses elsewhere) -- refusing outright, loudly
+logged, if the changed files touch zero or more than one configured stack at once, rather than
+guessing. This extra resolution only runs for a genuinely multi-stack repository; a repository with
+exactly one `repos` entry never pays for it.
+
 **`intent_provider_key` has no YAML key either, for the same reason.** It's a real LLM/intent-
 provider API key ([markdown-authored proposals](/tutorial/markdown), [`ubx
 plan`](/cli-reference/plan)'s own `--from-doc`), not a VCS credential, but the same secrets
