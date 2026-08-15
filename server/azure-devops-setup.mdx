@@ -11,6 +11,42 @@ authenticates every call this server makes, and Microsoft's own documented secur
 recommendation (a shared secret in a custom header, verified on every incoming request) is what
 this server implements instead of a signature it doesn't have.
 
+<Note>
+  **This page covers on-prem Azure DevOps Server as well as the hosted service.** There is no app
+  registration whose flow could differ: as stated above, Azure DevOps has no unified "App" concept,
+  and authentication is a Personal Access Token. Azure DevOps Server supports PATs from the same
+  **User settings → Personal access tokens** page on your own instance, so every step below applies
+  unchanged.
+
+  Point `ubx server` at your **collection** with `azure_devops_api_base_url` (the collection URL,
+  not the host), which also decides the git clone host. See [Self-hosted
+  instances](/server/configuration#self-hosted-instances-ubi-171).
+</Note>
+
+<Warning>
+  **One real on-prem limitation, worth knowing before you deploy.** Microsoft publishes separate
+  on-prem API specifications for 33 areas, including every one `ubx server` depends on: `git` for
+  pull requests, `wit` for drift-watch work items, and `policy` for the approval-reset branch
+  policy. Each carries the same endpoint coverage as the hosted service (`git` on-prem: 66 paths,
+  identical to the hosted count).
+
+  It publishes **no on-prem specification for the Graph API**, which `ubx server` uses in exactly
+  two places:
+
+  - the re-plan authorization fallback for a **drift-watch-opened** pull request, where the
+    creator is this server's own bot and Contributors-group membership is the only rule that
+    applies, and
+  - `CODEOWNERS` **group** entries (`@some-group`) when authorizing `ubx ship`.
+
+  Everything else runs from the PAT alone. If your instance does not serve `_apis/graph`, those two
+  paths refuse rather than misbehave, since an unresolvable group is never treated as a match: a
+  drift-watch-opened pull request cannot then be re-planned by comment at all, and group
+  `CODEOWNERS` entries never authorize a ship. Prefer individual `CODEOWNERS` entries on-prem.
+
+  This is drawn from what Microsoft publishes, not from a live on-prem instance, so confirm against
+  your own deployment before relying on either path.
+</Warning>
+
 ## Create the Personal Access Token
 
 From your Azure DevOps profile, **User settings → Personal access tokens → New Token**.
