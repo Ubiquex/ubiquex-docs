@@ -1070,6 +1070,17 @@ REAL_SDK_REPO_ID = {
     "kubernetes": "kubernetes",
     "datadog": "datadog",
     "github": "github",
+    # UBI-175 Phase 4: azure's own OpenAPI/ARM-Compute-sourced schema_name
+    # ("azure", [dynamic_providers.azure] in sdk/providers/.ubx/config) is
+    # a genuinely different real identity from "azurerm" above -- 19
+    # resources, zero overlap with the published ubx-sdk-azure-* repos'
+    # own azurerm_* content. No real ubx-sdk-azure-compute repo exists or
+    # is expected to (bindings_status=local_only is the only real mode
+    # this schema_name is ever generated under) -- "azure" here is a
+    # locally-consistent path segment matching the real local `ubx sdk
+    # gen --only azure` output already on disk, not a claim about a
+    # published repo.
+    "azure": "azure",
 }
 
 
