@@ -1,10 +1,22 @@
 # resource-reference-gen
 
 Real, tracked tooling behind every `resource-reference/<provider>/...`
-page in this repo -- both the original, sparse mechanical tier (all
-~4649 pages currently live) and UBI-144's own newer, richer template
-(complete runnable programs, richer real params, a real markdown
-scenario), which is being rolled out one real, diverse batch at a time.
+page in this repo. UBI-144's richer template (complete runnable
+programs, richer real params, a real markdown scenario) is the ONLY
+real page shape this tooling produces -- every currently-live page
+across all six providers is on it.
+
+The original, sparse "mechanical" tier (`build_resource_page`,
+`gen_mechanical_pages.py`) is REMOVED entirely, not just deprecated: a
+real `go build` against its own literal output failed outright
+("expected 'package', found 'import'" -- no `package main`/`func
+main(){}` wrapper at all), and a resource whose example can't compile
+as shown must never be selectable as final output again. It was never
+meant to be a final, shipped shape even historically -- every one of
+the original AWS/GCP/Azure/Kubernetes pages was immediately spliced
+onto the richer tier before ever being considered done; the mistake
+this session corrected was treating that transient scaffold step as
+sufficient for onboarding Datadog.
 
 This directory used to be an uncommitted scratch script pointed at the
 wrong (disconnected) docs directory -- a real gap, closed here. Nothing
@@ -33,7 +45,7 @@ Go/TS/Python bindings codegen uses -- but with real DescriptionSource
 enrichment now correctly applied, which that tool never did), PLUS a
 combined `/tmp/schema-dump/<name>/schema.json` (`{wire: {"service",
 "localName", "ir": {"Fields"}}}`) -- the whole-provider shape step 3's
-own `gen_mechanical_pages.py` needs, computed from the real, same
+own `gen_new_provider_pages.py` needs, computed from the real, same
 `ir.ServiceAndLocalName` codegen already uses, not reimplemented here.
 
 `--only <name>` restricts to one declared provider (a
@@ -78,19 +90,26 @@ effect.
 
 ### 3. Generate pages
 
-**New pages** (a provider with no resource-reference pages yet at
-all), full mechanical tier:
+**New provider** (no resource-reference/<provider> pages at all yet)
+-- the ONLY tool that may write a first, final page for a resource,
+always the complete richer template, never a fragment:
 
 ```bash
-python3 gen_mechanical_pages.py gcp google GCP \
-    github.com/ubiquex/ubx-sdk-google-go ubx-sdk-google-ts 0 \
-    /tmp/gcp_schema_all.json /tmp/gcp_idents.json
+python3 gen_new_provider_pages.py datadog datadog Datadog \
+    /tmp/schema-dump/datadog/schema.json /tmp/datadog_idents.json \
+    --bindings-status local_only   # omit for a provider with published SDK repos
 ```
 
-**Existing pages**, UBI-144's own richer template, one resource or a
-real batch at a time -- splices ONLY the `## Example` section into
-whatever page already exists, never touches Input properties/Output
-properties/See also or any other hand-tuned prose on that page:
+Every schema_name passed here must have a real, confirmed entry in
+`REAL_SDK_REPO_ID` (`gen_provider_docs.py`) first -- verified against
+the real GitHub org, never inferred.
+
+**Existing pages only**, touching up one resource or a real batch at a
+time -- splices ONLY the `## Example` section into whatever page
+already exists, never touches Input properties/Output properties/See
+also or any other hand-tuned prose on that page. This tool cannot
+onboard a new provider (it hard-skips with "no existing page" if the
+target doesn't exist yet -- use `gen_new_provider_pages.py` for that):
 
 ```bash
 python3 gen_complete_pages.py --schema-dir /tmp/schema-dump --idents-path /tmp/aws_idents.json \

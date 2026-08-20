@@ -1,30 +1,28 @@
 #!/usr/bin/env python3
 """Shared library for resource-reference/<provider> page generation --
 never run directly (no __main__ block, on purpose: this file is real,
-tracked tooling shared by two real entry points, gen_mechanical_pages.py
-(full-provider, sparse, the original AWS/GCP/Azure/Kubernetes corpus
-generator) and gen_complete_pages.py (UBI-144's own richer template,
-splice-only, one resource or a real batch at a time) -- both driven from
-a real schema dump (see README.md's own "Regenerating schema/idents
-data" section) + real identifier extraction (extract_idents.py's own
-output, a real scan of the already-published SDK bindings repos).
+tracked tooling shared by two real entry points, gen_new_provider_pages.py
+(full-provider, a brand-new provider with no existing pages at all) and
+gen_complete_pages.py (touch up one resource or a real batch at a time
+on an ALREADY-GENERATED provider, splicing ONLY the Example section --
+never used to onboard a new provider) -- both driven from a real
+schema dump (see README.md's own "Regenerating schema/idents data"
+section) + real identifier extraction (extract_idents.py's own output,
+a real scan of the already-published SDK bindings repos, or a real
+local `ubx sdk gen` output for a provider with none published yet).
 
-Two real, deliberately separate page shapes live in this one file:
-build_resource_page (the ORIGINAL mechanical tier -- a bare fragment,
-2 example fields, a one-line markdown description; matches the
-established AWS mechanical-tier format exactly, reverse-engineered from
-eks/cluster.mdx, sqs/queue-policy.mdx, oam/link.mdx,
-pinpoint/adm-channel.mdx, docdbelastic/cluster.mdx, security/group.mdx)
-and build_resource_page_complete (UBI-144's own newer template --
-complete, runnable programs, a richer real field slice, a real markdown
-scenario). The mechanical tier still generates every page this repo's
-own corpus doesn't yet have the complete-template treatment for; the
-complete tier is the one UBI-144 is rolling out, one real, diverse
-batch at a time, splicing ONLY its own Example section into whatever
-page already exists rather than regenerating the whole file (see
-README.md for why: an existing page's own Input/Output property prose
-may already be hand-tuned, and a full regenerate would silently
-overwrite it with this file's own generic mechanical descriptions).
+build_resource_page_complete is the ONLY real page-building function
+in this file -- complete, runnable programs (real package main/func
+main, real stack()/export default wrapper, real
+if __name__ == "__main__":), a richer real field slice, a real markdown
+scenario. Its own former sibling, build_resource_page (a bare fragment,
+2 example fields, no package/func wrapper -- the ORIGINAL AWS/GCP/
+Azure/Kubernetes corpus generator, and the shape this session generated
+Datadog's own first, WRONG pass in), is removed entirely: a real `go
+build` against its own literal output failed outright, and a resource
+whose example can't compile as shown must never be selectable as final
+output again, the founder's own explicit instruction. Every real,
+currently-live page across all six providers is on the complete tier.
 """
 import json, os
 
@@ -278,20 +276,14 @@ def render_response_field(f, indent, provider_display, depth=0, ancestor_names=(
     return "\n".join(lines)
 
 
-def pick_example_fields(fields):
-    required = sorted([f for f in fields if f["Required"]], key=lambda f: f["WireName"])
-    optional_pure = sorted(
-        [f for f in fields if f["Optional"] and not f["Computed"] and not f["Required"]],
-        key=lambda f: f["WireName"],
-    )
-    return required + optional_pure[:2]
-
-
-# UBI-144 Phase 1: pick_example_fields (above) is the ORIGINAL mechanical-
-# tier selection -- required fields plus the first 2 pure-optional ones,
-# alphabetically. The ticket's own real complaint is that this shows only
-# the bare minimum, never a representative slice of what a resource
-# actually configures. pick_richer_example_fields replaces it: every
+# UBI-144 Phase 1: the mechanical tier's own original field selection
+# (required fields plus the first 2 pure-optional ones, alphabetically)
+# is gone -- removed along with build_resource_page itself (see git
+# history; a bare fragment must never be selectable as final output
+# again, the founder's own explicit instruction). The ticket's own real
+# complaint was that selection showed only the bare minimum, never a
+# representative slice of what a resource actually configures.
+# pick_richer_example_fields replaces it: every
 # required field, PLUS the field literally named "name" if the schema
 # declares one (optional+computed in most real AWS resources, but the
 # single most load-bearing field in almost any real example -- omitting
@@ -781,204 +773,18 @@ def render_generic_markdown_scenario(wire, example_fields, go_values_by_name):
     return wrap_markdown(sentence)
 
 
-def build_resource_page(wire, service, local, slug, fields, go, py, ts,
-                         provider, schema_name, provider_display, go_module, ts_repo, ts_published,
-                         py_pypi_root="ubx", bindings_status="published"):
-    # bindings_status="local_only" is the real, honest state a brand-new
-    # provider is in BEFORE its own ubx-sdk-<name>{,-go,-py,-ts} repos
-    # exist at all (confirmed live for datadog/github: `gh repo view`
-    # returns zero results for every one of the four, not just
-    # "unpublished" -- there is no repo to `git clone` either, unlike
-    # ts_published=0's own existing assumption). Every language's own
-    # import block shows the real command that produces these exact
-    # bindings locally instead of referencing a remote that doesn't
-    # exist -- never a fabricated go-gettable/pip-installable path.
-    # "published" (the default) reproduces every existing provider's
-    # already-shipped page byte-for-byte, unchanged.
-    example_fields = pick_example_fields(fields)
-    empty = len(example_fields) == 0
-    local_only = bindings_status == "local_only"
-
-    go_field_lines = "\n".join(
-        f"        {pascal(f['WireName'])}: {literal_go(f)}," for f in example_fields
-    )
-    go_import_path = f'{go_module}/{schema_name}/{go["service_dir"]}'
-    # Real, found-in-review bug: this block calls ubx.Resource(...)
-    # below but, before this fix, never imported the ubx runtime
-    # package at all ("github.com/ubiquex/ubx-sdk-go/runtime", the
-    # SAME import the richer tier's own go_lines already includes) --
-    # confirmed live via a real `go build` against this exact block for
-    # Datadog ("undefined: ubx"), the first time this tier's own Go
-    # example was ever actually compiled rather than just gofmt-checked
-    # (every real page currently in the corpus is already on the
-    # richer tier, which never had this gap -- this tier's own bare
-    # fragment had gone unexercised by a real build until this session).
-    go_import = f'import (\n        ubx "github.com/ubiquex/ubx-sdk-go/runtime"\n        "{go_import_path}"\n    )'
-    if local_only:
-        # A relative import ("./local-sdk/...") is NOT legal Go under
-        # module mode -- real, found-in-review correctness bug, caught
-        # before this ever reached a real page: the first draft of this
-        # branch generated exactly that, which would fail to compile if
-        # copy-pasted. The real, correct pattern for "generated locally,
-        # not yet published" is a go.mod `replace` directive -- the
-        # SAME mechanism this directory's own verify_go_blocks.py
-        # already uses to build every example against a local checkout
-        # -- pointing the real, eventual module path (go_module) at the
-        # real, local output `ubx sdk gen` actually writes.
-        go_gen_cmd = f"ubx sdk gen --only {schema_name} --lang go --out ./local-sdk"
-        go_replace = f"go.mod: replace {go_module} => ./local-sdk/{schema_name}/sdk/go"
-        go_preamble = f"    // {go_gen_cmd}\n    // {go_replace}\n"
-    else:
-        go_preamble = ""
-    if empty:
-        go_block = f"""    ```go
-{go_preamble}    {go_import}
-
-    cfg := {go["package"]}.{go["config"]}{{}}
-    ubx.Resource({go["package"]}.{go["binding"]}, "example", cfg)
-    ```"""
-    else:
-        go_block = f"""    ```go
-{go_preamble}    {go_import}
-
-    cfg := {go["package"]}.{go["config"]}{{
-{go_field_lines}
-    }}
-    ubx.Resource({go["package"]}.{go["binding"]}, "example", cfg)
-    ```"""
-
-    # Real, found-in-review gap: this tier's own ts_block, unlike the
-    # richer tier's (which routes through the real deno_fmt_lines
-    # binary check + fence()), was hand-assembled with a guessed
-    # import-wrap-at-68-chars heuristic and never actually verified
-    # against `deno fmt` -- confirmed live for Datadog: every one of
-    # its 20 real ts blocks failed a real `deno fmt --check` (canonical
-    # deno style wraps a long import as `import {\n  X,\n} from "...";`,
-    # never `import { X } from\n  "...";`). Fixed the same way the
-    # richer tier already proves its own TS is real, canonically
-    # formatted, not just syntactically plausible: build the RAW lines,
-    # run them through the real `deno fmt` binary, use its own output.
-    ts_field_lines = [f"  {camel(f['WireName'])}: {literal_ts(f)}," for f in example_fields]
-    ts_comment_lines = []
-    if local_only:
-        ts_gen_cmd = f"ubx sdk gen --only {schema_name} --lang ts --out ./local-sdk"
-        ts_import_path = f'./local-sdk/{schema_name}/sdk/typescript/{ts["file"]}'
-        ts_comment_lines = [f"// {ts_gen_cmd}"]
-    elif ts_published:
-        ts_import_path = f'jsr:@ubx/sdk-{schema_name}/{schema_name}/{ts["service_dir"]}/{os.path.splitext(os.path.basename(ts["file"]))[0]}'
-    else:
-        ts_import_path = f'./{ts_repo}/{ts["file"]}'
-        ts_comment_lines = [f"// git clone https://github.com/Ubiquex/{ts_repo}.git"]
-    ts_lines = ts_comment_lines + [f'import {{ {ts["binding"]} }} from "{ts_import_path}";', ""]
-    if empty:
-        ts_lines.append(f'resource({ts["binding"]}, "example", {{}});')
-    else:
-        ts_lines.append(f'resource({ts["binding"]}, "example", {{')
-        ts_lines.extend(ts_field_lines)
-        ts_lines.append("});")
-    ts_block = fence("typescript", deno_fmt_lines(ts_lines))
-
-    py_field_lines = "\n".join(
-        f"        {f['WireName']}={literal_py(f)}," for f in example_fields
-    )
-    py_module_root = py["module"].rsplit(".", 1)[0]
-    py_import_line = f'from {py_module_root} import {py["binding"]}, {py["config"]}'
-    if len(py_import_line) > 65:
-        py_import = (
-            f'from {py_module_root} import (\n'
-            f'        {py["binding"]},\n'
-            f'        {py["config"]},\n'
-            f'    )'
-        )
-    else:
-        py_import = py_import_line
-    py_preamble = ""
-    if local_only:
-        py_gen_cmd = f"ubx sdk gen --only {schema_name} --lang py --out ./local-sdk"
-        py_preamble = f"    # {py_gen_cmd}\n    # export PYTHONPATH=./local-sdk/{schema_name}/sdk/python:$PYTHONPATH\n"
-    if empty:
-        py_block = f"""    ```python
-{py_preamble}    {py_import}
-
-    cfg = {py["config"]}()
-    ubx.resource({py["binding"]}, "example", cfg)
-    ```"""
-    else:
-        py_block = f"""    ```python
-{py_preamble}    {py_import}
-
-    cfg = {py["config"]}(
-{py_field_lines}
-    )
-    ubx.resource({py["binding"]}, "example", cfg)
-    ```"""
-
-    if empty:
-        md_text = wrap_markdown(f"Provision {wire}, no illustrative fields.")
-    else:
-        md_fields = ", ".join(f["WireName"] for f in example_fields)
-        md_text = wrap_markdown(f"Provision {wire} with {md_fields}.")
-    md_block = f"""    ```
-    {md_text}
-    ```"""
-
-    input_fields = sorted(
-        [f for f in fields if f["Required"] or eff_flags(f)[1]], key=lambda f: f["WireName"]
-    )
-    output_fields = sorted(
-        [f for f in fields if eff_flags(f)[2]], key=lambda f: f["WireName"]
-    )
-
-    input_block = "\n\n".join(render_response_field(f, 0, provider_display) for f in input_fields)
-    output_block = "\n\n".join(render_response_field(f, 0, provider_display) for f in output_fields)
-
-    page = f"""---
-title: "{wire}"
-description: "Real, generated bindings for `{wire}`."
----
-
-`{wire}` -- real, typed bindings generated directly from
-{schema_source_label(provider)}, in every SDK language.
-
-## Example
-
-<Tabs>
-  <Tab title="Go">
-{go_block}
-  </Tab>
-  <Tab title="TypeScript">
-{ts_block}
-  </Tab>
-  <Tab title="Python">
-{py_block}
-  </Tab>
-  <Tab title="Markdown">
-{md_block}
-  </Tab>
-</Tabs>
-
-## Input properties
-
-{input_block}
-
-## Output properties
-
-{output_block}
-"""
-    return page
-
-
-# UBI-144 Phase 1: build_resource_page_complete is the NEW template --
-# complete, runnable programs (real package main/func main, real
-# stack()/export default wrapper, real if __name__ == "__main__":),
-# a richer real field slice (pick_richer_example_fields), and a real,
-# multi-resource markdown scenario, instead of build_resource_page's own
-# bare, context-free fragments. Deliberately a SEPARATE function, not a
-# rewrite of build_resource_page in place -- this is a one-resource
-# proof, per the ticket's own explicit phasing requirement, the
-# mechanical-tier function stays untouched and still generates the other
-# 4648 pages exactly as before until a wider rollout is separately
-# approved.
+# UBI-144 Phase 1: build_resource_page_complete is the ONLY real page-
+# building function left in this file -- complete, runnable programs
+# (real package main/func main, real stack()/export default wrapper,
+# real if __name__ == "__main__":), a richer real field slice
+# (pick_richer_example_fields), and a real, multi-resource markdown
+# scenario. Its own former sibling, build_resource_page (the ORIGINAL
+# mechanical tier -- bare, context-free fragments, no package/func
+# wrapper at all), is REMOVED entirely, not just unused: a real `go
+# build` against its own output failed outright ("expected 'package',
+# found 'import'"), and a resource whose example can't even compile as
+# shown must never be selectable as final output again. Every real,
+# currently-live page across all six providers is on this tier.
 def gofmt_lines(code_lines):
     """Runs a real Go code block through the real `gofmt` binary --
     canonical import ordering, struct-literal field alignment, real
@@ -1041,7 +847,15 @@ def fence(lang, code_lines):
 def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
                                   provider, schema_name, provider_display,
                                   stack_name, intent_summary, companion_markdown,
-                                  sdk_repo_id):
+                                  sdk_repo_id, bindings_status="published"):
+    # bindings_status="local_only" -- real, honest state for a brand-new
+    # provider with zero published ubx-sdk-<name>{,-go,-py,-ts} repos
+    # (confirmed live via `gh repo view` for datadog/github, not
+    # assumed). This tier never had this branch before this session,
+    # because it had only ever been used for the four already-
+    # published providers -- a real, previously-untested gap, not
+    # carried over from the mechanical tier by copy-paste.
+    local_only = bindings_status == "local_only"
     example_fields = pick_richer_example_fields(fields)
 
     # --- Go: real, complete program ---
@@ -1060,7 +874,14 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
     # happened to write first.
     needs_json = any("json.Marshal(" in p for p in go_preambles)
 
-    go_lines = ["package main", ""]
+    go_lines = []
+    if local_only:
+        go_gen_cmd = f"ubx sdk gen --only {schema_name} --lang go --out ./local-sdk"
+        go_replace = f"go.mod: replace github.com/ubiquex/ubx-sdk-{sdk_repo_id}/sdk/go => ./local-sdk/{schema_name}/sdk/go"
+        go_lines.append(f"// {go_gen_cmd}")
+        go_lines.append(f"// {go_replace}")
+    go_lines.append("package main")
+    go_lines.append("")
     go_lines.append("import (")
     if needs_json:
         go_lines.append('\t"encoding/json"')
@@ -1090,15 +911,21 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
         if pre and pre not in ts_preambles:
             ts_preambles.append(pre)
         ts_assigns.append(f"    {camel(f['WireName'])}: {val},")
-    ts_import_path = f'jsr:@ubx/sdk-{sdk_repo_id}/{schema_name}/{ts["service_dir"]}/{os.path.splitext(os.path.basename(ts["file"]))[0]}'
+    ts_lines = []
+    if local_only:
+        ts_gen_cmd = f"ubx sdk gen --only {schema_name} --lang ts --out ./local-sdk"
+        ts_import_path = f'./local-sdk/{schema_name}/sdk/typescript/{ts["file"]}'
+        ts_lines.append(f"// {ts_gen_cmd}")
+    else:
+        ts_import_path = f'jsr:@ubx/sdk-{sdk_repo_id}/{schema_name}/{ts["service_dir"]}/{os.path.splitext(os.path.basename(ts["file"]))[0]}'
 
-    ts_lines = [
+    ts_lines.extend([
         'import { intent, resource, stack } from "@ubx/sdk";',
         f'import {{ {ts["binding"]} }} from "{ts_import_path}";',
         "",
         f'export default stack({json.dumps(stack_name)}, () => {{',
         f'  intent({{ summary: {json.dumps(intent_summary)} }});',
-    ]
+    ])
     for pre in ts_preambles:
         ts_lines.append("")
         ts_lines.append("  " + reindent(pre, "  "))
@@ -1120,6 +947,10 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
     needs_json_py = any("json.dumps(" in p for p in py_preambles)
 
     py_lines = []
+    if local_only:
+        py_gen_cmd = f"ubx sdk gen --only {schema_name} --lang py --out ./local-sdk"
+        py_lines.append(f"# {py_gen_cmd}")
+        py_lines.append(f"# export PYTHONPATH=./local-sdk/{schema_name}/sdk/python:$PYTHONPATH")
     if needs_json_py:
         py_lines.append("import json")
     py_lines.append("import ubx_sdk as ubx")
@@ -1190,15 +1021,51 @@ enough to save and run exactly as shown.
     return page, example_section
 
 
-def generate_mechanical_provider(docs_root, scratch_dir, provider, schema_name, provider_display,
-                                  go_module, ts_repo, ts_published, schema_path, idents_path,
-                                  bindings_status="published"):
-    """Full-provider, mechanical-tier generation -- the ORIGINAL AWS/GCP/
-    Azure/Kubernetes corpus generator, called from gen_mechanical_pages.py.
+# REAL_SDK_REPO_ID is the real, confirmed per-provider identity of the
+# combined SDK repo (UBI-138 -- "ubx-sdk-<X>", one repo per provider,
+# all three languages), verified directly against the real GitHub org,
+# NEVER reconstructed from schema_name (which is the wire-type prefix /
+# the repo's own INTERNAL path segment, not its identity -- diverges
+# from this for Azure specifically: schema_name "azurerm", repo id
+# "azure"). Every provider must add a real, confirmed entry here before
+# its own richer-template pages can be generated -- no inferred/
+# guessed fallback, by design. Moved here from gen_complete_pages.py
+# (its own former sole owner) since generate_richer_provider now needs
+# it too -- one real, shared table, not two that could drift.
+REAL_SDK_REPO_ID = {
+    "aws": "aws",
+    "google": "google",
+    "azurerm": "azure",
+    "kubernetes": "kubernetes",
+    "datadog": "datadog",
+    "github": "github",
+}
+
+
+def generate_richer_provider(docs_root, scratch_dir, provider, schema_name, provider_display,
+                              stack_name, schema_path, idents_path, bindings_status="published"):
+    """Full-provider, richer-tier generation -- the ONLY real page-
+    writing path this generator has (its own former sibling,
+    generate_mechanical_provider, is removed entirely along with
+    build_resource_page -- see git history and gen_provider_docs.py's
+    own module docstring). Builds a complete richer-tier page directly
+    for a resource with NO existing page yet -- unlike
+    gen_complete_pages.py's own generate_one, which only ever splices
+    onto an already-generated page and is not usable to onboard a new
+    provider at all (confirmed live: it hard-skips with "no existing
+    page... run gen_mechanical_pages.py first", the exact trap this
+    function exists to remove).
     docs_root/scratch_dir are real, caller-supplied paths (never hardcoded
     here) -- UBI-144 Phase 2's own finding: a hardcoded DOCS_ROOT pointing
     at the wrong, disconnected directory is exactly the kind of bug this
     file being real, reviewable, tracked tooling is meant to prevent."""
+    if schema_name not in REAL_SDK_REPO_ID:
+        raise SystemExit(
+            f"no real, confirmed SDK repo id for schema_name {schema_name!r} in "
+            "REAL_SDK_REPO_ID -- add it (verified against the real GitHub org) before generating"
+        )
+    sdk_repo_id = REAL_SDK_REPO_ID[schema_name]
+
     schema = json.load(open(schema_path))
     idents = json.load(open(idents_path))
 
@@ -1225,9 +1092,29 @@ def generate_mechanical_provider(docs_root, scratch_dir, provider, schema_name, 
             go = idents[wire]["go"]
             py = idents[wire]["py"]
             ts = idents[wire]["ts"]
-            page = build_resource_page(
-                wire, service, local, slug, fields, go, py, ts,
-                provider, schema_name, provider_display, go_module, ts_repo, ts_published,
+
+            example_fields = pick_richer_example_fields(fields)
+            go_values_by_name = {}
+            for f in example_fields:
+                _, val = field_literal_with_preamble(f, "go")
+                go_values_by_name[f["WireName"]] = val
+
+            if wire in KNOWN_FAMILY_MARKDOWN:
+                primary = wrap_markdown(
+                    render_generic_markdown_scenario(wire, example_fields, go_values_by_name).replace("\n", " ")
+                )
+                name_val = go_values_by_name.get("name", '"example"').strip('"')
+                companion = wrap_markdown(KNOWN_FAMILY_MARKDOWN[wire](name_val))
+                companion_markdown = primary + "\n\n" + companion
+            else:
+                companion_markdown = render_generic_markdown_scenario(wire, example_fields, go_values_by_name)
+
+            page, _ = build_resource_page_complete(
+                wire=wire, service=service, local=local, slug=slug, fields=fields,
+                go=go, py=py, ts=ts, provider=provider, schema_name=schema_name,
+                provider_display=provider_display, stack_name=stack_name,
+                intent_summary=f"{stack_name} own {local.replace('_', ' ')}",
+                companion_markdown=companion_markdown, sdk_repo_id=sdk_repo_id,
                 bindings_status=bindings_status,
             )
             with open(os.path.join(service_dir, f"{slug}.mdx"), "w") as fh:

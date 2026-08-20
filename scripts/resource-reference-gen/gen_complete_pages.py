@@ -37,25 +37,15 @@ from gen_provider_docs import (
     KNOWN_FAMILY_MARKDOWN,
     render_generic_markdown_scenario,
     resolve_page_path,
+    REAL_SDK_REPO_ID,
 )
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Real, confirmed per-provider identity of the combined SDK repo
-# (UBI-138 -- "ubx-sdk-<X>", one repo per provider, all three
-# languages), verified directly against the real GitHub org, NEVER
-# reconstructed from schema_name (which is the wire-type prefix / the
-# repo's own INTERNAL path segment, not its identity -- diverges from
-# this for Azure specifically: schema_name "azurerm", repo id
-# "azure"). Every future provider must add a real, confirmed entry
-# here before its own richer-template pages can be generated -- no
-# inferred/guessed fallback, by design.
-REAL_SDK_REPO_ID = {
-    "aws": "aws",
-    "google": "google",
-    "azurerm": "azure",
-    "kubernetes": "kubernetes",
-}
+# REAL_SDK_REPO_ID is defined once, in gen_provider_docs.py -- imported
+# above, not redeclared here, since generate_richer_provider (this
+# tool's own sibling for onboarding a brand-new provider) needs the
+# identical real table and a second, drifting copy is worse than none.
 
 INTRO_NOTE = "\n\n" + wrap_markdown(
     "Every tab below is a complete, runnable program, not a fragment, "
@@ -80,7 +70,11 @@ def generate_one(wire, docs_root, schema_dir, idents_all, provider, schema_name,
 
     out_path, doc_service_dir, go_local, slug = resolve_page_path(docs_root, provider, idents)
     if not os.path.isfile(out_path):
-        return "skip", f"no existing page at {out_path} (run gen_mechanical_pages.py first)"
+        return "skip", (
+            f"no existing page at {out_path} -- this tool only touches up an "
+            "already-generated resource, it cannot onboard a new one; use "
+            "gen_new_provider_pages.py for a provider with no pages yet"
+        )
 
     example_fields = pick_richer_example_fields(fields)
     go_values_by_name = {}
