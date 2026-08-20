@@ -37,6 +37,12 @@ def main():
     p.add_argument("idents_path", help="real extract_idents.py output JSON")
     p.add_argument("--docs-root", default=REPO_ROOT, help="real ubiquex-docs checkout root (default: this repo)")
     p.add_argument("--scratch-dir", default="/tmp", help="where to write the real nav fragment JSON (default: /tmp)")
+    p.add_argument("--bindings-status", choices=["published", "local_only"], default="published",
+                    help='"local_only" (no ubx-sdk-<provider>{,-go,-py,-ts} repo published or even created yet -- '
+                         "confirmed live for datadog/github via `gh repo view`, not assumed) renders every "
+                         "language's example with the real `ubx sdk gen --only <name> --lang <lang>` command "
+                         "instead of a remote import/clone that would reference a repo that doesn't exist. "
+                         'Default "published" reproduces every existing provider page unchanged.')
     args = p.parse_args()
 
     n_resources, n_services = generate_mechanical_provider(
@@ -50,6 +56,7 @@ def main():
         ts_published=args.ts_published == "1",
         schema_path=args.schema_path,
         idents_path=args.idents_path,
+        bindings_status=args.bindings_status,
     )
     print(f"generated {n_resources} resource pages across {n_services} services for {args.provider}")
 

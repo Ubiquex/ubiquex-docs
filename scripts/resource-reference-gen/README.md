@@ -15,20 +15,35 @@ provider convention that isn't drawn from a real, checked source.
 
 ### 1. Dump a real provider schema
 
-Run from **within a real `ubiquex` checkout** (this tool imports
-`ubiquex`'s own internal `provider`/`sdk/codegen/ir` packages, which
-aren't a public, go-gettable module):
+Every real provider (thirdparty tfplugin sources AND
+`[dynamic_providers.<name>]` entries alike) now goes through this one
+real, tested, provider-agnostic `ubx sdk gen --dump-ir` flag, run from
+within a real `ubiquex` checkout (`cd` to `sdk/providers`, the repo's
+own real, central `.ubx/config`):
 
 ```bash
-go run /path/to/ubiquex-docs/scripts/resource-reference-gen/dump_schema.go \
-    hashicorp/aws 6.54.0 /tmp/schema-dump \
-    aws_iam_role aws_sqs_queue aws_s3_bucket
+ubx sdk gen --only datadog --dump-ir /tmp/schema-dump --out /tmp/unused
 ```
 
-Writes one real `<wire_type>.json` per resource, straight from
-`sdk/codegen/ir.FromSchema` -- the SAME shared, already-committed IR
-translator the real Go/TS/Python bindings codegen uses, never a
-hand-typed field list.
+Writes one real `<wire_type>.json` per resource type under
+`/tmp/schema-dump/<name>/` (identical shape this directory's own
+former `dump_schema.go` tool produced -- straight from
+`sdk/codegen/ir.FromSchema`, the SAME shared IR translator the real
+Go/TS/Python bindings codegen uses -- but with real DescriptionSource
+enrichment now correctly applied, which that tool never did), PLUS a
+combined `/tmp/schema-dump/<name>/schema.json` (`{wire: {"service",
+"localName", "ir": {"Fields"}}}`) -- the whole-provider shape step 3's
+own `gen_mechanical_pages.py` needs, computed from the real, same
+`ir.ServiceAndLocalName` codegen already uses, not reimplemented here.
+
+`--only <name>` restricts to one declared provider (a
+`[thirdparty_providers]` source string or a `[dynamic_providers.<name>]`
+name) -- omit it to dump every declared provider in one run.
+`dump_schema.go` (this directory's own former tool, tfplugin-only,
+never enriches descriptions) is superseded by this flag for every
+real provider now that all six source through `ubx-provider-dynamic` --
+kept in tree for now, not deleted, but should not be reached for by a
+new session; see its own doc comment.
 
 ### 2. Extract real identifiers from the published bindings
 
@@ -40,7 +55,26 @@ python3 extract_idents.py aws \
 
 Scans the real, already-published SDK bindings repos for each
 resource's own real package/binding/config identifier per language --
-never guessed or derived from the wire name alone.
+never guessed or derived from the wire name alone. For a provider with
+no published `ubx-sdk-<name>{,-go,-py,-ts}` repos yet (real, confirmed
+gap for `datadog`/`github` as of this pipeline's own dynamic-provider
+switch -- `gh repo view` returns zero results for both), point these
+three roots at a real LOCAL generation instead:
+
+```bash
+ubx sdk gen --only datadog --lang go --out /tmp/local-sdk
+ubx sdk gen --only datadog --lang py --out /tmp/local-sdk
+ubx sdk gen --only datadog --lang ts --out /tmp/local-sdk
+python3 extract_idents.py datadog \
+    /tmp/local-sdk/datadog/sdk/go /tmp/local-sdk/datadog/sdk/python /tmp/local-sdk/datadog/sdk/typescript \
+    /tmp/datadog_idents.json
+```
+
+The extracted identifiers are real either way (the same codegen a
+published repo would contain) -- only the SOURCE differs. Publishing
+real `ubx-sdk-datadog`/`ubx-sdk-github` repos is separate, real,
+unstarted work, not something this docs pipeline does as a side
+effect.
 
 ### 3. Generate pages
 

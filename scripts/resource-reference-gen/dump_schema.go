@@ -4,6 +4,22 @@
 // SAME shared translator Go/TS/Python bindings codegen already uses)
 // from a real, cached provider schema, one JSON file per resource type.
 //
+// SUPERSEDED for every real provider now that all six (aws, azure,
+// datadog, github, google, kubernetes) source through
+// ubx-provider-dynamic rather than a HashiCorp tfplugin binary: this
+// tool only ever calls provider.Launch, which has no equivalent path
+// at all for a [dynamic_providers.<name>] entry, and it never applies
+// checked-in-descriptions enrichment either way (every dump it
+// produces reports DescriptionSource "source"/"" only, never
+// "ai-inferred", regardless of what sdk/providers/descriptions/*.json
+// actually has). Use `ubx sdk gen --dump-ir` instead (see this
+// directory's own README.md, step 1) -- same real IR translator, same
+// per-resource JSON shape, works for both provider kinds, and applies
+// real enrichment. Kept in tree, not deleted, in case a future session
+// needs to dump a resource type from a real, non-dynamic-provider
+// tfplugin source this repo doesn't otherwise declare -- but a normal
+// docs-corpus session should not reach for this file.
+//
 // This file lives in ubiquex-docs (the docs repo) but can only run
 // from WITHIN a real ubiquex checkout -- it imports ubiquex's own
 // internal packages (provider, sdk/codegen/ir), which aren't a public,

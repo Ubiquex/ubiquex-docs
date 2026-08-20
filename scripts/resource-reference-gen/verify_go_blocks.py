@@ -29,6 +29,31 @@ import sys
 import tempfile
 
 
+def wrap_bare_fragment(body):
+    """The ORIGINAL mechanical tier's own go_block (build_resource_page,
+    gen_provider_docs.py) is a bare fragment -- import declaration,
+    then top-level `cfg := ...`/`ubx.Resource(...)` statements, NO
+    `package main`/`func main(){}` wrapper at all (only the richer
+    tier, build_resource_page_complete, wraps in one). Real, found-in-
+    review gap: this verify tool wrote such a fragment straight to
+    main.go unmodified, which is not valid Go at any level (bare
+    statements can't live at package scope) -- every one of it that
+    was ever actually run through this exact function would have
+    failed with "expected 'package', found 'import'", confirmed live
+    against Datadog's own real mechanical-tier pages this session. The
+    generator's own real, regular shape (exactly one blank line
+    separates the import declaration from the executable statements,
+    true for every language block gen_provider_docs.py emits) is
+    enough to wrap it correctly without guessing: everything up to and
+    including that first blank line stays at package scope (comments +
+    import), everything after gets wrapped in a real func main()."""
+    top, sep, rest = body.partition("\n\n")
+    if not sep or not rest.strip():
+        return "package main\n\n" + body
+    indented = "\n".join(("\t" + l if l.strip() else l) for l in rest.split("\n"))
+    return f"package main\n\n{top}\n\nfunc main() {{\n{indented}\n}}\n"
+
+
 def verify(path, sdk_go_root, sdk_provider_go_root, provider_go_module):
     content = open(path).read()
     m = re.search(r"```go\n(.*?)\n    ```", content, re.DOTALL)
@@ -36,6 +61,8 @@ def verify(path, sdk_go_root, sdk_provider_go_root, provider_go_module):
         return "skip", "no go block found"
     body = m.group(1)
     body = "\n".join(l[4:] if l.startswith("    ") else l for l in body.split("\n"))
+    if not body.lstrip().startswith("package "):
+        body = wrap_bare_fragment(body)
 
     tmpdir = tempfile.mkdtemp(prefix="resource-reference-gen-gobuild-")
     try:
