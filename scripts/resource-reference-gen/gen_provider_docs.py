@@ -389,17 +389,49 @@ def yaml_dq_escape(s):
 # genuinely excluded) returns None -- the caller's own fallback to
 # today's generic paragraph is what happens next, not a fabricated
 # substitute invented here.
+#
+# Second real, found-in-review bug (GitHub regeneration): this corpus's
+# intros lean heavily on "X, real Y" appositives ("tracks the real,
+# asynchronous process..."), and this style's own first comma often sits
+# right after a bare low-content word ("real", "the", "a", "own", "one",
+# ...) with nothing else before it -- `rfind` picked exactly that comma,
+# producing a dangling "...the real..." fragment. Now walks every comma
+# in range and keeps the rightmost one NOT immediately preceded by a
+# low-content word; the same check also applies to the word-boundary
+# fallback (which itself can land on a bare stopword purely from where
+# the hard 152-char cutoff happens to fall).
+_FRONTMATTER_TRUNCATION_STOPWORDS = {
+    "a", "an", "the", "is", "are", "was", "were", "real", "own", "same",
+    "one", "this", "that", "its", "has", "have", "only", "not", "it",
+}
+
+
 def frontmatter_description_from_intro(intro_text):
     first = intro_text.split(". ", 1)[0].strip()
     if not first.endswith((".", "!", "?")):
         first += "."
     if len(first) > 155:
         window = first[:152]
-        comma_cut = window.rfind(", ")
+        comma_cut = -1
+        search_from = 0
+        while True:
+            pos = window.find(", ", search_from)
+            if pos == -1:
+                break
+            preceding = window[:pos].rsplit(None, 1)
+            preceding_word = preceding[-1].strip(",;:'").lower() if preceding else ""
+            if preceding_word not in _FRONTMATTER_TRUNCATION_STOPWORDS:
+                comma_cut = pos
+            search_from = pos + 1
         if comma_cut > 40:  # a real clause boundary, not a near-immediate one
-            first = first[:comma_cut] + "..."
+            body = first[:comma_cut]
         else:
-            first = window.rsplit(" ", 1)[0].rstrip(",;:") + "..."
+            words = window.split(" ")
+            words.pop()  # the hard char cutoff likely split this one mid-word
+            while len(words) > 1 and words[-1].strip(",;:'").lower() in _FRONTMATTER_TRUNCATION_STOPWORDS:
+                words.pop()
+            body = " ".join(words).rstrip(",;:")
+        first = body.rstrip().rstrip("-").rstrip() + "..."
     return first
 
 
