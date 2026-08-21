@@ -357,6 +357,65 @@ def schema_source_label(provider):
     return SCHEMA_SOURCE_LABEL.get(provider, "its own real provider schema, via ubx-provider-dynamic")
 
 
+def yaml_dq_escape(s):
+    """Escapes a real string for use inside a double-quoted YAML scalar
+    (frontmatter's own `description: "..."` shape) -- backslash first,
+    then double-quote, in that order, so an already-escaped quote never
+    gets re-escaped. Backticks and colons need no escaping inside a
+    double-quoted YAML string, which is exactly why this codebase's own
+    frontmatter already uses double quotes rather than plain scalars."""
+    return s.replace("\\", "\\\\").replace('"', '\\"')
+
+
+# UBI-175 Phase 6: the real fix for the "three-line AI boilerplate"
+# defect (STATE.md's own name for it) -- every page's own opening
+# paragraph was, until this function existed, a single hardcoded
+# template (see build_resource_page_complete's own fallback branch,
+# below) identical across every resource of a provider except for the
+# wire name and a provider-level schema-source label substituted in.
+# Zero real, resource-specific content ever appeared there, regardless
+# of how much real analysis went into that resource's own
+# artifacts/<provider>/intros.json entry. This turns a full, real intro
+# paragraph (already reviewed, hand-verified, per-resource prose -- see
+# ubiquex-docs' own artifacts/<provider>/intros.json) into a short,
+# real frontmatter description: the intro's own first sentence,
+# verbatim, capped at 155 characters if that sentence alone runs longer
+# than that. Truncation prefers the last real clause boundary (a comma)
+# still inside the limit -- a bare word-boundary cut alone produced
+# real, found-in-review awkward output ("...and more, that..." for
+# aws_launch_template, stopping mid-clause on a dangling conjunction) --
+# falling back to a word boundary only when no comma exists in range. A
+# real intro missing entirely for a given wire (not yet written, or
+# genuinely excluded) returns None -- the caller's own fallback to
+# today's generic paragraph is what happens next, not a fabricated
+# substitute invented here.
+def frontmatter_description_from_intro(intro_text):
+    first = intro_text.split(". ", 1)[0].strip()
+    if not first.endswith((".", "!", "?")):
+        first += "."
+    if len(first) > 155:
+        window = first[:152]
+        comma_cut = window.rfind(", ")
+        if comma_cut > 40:  # a real clause boundary, not a near-immediate one
+            first = first[:comma_cut] + "..."
+        else:
+            first = window.rsplit(" ", 1)[0].rstrip(",;:") + "..."
+    return first
+
+
+def real_intro_for(provider, wire, intros_by_provider):
+    """Looks up wire's own real intro in intros_by_provider (a real,
+    already-loaded {provider: {wire: text}} map -- callers load
+    artifacts/<provider>/intros.json themselves rather than this
+    function reaching into the filesystem, so a golden-page generator
+    and a future full-provider regeneration can share one real,
+    in-memory lookup instead of re-reading the same file per resource).
+    Returns None (not an empty string) when this provider has no real
+    intros loaded, or this specific wire has no real entry yet -- the
+    caller's own fallback path, not a fabricated placeholder here."""
+    return (intros_by_provider.get(provider) or {}).get(wire)
+
+
 def pick_richer_example_fields(fields):
     required = sorted([f for f in fields if f["Required"]], key=lambda f: f["WireName"])
     # A real, found-in-review bug: "name" is a real field on MANY
@@ -878,7 +937,8 @@ def fence(lang, code_lines):
 def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
                                   provider, schema_name, provider_display,
                                   stack_name, intent_summary, companion_markdown,
-                                  sdk_repo_id, bindings_status="published"):
+                                  sdk_repo_id, bindings_status="published",
+                                  intro_text=None):
     # bindings_status="local_only" -- real, honest state for a brand-new
     # provider with zero published ubx-sdk-<name>{,-go,-py,-ts} repos
     # (confirmed live via `gh repo view` for datadog/github, not
@@ -1030,15 +1090,46 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
     input_block = "\n\n".join(render_response_field(f, 0, provider_display) for f in input_fields)
     output_block = "\n\n".join(render_response_field(f, 0, provider_display) for f in output_fields)
 
+    # UBI-175 Phase 6: intro_text present (a real artifacts/<provider>/
+    # intros.json entry, threaded in by the caller) replaces the old,
+    # generic three-line paragraph with real, resource-specific prose,
+    # and the frontmatter description becomes that intro's own real
+    # first sentence rather than a templated "A complete, runnable..."
+    # line repeated on every page. intro_text absent (a resource with no
+    # real intro yet) falls back to exactly today's generic paragraph --
+    # an honest gap, not a fabricated one, and zero behavior change for
+    # any existing caller that never passes intro_text at all.
+    bindings_sentence = (
+        f"Real, typed bindings generated directly from {schema_source_label(provider)}, "
+        f"in every SDK language -- every tab below is a complete, runnable program, "
+        f"not a fragment, real enough to save and run exactly as shown."
+    )
+
+    if intro_text:
+        fm_description = yaml_dq_escape(frontmatter_description_from_intro(intro_text))
+        # real intro first, the generic bindings-format sentence demoted
+        # to a real second paragraph rather than conflated into one.
+        body = f"{intro_text}\n\n{bindings_sentence}"
+    else:
+        # UNCHANGED from before intro_text existed -- a resource with no
+        # real intro yet falls back to exactly today's single generic
+        # paragraph (the wire name doing double duty as the only
+        # resource-specific content), not this plus a second, redundant
+        # restatement of the same "real, typed bindings" sentence.
+        fm_description = f"A complete, runnable {wire} program, in every SDK language."
+        body = (
+            f"`{wire}` -- real, typed bindings generated directly from\n"
+            f"{schema_source_label(provider)}, in every SDK language.\n"
+            f"Every tab below is a complete, runnable program, not a fragment, real\n"
+            f"enough to save and run exactly as shown."
+        )
+
     page = f"""---
 title: "{wire}"
-description: "A complete, runnable {wire} program, in every SDK language."
+description: "{fm_description}"
 ---
 
-`{wire}` -- real, typed bindings generated directly from
-{schema_source_label(provider)}, in every SDK language.
-Every tab below is a complete, runnable program, not a fragment, real
-enough to save and run exactly as shown.
+{body}
 
 {example_section}
 {ai_inferred_note(input_fields, output_fields)}## Input properties

@@ -1,0 +1,268 @@
+#!/usr/bin/env python3
+"""UBI-175 Phase 6: the real verification mechanism -- regenerates every
+candidate listed in golden/manifest.json, in memory, using the exact
+same gen_golden_page.generate() a real regeneration would call, and
+diffs the result against the already-committed golden/<provider>/
+<slug>.mdx. Any difference is reported and FAILS (nonzero exit) until a
+human has reviewed the diff and re-run with --accept to update the
+golden file deliberately. This script never regenerates or touches
+anything under resource-reference/ -- it only ever reads real schema
+dump / idents / intros inputs and compares against golden/.
+
+Independent of the diff itself, every regenerated page (whether it
+matched golden or not) is run through a real set of static checks for
+the defect classes this ticket named: fragment code examples, missing
+or wrong intro, missing AI markers, wrong category placement, em
+dashes, boilerplate, malformed frontmatter. See CHECKS_THIS_CANNOT_DO
+at the bottom of this file for the real, explicit list of defect
+classes this mechanism does NOT catch -- printed every run, not just
+documented in a comment nobody reads.
+
+Usage:
+  python3 verify_against_golden.py \\
+      --schema-dir /tmp/schema-dump \\
+      --idents-dir /tmp \\
+      --artifacts-root ../../artifacts \\
+      [--accept] [--only aws,github]
+
+--idents-dir must contain <schema_name>_idents.json for every provider
+in golden/manifest.json (matching this session's own real file names --
+azure/datadog/github/kubernetes were extracted from LOCAL generation,
+not a published repo; see golden/manifest.json's own bindings_status
+and README.md).
+"""
+import argparse
+import json
+import os
+import re
+import sys
+
+sys.path.insert(0, os.path.dirname(__file__))
+from gen_golden_page import generate
+
+GOLDEN_DIR = os.path.dirname(os.path.abspath(__file__))
+MANIFEST_PATH = os.path.join(GOLDEN_DIR, "golden", "manifest.json")
+
+EM_DASH = "—"
+
+OLD_BOILERPLATE_RE = re.compile(
+    r"^`[a-z0-9_]+` -- real, typed bindings generated directly from$", re.MULTILINE
+)
+
+FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
+FRONTMATTER_LINE_RE = re.compile(r'^(title|description): ".*"$')
+
+
+def check_frontmatter(page, wire):
+    m = FRONTMATTER_RE.match(page)
+    if not m:
+        return ["frontmatter: no --- ... --- block found at all"]
+    problems = []
+    lines = m.group(1).split("\n")
+    keys_seen = set()
+    for line in lines:
+        if not FRONTMATTER_LINE_RE.match(line):
+            problems.append(f"frontmatter: malformed line: {line!r}")
+            continue
+        key = line.split(":", 1)[0]
+        keys_seen.add(key)
+    if "title" not in keys_seen:
+        problems.append("frontmatter: missing title")
+    if "description" not in keys_seen:
+        problems.append("frontmatter: missing description")
+    title_line = next((l for l in lines if l.startswith("title:")), "")
+    if wire not in title_line:
+        problems.append(f"frontmatter: title does not contain real wire name {wire!r}: {title_line!r}")
+    return problems
+
+
+def check_fragment_examples(page):
+    problems = []
+    if "```go" in page and "func main(" not in page:
+        problems.append("Go example: no func main( -- looks like a fragment, not a complete runnable program")
+    if "```go" in page and "package main" not in page:
+        problems.append("Go example: no package main")
+    if "```typescript" in page and "export default stack(" not in page:
+        problems.append("TypeScript example: no export default stack( -- looks like a fragment")
+    if "```python" in page and 'if __name__ == "__main__":' not in page:
+        problems.append("Python example: no if __name__ guard -- looks like a fragment")
+    if '<Tab title="Markdown">' not in page:
+        problems.append("Markdown tab missing entirely")
+    return problems
+
+
+def check_intro(page, wire, intro_text):
+    problems = []
+    if OLD_BOILERPLATE_RE.search(page):
+        if intro_text:
+            problems.append(
+                "boilerplate: the old generic 3-line paragraph is present even though a real intro exists -- "
+                "intro_text was not actually spliced in"
+            )
+        # else: real, honest fallback -- not a defect, see CHECKS_THIS_CANNOT_DO
+    elif intro_text:
+        if intro_text not in page:
+            problems.append("intro: real intro text from intros.json does not appear verbatim in the generated page")
+    return problems
+
+
+def check_ai_markers(page, fields):
+    def any_ai(fields):
+        for f in fields:
+            if f.get("DescriptionSource") == "ai-inferred":
+                return True
+            t = f.get("Type", {})
+            obj = t.get("Object")
+            elem = t.get("Element")
+            inner = obj if obj else (elem.get("Object") if elem else None)
+            if inner and any_ai(inner):
+                return True
+        return False
+
+    problems = []
+    if any_ai(fields):
+        if "**(AI-inferred)**" not in page:
+            problems.append("AI markers: schema has AI-inferred fields but zero (AI-inferred) markers appear on the page")
+        if "were not sourced from the real provider schema" not in page:
+            problems.append("AI markers: schema has AI-inferred fields but the once-per-page <Note> explanation is missing")
+    return problems
+
+
+def check_em_dashes(page):
+    return [f"em dash (U+2014) found, {page.count(EM_DASH)} occurrence(s)"] if EM_DASH in page else []
+
+
+def check_category_override(provider, wire, artifacts_root):
+    """Confirms an override entry, if one exists for this wire, is a
+    real resolved label -- NOT 'UNRESOLVED:...' (build_categories.py's
+    own real failure marker). Cannot verify actual docs.json nav
+    placement for a resource with no live page yet -- see
+    CHECKS_THIS_CANNOT_DO."""
+    cat_path = os.path.join(artifacts_root, provider, "categories.json")
+    if not os.path.exists(cat_path):
+        return []
+    cats = json.load(open(cat_path))
+    override = cats.get("overrides", {}).get(wire)
+    if override and override.startswith("UNRESOLVED:"):
+        return [f"category override: {wire!r} resolves to {override!r} -- unresolved, not a real label"]
+    return []
+
+
+def diff_lines(old, new):
+    import difflib
+    return list(difflib.unified_diff(
+        old.splitlines(), new.splitlines(), fromfile="golden (committed)", tofile="regenerated (fresh)", lineterm=""
+    ))
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--schema-dir", required=True)
+    p.add_argument("--idents-dir", required=True, help="directory containing <schema_name>_idents.json per provider")
+    p.add_argument("--artifacts-root", required=True, help="path to ubiquex-docs/artifacts")
+    p.add_argument("--accept", action="store_true", help="overwrite golden/<provider>/<slug>.mdx with the fresh regeneration -- only after a human has reviewed the diff, never blindly")
+    p.add_argument("--only", help="comma-separated provider list to restrict to")
+    args = p.parse_args()
+
+    manifest = json.load(open(MANIFEST_PATH))
+    candidates = manifest["candidates"]
+    if args.only:
+        wanted = set(args.only.split(","))
+        candidates = [c for c in candidates if c["provider"] in wanted]
+
+    any_fail = False
+    for c in candidates:
+        provider, schema_name, wire = c["provider"], c["schema_name"], c["wire"]
+        idents_path = os.path.join(args.idents_dir, f"{schema_name}_idents.json")
+        intros_path = os.path.join(args.artifacts_root, provider, "intros.json")
+
+        print(f"\n=== {provider}/{wire} ===")
+        try:
+            page, slug, fields, intro_text = generate(
+                provider, schema_name, c["provider_display"], wire,
+                args.schema_dir, idents_path, intros_path,
+                bindings_status=c.get("bindings_status", "published"),
+            )
+        except SystemExit as e:
+            print(f"  GENERATION FAILED: {e}")
+            any_fail = True
+            continue
+
+        golden_path = os.path.join(GOLDEN_DIR, "golden", provider, f"{slug}.mdx")
+        problems = []
+        problems += check_frontmatter(page, wire)
+        problems += check_fragment_examples(page)
+        problems += check_intro(page, wire, intro_text)
+        problems += check_ai_markers(page, fields)
+        problems += check_em_dashes(page)
+        problems += check_category_override(provider, wire, args.artifacts_root)
+
+        if not os.path.exists(golden_path):
+            print(f"  NO GOLDEN FILE YET at {golden_path} (nothing to diff against)")
+            any_fail = True
+        else:
+            golden_text = open(golden_path).read()
+            if golden_text == page:
+                print("  diff: IDENTICAL to committed golden")
+            else:
+                any_fail = True
+                d = diff_lines(golden_text, page)
+                print(f"  diff: DIFFERS from committed golden ({len(d)} diff lines)")
+                for line in d[:40]:
+                    print("   ", line)
+                if len(d) > 40:
+                    print(f"    ... {len(d) - 40} more diff lines")
+                if args.accept:
+                    with open(golden_path, "w") as fh:
+                        fh.write(page)
+                    print(f"  --accept: wrote {golden_path}")
+
+        if problems:
+            any_fail = True
+            print(f"  static checks: {len(problems)} problem(s)")
+            for pr in problems:
+                print("   -", pr)
+        else:
+            print("  static checks: clean")
+
+    print("\n" + "=" * 70)
+    print(CHECKS_THIS_CANNOT_DO)
+    sys.exit(1 if any_fail else 0)
+
+
+CHECKS_THIS_CANNOT_DO = """This mechanism does NOT catch, and should not be assumed to cover:
+- Rendered/visual overflow (a wide code block breaking page layout in
+  an actual browser). Catching this needs crawl_overflow.js against a
+  real `mint dev` instance (see README.md) -- deliberately NOT run here
+  per this ticket's own "no per-page browser instances" instruction.
+  A text-level diff cannot see CSS layout at all.
+- Whether the generated example code actually COMPILES/imports against
+  the real SDK (verify_go_blocks.py / verify_py_blocks.py, also not run
+  here). gofmt/deno fmt (run inline during generate()) only prove the
+  code is syntactically valid Go/TypeScript, not that it type-checks
+  against real SDK bindings -- the README's own doc comment on this
+  already notes gofmt once missed a real bug for exactly this reason.
+- Real docs.json navigation placement. check_category_override only
+  confirms a categories.json override entry (if one exists) resolves to
+  a real label, not "UNRESOLVED:...". It cannot confirm the page is
+  actually wired into docs.json under that category, because none of
+  this candidate set has a live page yet -- that check only becomes
+  meaningful once a real regeneration adds the page to nav.
+- Whether a cross-reference backtick-mentions a resource that has its
+  own real page under a DIFFERENT provider, or a resource type that was
+  renamed/removed since the intro was written.
+- Semantic correctness of vendor-sourced field descriptions. Real,
+  found-in-review examples in this candidate set (AWS's own CFN text
+  reading "an ASlong group" for "an Auto Scaling group", GCP's own
+  Discovery Doc text reading "azone" for "a zone") are faithfully
+  reproduced, not detected as errors, because they are genuinely what
+  the vendor's own schema says -- this tool checks fidelity to source,
+  not correctness of source.
+- Content duplication or near-duplication across different pages.
+- Anything about resources NOT in golden/manifest.json's own candidate
+  list -- six pages, one per provider, prove the mechanism works; they
+  do not themselves verify the other ~3,600+ ungenerated pages."""
+
+
+if __name__ == "__main__":
+    main()
