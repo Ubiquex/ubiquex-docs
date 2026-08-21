@@ -39,6 +39,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 from gen_golden_page import generate
+from gen_provider_docs import intro_and_description, frontmatter_description_from_intro, eff_flags
 
 GOLDEN_DIR = os.path.dirname(os.path.abspath(__file__))
 MANIFEST_PATH = os.path.join(GOLDEN_DIR, "golden", "manifest.json")
@@ -101,8 +102,29 @@ def check_intro(page, wire, intro_text):
             )
         # else: real, honest fallback -- not a defect, see CHECKS_THIS_CANNOT_DO
     elif intro_text:
-        if intro_text not in page:
-            problems.append("intro: real intro text from intros.json does not appear verbatim in the generated page")
+        # UBI-175 Phase 6 fix: body no longer always renders intro_text
+        # verbatim in full -- intro_and_description() strips a leading
+        # prefix that exactly matches the frontmatter description, to
+        # stop that sentence rendering twice (once as Mintlify's own
+        # subtitle, once as body's opening line). Check against what
+        # the fixed generator actually computes, not the raw intro_text,
+        # so this assertion can't silently drift from the real behavior.
+        _, body_intro = intro_and_description(intro_text)
+        if body_intro not in page:
+            problems.append("intro: real intro text from intros.json does not appear in the generated page")
+        # regression guard: the found-in-review bug was fm_description's
+        # own text appearing a second time as body's own opening line --
+        # confirm that specific duplication hasn't come back.
+        fm_description = frontmatter_description_from_intro(intro_text)
+        if fm_description in page and page.count(fm_description) > 1:
+            problems.append(
+                "intro: frontmatter description text also appears again in the body -- "
+                "the intro is rendering twice"
+            )
+        if "Real, typed bindings generated directly from" in page:
+            problems.append(
+                "intro: leftover generic bindings-format sentence still renders alongside a real intro"
+            )
     return problems
 
 
@@ -123,8 +145,33 @@ def check_ai_markers(page, fields):
     if any_ai(fields):
         if "**(AI-inferred)**" not in page:
             problems.append("AI markers: schema has AI-inferred fields but zero (AI-inferred) markers appear on the page")
-        if "were not sourced from the real provider schema" not in page:
-            problems.append("AI markers: schema has AI-inferred fields but the once-per-page <Note> explanation is missing")
+    # regression guard: the once-per-page <Note> callout was removed in
+    # favor of the inline marker alone -- confirm it hasn't come back.
+    if "were not sourced from the real provider schema" in page:
+        problems.append("AI markers: the once-per-page <Note> callout is back -- should be the inline marker only")
+    return problems
+
+
+def check_properties_split(page, input_fields, output_fields):
+    """UBI-175 Phase 6, found-in-review defect: a resource whose real
+    schema marks nearly every field both Optional and Computed at once
+    (datadog_monitor's own real shape, not a code bug) produced an
+    Output properties section that was a pure, redundant subset of
+    Input -- same fields, same descriptions, same order, zero new
+    information. build_resource_page_complete now collapses to one
+    "## Properties" section when Output would add nothing Input doesn't
+    already show. Confirms the page's own heading matches that rule,
+    computed independently here rather than trusted from the caller."""
+    input_names = {f["WireName"] for f in input_fields}
+    has_real_split = any(f["WireName"] not in input_names for f in output_fields)
+    problems = []
+    if has_real_split and "## Output properties" not in page:
+        problems.append("properties: Output would add real, distinct fields but no '## Output properties' heading renders")
+    if not has_real_split and "## Output properties" in page:
+        problems.append(
+            "properties: Output adds nothing Input doesn't already show, but a redundant "
+            "'## Output properties' section still renders"
+        )
     return problems
 
 
@@ -196,6 +243,9 @@ def main():
         problems += check_ai_markers(page, fields)
         problems += check_em_dashes(page)
         problems += check_category_override(provider, wire, args.artifacts_root)
+        input_fields = [f for f in fields if f["Required"] or eff_flags(f)[1]]
+        output_fields = [f for f in fields if eff_flags(f)[2]]
+        problems += check_properties_split(page, input_fields, output_fields)
 
         if not os.path.exists(golden_path):
             print(f"  NO GOLDEN FILE YET at {golden_path} (nothing to diff against)")
