@@ -430,8 +430,22 @@ def frontmatter_description_from_intro(intro_text):
 # reduced to an empty body.
 def intro_and_description(intro_text):
     fm_description = frontmatter_description_from_intro(intro_text)
-    if intro_text.startswith(fm_description) and len(intro_text) > len(fm_description):
+    exact_prefix_match = intro_text.startswith(fm_description)
+    if exact_prefix_match and len(intro_text) > len(fm_description):
         body_intro = intro_text[len(fm_description):].lstrip()
+    elif exact_prefix_match:
+        # UBI-175 Phase 6, found-in-review edge case (live-confirmed:
+        # google_compute_target_https_proxy and 24 others, 25/1983
+        # intros corpus-wide): a genuinely single-sentence intro_text
+        # under the 155-char cap means fm_description IS the entire
+        # intro, verbatim -- there is no "rest of the sentence" left to
+        # show as a distinct body paragraph, so showing it a second
+        # time would be the exact same literal-duplicate bug this
+        # function exists to fix, not a smaller version of it. Empty
+        # body_intro tells the caller to render no body paragraph at
+        # all for this resource, relying on the frontmatter subtitle
+        # alone.
+        body_intro = ""
     else:
         body_intro = intro_text
     return fm_description, body_intro
@@ -1192,13 +1206,16 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
             f"enough to save and run exactly as shown."
         )
 
+    # body is empty exactly when intro_and_description found a genuinely
+    # single-sentence intro_text with nothing left to show as a distinct
+    # paragraph (see its own doc comment) -- skip the body slot entirely
+    # rather than leave a stray blank line where it would have been.
+    body_block = f"\n{body}\n" if body else ""
     page = f"""---
 title: "{wire}"
 description: "{fm_description}"
 ---
-
-{body}
-
+{body_block}
 {example_section}
 {properties_section}"""
     return page, example_section
