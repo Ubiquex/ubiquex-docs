@@ -5202,6 +5202,83 @@ FAMILY_LEAF = {
         "standard": "A reference to the compliance standard this maps to.",
         "value_expression": "The Common Expression Language (CEL) expression evaluated by this custom constraint.",
         "values": "The value(s) making up this field.",
+        # UBI-175 Phase E addendum: real, previously-invisible resource
+        # (google_securityposture_securityposture_report) unlocked by
+        # the discoverydoc.go createXxx-prefix fix -- its own real IaC
+        # validation report shape, live-verified against Security
+        # Command Center's own Security Posture documentation.
+        "asset_id": "A reference to the specific infrastructure-as-code resource this violation was found in.",
+        "next_steps": "Guidance for resolving this violation.",
+        "violated_asset": "The specific resource, as declared in the infrastructure-as-code source, that violates this policy.",
+        "violated_policy": "The specific policy constraint that was violated.",
+        "violated_posture": "The security posture (and its own deployment) this violation was found against.",
+        "asset_type": "The type of the violating resource.",
+        "constraint_type": "The kind of constraint that was violated.",
+        "policy_set": "The named group of policies this posture's own constraint belongs to.",
+        "posture": "A reference to the security posture this applies to.",
+        "posture_deployment": "A reference to the specific deployment of this posture this applies to.",
+        "posture_deployment_target_resource": "The resource this posture deployment's own policies are enforced against.",
+        "posture_revision_id": "The specific revision of the posture this applies to.",
+        "asset": "A reference to the violating resource itself.",
+    },
+    "google_firestore": {
+        # UBI-175 Phase E addendum: google_firestore_firestore_document,
+        # unlocked by the discoverydoc.go createXxx-prefix fix -- real
+        # Firestore document field values, live-verified against
+        # Firestore's own real, documented discriminated Value union
+        # (google.firestore.v1.Value).
+        "array_value": "This field's own value, when its type is an array.",
+        "boolean_value": "This field's own value, when its type is a boolean.",
+        "bytes_value": "This field's own value, when its type is raw bytes, base64-encoded.",
+        "double_value": "This field's own value, when its type is a floating-point number.",
+        "field_reference_value": "This field's own value, when it references another field by its dotted path.",
+        "function_value": "This field's own value, when it's the result of a Firestore pipeline function call.",
+        "geo_point_value": "This field's own value, when its type is a geographic coordinate (latitude/longitude).",
+        "integer_value": "This field's own value, when its type is a 64-bit integer.",
+        "map_value": "This field's own value, when its type is a nested map of key/value pairs.",
+        "null_value": "This field's own value, when it's explicitly null.",
+        "pipeline_value": "This field's own value, when it's the result of a Firestore aggregation pipeline.",
+        "reference_value": "This field's own value, when it references another document, by its full resource name.",
+        "string_value": "This field's own value, when its type is a string.",
+        "timestamp_value": "This field's own value, when its type is a point in time.",
+        "variable_reference_value": "This field's own value, when it references a pipeline variable by name.",
+        "args": "The argument(s) passed to this function call.",
+        "name": "The name of this function.",
+        "options": "Named option(s) passed to this function call.",
+        "fields": "The key/value pair(s) making up this map.",
+        "latitude": "The geographic coordinate's own latitude, in degrees.",
+        "longitude": "The geographic coordinate's own longitude, in degrees.",
+        "values": "The value(s) making up this array.",
+        "stages": "The ordered stage(s) making up this pipeline.",
+        "array_config": "Whether this field is indexed as a plain array or left unindexed, for array-valued fields.",
+        "field_path": "The dotted path of the field this index configuration applies to.",
+        "order": "The sort order this index maintains for the field, ascending or descending.",
+        "search_config": "Configuration for full-text or vector search indexing on this field.",
+        "vector_config": "Configuration for vector similarity search indexing on this field.",
+        "dimension": "The number of dimensions in the vector this index is built for.",
+        "flat": "Configuration for a flat (brute-force) vector index, with no approximate-search structure.",
+        "geo_spec": "Configuration for geospatial search indexing on this field.",
+        "geo_json_indexing_disabled": "Whether GeoJSON-format geospatial indexing is disabled for this field.",
+        "text_spec": "Configuration for full-text search indexing on this field.",
+        "index_specs": "The individual index specification(s) making up this full-text search configuration.",
+        "index_type": "The kind of full-text index this specification builds, e.g. exact match or prefix match.",
+        "match_type": "How this field's own value must match a search query, e.g. any term or all terms.",
+    },
+    "google_iampolicies": {
+        # UBI-175 Phase E addendum: google_iampolicies_iam_policy, real,
+        # previously-invisible (iam:v2's own "policies" collection uses
+        # method key "createPolicy", not "create" -- the exact real
+        # case the discoverydoc.go createXxx-prefix fix was written
+        # for), live-verified against IAM's own real Deny Policy
+        # documentation.
+        "deny_rule": "The deny rule this policy enforces, when this policy is a Deny Policy.",
+        "denial_condition": "A Common Expression Language (CEL) condition further restricting when this deny rule applies.",
+        "denied_permissions": "The permission(s) this rule denies.",
+        "denied_principals": "The principal(s) this rule denies the listed permission(s) to.",
+        "exception_permissions": "The permission(s) exempted from this deny rule's own denial.",
+        "exception_principals": "The principal(s) exempted from this deny rule's own denial.",
+        "expression": "The Common Expression Language (CEL) expression evaluated by this condition.",
+        "location": "A human-readable reference to where this expression is defined, for error messages.",
     },
     "google_deploymentmanager": {
         "arguments": "The argument(s) passed to this operation.",
