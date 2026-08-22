@@ -1,0 +1,583 @@
+---
+title: "aws_bedrock_data_source"
+description: "`aws_bedrock_data_source` connects an `aws_bedrock_knowledge_base` to where its real content actually lives, S3, Confluence, SharePoint, Salesforce..."
+---
+
+`aws_bedrock_data_source` connects an `aws_bedrock_knowledge_base` to where its real content actually lives, S3, Confluence, SharePoint, Salesforce, or a web source, the ingestion point a knowledge base has nothing to retrieve from without.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	bedrock "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/bedrock"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own data source"})
+
+    		ubx.Resource(bedrock.DataSource, "ci-runner", bedrock.DataSourceConfig{
+    			KnowledgeBaseId:                   "example",
+    			Name:                              "ci-runner",
+    			DataDeletionPolicy:                "example",
+    			Description:                       "Managed by ubx.",
+    			ServerSideEncryptionConfiguration: map[string]any{"kms_key_arn": "example"},
+    			VectorIngestionConfiguration:      map[string]any{"chunking_configuration": map[string]any{"chunking_strategy": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { DataSource } from "./local-sdk/aws/sdk/typescript/aws/bedrock/data_source.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own data source" });
+
+      resource(DataSource, "ci-runner", {
+        knowledgeBaseId: "example",
+        name: "ci-runner",
+        dataDeletionPolicy: "example",
+        description: "Managed by ubx.",
+        serverSideEncryptionConfiguration: { kmsKeyArn: "example" },
+        vectorIngestionConfiguration: {
+          chunkingConfiguration: { chunkingStrategy: "example" },
+        },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.bedrock import DataSource, DataSourceConfig
+
+    def describe():
+        ubx.intent("payments own data source")
+
+        ubx.resource(DataSource, "ci-runner", DataSourceConfig(
+            knowledge_base_id="example",
+            name="ci-runner",
+            data_deletion_policy="example",
+            description="Managed by ubx.",
+            server_side_encryption_configuration={"kms_key_arn": "example"},
+            vector_ingestion_configuration={"chunking_configuration": {"chunking_strategy": "example"}},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_bedrock_data_source called "ci-runner", with knowledge
+    base id example, data deletion policy example, description
+    Managed by ubx., server side encryption configuration a set
+    value, vector ingestion configuration a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="data_deletion_policy" type="string">
+  The deletion policy for the data source. Optional.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Description of the Resource. Optional.
+</ResponseField>
+
+<ResponseField name="knowledge_base_id" type="string" required>
+  The unique identifier of the knowledge base to which to add the data source. Required.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the data source. Required.
+</ResponseField>
+
+<ResponseField name="server_side_encryption_configuration" type="object">
+  Contains details about the server-side encryption for the data source. Optional.
+  <Expandable title="properties">
+    <ResponseField name="kms_key_arn" type="string">
+      The ARN of the AWS KMS key used to encrypt the resource. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vector_ingestion_configuration" type="object">
+  Details about how to chunk the documents in the data source. A chunk refers to an excerpt from a data source that is returned when the knowledge base that it belongs to is queried. Optional.
+  <Expandable title="properties">
+    <ResponseField name="chunking_configuration" type="object">
+      Details about how to chunk the documents in the data source. A chunk refers to an excerpt from a data source that is returned when the knowledge base that it belongs to is queried. Optional.
+      <Expandable title="properties">
+        <ResponseField name="chunking_strategy" type="string" required>
+          Knowledge base can split your source data into chunks. A chunk refers to an excerpt from a data source that is returned when the knowledge base that it belongs to is queried. You have the following options for chunking your data. If you opt for NONE, then you may want to pre-process your files by splitting them up such that each file corresponds to a chunk. Required.
+        </ResponseField>
+        <ResponseField name="fixed_size_chunking_configuration" type="object">
+          Configurations for when you choose fixed-size chunking. If you set the chunkingStrategy as NONE, exclude this field. Optional.
+          <Expandable title="properties">
+            <ResponseField name="max_tokens" type="number" required>
+              The maximum number of tokens to include in a chunk. Required.
+            </ResponseField>
+            <ResponseField name="overlap_percentage" type="number" required>
+              The percentage of overlap between adjacent chunks of a data source. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="hierarchical_chunking_configuration" type="object">
+          Configurations for when you choose hierarchical chunking. If you set the chunkingStrategy as NONE, exclude this field. Optional.
+          <Expandable title="properties">
+            <ResponseField name="level_configurations" type="list(object)" required>
+              Token settings for each layer. Required.
+              <Expandable title="properties">
+                <ResponseField name="max_tokens" type="number">
+                  The maximum number of tokens allowed per chunk at the corresponding level within the hierarchical chunking configuration for the Bedrock data source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="overlap_tokens" type="number" required>
+              The number of tokens to repeat across chunks in the same layer. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="semantic_chunking_configuration" type="object">
+          Configurations for when you choose semantic chunking. If you set the chunkingStrategy as NONE, exclude this field. Optional.
+          <Expandable title="properties">
+            <ResponseField name="breakpoint_percentile_threshold" type="number" required>
+              The dissimilarity threshold for splitting chunks. Required.
+            </ResponseField>
+            <ResponseField name="buffer_size" type="number" required>
+              The buffer size. Required.
+            </ResponseField>
+            <ResponseField name="max_tokens" type="number" required>
+              The maximum number of tokens that a chunk can contain. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="context_enrichment_configuration" type="object">
+      Additional Enrichment Configuration for example when using GraphRag. Optional.
+      <Expandable title="properties">
+        <ResponseField name="bedrock_foundation_model_configuration" type="object">
+          Bedrock Foundation Model configuration to be used for Context Enrichment. Optional.
+          <Expandable title="properties">
+            <ResponseField name="enrichment_strategy_configuration" type="object" required>
+              Strategy to be used when using Bedrock Foundation Model for Context Enrichment. Required.
+              <Expandable title="properties">
+                <ResponseField name="method" type="string" required>
+                  Enrichment Strategy method. Required.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="model_arn" type="string" required>
+              The model's ARN. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="type" type="string" required>
+          Enrichment type to be used for the vector database. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="custom_transformation_configuration" type="object">
+      Settings for customizing steps in the data source content ingestion pipeline. Optional.
+      <Expandable title="properties">
+        <ResponseField name="intermediate_storage" type="object" required>
+          A location for storing content from data sources temporarily as it is processed by custom components in the ingestion pipeline. Required.
+          <Expandable title="properties">
+            <ResponseField name="s3_location" type="object" required>
+              An Amazon S3 location. Required.
+              <Expandable title="properties">
+                <ResponseField name="uri" type="string" required>
+                  The location's URI Required.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="transformations" type="list(object)" required>
+          A list of Lambda functions that process documents. Required.
+          <Expandable title="properties">
+            <ResponseField name="step_to_apply" type="string">
+              Determines whether the custom transformation runs after chunking (POST_CHUNKING) or after chunks are written to the index (POST_INDEXING), controlling the point in the ingestion pipeline where the transformation is applied. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="transformation_function" type="object">
+              Defines the AWS Lambda function (via its ARN and optionally S3 code location) that Bedrock calls to perform the custom transformation on each data source content during ingestion. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="transformation_lambda_configuration" type="object">
+                  Contains the configuration for the AWS Lambda function used as the custom transformation function, including the Lambda function ARN and optionally the S3 bucket where the function code is stored, for transforming documents during ingestion into the Bedrock data source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="lambda_arn" type="string">
+                      The ARN of the AWS Lambda function that performs custom data transformation during ingestion into the Bedrock knowledge base. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="parsing_configuration" type="object">
+      Settings for parsing document contents Optional.
+      <Expandable title="properties">
+        <ResponseField name="bedrock_data_automation_configuration" type="object">
+          Settings for a Bedrock Data Automation used to parse documents for a data source. Optional.
+          <Expandable title="properties">
+            <ResponseField name="parsing_modality" type="string">
+              Determine how will parsed content be stored. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="bedrock_foundation_model_configuration" type="object">
+          Settings for a foundation model used to parse documents for a data source. Optional.
+          <Expandable title="properties">
+            <ResponseField name="model_arn" type="string" required>
+              The model's ARN. Required.
+            </ResponseField>
+            <ResponseField name="parsing_modality" type="string">
+              Determine how will parsed content be stored. Optional.
+            </ResponseField>
+            <ResponseField name="parsing_prompt" type="object">
+              Instructions for interpreting the contents of a document. Optional.
+              <Expandable title="properties">
+                <ResponseField name="parsing_prompt_text" type="string" required>
+                  Instructions for interpreting the contents of a document. Required.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="parsing_strategy" type="string" required>
+          The parsing strategy for the data source. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="created_at" type="string">
+  The time at which the data source was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="data_source_configuration" type="object">
+  Specifies a raw data source location to ingest. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="confluence_configuration" type="object">
+      The configuration information to connect to Confluence as your data source. Optional.
+      <Expandable title="properties">
+        <ResponseField name="crawler_configuration" type="object">
+          The configuration of the Confluence content. For example, configuring specific types of Confluence content. Optional.
+          <Expandable title="properties">
+            <ResponseField name="filter_configuration" type="object">
+              The type of filtering that you want to apply to certain objects or content of the data source. For example, the PATTERN type is regular expression patterns you can apply to filter your content. Optional.
+              <Expandable title="properties">
+                <ResponseField name="pattern_object_filter" type="object">
+                  The configuration of specific filters applied to your data source content. You can filter out or include certain content. Optional.
+                  <Expandable title="properties">
+                    <ResponseField name="filters" type="list(object)" required>
+                      Contains information Required.
+                      <Expandable title="properties">
+                        <ResponseField name="exclusion_filters" type="list(string)">
+                          List of pattern strings that identify Confluence objects (e.g., pages or files) to exclude from being crawled and ingested into the Amazon Bedrock data source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="inclusion_filters" type="list(string)">
+                          Specifies a list of string patterns that determine which Confluence objects are included during the crawl when using the pattern object filter. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="object_type" type="string">
+                          The type of Confluence object (e.g., 'Space' or 'Page') to which the filter pattern applies in the Bedrock data source crawling configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="type" type="string" required>
+                  The crawl filter type. Required.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="source_configuration" type="object" required>
+          The endpoint information to connect to your Confluence data source. Required.
+          <Expandable title="properties">
+            <ResponseField name="auth_type" type="string" required>
+              The supported authentication type to authenticate and connect to your Confluence instance. Required.
+            </ResponseField>
+            <ResponseField name="credentials_secret_arn" type="string" required>
+              The Amazon Resource Name of an AWS Secrets Manager secret that stores your authentication credentials for your Confluence instance URL. For more information on the key-value pairs that must be included in your secret, depending on your authentication type, see Confluence connection configuration. Required.
+            </ResponseField>
+            <ResponseField name="host_type" type="string" required>
+              The supported host type, whether online/cloud or server/on-premises. Required.
+            </ResponseField>
+            <ResponseField name="host_url" type="string" required>
+              The Confluence host URL or instance URL. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="managed_knowledge_base_connector_configuration" type="object">
+      Configuration for managed knowledge base connector data sources. Optional.
+      <Expandable title="properties">
+        <ResponseField name="connector_parameters" type="any">
+          Connector-specific parameters. Optional.
+        </ResponseField>
+        <ResponseField name="deletion_protection_configuration" type="object">
+          Configuration for deletion protection. Optional.
+          <Expandable title="properties">
+            <ResponseField name="deletion_protection_status" type="string" required>
+              Indicates whether a feature is enabled or disabled. Required.
+            </ResponseField>
+            <ResponseField name="deletion_protection_threshold" type="number">
+              Threshold for deletion protection. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="media_extraction_configuration" type="object">
+          Configuration for media extraction settings. Optional.
+          <Expandable title="properties">
+            <ResponseField name="audio_extraction_configuration" type="object">
+              Configuration for audio extraction. Optional.
+              <Expandable title="properties">
+                <ResponseField name="audio_extraction_status" type="string" required>
+                  Indicates whether a feature is enabled or disabled. Required.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="image_extraction_configuration" type="object">
+              Configuration for image extraction. Optional.
+              <Expandable title="properties">
+                <ResponseField name="image_extraction_status" type="string" required>
+                  Indicates whether a feature is enabled or disabled. Required.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="video_extraction_configuration" type="object">
+              Configuration for video extraction. Optional.
+              <Expandable title="properties">
+                <ResponseField name="video_extraction_status" type="string" required>
+                  Indicates whether a feature is enabled or disabled. Required.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="s3_configuration" type="object">
+      The configuration information to connect to Amazon S3 as your data source. Optional.
+      <Expandable title="properties">
+        <ResponseField name="bucket_arn" type="string" required>
+          The ARN of the bucket that contains the data source. Required.
+        </ResponseField>
+        <ResponseField name="bucket_owner_account_id" type="string">
+          The account ID for the owner of the S3 bucket. Optional.
+        </ResponseField>
+        <ResponseField name="inclusion_prefixes" type="list(string)">
+          A list of S3 prefixes that define the object containing the data sources. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="salesforce_configuration" type="object">
+      The configuration information to connect to Salesforce as your data source. Optional.
+      <Expandable title="properties">
+        <ResponseField name="crawler_configuration" type="object">
+          The configuration of filtering the Salesforce content. For example, configuring regular expression patterns to include or exclude certain content. Optional.
+          <Expandable title="properties">
+            <ResponseField name="filter_configuration" type="object">
+              The type of filtering that you want to apply to certain objects or content of the data source. For example, the PATTERN type is regular expression patterns you can apply to filter your content. Optional.
+              <Expandable title="properties">
+                <ResponseField name="pattern_object_filter" type="object">
+                  The configuration of specific filters applied to your data source content. You can filter out or include certain content. Optional.
+                  <Expandable title="properties">
+                    <ResponseField name="filters" type="list(object)" required>
+                      Contains information Required.
+                      <Expandable title="properties">
+                        <ResponseField name="exclusion_filters" type="list(string)">
+                          Specifies a list of regular expression patterns for Salesforce object names to exclude from being crawled, so that matching objects are filtered out of the Bedrock data source ingestion. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="inclusion_filters" type="list(string)">
+                          Specifies a list of regular expression patterns that match Salesforce object names to include during crawling, so only matching objects are ingested into the knowledge base. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="object_type" type="string">
+                          The Salesforce object type name (e.g., Account, Contact) that this filter pattern applies to, determining which Salesforce objects are included or excluded when crawling the data source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="type" type="string" required>
+                  The crawl filter type. Required.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="source_configuration" type="object" required>
+          The endpoint information to connect to your Salesforce data source. Required.
+          <Expandable title="properties">
+            <ResponseField name="auth_type" type="string" required>
+              The supported authentication type to authenticate and connect to your Salesforce instance. Required.
+            </ResponseField>
+            <ResponseField name="credentials_secret_arn" type="string" required>
+              The Amazon Resource Name of an AWS Secrets Manager secret that stores your authentication credentials for your Salesforce instance URL. For more information on the key-value pairs that must be included in your secret, depending on your authentication type, see Salesforce connection configuration. Required.
+            </ResponseField>
+            <ResponseField name="host_url" type="string" required>
+              The Salesforce host URL or instance URL. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="share_point_configuration" type="object">
+      The configuration information to connect to SharePoint as your data source. Optional.
+      <Expandable title="properties">
+        <ResponseField name="crawler_configuration" type="object">
+          The configuration of the SharePoint content. For example, configuring specific types of SharePoint content. Optional.
+          <Expandable title="properties">
+            <ResponseField name="filter_configuration" type="object">
+              The type of filtering that you want to apply to certain objects or content of the data source. For example, the PATTERN type is regular expression patterns you can apply to filter your content. Optional.
+              <Expandable title="properties">
+                <ResponseField name="pattern_object_filter" type="object">
+                  The configuration of specific filters applied to your data source content. You can filter out or include certain content. Optional.
+                  <Expandable title="properties">
+                    <ResponseField name="filters" type="list(object)" required>
+                      Contains information Required.
+                      <Expandable title="properties">
+                        <ResponseField name="exclusion_filters" type="list(string)">
+                          Specifies a list of object name patterns to exclude from being crawled in the SharePoint data source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="inclusion_filters" type="list(string)">
+                          Defines a list of regex patterns that determine which SharePoint objects (e.g., files or folders) are included during the crawl, where an object must match at least one pattern to be ingested. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="object_type" type="string">
+                          Specifies whether the filter pattern applies to files (OBJECT) or directories (FOLDER) within the SharePoint site being crawled. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="type" type="string" required>
+                  The crawl filter type. Required.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="source_configuration" type="object" required>
+          The endpoint information to connect to your SharePoint data source. Required.
+          <Expandable title="properties">
+            <ResponseField name="auth_type" type="string" required>
+              The supported authentication type to authenticate and connect to your SharePoint site/sites. Required.
+            </ResponseField>
+            <ResponseField name="credentials_secret_arn" type="string" required>
+              The Amazon Resource Name of an AWS Secrets Manager secret that stores your authentication credentials for your SharePoint site/sites. For more information on the key-value pairs that must be included in your secret, depending on your authentication type, see SharePoint connection configuration. Required.
+            </ResponseField>
+            <ResponseField name="domain" type="string" required>
+              The domain of your SharePoint instance or site URL/URLs. Required.
+            </ResponseField>
+            <ResponseField name="host_type" type="string" required>
+              The supported host type, whether online/cloud or server/on-premises. Required.
+            </ResponseField>
+            <ResponseField name="site_urls" type="list(string)" required>
+              A list of one or more SharePoint site URLs. Required.
+            </ResponseField>
+            <ResponseField name="tenant_id" type="string">
+              The identifier of your Microsoft 365 tenant. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      The type of the data source location. Required.
+    </ResponseField>
+    <ResponseField name="web_configuration" type="object">
+      Configures a web data source location. Optional.
+      <Expandable title="properties">
+        <ResponseField name="crawler_configuration" type="object">
+          Configuration for the web crawler. Optional.
+          <Expandable title="properties">
+            <ResponseField name="crawler_limits" type="object">
+              Limit settings for the web crawler. Optional.
+              <Expandable title="properties">
+                <ResponseField name="max_pages" type="number">
+                  Maximum number of pages the crawler can crawl. Optional.
+                </ResponseField>
+                <ResponseField name="rate_limit" type="number">
+                  Rate of web URLs retrieved per minute. Optional.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="exclusion_filters" type="list(string)">
+              A set of regular expression filter patterns for a type of object. Optional.
+            </ResponseField>
+            <ResponseField name="inclusion_filters" type="list(string)">
+              A set of regular expression filter patterns for a type of object. Optional.
+            </ResponseField>
+            <ResponseField name="scope" type="string">
+              The scope that a web crawl job will be restricted to. Optional.
+            </ResponseField>
+            <ResponseField name="user_agent" type="string">
+              The suffix that will be included in the user agent header. Optional.
+            </ResponseField>
+            <ResponseField name="user_agent_header" type="string">
+              The full user agent header, including UUID and suffix. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="source_configuration" type="object" required>
+          A web source configuration. Required.
+          <Expandable title="properties">
+            <ResponseField name="url_configuration" type="object" required>
+              A url configuration. Required.
+              <Expandable title="properties">
+                <ResponseField name="seed_urls" type="list(object)" required>
+                  A list of web urls. Required.
+                  <Expandable title="properties">
+                    <ResponseField name="url" type="string">
+                      The URL of a web page to use as a seed (starting point) for the web crawler in the Bedrock data source's web configuration, which the crawler will visit and follow links from to index content. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="data_source_id" type="string">
+  Identifier for a resource. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="data_source_status" type="string">
+  The status of a data source. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="failure_reasons" type="list(string)">
+  The details of the failure reasons related to the data source. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  The time at which the knowledge base was last updated. Computed by AWS after `ship`.
+</ResponseField>

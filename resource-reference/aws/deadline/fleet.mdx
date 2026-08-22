@@ -1,0 +1,483 @@
+---
+title: "aws_deadline_fleet"
+description: "`aws_deadline_fleet` is a real, managed or customer-managed group of worker hosts that actually process jobs from an `aws_deadline_queue`..."
+---
+
+`aws_deadline_fleet` is a real, managed or customer-managed group of worker hosts that actually process jobs from an `aws_deadline_queue`, the core compute infrastructure behind an `aws_deadline_farm`, a single fleet able to serve multiple queues and a single queue able to draw from multiple fleets.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	deadline "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/deadline"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own fleet"})
+
+    		ubx.Resource(deadline.Fleet, "ci-runner", deadline.FleetConfig{
+    			Configuration:     map[string]any{"customer_managed": map[string]any{"auto_scaling_configuration": map[string]any{"scale_out_workers_per_minute": 1}}},
+    			DisplayName:       "example-display-name",
+    			FarmId:            "example",
+    			MaxWorkerCount:    1,
+    			RoleArn:           "arn:aws:iam::123456789012:policy/ci",
+    			Description:       "Managed by ubx.",
+    			HostConfiguration: map[string]any{"script_body": "example"},
+    			MinWorkerCount:    1,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Fleet } from "./local-sdk/aws/sdk/typescript/aws/deadline/fleet.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own fleet" });
+
+      resource(Fleet, "ci-runner", {
+        configuration: {
+          customerManaged: {
+            autoScalingConfiguration: { scaleOutWorkersPerMinute: 1 },
+          },
+        },
+        displayName: "example-display-name",
+        farmId: "example",
+        maxWorkerCount: 1,
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        description: "Managed by ubx.",
+        hostConfiguration: { scriptBody: "example" },
+        minWorkerCount: 1,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.deadline import Fleet, FleetConfig
+
+    def describe():
+        ubx.intent("payments own fleet")
+
+        ubx.resource(Fleet, "ci-runner", FleetConfig(
+            configuration={"customer_managed": {"auto_scaling_configuration": {"scale_out_workers_per_minute": 1}}},
+            display_name="example-display-name",
+            farm_id="example",
+            max_worker_count=1,
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            description="Managed by ubx.",
+            host_configuration={"script_body": "example"},
+            min_worker_count=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_deadline_fleet, with configuration a set value,
+    display name example-display-name, farm id example, max worker
+    count 1, role arn arn:aws:iam::123456789012:policy/ci,
+    description Managed by ubx., host configuration a set value, min
+    worker count 1.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="configuration" type="object" required>
+  Defines the compute environment for the fleet, selecting either a service-managed Amazon EC2 configuration (specifying instance types, allocation strategy, and capacity) or a customer-managed configuration (specifying worker capabilities such as operating system, CPU, and memory). Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="customer_managed" type="object">
+      Specifies the customer-managed configuration for the fleet, including the required worker capabilities (such as CPU architecture, memory, and OS) and the usage mode indicating whether those capabilities are mandatory. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="auto_scaling_configuration" type="object">
+          Configures the minimum and maximum worker count that the customer-managed fleet's auto-scaling uses to scale worker instances in response to job demand. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="scale_out_workers_per_minute" type="number">
+              Specifies the maximum number of worker instances that can be added to the customer-managed fleet per minute during a scale-out event. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="standby_worker_count" type="number">
+              Specifies the number of idle workers to maintain as standby capacity, reducing the time jobs wait for worker availability in the auto-scaling fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="worker_idle_duration_seconds" type="number">
+              The number of seconds a worker can remain idle before it is considered idle by the auto-scaling policy and potentially scaled down. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="mode" type="string">
+          The operating mode of the customer-managed fleet, set to either RESUME (active and accepting jobs) or PAUSE (suspended and not accepting jobs). Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="storage_profile_id" type="string">
+          The unique identifier of the storage profile that defines the file system locations available to this customer-managed fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="tag_propagation_mode" type="string">
+          Determines whether tags applied to the fleet are propagated to the underlying EC2 worker instances in a customer-managed fleet, with supported values like NONE (no propagation) or TO_EC2 (propagate tags to EC2 instances). Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="worker_capabilities" type="object">
+          Defines the hardware and OS capabilities (CPU architecture, OS type, memory, vCPU count, and accelerator types) that worker instances in a customer-managed AWS Deadline Cloud fleet must have. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="accelerator_count" type="object">
+              Defines the minimum and maximum number of accelerator devices (e.g., GPUs) that must be available on a worker in a customer-managed AWS Deadline fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  The maximum number of accelerators (e.g., GPUs) a single worker in the customer-managed fleet can have, serving as the upper bound for the accelerator count range in worker capabilities. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  The minimum number of accelerators (such as GPUs) that each worker in the customer-managed fleet must have available. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="accelerator_total_memory_mi_b" type="object">
+              Specifies the minimum and maximum total accelerator memory in MiB for workers in this customer-managed fleet, used by Deadline Cloud to match tasks requiring a certain amount of accelerator memory. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  The maximum total accelerator memory in mebibytes (MiB) allowed on a worker for this customer-managed fleet, used to match workers to job requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  The minimum total accelerator memory in MiB that a worker must have for the customer-managed fleet to be eligible. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="accelerator_types" type="list(string)">
+              Specifies the GPU accelerator types (e.g., specific GPU model names) available on the worker, which Deadline Cloud uses to match jobs requiring those accelerator types. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="cpu_architecture_type" type="string">
+              Specifies the CPU architecture (x86_64 or arm64) of the worker instances in a customer managed Deadline fleet, used to match jobs that require a specific architecture. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="custom_amounts" type="list(object)">
+              Defines user-defined numeric capability amounts (each with a name and value) that worker instances in a customer-managed fleet advertise, allowing job requirements to match against these custom worker capacity metrics. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  The maximum value for a custom worker capability amount in a customer-managed Deadline fleet, capping the upper end of the numeric range that can be reported for that capability. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  The minimum value for this custom worker capability amount, used as the lower bound when matching jobs to fleet worker capabilities. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="name" type="string">
+                  The name of a custom worker capability amount, serving as the identifier or key for the user-defined capability metric on the fleet's worker nodes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="custom_attributes" type="list(object)">
+              Specifies custom worker attributes as key-value pairs that define the worker's capabilities, allowing Deadline Cloud to match jobs to appropriate customer-managed fleet workers. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="name" type="string">
+                  Specifies the name (key) of a custom worker capability attribute used to match worker capacity requirements for a customer-managed fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="values" type="list(string)">
+                  The list of values for a custom attribute that defines a worker's capability, used to match jobs to appropriate workers in a Deadline fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="memory_mi_b" type="object">
+              Optional; if omitted, computed by AWS.
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  The maximum memory capacity in MiB that a worker in this customer-managed fleet is expected to have, used by Deadline Cloud to match jobs to fleets based on resource requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  The minimum amount of memory in MiB that a worker must have to be considered eligible when using customer-managed fleets in AWS Deadline Cloud. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="os_family" type="string">
+              Specifies the operating system family (e.g., Linux or Windows) that workers in a customer-managed fleet must match for task scheduling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="vcpu_count" type="object">
+              Specifies the minimum and maximum number of vCPUs that each worker instance can have in the customer-managed fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  The maximum number of vCPUs that a worker in the customer-managed fleet can use. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  The minimum number of vCPUs that a worker in the customer-managed fleet must have for the fleet to consider it usable when matching jobs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="service_managed_ec2" type="object">
+      The service-managed EC2 configuration specifies the EC2 instances that AWS Deadline Cloud automatically launches and manages for this fleet, including instance capabilities and instance count limits. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="auto_scaling_configuration" type="object">
+          Specifies the minimum and maximum number of worker instances for the service-managed EC2 fleet, enabling automatic scaling within these bounds. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="scale_out_workers_per_minute" type="number">
+              Determines the number of worker instances that are added to the fleet per minute when the service-managed EC2 auto scaling configuration scales out. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="standby_worker_count" type="number">
+              Specifies the number of worker instances to keep provisioned and idle as standby capacity, so that the fleet can scale up quickly when new tasks arrive rather than waiting for instances to launch. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="worker_idle_duration_seconds" type="number">
+              The amount of time in seconds that a worker can remain idle before the AWS Deadline Cloud auto scaling configuration scales it down to reduce fleet capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="instance_capabilities" type="object">
+          Defines the service-managed EC2 instance requirements for the fleet, including min/max CPU cores, min/max memory in MiB, CPU architecture type, OS name, and optionally allowed instance types and root volume size. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="accelerator_capabilities" type="object">
+              Defines the required GPU accelerator specifications (including accelerator type and count) for the Amazon EC2 instances provisioned for this Deadline fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="count" type="object">
+                  Specifies the minimum and maximum number of GPU accelerators for the fleet's instances, represented as an object with `Min` and `Max` integer properties, used to filter eligible instance types. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="max" type="number">
+                      The maximum number of accelerators (such as GPUs) that each worker instance in the service-managed EC2 fleet should have. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="min" type="number">
+                      The minimum number of accelerator cards (e.g., GPUs) that an instance must have in order to be considered for the fleet's instance selection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="selections" type="list(object)">
+                  Specifies the list of accelerator (GPU) selections available to the fleet's service-managed EC2 instances, including each accelerator's name and runtime (e.g., 'gpu' or 'opt-in'). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="name" type="string">
+                      The name of the accelerator selection (e.g., 'nvidia_a10g') that identifies the specific GPU or accelerator type to be used by the service-managed EC2 instances in the Deadline fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="runtime" type="string">
+                      Specifies the runtime (e.g., CUDA) required for the selected GPU accelerator type in a Deadline fleet's service-managed EC2 instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="allowed_instance_types" type="list(string)">
+              Specifies the list of EC2 instance types that the fleet is allowed to use for worker instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="cpu_architecture_type" type="string">
+              Specifies the CPU architecture (x86_64 or arm64) for the Amazon EC2 instances that the service-managed fleet will launch. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="custom_amounts" type="list(object)">
+              Specifies a list of custom amount capabilities (each with a name, min, and max) that the Service Managed EC2 fleet advertises, enabling jobs with matching resource amount requirements to be scheduled on the fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  The maximum numeric value for a custom instance capability amount, defining the upper bound of the range that Deadline Cloud uses when selecting EC2 instances for the fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  For a custom amount in an AWS Deadline Cloud service-managed EC2 fleet's instance capabilities, this min property sets the lower bound (numeric minimum) for the named custom attribute, such as vCPU, memory, or GPU, used when selecting matching EC2 instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="name" type="string">
+                  The name of the custom amount, which must match a custom amount defined on the worker to associate that amount with the fleet's instance capability requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="custom_attributes" type="list(object)">
+              Defines custom key-value pairs (attribute name and value) that worker instances in the fleet advertise as additional capabilities, allowing job requirements to target instances with these specific attributes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="name" type="string">
+                  The key of a custom attribute assigned to service-managed EC2 worker instances in the fleet, used for categorizing or matching instances to workload requirements in AWS Deadline Cloud. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="values" type="list(string)">
+                  Provides the list of string values for a custom attribute that this fleet advertises as a worker capability, used by Deadline Cloud to match jobs that require those attribute values. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="excluded_instance_types" type="list(string)">
+              Specifies the EC2 instance types that are excluded from the fleet's capacity, preventing these instance types from being used when provisioning worker instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="memory_mi_b" type="object">
+              Specifies the minimum and maximum memory (in MiB) allowed for instances in the service-managed EC2 fleet, used to constrain eligible instance types. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  Specifies the maximum memory in MiB for the service-managed EC2 instances in the fleet, used by AWS Deadline Cloud to determine eligible instance types. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  The minimum amount of memory in MiB that a worker instance must have to be eligible for the fleet's service-managed EC2 instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="os_family" type="string">
+              Specifies the operating system family (LINUX or WINDOWS) for the service-managed EC2 worker instances in the AWS Deadline Cloud fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="root_ebs_volume" type="object">
+              Specifies the configuration for the root Amazon EBS volume attached to each service-managed EC2 instance in the Deadline fleet, including settings like volume size, IOPS, throughput, and encryption. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="iops" type="number">
+                  Specifies the provisioned IOPS (I/O operations per second) for the root EBS volume attached to each instance in the AWS Deadline fleet's service-managed EC2 instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="size_gi_b" type="number">
+                  Specifies the size in GiB of the root EBS volume for the service-managed EC2 instances in the Deadline fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="throughput_mi_b" type="number">
+                  Specifies the throughput in MiB/s for the root EBS volume attached to worker instances in a service-managed EC2 fleet configuration for AWS Deadline Cloud. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="vcpu_count" type="object">
+              Specifies the minimum and maximum number of vCPUs allowed for Amazon EC2 instances in this service-managed fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  Specifies the maximum number of vCPUs for the service-managed EC2 instances in the AWS Deadline Cloud fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  The minimum number of vCPUs an EC2 instance type must provide to be eligible for this Deadline Cloud service-managed fleet's instance capabilities. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="instance_market_options" type="object">
+          Configures the Spot or On-Demand purchase option for the fleet's EC2 instances, including Spot-specific settings like maximum price and allocation strategy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="type" type="string">
+              Specifies the market type for the fleet's EC2 instances, either 'on-demand' or 'spot', determining how the instances are purchased for the Deadline Cloud fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="persistent_volume_configuration" type="object">
+          Specifies the configuration for the persistent EBS volume attached to each worker instance in the service-managed EC2 fleet, including volume size, type, I/O characteristics, and encryption settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="iops" type="number">
+              The provisioned IOPS (input/output operations per second) for the persistent EBS volume attached to instances in the service-managed EC2 fleet, determining storage performance. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="last_used_ttl_hours" type="number">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+            <ResponseField name="mount_path" type="string">
+              Specifies the absolute file path within the fleet's service-managed EC2 worker instances where the configured persistent volume will be mounted, enabling shared storage access. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="size_gi_b" type="number">
+              The size of the persistent volume attached to the fleet's worker instances, specified in gibibytes (GiB). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="throughput_mi_b" type="number">
+              Specifies the throughput (in MiB/s) to provision for the persistent EBS volume attached to the fleet's worker instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="storage_profile_id" type="string">
+          The ID of the storage profile that defines the file system mounts (e.g., Amazon EFS or FSx) available to the fleet's worker instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="vpc_configuration" type="object">
+          Specifies the VPC subnets and security groups that the service-managed EC2 instances of the Deadline fleet will use. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="resource_configuration_arns" type="list(string)">
+              Specifies the list of Amazon Resource Names (ARNs) of Deadline Cloud resource configurations to apply to the worker instances launched in the VPC for a service-managed EC2 fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A human-readable description of the fleet, used to identify the fleet's purpose or configuration in the Deadline Cloud console and APIs. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="display_name" type="string" required>
+  The human-readable name assigned to the fleet, used for identification within the Deadline Cloud farm. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="farm_id" type="string" required>
+  The unique identifier of the AWS Deadline Cloud farm that this fleet is associated with. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="host_configuration" type="object">
+  Specifies the network configuration for the worker hosts in the fleet, including the VPC subnet IDs and security group IDs that the EC2 instances for service-managed fleets will launch into. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="script_body" type="string" required>
+      Specifies the body of a script that runs on each fleet host at startup, enabling custom configuration of the worker environment in AWS Deadline Cloud. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="script_timeout_seconds" type="number">
+      Specifies the maximum time in seconds that a worker's startup or lifecycle script may run on a host in the Deadline Cloud fleet before the script is considered failed or terminated. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="max_worker_count" type="number" required>
+  The maximum number of worker instances the fleet can scale up to, setting an upper capacity limit for the fleet's auto-scaling behavior. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="min_worker_count" type="number">
+  Specifies the minimum number of worker instances that must be maintained in the fleet, ensuring baseline capacity for render workloads. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the IAM role that the fleet's workers assume to interact with AWS services and perform job tasks. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag assigned to the AWS Deadline Cloud fleet, providing a user-defined label for organizing and managing the fleet through standard AWS tagging practices. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value part of a user-defined tag attached to an AWS Deadline Fleet, used to categorize and manage the fleet for cost allocation or operational purposes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies the Deadline fleet. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="capabilities" type="object">
+  This read-only object describes the effective resource capabilities of the fleet, such as CPU architecture, CPU count, memory size, and GPU resources, as reported by AWS Deadline Cloud after fleet creation. Computed by AWS after `ship`. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="amounts" type="list(object)">
+      Specifies the list of amount capabilities for the fleet, where each object defines a named resource (e.g. memory or CPU) along with its minimum and maximum amount that a worker can provide. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="max" type="number">
+          Specifies the upper bound of a numeric amount capability (e.g., memory or CPU count) that a fleet worker in AWS Deadline Cloud can provide, used to define a valid range alongside the min value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="min" type="number">
+          The minimum numeric amount of a specific capability (e.g., vCPUs or memory) that the Deadline fleet can offer, used to match jobs requiring at least that amount. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The name of the amount capability, which is a string key identifying the resource quantity (e.g., 'gpu' or 'memory') that the fleet advertises in its capabilities. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="attributes" type="list(object)">
+      Specifies the list of attribute capabilities for the fleet, where each entry defines a custom attribute name and its set of allowed values that workers in the fleet must support. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="name" type="string">
+          The name of a single fleet capability attribute (for example, 'GPU' or 'OS') within the attributes list of the fleet's capabilities. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="values" type="list(string)">
+          Specifies the list of values for a specific attribute within the fleet's capabilities, enabling job definitions to match fleets based on these attribute values when scheduling jobs in AWS Deadline Cloud. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="fleet_id" type="string">
+  The unique identifier assigned by Deadline Cloud to the fleet when it is created, returned as a read-only value. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The current lifecycle state of the fleet, such as CREATING, ACTIVE, UPDATE_IN_PROGRESS, or DELETING, as reported by the Deadline Cloud service. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="status_message" type="string">
+  The status_message attribute is a read-only string that provides a detailed explanation or reason for the fleet's current status, as reported by AWS Deadline Cloud. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="worker_count" type="number">
+  The current number of active workers in the fleet, as computed and maintained by AWS Deadline Cloud. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

@@ -1,0 +1,93 @@
+---
+title: "aws_xray_resource_policy"
+description: "`aws_xray_resource_policy` attaches a real resource-based access policy to X-Ray, controlling which principals, including from other accounts..."
+---
+
+`aws_xray_resource_policy` attaches a real resource-based access policy to X-Ray, controlling which principals, including from other accounts, can send trace data into it.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	xray "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/xray"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own resource policy"})
+
+    		ubx.Resource(xray.ResourcePolicy, "ci-runner", xray.ResourcePolicyConfig{
+    			PolicyDocument:           "example",
+    			PolicyName:               "example-policy-name",
+    			BypassPolicyLockoutCheck: true,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ResourcePolicy } from "./local-sdk/aws/sdk/typescript/aws/xray/resource_policy.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own resource policy" });
+
+      resource(ResourcePolicy, "ci-runner", {
+        policyDocument: "example",
+        policyName: "example-policy-name",
+        bypassPolicyLockoutCheck: true,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.xray import ResourcePolicy, ResourcePolicyConfig
+
+    def describe():
+        ubx.intent("payments own resource policy")
+
+        ubx.resource(ResourcePolicy, "ci-runner", ResourcePolicyConfig(
+            policy_document="example",
+            policy_name="example-policy-name",
+            bypass_policy_lockout_check=True,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_xray_resource_policy, with policy document example,
+    policy name example-policy-name, bypass policy lockout check
+    true.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="bypass_policy_lockout_check" type="bool">
+  A flag to indicate whether to bypass the resource policy lockout safety check Optional.
+</ResponseField>
+
+<ResponseField name="policy_document" type="string" required>
+  The resource policy document, which can be up to 5kb in size. Required.
+</ResponseField>
+
+<ResponseField name="policy_name" type="string" required>
+  The name of the resource policy. Must be unique within a specific AWS account. Required.
+</ResponseField>

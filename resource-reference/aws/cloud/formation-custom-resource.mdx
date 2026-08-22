@@ -1,0 +1,91 @@
+---
+title: "aws_cloud_formation_custom_resource"
+description: "`aws_cloud_formation_custom_resource` runs a caller's own real logic, typically a Lambda function, as part of an `aws_cloud_formation_stack`'s create..."
+---
+
+`aws_cloud_formation_custom_resource` runs a caller's own real logic, typically a Lambda function, as part of an `aws_cloud_formation_stack`'s create, update, and delete lifecycle, letting a stack manage something CloudFormation itself has no native resource type for.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	cloud "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/cloud"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own formation custom resource"})
+
+    		ubx.Resource(cloud.FormationCustomResource, "ci-runner", cloud.FormationCustomResourceConfig{
+    			ServiceToken:   "example",
+    			ServiceTimeout: 1,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { FormationCustomResource } from "./local-sdk/aws/sdk/typescript/aws/cloud/formation_custom_resource.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own formation custom resource" });
+
+      resource(FormationCustomResource, "ci-runner", {
+        serviceToken: "example",
+        serviceTimeout: 1,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.cloud import FormationCustomResource, FormationCustomResourceConfig
+
+    def describe():
+        ubx.intent("payments own formation custom resource")
+
+        ubx.resource(FormationCustomResource, "ci-runner", FormationCustomResourceConfig(
+            service_token="example",
+            service_timeout=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_cloud_formation_custom_resource, with service token
+    example, service timeout 1.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="service_timeout" type="number">
+  The maximum amount of time (in seconds) that AWS CloudFormation waits for the custom resource provider to respond before considering the resource operation failed. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="service_token" type="string" required>
+  The Amazon Resource Name (ARN) of the AWS Lambda function or Amazon Simple Notification Service (SNS) topic that implements the custom resource's provisioning logic. Required. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>

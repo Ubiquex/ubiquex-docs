@@ -1,0 +1,152 @@
+---
+title: "aws_config_configuration_recorder"
+description: "`aws_config_configuration_recorder` is the real, account-level switch that determines whether and which resource types AWS Config actually records..."
+---
+
+`aws_config_configuration_recorder` is the real, account-level switch that determines whether and which resource types AWS Config actually records configuration and configuration history for, the foundational resource every other AWS Config capability, rules, aggregation, remediation, depends on being turned on.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	config "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/config"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own configuration recorder"})
+
+    		ubx.Resource(config.ConfigurationRecorder, "ci-runner", config.ConfigurationRecorderConfig{
+    			RoleArn:        "arn:aws:iam::123456789012:policy/ci",
+    			Name:           "ci-runner",
+    			RecordingGroup: map[string]any{"all_supported": true},
+    			RecordingMode:  map[string]any{"recording_frequency": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ConfigurationRecorder } from "./local-sdk/aws/sdk/typescript/aws/config/configuration_recorder.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own configuration recorder" });
+
+      resource(ConfigurationRecorder, "ci-runner", {
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        name: "ci-runner",
+        recordingGroup: { allSupported: true },
+        recordingMode: { recordingFrequency: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.config import ConfigurationRecorder, ConfigurationRecorderConfig
+
+    def describe():
+        ubx.intent("payments own configuration recorder")
+
+        ubx.resource(ConfigurationRecorder, "ci-runner", ConfigurationRecorderConfig(
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            name="ci-runner",
+            recording_group={"all_supported": True},
+            recording_mode={"recording_frequency": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_config_configuration_recorder called "ci-runner", with
+    role arn arn:aws:iam::123456789012:policy/ci, recording group a
+    set value, recording mode a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="name" type="string">
+  The name of the configuration recorder, which must be unique within the region and defaults to 'default' if not specified. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="recording_group" type="object">
+  Specifies which AWS resource types are recorded by the configuration recorder, including whether to record all supported resource types and global resource types like IAM resources. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="all_supported" type="bool">
+      When set to true, AWS Config records configuration changes for all supported AWS resource types in the region. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="exclusion_by_resource_types" type="object">
+      Specifies the resource types to exclude from being recorded by AWS Config, allowing you to record all supported types except those listed when allSupported is enabled. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="resource_types" type="list(string)" required>
+          Specifies the list of AWS resource types that will be excluded from recording by the configuration recorder. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="include_global_resource_types" type="bool">
+      Indicates whether AWS Config records configuration changes to global resource types (such as IAM users, groups, roles, and customer managed policies) across all regions. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="recording_strategy" type="object">
+      Defines the recording strategy for AWS Config, specifying whether to record all supported resource types, only included resource types, or all except excluded resource types. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="use_only" type="string" required>
+          Defines the recording strategy for the configuration recorder, with values such as ALL_SUPPORTED_RESOURCE_TYPES to record all supported resource types, INCLUDE_SPECIFIED_RESOURCE_TYPES to record only those listed in the recording group's resourceTypes, or EXCLUDE_SPECIFIED_RESOURCE_TYPES to record all except those listed. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="resource_types" type="list(string)">
+      Specifies the list of AWS resource types to be recorded by AWS Config; if omitted or empty, AWS Config records all supported resource types. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="recording_mode" type="object">
+  Specifies the recording frequency (continuous or periodic) that controls how often AWS Config records configuration changes for supported resources. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="recording_frequency" type="string" required>
+      Specifies how often AWS Config records configuration changes for the resources in scope, either continuously or on a daily basis. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="recording_mode_overrides" type="list(object)">
+      Specifies a list of overrides that set the recording mode (either CONTINUOUS or RECORD_ONLY) for specific AWS resource types, allowing you to customize recording behavior on a per-resource-type basis within the configuration recorder's recording mode. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="description" type="string">
+          A description that you provide for this recording mode override, explaining its purpose or distinguishing it from other overrides for specific resource types. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="recording_frequency" type="string">
+          Specifies how often AWS Config records configuration changes for the resource types in this override, either CONTINUOUS for real-time recording or DAILY for a single daily snapshot. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="resource_types" type="list(string)">
+          Lists the AWS resource types (e.g., 'AWS::EC2::Instance') for which this recording mode override applies, allowing a different recording frequency to be set for those specific resources. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the IAM role that AWS Config uses to record resource changes and deliver them to the delivery channel. Required. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The physical resource ID of the configuration recorder, which is the same as its user-defined Name. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

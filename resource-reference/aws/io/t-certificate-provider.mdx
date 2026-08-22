@@ -1,0 +1,115 @@
+---
+title: "aws_io_t_certificate_provider"
+description: "`aws_io_t_certificate_provider` runs a real, caller-defined Lambda function during Fleet Provisioning to issue a device's `aws_io_t_certificate`..."
+---
+
+`aws_io_t_certificate_provider` runs a real, caller-defined Lambda function during Fleet Provisioning to issue a device's `aws_io_t_certificate` dynamically, using a custom or third-party CA, rather than relying only on AWS IoT's own certificate issuance.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	io "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/io"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own t certificate provider"})
+
+    		ubx.Resource(io.TCertificateProvider, "ci-runner", io.TCertificateProviderConfig{
+    			AccountDefaultForOperations: []string{"example"},
+    			LambdaFunctionArn:           "arn:aws:iam::123456789012:policy/ci",
+    			CertificateProviderName:     "example-certificate-provider-name",
+    			Tags:                        []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { TCertificateProvider } from "./local-sdk/aws/sdk/typescript/aws/io/t_certificate_provider.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own t certificate provider" });
+
+      resource(TCertificateProvider, "ci-runner", {
+        accountDefaultForOperations: ["example"],
+        lambdaFunctionArn: "arn:aws:iam::123456789012:policy/ci",
+        certificateProviderName: "example-certificate-provider-name",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.io import TCertificateProvider, TCertificateProviderConfig
+
+    def describe():
+        ubx.intent("payments own t certificate provider")
+
+        ubx.resource(TCertificateProvider, "ci-runner", TCertificateProviderConfig(
+            account_default_for_operations=["example"],
+            lambda_function_arn="arn:aws:iam::123456789012:policy/ci",
+            certificate_provider_name="example-certificate-provider-name",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_io_t_certificate_provider, with account default for
+    operations a set value, lambda function arn
+    arn:aws:iam::123456789012:policy/ci, certificate provider name
+    example-certificate-provider-name, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="account_default_for_operations" type="list(string)" required>
+  The AWS::IoT::CertificateProvider account default for operations property specifies the list of certificate provider operations (RegisterCertificate or RegisterCertificateWithoutCA) for which this certificate provider is the default provider in the AWS account. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="certificate_provider_name" type="string">
+  Specifies the unique name of the AWS IoT certificate provider, which identifies it within the AWS account and region and is referenced when associating CA certificates with this provider. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="lambda_function_arn" type="string" required>
+  The ARN of the Lambda function that AWS IoT invokes to perform custom certificate signing or validation for this certificate provider. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key portion of a tag assigned to the AWS IoT certificate provider resource, used to label and manage the certificate provider with custom metadata. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value string of a tag key-value pair attached to the AWS IoT certificate provider, used to store arbitrary metadata for identification and management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies the AWS IoT certificate provider. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

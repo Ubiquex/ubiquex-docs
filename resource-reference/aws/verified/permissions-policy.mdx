@@ -1,0 +1,145 @@
+---
+title: "aws_verified_permissions_policy"
+description: "`aws_verified_permissions_policy` defines a real, individual Cedar authorization policy, static or template-linked..."
+---
+
+`aws_verified_permissions_policy` defines a real, individual Cedar authorization policy, static or template-linked, within an `aws_verified_permissions_policy_store`, the resource an `isAuthorized` call is actually evaluated against.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	verified "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/verified"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own permissions policy"})
+
+    		ubx.Resource(verified.PermissionsPolicy, "ci-runner", verified.PermissionsPolicyConfig{
+    			Definition:    map[string]any{"static": map[string]any{"description": "example"}},
+    			PolicyStoreId: "example",
+    			Name:          "ci-runner",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { PermissionsPolicy } from "./local-sdk/aws/sdk/typescript/aws/verified/permissions_policy.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own permissions policy" });
+
+      resource(PermissionsPolicy, "ci-runner", {
+        definition: { static: { description: "example" } },
+        policyStoreId: "example",
+        name: "ci-runner",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.verified import PermissionsPolicy, PermissionsPolicyConfig
+
+    def describe():
+        ubx.intent("payments own permissions policy")
+
+        ubx.resource(PermissionsPolicy, "ci-runner", PermissionsPolicyConfig(
+            definition={"static": {"description": "example"}},
+            policy_store_id="example",
+            name="ci-runner",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_verified_permissions_policy called "ci-runner", with
+    definition a set value, policy store id example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="definition" type="object" required>
+  Contains the policy's definition, either a static statement written in Cedar policy syntax or a template-linked reference to a policy template with a principal. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="static" type="object">
+      The 'definition.static' object defines a static policy for AWS Verified Permissions, containing the Cedar policy statement text (Statement) and an optional AdditionalDetails field for supplementary information. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="description" type="string">
+          Provides a human-readable description of the static Cedar policy, documenting its purpose or intended effect within the AWS Verified Permissions policy definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="statement" type="string">
+          The Cedar policy statement text (in Cedar syntax) that defines the authorization rules for this static policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="template_linked" type="object">
+      Defines a policy that is created from a policy template, specifying the template ID and the principal and resource entities to which the template's placeholders are applied. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="policy_template_id" type="string">
+          Specifies the unique identifier of the policy template from which this template-linked policy is created, allowing the policy to inherit the template's statements and placeholders. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="principal" type="object">
+          Specifies the principal (e.g., a user or group) to which the template-linked policy applies, identified by its entity type and ID, or the special value 'ANY' to match all principals. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="entity_id" type="string">
+              Specifies the unique identifier of the principal entity (within its entity type) to which the template-linked policy applies. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="entity_type" type="string">
+              Specifies the entity type (e.g., 'User' or 'Group') of the principal to which the template-linked policy applies, used to bind the principal placeholder in the policy template. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="resource" type="object">
+          Specifies the resource entity (by type and ID) that the template-linked policy applies to, filling in the resource placeholder from the Cedar policy template. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="entity_id" type="string">
+              Specifies the unique ID of the resource entity (such as an application resource or a user) that this template-linked policy applies to as the resource of the policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="entity_type" type="string">
+              Sets the entity type of the resource to which the template-linked policy applies, constraining the policy's resource scope to Cedar entities of that type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Optional.
+</ResponseField>
+
+<ResponseField name="policy_store_id" type="string" required>
+  The unique identifier of the policy store in AWS Verified Permissions where this policy is created and to which it belongs. Required. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="policy_id" type="string">
+  The unique identifier assigned by Amazon Verified Permissions to the policy when it is created, used to reference and manage the policy. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="policy_type" type="string">
+  The type of the policy (STATIC or TEMPLATE_LINKED), indicating whether the policy was defined directly or linked to a policy template. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

@@ -1,0 +1,99 @@
+---
+title: "aws_ecr_signing_configuration"
+description: "`aws_ecr_signing_configuration` references one or more Signer signing profiles, and optionally repository filters..."
+---
+
+`aws_ecr_signing_configuration` references one or more Signer signing profiles, and optionally repository filters, so ECR automatically signs an image with the identity of whoever pushed it the moment it's pushed, up to 10 signing rules per registry for stronger security boundaries, without a caller signing images manually as a separate step. Launched November 2025.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ecr "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ecr"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own signing configuration"})
+
+    		ubx.Resource(ecr.SigningConfiguration, "ci-runner", ecr.SigningConfigurationConfig{
+    			Rules: []map[string]any{{"repository_filters": []map[string]any{{"filter": "example"}}}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { SigningConfiguration } from "./local-sdk/aws/sdk/typescript/aws/ecr/signing_configuration.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own signing configuration" });
+
+      resource(SigningConfiguration, "ci-runner", {
+        rules: [{ repositoryFilters: [{ filter: "example" }] }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ecr import SigningConfiguration, SigningConfigurationConfig
+
+    def describe():
+        ubx.intent("payments own signing configuration")
+
+        ubx.resource(SigningConfiguration, "ci-runner", SigningConfigurationConfig(
+            rules=[{"repository_filters": [{"filter": "example"}]}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ecr_signing_configuration, with rules a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="rules" type="list(object)" required>
+  Array of signing rules that define which repositories should be signed and with which signing profiles. Required.
+  <Expandable title="properties">
+    <ResponseField name="repository_filters" type="list(object)">
+      Specifies the repository filters that determine which Amazon ECR repositories this signing configuration rule applies to, matching by prefix or exact repository name. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="filter" type="string">
+          The repository name pattern (e.g., a prefix like 'prod/') that selects which ECR repositories this signing rule applies to, with the matching behavior defined by the associated filter type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="filter_type" type="string">
+          Specifies the matching strategy for a repository filter in an ECR signing configuration rule, where 'PREFIX_MATCH' ensures the rule applies to repositories whose names start with the given filter value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="signing_profile_arn" type="string">
+      Specifies the ARN of the AWS Signer signing profile that this rule uses to require signatures on matching container images. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="registry_id" type="string">
+  12-digit AWS account ID of the ECR registry. Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,111 @@
+---
+title: "aws_personalize_event_tracker"
+description: "`aws_personalize_event_tracker` creates a real endpoint that streams live user interaction events, clicks, purchases, views..."
+---
+
+`aws_personalize_event_tracker` creates a real endpoint that streams live user interaction events, clicks, purchases, views, into an `aws_personalize_dataset_group`, so an already-deployed campaign can incorporate real-time behavior rather than only the data it was originally trained on.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	personalize "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/personalize"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own event tracker"})
+
+    		ubx.Resource(personalize.EventTracker, "ci-runner", personalize.EventTrackerConfig{
+    			DatasetGroupArn: "arn:aws:iam::123456789012:policy/ci",
+    			Name:            "ci-runner",
+    			Tags:            []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { EventTracker } from "./local-sdk/aws/sdk/typescript/aws/personalize/event_tracker.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own event tracker" });
+
+      resource(EventTracker, "ci-runner", {
+        datasetGroupArn: "arn:aws:iam::123456789012:policy/ci",
+        name: "ci-runner",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.personalize import EventTracker, EventTrackerConfig
+
+    def describe():
+        ubx.intent("payments own event tracker")
+
+        ubx.resource(EventTracker, "ci-runner", EventTrackerConfig(
+            dataset_group_arn="arn:aws:iam::123456789012:policy/ci",
+            name="ci-runner",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_personalize_event_tracker called "ci-runner", with
+    dataset group arn arn:aws:iam::123456789012:policy/ci, tags a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="dataset_group_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the dataset group that receives the event data. Required.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name for the event tracker. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of tags to apply to the event tracker. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a user-defined tag assigned to the Amazon Personalize event tracker, used for metadata and cost allocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag assigned to the Amazon Personalize event tracker, used for categorizing and managing the tracker resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="event_tracker_arn" type="string">
+  The Amazon Resource Name (ARN) of the event tracker. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="tracking_id" type="string">
+  The ID of the event tracker. Include this ID in requests to the PutEvents API. Computed by AWS after `ship`.
+</ResponseField>

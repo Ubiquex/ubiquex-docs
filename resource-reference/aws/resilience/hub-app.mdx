@@ -1,0 +1,200 @@
+---
+title: "aws_resilience_hub_app"
+description: "`aws_resilience_hub_app` registers a real application in AWS Resilience Hub, its component resources discovered from CloudFormation, Terraform state..."
+---
+
+`aws_resilience_hub_app` registers a real application in AWS Resilience Hub, its component resources discovered from CloudFormation, Terraform state, or an EKS cluster, that an `aws_resilience_hub_resiliency_policy` is then assessed against.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	resilience "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/resilience"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own hub app"})
+
+    		ubx.Resource(resilience.HubApp, "ci-runner", resilience.HubAppConfig{
+    			AppTemplateBody:       "example",
+    			Name:                  "ci-runner",
+    			ResourceMappings:      []map[string]any{{"eks_source_name": "example-eks-source-name"}},
+    			AppAssessmentSchedule: "example",
+    			Description:           "Managed by ubx.",
+    			EventSubscriptions:    []map[string]any{{"name": "example-name"}},
+    			PermissionModel:       map[string]any{"type": "example"},
+    			ResiliencyPolicyArn:   "arn:aws:iam::123456789012:policy/ci",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { HubApp } from "./local-sdk/aws/sdk/typescript/aws/resilience/hub_app.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own hub app" });
+
+      resource(HubApp, "ci-runner", {
+        appTemplateBody: "example",
+        name: "ci-runner",
+        resourceMappings: [{ eksSourceName: "example-eks-source-name" }],
+        appAssessmentSchedule: "example",
+        description: "Managed by ubx.",
+        eventSubscriptions: [{ name: "example-name" }],
+        permissionModel: { type: "example" },
+        resiliencyPolicyArn: "arn:aws:iam::123456789012:policy/ci",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.resilience import HubApp, HubAppConfig
+
+    def describe():
+        ubx.intent("payments own hub app")
+
+        ubx.resource(HubApp, "ci-runner", HubAppConfig(
+            app_template_body="example",
+            name="ci-runner",
+            resource_mappings=[{"eks_source_name": "example-eks-source-name"}],
+            app_assessment_schedule="example",
+            description="Managed by ubx.",
+            event_subscriptions=[{"name": "example-name"}],
+            permission_model={"type": "example"},
+            resiliency_policy_arn="arn:aws:iam::123456789012:policy/ci",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_resilience_hub_app called "ci-runner", with app
+    template body example, resource mappings a set value, app
+    assessment schedule example, description Managed by ubx., event
+    subscriptions a set value, permission model a set value,
+    resiliency policy arn arn:aws:iam::123456789012:policy/ci.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="app_assessment_schedule" type="string">
+  Assessment execution schedule. Optional.
+</ResponseField>
+
+<ResponseField name="app_template_body" type="string" required>
+  A string containing full ResilienceHub app template body. Required.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  App description. Optional.
+</ResponseField>
+
+<ResponseField name="event_subscriptions" type="list(object)">
+  The list of events you would like to subscribe and get notification for. Optional.
+  <Expandable title="properties">
+    <ResponseField name="event_type" type="string">
+      Specifies the type of Resilience Hub event -- such as drift detection, assessment completion, or SOP recommendation -- that this subscription monitors to trigger notifications to the configured SNS topic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      The user-defined name for this event subscription, used to identify it within the Resilience Hub application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="sns_topic_arn" type="string">
+      The Amazon Resource Name (ARN) of the SNS topic that Resilience Hub publishes event notifications to for this app subscription. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Name of the app. Required.
+</ResponseField>
+
+<ResponseField name="permission_model" type="object">
+  Defines the roles and credentials that AWS Resilience Hub would use while creating the application, importing its resources, and running an assessment. Optional.
+  <Expandable title="properties">
+    <ResponseField name="cross_account_role_arns" type="list(string)">
+      Defines a list of role Amazon Resource Names (ARNs) to be used in other accounts. These ARNs are used for querying purposes while importing resources and assessing your application. Optional.
+    </ResponseField>
+    <ResponseField name="invoker_role_name" type="string">
+      Existing AWS IAM role name in the primary AWS account that will be assumed by AWS Resilience Hub Service Principle to obtain a read-only access to your application resources while running an assessment. Optional.
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      Defines how AWS Resilience Hub scans your resources. It can scan for the resources by using a pre-existing role in your AWS account, or by using the credentials of the current IAM user. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="resiliency_policy_arn" type="string">
+  Amazon Resource Name (ARN) of the Resiliency Policy. Optional.
+</ResponseField>
+
+<ResponseField name="resource_mappings" type="list(object)" required>
+  An array of ResourceMapping objects. Required.
+  <Expandable title="properties">
+    <ResponseField name="eks_source_name" type="string">
+      The name of the Amazon EKS cluster that the resource mapping references as its source in the Resilience Hub app. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="logical_stack_name" type="string">
+      The name of the CloudFormation stack that contains the resource identified by this resource mapping in an AWS Resilience Hub app. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="mapping_type" type="string">
+      Specifies the type of resource mapping for an application resource, which determines how the physical resource is identified (e.g., Cfn, Stack, Resource, AppRegistryApp, ResourceGroup, Terraform, or EKS). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="physical_resource_id" type="object">
+      An object that uniquely identifies the physical AWS resource backing the logical resource in the mapping, containing fields like awsAccountId, awsRegion, and either stackName or resourceName depending on the resourceMappingType. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="aws_account_id" type="string">
+          The AWS account ID where the physical resource identified by this resource mapping is located. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="aws_region" type="string">
+          Specifies the AWS region of the physical resource that the resource mapping references in the Resilience Hub application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="identifier" type="string">
+          For each resource mapping in an AWS Resilience Hub app, this identifier uniquely identifies the physical AWS resource (such as its ARN or resource ID) that the logical resource maps to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          Specifies whether the physical resource identifier is an Amazon Resource Name (ARN) or a native resource identifier. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="resource_name" type="string">
+      Within each resource mapping, this field specifies the logical name of the resource as it appears in the Resilience Hub application, distinguishing it from other mapped resources. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="terraform_source_name" type="string">
+      When the mapping type is Terraform, this specifies the name of the Terraform source (e.g., state file or module) from which the resource mapping was derived. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  A map of key-value tags to attach to the AWS Resilience Hub application, used for identifying, organizing, and enabling attribute-based access control. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="app_arn" type="string">
+  Amazon Resource Name (ARN) of the App. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="drift_status" type="string">
+  Indicates if compliance drifts (deviations) were detected while running an assessment for your application. Computed by AWS after `ship`.
+</ResponseField>

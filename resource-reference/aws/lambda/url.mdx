@@ -1,0 +1,137 @@
+---
+title: "aws_lambda_url"
+description: "`aws_lambda_url` creates a real, dedicated HTTPS endpoint for an `aws_lambda_function`..."
+---
+
+`aws_lambda_url` creates a real, dedicated HTTPS endpoint for an `aws_lambda_function`, letting the function be invoked directly over HTTP without provisioning API Gateway in front of it.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	lambda "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/lambda"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own url"})
+
+    		ubx.Resource(lambda.Url, "ci-runner", lambda.UrlConfig{
+    			AuthType:          "example",
+    			TargetFunctionArn: "arn:aws:iam::123456789012:policy/ci",
+    			Cors:              map[string]any{"allow_credentials": true},
+    			InvokeMode:        "example",
+    			Qualifier:         "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Url } from "./local-sdk/aws/sdk/typescript/aws/lambda/url.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own url" });
+
+      resource(Url, "ci-runner", {
+        authType: "example",
+        targetFunctionArn: "arn:aws:iam::123456789012:policy/ci",
+        cors: { allowCredentials: true },
+        invokeMode: "example",
+        qualifier: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.lambda_ import Url, UrlConfig
+
+    def describe():
+        ubx.intent("payments own url")
+
+        ubx.resource(Url, "ci-runner", UrlConfig(
+            auth_type="example",
+            target_function_arn="arn:aws:iam::123456789012:policy/ci",
+            cors={"allow_credentials": True},
+            invoke_mode="example",
+            qualifier="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_lambda_url, with auth type example, target function
+    arn arn:aws:iam::123456789012:policy/ci, cors a set value, invoke
+    mode example, qualifier example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="auth_type" type="string" required>
+  Can be either AWS_IAM if the requests are authorized via IAM, or NONE if no authorization is configured on the Function URL. Required.
+</ResponseField>
+
+<ResponseField name="cors" type="object">
+  Configures cross-origin resource sharing (CORS) settings for the Lambda function URL, specifying allowed origins, methods, headers, and other CORS options. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="allow_credentials" type="bool">
+      Specifies whether credentials are included in the CORS request. Optional.
+    </ResponseField>
+    <ResponseField name="allow_headers" type="list(string)">
+      Specifies the list of HTTP headers that are allowed in cross-origin requests to the Lambda function URL when CORS is enabled. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="allow_methods" type="list(string)">
+      Specifies the list of HTTP methods (e.g., GET, POST) that are allowed for cross-origin requests to the Lambda function URL. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="allow_origins" type="list(string)">
+      Specifies the list of origins that are allowed to make cross-origin requests to the Lambda function URL. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="expose_headers" type="list(string)">
+      Specifies the list of response headers that browsers and clients are allowed to access from the cross-origin response in the CORS configuration of an AWS Lambda function URL. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="max_age" type="number">
+      The maximum time in seconds that the browser caches the preflight response for CORS requests to the Lambda function URL. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="invoke_mode" type="string">
+  The invocation mode for the function's URL. Set to BUFFERED if you want to buffer responses before returning them to the client. Set to RESPONSE_STREAM if you want to stream responses, allowing faster time to first byte and larger response payload sizes. If not set, defaults to BUFFERED. Optional.
+</ResponseField>
+
+<ResponseField name="qualifier" type="string">
+  The alias qualifier for the target function. If TargetFunctionArn is unqualified then Qualifier must be passed. Optional.
+</ResponseField>
+
+<ResponseField name="target_function_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the function associated with the Function URL. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="function_arn" type="string">
+  The full Amazon Resource Name (ARN) of the function associated with the Function URL. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="function_url" type="string">
+  The generated url for this resource. Computed by AWS after `ship`.
+</ResponseField>

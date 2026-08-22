@@ -1,0 +1,421 @@
+---
+title: "aws_glue_table"
+description: "`aws_glue_table` registers the real schema, columns, types, storage format and location, of one dataset in the Glue Data Catalog..."
+---
+
+`aws_glue_table` registers the real schema, columns, types, storage format and location, of one dataset in the Glue Data Catalog, metadata a query engine reads to know how to actually read the underlying data in S3 or elsewhere.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	glue "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/glue"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own table"})
+
+    		ubx.Resource(glue.Table, "ci-runner", glue.TableConfig{
+    			CatalogId:            "example",
+    			DatabaseName:         "example-database-name",
+    			Name:                 "ci-runner",
+    			OpenTableFormatInput: map[string]any{"iceberg_input": map[string]any{"iceberg_table_input": map[string]any{"location": "example"}}},
+    			TableInput:           map[string]any{"name": "example-name"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Table } from "./local-sdk/aws/sdk/typescript/aws/glue/table.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own table" });
+
+      resource(Table, "ci-runner", {
+        catalogId: "example",
+        databaseName: "example-database-name",
+        name: "ci-runner",
+        openTableFormatInput: {
+          icebergInput: { icebergTableInput: { location: "example" } },
+        },
+        tableInput: { name: "example-name" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.glue import Table, TableConfig
+
+    def describe():
+        ubx.intent("payments own table")
+
+        ubx.resource(Table, "ci-runner", TableConfig(
+            catalog_id="example",
+            database_name="example-database-name",
+            name="ci-runner",
+            open_table_format_input={"iceberg_input": {"iceberg_table_input": {"location": "example"}}},
+            table_input={"name": "example-name"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_glue_table called "ci-runner", with catalog id
+    example, database name example-database-name, open table format
+    input a set value, table input a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="catalog_id" type="string" required>
+  The ID of the AWS Glue Data Catalog (typically the AWS account ID) in which the table and its parent database reside. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="database_name" type="string" required>
+  The name of the Glue Data Catalog database in which the table is stored. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the table stored in the AWS Glue Data Catalog, uniquely identifying it within the Glue database. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="open_table_format_input" type="object">
+  Specifies the open table format configuration for the Glue table, including Iceberg input (metadata operation) and table identifier, allowing the table to be used with open data formats like Apache Iceberg. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="iceberg_input" type="object">
+      Provides Iceberg-specific input settings for the glue table's open table format, including the metadata operation (e.g., CREATE) that AWS Glue should perform on the table's Iceberg metadata. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="iceberg_table_input" type="object">
+          Configures the Iceberg-specific table metadata, including the metadata operation (such as CREATE or UPDATE) and version, used when the Glue table is registered as an Iceberg table in the Data Catalog. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="location" type="string" required>
+              The S3 URI where the Iceberg table's data and metadata are stored, required when registering the table in the Glue Data Catalog. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="partition_spec" type="object">
+              Specifies the partitioning for an Iceberg table by defining a list of partition fields, where each field names a source column and a transform (such as identity, bucket, or truncate) used to compute partition values. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="fields" type="list(object)" required>
+                  Defines the partition fields for the Iceberg table, where each field specifies the source column name and the transform (such as identity, bucket, truncate, year, month, day, or hour) that determines how the table data is partitioned. Required. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="field_id" type="number">
+                      The unique integer identifier assigned to this partition field within the Iceberg partition spec, used to distinguish it from other partition fields when the table's partition layout is referenced by Iceberg metadata and query engines. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="name" type="string">
+                      Specifies the name of a partition field in the Iceberg partition spec, which is the source column name or a derived name when a partition transform (such as bucket, truncate, or year) is applied. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="source_id" type="number">
+                      The numeric identifier of the source column in the Iceberg table's schema that this partition field is based on. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="transform" type="string">
+                      The Iceberg partition transform (e.g., identity, year, month, day, hour, bucket, truncate) applied to the source column in the partition spec field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="spec_id" type="number">
+                  Defines the unique identifier for the Iceberg partition spec, used to reference the specific partition spec when creating or updating the table. Optional. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="properties" type="any">
+              A map of key-value pairs specifying Iceberg table properties (e.g., `format-version`, `write.format.default`) to be applied to the Iceberg table when the Glue table uses the Iceberg open table format. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="schema" type="object" required>
+              Defines the Iceberg table's schema, including its columns, data types, and structure, as required when using the Iceberg open table format for the Glue table. Required. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="fields" type="list(object)" required>
+                  Specifies the required list of column definitions (fields) for the schema of the Iceberg table, where each field defines a column's name and data type in the Glue Data Catalog. Required. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="doc" type="string">
+                      Provides a human-readable documentation string (doc) that describes this field/column in the Iceberg table schema within AWS Glue. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="id" type="number">
+                      Unique numeric identifier for each column field within the Iceberg table schema, used by Iceberg to reference the field positionally in metadata and partition specs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="name" type="string">
+                      The name of a column (field) in the Iceberg table schema, used as the column identifier within the Iceberg table input for the Glue table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="required" type="bool">
+                      Indicates whether this field in the Iceberg table schema is required (non-nullable); when false, the field is optional and can contain null values. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="type" type="string">
+                      Defines the data type of a specific field in the Iceberg table's schema, using Iceberg type strings such as 'int', 'string', 'boolean', 'array&lt;...&gt;', or 'struct&lt;...&gt;' to represent primitive or nested types. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="identifier_field_ids" type="list(number)">
+                  Specifies which field IDs from the Iceberg table schema collectively form the table's identifier (primary key). Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="schema_id" type="number">
+                  The integer identifier for the Iceberg schema within the table, used to uniquely reference this schema version in the table's Iceberg metadata. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="type" type="string">
+                  The `type` field of the Iceberg table schema, which identifies the top-level Iceberg schema type (usually `struct`) for the Glue table's open table format input. Optional. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="write_order" type="object">
+              Optional.
+              <Expandable title="properties">
+                <ResponseField name="fields" type="list(object)" required>
+                  Specifies the list of sort fields that define the write order (sort order) for data written to the underlying Iceberg table, with each field indicating a source column, transform, and sort direction. Required. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="direction" type="string">
+                      The sort direction (either 'asc' or 'desc') for this field within the Iceberg table's write order sort spec. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="null_order" type="string">
+                      Specifies whether null values are sorted first or last for this field within the Iceberg table's write order sort field, typically set to 'NULLS_FIRST' or 'NULLS_LAST'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="source_id" type="number">
+                      The numeric ID of the source column in the Iceberg table schema that this write-order/sort field references, used to define which column the sort order applies to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="transform" type="string">
+                      Specifies the Iceberg sort transform (e.g., identity, bucket, truncate, year) applied to the source column for this write-order field in the Iceberg table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="order_id" type="number" required>
+                  The numeric identifier that uniquely identifies this write sort order within the Iceberg table metadata, used to reference and apply the write order when writing data. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="metadata_operation" type="any">
+          Specifies the metadata operation (e.g., CREATE or UPDATE) to perform when registering the Apache Iceberg table in the Glue Data Catalog. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="version" type="string">
+          The version identifier of the Iceberg table metadata to update, used when the metadata operation is set to UPDATE. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="table_input" type="object">
+  The table_input object specifies the full metadata definition of the Glue Data Catalog table, including its name, storage descriptor, partition keys, table type, parameters, and other table properties used when creating or updating the table. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="description" type="string">
+      The user-provided description of the table, stored in the AWS Glue Data Catalog to document the table's contents or purpose. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      The name of the Glue table to be created or updated. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="owner" type="string">
+      Specifies the owner of the table, typically the AWS account ID or IAM role that owns it in the AWS Glue Data Catalog. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="parameters" type="any">
+      Specifies a map of key-value pairs that define the table's metadata and format-specific options, such as 'classification' (e.g., csv, parquet), 'separatorChar', and 'compressionType', which AWS Glue uses when reading or writing the underlying data. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="partition_keys" type="list(object)">
+      Defines the list of partition columns for the Glue table, with each object specifying the column name, data type, and optional comment for a partition key. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="comment" type="string">
+          The comment associated with a partition key (column) in the Glue table's schema. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The name of a partition key column in the Glue table's partition keys list. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          The data type of the partition key column (e.g., STRING, INT, or DATE), defining how the partition values are interpreted in the Glue table's schema. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="retention" type="number">
+      Specifies the number of days that the table should be retained in the AWS Glue Data Catalog, as represented by the Retention field of the TableInput property. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="storage_descriptor" type="object">
+      Specifies the physical storage information for the table, including its column list, file location, data format (input/output), and SerDe configuration, used by AWS Glue for reading and writing data. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="bucket_columns" type="list(string)">
+          The list of column names that determine bucketing for the table data, defining how records are distributed into buckets in the storage descriptor. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="columns" type="list(object)">
+          A list of Column objects defining the table's schema, where each column specifies its name, data type, and optional comment within the storage descriptor. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="comment" type="string">
+              The comment for a column in the Glue table's storage descriptor, providing a human-readable description of the column's meaning or purpose. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="name" type="string">
+              The name of a column in the Glue table's storage descriptor, which serves as the column's identifier within the table schema. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="type" type="string">
+              The data type of the column, specified as a Glue/Athena data type string (e.g., 'string', 'int', 'map&lt;string,string&gt;', 'struct&lt;...&gt;'). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="compressed" type="bool">
+          A boolean flag indicating whether the underlying table data is compressed, as defined in the Glue table's StorageDescriptor. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="input_format" type="string">
+          The fully qualified Java class name of the input format used to read the table's data, such as 'org.apache.hadoop.mapred.TextInputFormat'. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="location" type="string">
+          The physical location of the table data, typically an S3 URI (e.g., 's3://bucket/path') that the Glue table points to in its storage descriptor. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="number_of_buckets" type="number">
+          The number of buckets in the table, which is used by partition pruning and query optimization for bucketed data. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_format" type="string">
+          The fully qualified class name of the output format (e.g., org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat) that the table uses to write data, as part of the storage descriptor. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="parameters" type="any">
+          Specifies user-defined key-value parameters for the storage descriptor, allowing custom metadata to be associated with the underlying table storage. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="schema_reference" type="object">
+          Specifies a reference to an AWS Glue Schema Registry schema (via schema ID and version) that defines the table's schema instead of providing inline column definitions. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="schema_id" type="object">
+              Identifies the AWS Glue schema registry schema referenced by this table's storage descriptor, specified via schema ARN or registry name plus schema name. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="registry_name" type="string">
+                  The name of the AWS Glue Schema Registry that contains the referenced schema. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="schema_arn" type="string">
+                  The ARN of the schema in the AWS Glue Schema Registry that this table references, used to uniquely identify the schema when creating or updating the table's storage descriptor. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="schema_name" type="string">
+                  The name of the schema in the AWS Glue Schema Registry that this table references via its schema_id, used together with the registry name to identify the schema. Optional. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="schema_version_id" type="string">
+              The unique identifier of the specific schema version in the AWS Glue Schema Registry that this table's storage descriptor references, determining the column definition and format used. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="schema_version_number" type="number">
+              The version number of the referenced schema in the Glue Schema Registry that this table is based on, used to pin the table to a specific schema version. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="serde_info" type="object">
+          Defines the serialization/deserialization (SerDe) configuration for the table, including the SerDe library name and associated parameters. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="name" type="string">
+              The user-supplied name of the serializer/deserializer (SerDe) referenced by this storage descriptor, typically matching the SerDe class name used in the table. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="parameters" type="any">
+              A map of key-value configuration parameters passed to the SerDe (serializer/deserializer) specified in serde_info, controlling how data is serialized and deserialized (e.g., 'field.delim' for delimiter-separated formats or 'serialization.format' for Parquet). Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="serialization_library" type="string">
+              The fully qualified class name of the SerDe (serializer/deserializer) used by AWS Glue to read and write data in the table, such as org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe or org.openx.data.jsonserde.JsonSerDe. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="skewed_info" type="object">
+          Defines skew information for the table's storage descriptor, including skewed column names, their values, and mapping of those values to file locations to optimize querying of skewed data. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="skewed_column_names" type="list(string)">
+              A list of column names that contain skewed values, enabling AWS Glue to optimize storage and querying for skewed data. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="skewed_column_value_location_maps" type="any">
+              Maps each skewed column value to a distinct file location where rows with that value are stored, enabling optimized handling of data skew in the Glue table's storage descriptor. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="skewed_column_values" type="list(string)">
+              The list of values that appear frequently in the skewed columns defined in the parent `skewed_info`, used by Glue to optimize storage and query performance for skewed data. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="sort_columns" type="list(object)">
+          Specifies the columns (with optional ascending/descending order) by which the table's data is sorted, as part of the Glue table's storage descriptor. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="column" type="string">
+              Specifies the name of a column to be used for sorting the table data in the Glue table's storage descriptor, where each entry in the sort columns list defines a sort key column. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="sort_order" type="number">
+              The sort order for the sort column, where 0 indicates ascending order and 1 indicates descending order. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="stored_as_sub_directories" type="bool">
+          This Boolean flag indicates that the table's data is stored in subdirectories, which is typically used for partitioned tables so that AWS Glue treats each partition key value as a directory in the underlying storage. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="table_type" type="string">
+      Specifies the table type, such as EXTERNAL_TABLE for a table backed by external data or VIRTUAL_VIEW for a view, in the AWS Glue TableInput. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="target_table" type="object">
+      For a table defined as a resource link, this field provides the catalog, database, and name of the destination table that the link resolves to, enabling cross-catalog or cross-database table references in the Glue Data Catalog. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="catalog_id" type="string">
+          Identifies the AWS Glue Data Catalog (account ID) that contains the target table, used when creating a table link that points to an existing table in another catalog. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="database_name" type="string">
+          The name of the database that contains the target table when this Glue table is a resource link pointing to another table. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The name of the target Glue table that this table references when using the TargetTable configuration to point to an existing table. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="region" type="string">
+          The AWS region in which the target table is located, enabling cross-region references for Glue tables. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="view_definition" type="object">
+      This object represents the view definition, including the SQL query (DefinedBy) and sub-objects, that marks the table as a view in the AWS Glue Data Catalog rather than a physical table. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="definer" type="string">
+          Specifies the security definer (the principal whose permissions are used) for the view, used when the Glue table's ViewDefinition is set. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="is_protected" type="bool">
+          A Boolean value that indicates whether the view can be used in a query. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="representations" type="list(object)">
+          Specifies a list of view representations, each providing a dialect-specific SQL query definition (like for Athena or Spark SQL) that defines the view for different query engines. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="dialect" type="string">
+              Specifies the query engine dialect (such as SPARK or ATHENA) used by this representation of the view definition for the AWS Glue table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="dialect_version" type="string">
+              The version of the SQL dialect used by this view representation, enabling AWS Glue to interpret the view text correctly for that dialect. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="validation_connection" type="string">
+              This field specifies the name of the AWS Glue connection used to validate the SQL representation of the view against the underlying data source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="view_expanded_text" type="string">
+              The expanded SQL query text for the view representation in the specified dialect, used by AWS Glue to resolve the view's logical table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="view_original_text" type="string">
+              The original SQL text of the view, as initially defined, for this representation of the AWS Glue table's view definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="sub_objects" type="list(string)">
+          Specifies the list of source tables (identified by ARN or table identifier) that a Glue view definition is built upon, defining which base tables the view queries. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="view_expanded_text" type="string">
+      The expanded SQL text that defines the view when the table is a view, stored in the Glue Data Catalog as part of the TableInput. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="view_original_text" type="string">
+      Specifies the original SQL text used to define a view when the table represents a view rather than a physical table. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The id is the provider-assigned unique identifier for the Glue table, formatted as the database name and table name joined by a colon (e.g., my_db:my_table). Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

@@ -1,0 +1,252 @@
+---
+title: "aws_cloud_formation_stack_set"
+description: "`aws_cloud_formation_stack_set` deploys the same `aws_cloud_formation_stack` template consistently across many AWS accounts and Regions from..."
+---
+
+`aws_cloud_formation_stack_set` deploys the same `aws_cloud_formation_stack` template consistently across many AWS accounts and Regions from one operation, the real mechanism for organization-wide infrastructure rollout rather than manually repeating a stack deployment account by account.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	cloud "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/cloud"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own formation stack set"})
+
+    		ubx.Resource(cloud.FormationStackSet, "ci-runner", cloud.FormationStackSetConfig{
+    			PermissionModel:       "example",
+    			StackSetName:          "example-stack-set-name",
+    			AdministrationRoleArn: "arn:aws:iam::123456789012:policy/ci",
+    			AutoDeployment:        map[string]any{"depends_on": []string{"example"}},
+    			CallAs:                "example",
+    			Capabilities:          []string{"example"},
+    			Description:           "Managed by ubx.",
+    			ExecutionRoleName:     "example-execution-role-name",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { FormationStackSet } from "./local-sdk/aws/sdk/typescript/aws/cloud/formation_stack_set.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own formation stack set" });
+
+      resource(FormationStackSet, "ci-runner", {
+        permissionModel: "example",
+        stackSetName: "example-stack-set-name",
+        administrationRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        autoDeployment: { dependsOn: ["example"] },
+        callAs: "example",
+        capabilities: ["example"],
+        description: "Managed by ubx.",
+        executionRoleName: "example-execution-role-name",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.cloud import FormationStackSet, FormationStackSetConfig
+
+    def describe():
+        ubx.intent("payments own formation stack set")
+
+        ubx.resource(FormationStackSet, "ci-runner", FormationStackSetConfig(
+            permission_model="example",
+            stack_set_name="example-stack-set-name",
+            administration_role_arn="arn:aws:iam::123456789012:policy/ci",
+            auto_deployment={"depends_on": ["example"]},
+            call_as="example",
+            capabilities=["example"],
+            description="Managed by ubx.",
+            execution_role_name="example-execution-role-name",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_cloud_formation_stack_set, with permission model
+    example, stack set name example-stack-set-name, administration
+    role arn arn:aws:iam::123456789012:policy/ci, auto deployment a
+    set value, call as example, capabilities a set value, description
+    Managed by ubx., execution role name example-execution-role-name.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="administration_role_arn" type="string">
+  The Amazon Resource Number (ARN) of the IAM role to use to create this stack set. Specify an IAM role only if you are using customized administrator roles to control which users or groups can manage specific stack sets within the same administrator account. Optional.
+</ResponseField>
+
+<ResponseField name="auto_deployment" type="object">
+  Enables automatic deployment of stack instances to accounts added to the target organizational units or accounts, and optionally retains the stacks when an account is removed from the target scope. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="depends_on" type="list(string)">
+      A list of StackSet ARNs that this StackSet depends on for auto-deployment operations. When auto-deployment is triggered, operations will be sequenced to ensure all dependencies complete successfully before this StackSet's operation begins. Optional.
+    </ResponseField>
+    <ResponseField name="enabled" type="bool">
+      If set to true, StackSets automatically deploys additional stack instances to AWS Organizations accounts that are added to a target organization or organizational unit (OU) in the specified Regions. If an account is removed from a target organization or OU, StackSets deletes stack instances from the account in the specified Regions. Optional.
+    </ResponseField>
+    <ResponseField name="retain_stacks_on_account_removal" type="bool">
+      If set to true, stack resources are retained when an account is removed from a target organization or OU. If set to false, stack resources are deleted. Specify only if Enabled is set to True. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="call_as" type="string">
+  Specifies the AWS account that you are acting from. By default, SELF is specified. For self-managed permissions, specify SELF; for service-managed permissions, if you are signed in to the organization's management account, specify SELF. If you are signed in to a delegated administrator account, specify DELEGATED_ADMIN. Optional.
+</ResponseField>
+
+<ResponseField name="capabilities" type="list(string)">
+  In some cases, you must explicitly acknowledge that your stack set template contains certain capabilities in order for AWS CloudFormation to create the stack set and related stack instances. Optional.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A description of the stack set. You can use the description to identify the stack set's purpose or other important information. Optional.
+</ResponseField>
+
+<ResponseField name="execution_role_name" type="string">
+  The name of the IAM execution role to use to create the stack set. If you do not specify an execution role, AWS CloudFormation uses the AWSCloudFormationStackSetExecutionRole role for the stack set operation. Optional.
+</ResponseField>
+
+<ResponseField name="managed_execution" type="object">
+  Describes whether StackSets performs non-conflicting operations concurrently and queues conflicting operations. Optional.
+  <Expandable title="properties">
+    <ResponseField name="active" type="bool">
+      When true, StackSets performs non-conflicting operations concurrently and queues conflicting operations. After conflicting operations finish, StackSets starts queued operations in request order. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="operation_preferences" type="object">
+  The user-specified preferences for how AWS CloudFormation performs a stack set operation. Optional.
+  <Expandable title="properties">
+    <ResponseField name="concurrency_mode" type="string">
+      Specifies how the concurrency level behaves during the operation execution. Optional.
+    </ResponseField>
+    <ResponseField name="failure_tolerance_count" type="number">
+      Specifies the maximum number of accounts per Region in which stack instance creation, update, or deletion can fail before CloudFormation stops the stack set operation in that Region. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="failure_tolerance_percentage" type="number">
+      The percentage of total stack instances in the stack set that can fail during an operation before CloudFormation stops the operation and considers it failed. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="max_concurrent_count" type="number">
+      Specifies the maximum number of stack instances that can be operated on concurrently during a stack set operation, as an absolute count rather than a percentage. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="max_concurrent_percentage" type="number">
+      Specifies the maximum percentage of accounts in the stack set that can be brought online or updated concurrently during stack operations, helping to limit the number of simultaneous deployments. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="region_concurrency_type" type="string">
+      The concurrency type of deploying StackSets operations in regions, could be in parallel or one region at a time Optional.
+    </ResponseField>
+    <ResponseField name="region_order" type="list(string)">
+      Specifies the custom order in which AWS Regions are traversed during stack set operations (create, update, or delete), controlling the sequence of stack instance deployments across those regions. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="parameters" type="list(object)">
+  The input parameters for the stack set template. Optional.
+  <Expandable title="properties">
+    <ResponseField name="parameter_key" type="string">
+      The key of a parameter passed to the CloudFormation StackSet, which must match a parameter name declared in the stack template used by the StackSet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="parameter_value" type="string">
+      The value to assign to a specific parameter key when provisioning stacks within the CloudFormation StackSet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="permission_model" type="string" required>
+  Describes how the IAM roles required for stack set operations are created. By default, SELF-MANAGED is specified. Required.
+</ResponseField>
+
+<ResponseField name="stack_instances_group" type="list(object)">
+  A group of stack instances with parameters in some specific accounts and regions. Optional.
+  <Expandable title="properties">
+    <ResponseField name="deployment_targets" type="object">
+      DeploymentTargets specifies the target AWS accounts or Organizational Units (OUs) in AWS Organizations for stack instance deployment, including optional account list URL and account filter type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="account_filter_type" type="string">
+          Specifies how AWS CloudFormation filters accounts within an organization for stack set deployments: 'ALL' targets every account in the organization, while 'INTERSECTION' deploys only to accounts that appear in both the specified target accounts/OrganizationalUnitIds and the organization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="accounts" type="list(string)">
+          Specifies the list of AWS account IDs to which stack instances are deployed for this stack instances group in the StackSet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="accounts_url" type="string">
+          The `accounts_url` field specifies a pre-signed Amazon S3 URL to a file containing a list of AWS account IDs that are the deployment targets for stack instances in the stack set group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="organizational_unit_ids" type="list(string)">
+          The list of organizational unit (OU) IDs in AWS Organizations to which the stack set deploys stack instances when using service-managed permissions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="parameter_overrides" type="list(object)">
+      Provides the parameter values that override the stack set's default parameters for the stack instances in this group, enabling different configurations per account/region group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="parameter_key" type="string">
+          The key of a parameter override applied to the stack instances in this group, replacing the default parameter value from the stack set's template. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="parameter_value" type="string">
+          The value to assign to a stack template parameter for the stack instances in this group, overriding the default parameter value defined in the StackSet template. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="regions" type="list(string)">
+      The list of AWS Regions in which to create stack instances for this stack set instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="stack_set_name" type="string" required>
+  The name to associate with the stack set. The name must be unique in the Region where you create your stack set. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The key-value pairs to associate with this stack set and the stacks created from it. AWS CloudFormation also propagates these tags to supported resources that are created in the stacks. A maximum number of 50 tags can be specified. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the CloudFormation stack set, used to organize, identify, and manage the stack set via cost allocation tags and IAM policies. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of the tag to assign to the StackSet, used for cost allocation, access control, and identifying the StackSet in the AWS Management Console. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="template_body" type="string">
+  The structure that contains the template body, with a minimum length of 1 byte and a maximum length of 51,200 bytes. Optional.
+</ResponseField>
+
+<ResponseField name="template_url" type="string">
+  Location of file containing the template body. The URL must point to a template (max size: 460,800 bytes) that is located in an Amazon S3 bucket. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="stack_set_id" type="string">
+  The ID of the stack set that you're creating. Computed by AWS after `ship`.
+</ResponseField>

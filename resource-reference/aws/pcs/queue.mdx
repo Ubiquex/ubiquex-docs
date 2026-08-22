@@ -1,0 +1,153 @@
+---
+title: "aws_pcs_queue"
+description: "`aws_pcs_queue` defines a real Slurm job queue on an `aws_pcs_cluster`..."
+---
+
+`aws_pcs_queue` defines a real Slurm job queue on an `aws_pcs_cluster`, associated with one or more `aws_pcs_compute_node_group`s that jobs submitted to it are scheduled onto.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	pcs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/pcs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own queue"})
+
+    		ubx.Resource(pcs.Queue, "ci-runner", pcs.QueueConfig{
+    			ClusterId:                      "example",
+    			Name:                           "ci-runner",
+    			ComputeNodeGroupConfigurations: []map[string]any{{"compute_node_group_id": "example"}},
+    			SlurmConfiguration:             map[string]any{"slurm_custom_settings": []map[string]any{{"parameter_name": "example-parameter-name"}}},
+    			Tags:                           "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Queue } from "./local-sdk/aws/sdk/typescript/aws/pcs/queue.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own queue" });
+
+      resource(Queue, "ci-runner", {
+        clusterId: "example",
+        name: "ci-runner",
+        computeNodeGroupConfigurations: [{ computeNodeGroupId: "example" }],
+        slurmConfiguration: {
+          slurmCustomSettings: [{ parameterName: "example-parameter-name" }],
+        },
+        tags: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.pcs import Queue, QueueConfig
+
+    def describe():
+        ubx.intent("payments own queue")
+
+        ubx.resource(Queue, "ci-runner", QueueConfig(
+            cluster_id="example",
+            name="ci-runner",
+            compute_node_group_configurations=[{"compute_node_group_id": "example"}],
+            slurm_configuration={"slurm_custom_settings": [{"parameter_name": "example-parameter-name"}]},
+            tags="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_pcs_queue called "ci-runner", with cluster id example,
+    compute node group configurations a set value, slurm
+    configuration a set value, tags example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="cluster_id" type="string" required>
+  The ID of the cluster of the queue. Required.
+</ResponseField>
+
+<ResponseField name="compute_node_group_configurations" type="list(object)">
+  The list of compute node group configurations associated with the queue. Queues assign jobs to associated compute node groups. Optional.
+  <Expandable title="properties">
+    <ResponseField name="compute_node_group_id" type="string">
+      Specifies the unique identifier of the compute node group to which this queue configuration targets, enabling the queue to submit jobs to the resources defined by that compute node group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name that identifies the queue. Optional.
+</ResponseField>
+
+<ResponseField name="slurm_configuration" type="object">
+  The Slurm configuration for the queue. Optional.
+  <Expandable title="properties">
+    <ResponseField name="slurm_custom_settings" type="list(object)">
+      Custom Slurm parameters that directly map to Slurm configuration settings. Optional.
+      <Expandable title="properties">
+        <ResponseField name="parameter_name" type="string">
+          The name of a Slurm configuration parameter to set on the queue's Slurm cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="parameter_value" type="string">
+          The value assigned to a custom Slurm parameter (identified by its parameter name) in the AWS PCS queue's Slurm configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  1 or more tags added to the resource. Each tag consists of a tag key and tag value. The tag value is optional and can be an empty string. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The unique Amazon Resource Name (ARN) of the queue. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="error_info" type="list(object)">
+  The list of errors that occurred during queue provisioning. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="code" type="string">
+      The short error code that identifies the type of failure affecting the queue, complementing the error message returned in the same error info object. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="message" type="string">
+      The error message that provides details about the failure condition affecting the AWS PCS queue, as reported in the queue's error information list. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The generated unique ID of the queue. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The provisioning status of the queue. The provisioning status doesn't indicate the overall health of the queue. Computed by AWS after `ship`.
+</ResponseField>

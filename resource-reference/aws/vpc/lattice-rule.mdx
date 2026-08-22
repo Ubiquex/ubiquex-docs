@@ -1,0 +1,206 @@
+---
+title: "aws_vpc_lattice_rule"
+description: "`aws_vpc_lattice_rule` defines a real routing rule on an `aws_vpc_lattice_listener`..."
+---
+
+`aws_vpc_lattice_rule` defines a real routing rule on an `aws_vpc_lattice_listener`, matching request path or header conditions and directing matching traffic to a specific `aws_vpc_lattice_target_group`.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	vpc "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/vpc"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own lattice rule"})
+
+    		ubx.Resource(vpc.LatticeRule, "ci-runner", vpc.LatticeRuleConfig{
+    			Action:             map[string]any{"fixed_response": map[string]any{"status_code": 1}},
+    			Match:              map[string]any{"http_match": map[string]any{"header_matches": []map[string]any{{"name": "example-name"}}}},
+    			Priority:           1,
+    			Name:               "ci-runner",
+    			ListenerIdentifier: "example",
+    			ServiceIdentifier:  "example",
+    			Tags:               []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { LatticeRule } from "./local-sdk/aws/sdk/typescript/aws/vpc/lattice_rule.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own lattice rule" });
+
+      resource(LatticeRule, "ci-runner", {
+        action: { fixedResponse: { statusCode: 1 } },
+        match: { httpMatch: { headerMatches: [{ name: "example-name" }] } },
+        priority: 1,
+        name: "ci-runner",
+        listenerIdentifier: "example",
+        serviceIdentifier: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.vpc import LatticeRule, LatticeRuleConfig
+
+    def describe():
+        ubx.intent("payments own lattice rule")
+
+        ubx.resource(LatticeRule, "ci-runner", LatticeRuleConfig(
+            action={"fixed_response": {"status_code": 1}},
+            match={"http_match": {"header_matches": [{"name": "example-name"}]}},
+            priority=1,
+            name="ci-runner",
+            listener_identifier="example",
+            service_identifier="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_vpc_lattice_rule called "ci-runner", with action a set
+    value, match a set value, priority 1, listener identifier
+    example, service identifier example, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="action" type="object" required>
+  Defines how the rule handles matching traffic, such as forwarding to a target group with weighted targets or returning a fixed HTTP response. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="fixed_response" type="object">
+      The fixed_response block configures a fixed-response action for the rule, allowing you to specify a custom HTTP status code and an optional response body to be returned when the rule's conditions are met. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="status_code" type="number" required>
+          The HTTP status code (e.g., 200, 404) returned by the fixed-response action of the VPC Lattice rule. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="forward" type="object">
+      The forward action of the VPC Lattice rule, which specifies the target groups to which matching traffic is forwarded. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="target_groups" type="list(object)" required>
+          Specifies the list of target groups and their weights to which the forward action distributes traffic. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="target_group_identifier" type="string">
+              The identifier of the target group to which the VPC Lattice rule forwards matching traffic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="weight" type="number">
+              Sets the relative traffic weight (0-999) for this target group in a VPC Lattice rule's forward action, so that higher weights receive a proportionally larger share of matched traffic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="listener_identifier" type="string">
+  The ID or ARN of the VPC Lattice listener that this rule is associated with, defining the listener on which the rule's match conditions and actions are applied. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="match" type="object" required>
+  The match criteria, such as HTTP method, path, headers, query parameters, or TLS Server Name Indication, that define which incoming traffic this rule evaluates. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="http_match" type="object" required>
+      Defines the HTTP matching criteria (such as method, path, headers, and query parameters) used by the VPC Lattice rule to determine which requests it applies to. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="header_matches" type="list(object)">
+          Specifies a list of HTTP header match criteria for the rule, including header name, value, and match type (exact, prefix, or contains) used to determine whether incoming traffic matches. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="case_sensitive" type="bool">
+              Specifies whether the header value comparison in this HTTP header match is case-sensitive, meaning that when set to false, the matching ignores casing in the header value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="match" type="object">
+              Specifies the match type (e.g., exact, prefix, or contains) and the value used to match the HTTP header value in the VPC Lattice rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <Note>`match` recurs here (its own type contains itself); see the `match` field's own properties above for the repeating pattern.</Note>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="name" type="string">
+              The name of the HTTP header to match (e.g., Content-Type, Authorization) in a VPC Lattice rule's HTTP header match condition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="method" type="string">
+          The HTTP request method (such as GET, POST, PUT) that incoming requests must use in order for this VPC Lattice rule to match. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="path_match" type="object">
+          Specifies the path matching configuration for the HTTP request in a VPC Lattice rule, including the match type (e.g., PREFIX_MATCH or EXACT_MATCH) and the path value to match. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="case_sensitive" type="bool">
+              Determines whether the HTTP path match pattern is case-sensitive, meaning request paths must match the configured path exactly in letter case. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="match" type="object" required>
+              This field defines the path matching pattern (exact, prefix, or wildcard) used to determine whether an incoming HTTP request matches the rule. Required. **(AI-inferred)**
+              <Expandable title="properties">
+                <Note>`match` recurs here (its own type contains itself); see the `match` field's own properties above for the repeating pattern.</Note>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Specifies a friendly name for the VPC Lattice rule, which must be unique within its listener. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="priority" type="number" required>
+  The priority assigned to the rule, where lower numbers take precedence over higher numbers when multiple rules match a request. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="service_identifier" type="string">
+  The identifier (ID or ARN) of the VPC Lattice service that owns the listener and rule, used to scope the rule to a specific service's traffic. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Assigns a list of tags (key-value pairs) to the VPC Lattice rule to help identify and categorize the resource. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to this VPC Lattice rule, used to identify and organize the rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies this VPC Lattice rule. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The unique AWS-assigned identifier for this VPC Lattice rule. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

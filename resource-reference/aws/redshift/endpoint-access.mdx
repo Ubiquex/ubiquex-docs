@@ -1,0 +1,167 @@
+---
+title: "aws_redshift_endpoint_access"
+description: "`aws_redshift_endpoint_access` creates a real Redshift-managed VPC endpoint that lets clients in a different VPC, or a different account..."
+---
+
+`aws_redshift_endpoint_access` creates a real Redshift-managed VPC endpoint that lets clients in a different VPC, or a different account, reach an `aws_redshift_cluster` privately without the cluster's own security group being opened up directly.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	redshift "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/redshift"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own endpoint access"})
+
+    		ubx.Resource(redshift.EndpointAccess, "ci-runner", redshift.EndpointAccessConfig{
+    			ClusterIdentifier:   "example",
+    			EndpointName:        "example-endpoint-name",
+    			SubnetGroupName:     "example-subnet-group-name",
+    			VpcSecurityGroupIds: []string{"example"},
+    			ResourceOwner:       "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { EndpointAccess } from "./local-sdk/aws/sdk/typescript/aws/redshift/endpoint_access.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own endpoint access" });
+
+      resource(EndpointAccess, "ci-runner", {
+        clusterIdentifier: "example",
+        endpointName: "example-endpoint-name",
+        subnetGroupName: "example-subnet-group-name",
+        vpcSecurityGroupIds: ["example"],
+        resourceOwner: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.redshift import EndpointAccess, EndpointAccessConfig
+
+    def describe():
+        ubx.intent("payments own endpoint access")
+
+        ubx.resource(EndpointAccess, "ci-runner", EndpointAccessConfig(
+            cluster_identifier="example",
+            endpoint_name="example-endpoint-name",
+            subnet_group_name="example-subnet-group-name",
+            vpc_security_group_ids=["example"],
+            resource_owner="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_redshift_endpoint_access, with cluster identifier
+    example, endpoint name example-endpoint-name, subnet group name
+    example-subnet-group-name, vpc security group ids a set value,
+    resource owner example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="cluster_identifier" type="string" required>
+  A unique identifier for the cluster. You use this identifier to refer to the cluster for any subsequent cluster operations such as deleting or modifying. All alphabetical characters must be lower case, no hypens at the end, no two consecutive hyphens. Cluster name should be unique for all clusters within an AWS account Required.
+</ResponseField>
+
+<ResponseField name="endpoint_name" type="string" required>
+  The name of the endpoint. Required.
+</ResponseField>
+
+<ResponseField name="resource_owner" type="string">
+  The AWS account ID of the owner of the cluster. Optional.
+</ResponseField>
+
+<ResponseField name="subnet_group_name" type="string" required>
+  The subnet group name where Amazon Redshift chooses to deploy the endpoint. Required.
+</ResponseField>
+
+<ResponseField name="vpc_security_group_ids" type="list(string)" required>
+  A list of vpc security group ids to apply to the created endpoint access. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="address" type="string">
+  The DNS address of the endpoint. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="endpoint_create_time" type="string">
+  The time (UTC) that the endpoint was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="endpoint_status" type="string">
+  The status of the endpoint. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="port" type="number">
+  The port number on which the cluster accepts incoming connections. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="vpc_endpoint" type="object">
+  The connection endpoint for connecting to an Amazon Redshift cluster through the proxy. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="network_interfaces" type="list(object)">
+      One or more network interfaces of the endpoint. Also known as an interface endpoint. Optional.
+      <Expandable title="properties">
+        <ResponseField name="availability_zone" type="string">
+          Indicates the Availability Zone in which the network interface associated with the VPC endpoint is located. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="network_interface_id" type="string">
+          The unique identifier of the network interface associated with the VPC endpoint used by this Redshift endpoint access, representing the elastic network interface (ENI) that routes traffic to the Redshift cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="private_ip_address" type="string">
+          The private IPv4 address of one of the network interfaces attached to the VPC endpoint that provides private connectivity to the Redshift cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="subnet_id" type="string">
+          The subnet ID where the network interface of the VPC endpoint for this Redshift endpoint access is provisioned. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="vpc_endpoint_id" type="string">
+      The connection endpoint ID for connecting an Amazon Redshift cluster through the proxy. Optional.
+    </ResponseField>
+    <ResponseField name="vpc_id" type="string">
+      The VPC identifier that the endpoint is associated. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vpc_security_groups" type="list(object)">
+  A list of Virtual Private Cloud (VPC) security groups to be associated with the endpoint. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="status" type="string">
+      The current status of a VPC security group associated with the Amazon Redshift endpoint access, indicating whether the security group association is active, being authorized, or being revoked. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="vpc_security_group_id" type="string">
+      The ID of a VPC security group associated with the Redshift endpoint access, used to control network access to the endpoint. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>

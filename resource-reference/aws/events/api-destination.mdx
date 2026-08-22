@@ -1,0 +1,125 @@
+---
+title: "aws_events_api_destination"
+description: "`aws_events_api_destination` is a real HTTP endpoint target an `aws_events_rule` can invoke directly..."
+---
+
+`aws_events_api_destination` is a real HTTP endpoint target an `aws_events_rule` can invoke directly, the mechanism for routing matched events to a third-party API without a Lambda function in between just to make the HTTP call.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	events "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/events"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own api destination"})
+
+    		ubx.Resource(events.ApiDestination, "ci-runner", events.ApiDestinationConfig{
+    			ConnectionArn:                "arn:aws:iam::123456789012:policy/ci",
+    			HttpMethod:                   "example",
+    			InvocationEndpoint:           "example",
+    			Name:                         "ci-runner",
+    			Description:                  "Managed by ubx.",
+    			InvocationRateLimitPerSecond: 1,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ApiDestination } from "./local-sdk/aws/sdk/typescript/aws/events/api_destination.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own api destination" });
+
+      resource(ApiDestination, "ci-runner", {
+        connectionArn: "arn:aws:iam::123456789012:policy/ci",
+        httpMethod: "example",
+        invocationEndpoint: "example",
+        name: "ci-runner",
+        description: "Managed by ubx.",
+        invocationRateLimitPerSecond: 1,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.events import ApiDestination, ApiDestinationConfig
+
+    def describe():
+        ubx.intent("payments own api destination")
+
+        ubx.resource(ApiDestination, "ci-runner", ApiDestinationConfig(
+            connection_arn="arn:aws:iam::123456789012:policy/ci",
+            http_method="example",
+            invocation_endpoint="example",
+            name="ci-runner",
+            description="Managed by ubx.",
+            invocation_rate_limit_per_second=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_events_api_destination called "ci-runner", with
+    connection arn arn:aws:iam::123456789012:policy/ci, http method
+    example, invocation endpoint example, description Managed by
+    ubx., invocation rate limit per second 1.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="connection_arn" type="string" required>
+  The arn of the connection. Required.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A description for the API destination to create. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="http_method" type="string" required>
+  The HTTP method (e.g., GET, POST, PATCH) used when EventBridge invokes the API destination endpoint. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="invocation_endpoint" type="string" required>
+  Url endpoint to invoke. Required.
+</ResponseField>
+
+<ResponseField name="invocation_rate_limit_per_second" type="number">
+  The maximum number of invocations per second that EventBridge allows to the API destination. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Name of the apiDestination. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The arn of the api destination. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="arn_for_policy" type="string">
+  The arn of the api destination to be used in IAM policies. Computed by AWS after `ship`.
+</ResponseField>

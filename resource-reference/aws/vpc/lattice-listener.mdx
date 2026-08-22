@@ -1,0 +1,166 @@
+---
+title: "aws_vpc_lattice_listener"
+description: "`aws_vpc_lattice_listener` defines a real port and protocol, HTTP, HTTPS, or gRPC, that an `aws_vpc_lattice_service` accepts requests on..."
+---
+
+`aws_vpc_lattice_listener` defines a real port and protocol, HTTP, HTTPS, or gRPC, that an `aws_vpc_lattice_service` accepts requests on, routing them according to its `aws_vpc_lattice_rule`s.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	vpc "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/vpc"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own lattice listener"})
+
+    		ubx.Resource(vpc.LatticeListener, "ci-runner", vpc.LatticeListenerConfig{
+    			DefaultAction:     map[string]any{"fixed_response": map[string]any{"status_code": 1}},
+    			Protocol:          "example",
+    			Name:              "ci-runner",
+    			Port:              1,
+    			ServiceIdentifier: "example",
+    			Tags:              []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { LatticeListener } from "./local-sdk/aws/sdk/typescript/aws/vpc/lattice_listener.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own lattice listener" });
+
+      resource(LatticeListener, "ci-runner", {
+        defaultAction: { fixedResponse: { statusCode: 1 } },
+        protocol: "example",
+        name: "ci-runner",
+        port: 1,
+        serviceIdentifier: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.vpc import LatticeListener, LatticeListenerConfig
+
+    def describe():
+        ubx.intent("payments own lattice listener")
+
+        ubx.resource(LatticeListener, "ci-runner", LatticeListenerConfig(
+            default_action={"fixed_response": {"status_code": 1}},
+            protocol="example",
+            name="ci-runner",
+            port=1,
+            service_identifier="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_vpc_lattice_listener called "ci-runner", with default
+    action a set value, protocol example, port 1, service identifier
+    example, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="default_action" type="object" required>
+  The default action defines how the listener handles requests that do not match any other rule, such as forwarding them to a target group or returning a fixed response. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="fixed_response" type="object">
+      Defines a fixed-response action for the listener's default action, which returns a specified HTTP status code (e.g., 404) without forwarding traffic to a target group. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="status_code" type="number" required>
+          The HTTP status code (for example, 200 or 404) that VPC Lattice returns in the fixed-response action when a request matches this listener's default action. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="forward" type="object">
+      Configures the listener's default action to forward incoming requests to one or more VPC Lattice target groups with weighted distribution, where this object holds the list of target groups and their respective weights. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="target_groups" type="list(object)" required>
+          Defines the list of target groups and their relative weights for the forward action, specifying how incoming traffic is distributed when the listener's default action is a forward. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="target_group_identifier" type="string">
+              The identifier (Amazon Resource Name or ID) of the VPC Lattice target group that this forward action routes traffic to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="weight" type="number">
+              Specifies the relative weight assigned to this target group in the listener's forward action, controlling the proportion of traffic it receives compared to other target groups in the weighted distribution. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the VPC Lattice listener, which is optional and defaults to an AWS-generated name if not provided. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="port" type="number">
+  The port number on which the VPC Lattice listener receives incoming traffic, defaulting to 80 for HTTP or 443 for HTTPS when omitted. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="protocol" type="string" required>
+  Specifies the network protocol (HTTP, HTTPS, or TCP) that the VPC Lattice listener uses to accept incoming traffic, as defined by the AWS::VpcLattice::Listener resource. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="service_identifier" type="string">
+  The ID or Amazon Resource Name (ARN) of the service that owns this listener. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Specifies a list of tags (key-value pairs) to attach to the VPC Lattice listener, used for identifying and organizing the listener. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a user-defined tag to attach to the VPC Lattice listener, used for organizing and identifying the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value component of a tag assigned to the VPC Lattice listener, used to categorize the resource for cost allocation, access controls, and operational management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the VPC Lattice listener, assigned by AWS to uniquely identify the listener resource. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The unique AWS-assigned identifier for this VPC Lattice listener, used as the Terraform resource ID. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="service_arn" type="string">
+  The Amazon Resource Name (ARN) of the VPC Lattice service that this listener is associated with, assigned by AWS. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="service_id" type="string">
+  The unique identifier of the VPC Lattice service that this listener is attached to, assigned by AWS when the service is provisioned. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

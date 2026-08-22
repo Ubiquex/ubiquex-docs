@@ -1,0 +1,156 @@
+---
+title: "aws_api_gateway_v2_authorizer"
+description: "`aws_api_gateway_v2_authorizer` attaches a Lambda-, JWT-, or IAM-based access check to an `aws_api_gateway_v2_api`..."
+---
+
+`aws_api_gateway_v2_authorizer` attaches a Lambda-, JWT-, or IAM-based access check to an `aws_api_gateway_v2_api`, evaluated before a request reaches its integration, the v2 counterpart to a v1 REST API authorizer.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	api "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/api"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own gateway v2 authorizer"})
+
+    		ubx.Resource(api.GatewayV2Authorizer, "ci-runner", api.GatewayV2AuthorizerConfig{
+    			ApiId:                          "example",
+    			AuthorizerType:                 "example",
+    			Name:                           "ci-runner",
+    			AuthorizerCredentialsArn:       "arn:aws:iam::123456789012:policy/ci",
+    			AuthorizerPayloadFormatVersion: "example",
+    			AuthorizerResultTtlInSeconds:   7200,
+    			AuthorizerUri:                  "example",
+    			EnableSimpleResponses:          true,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { GatewayV2Authorizer } from "./local-sdk/aws/sdk/typescript/aws/api/gateway_v2_authorizer.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own gateway v2 authorizer" });
+
+      resource(GatewayV2Authorizer, "ci-runner", {
+        apiId: "example",
+        authorizerType: "example",
+        name: "ci-runner",
+        authorizerCredentialsArn: "arn:aws:iam::123456789012:policy/ci",
+        authorizerPayloadFormatVersion: "example",
+        authorizerResultTtlInSeconds: 7200,
+        authorizerUri: "example",
+        enableSimpleResponses: true,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.api import GatewayV2Authorizer, GatewayV2AuthorizerConfig
+
+    def describe():
+        ubx.intent("payments own gateway v2 authorizer")
+
+        ubx.resource(GatewayV2Authorizer, "ci-runner", GatewayV2AuthorizerConfig(
+            api_id="example",
+            authorizer_type="example",
+            name="ci-runner",
+            authorizer_credentials_arn="arn:aws:iam::123456789012:policy/ci",
+            authorizer_payload_format_version="example",
+            authorizer_result_ttl_in_seconds=7200,
+            authorizer_uri="example",
+            enable_simple_responses=True,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_api_gateway_v2_authorizer called "ci-runner", with api
+    id example, authorizer type example, authorizer credentials arn
+    arn:aws:iam::123456789012:policy/ci, authorizer payload format
+    version example, authorizer result ttl in seconds 7200,
+    authorizer uri example, enable simple responses true.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="api_id" type="string" required>
+  The API identifier. Required.
+</ResponseField>
+
+<ResponseField name="authorizer_credentials_arn" type="string">
+  Specifies the required credentials as an IAM role for API Gateway to invoke the authorizer. To specify an IAM role for API Gateway to assume, use the role's Amazon Resource Name (ARN). To use resource-based permissions on the Lambda function, specify null. Supported only for ``REQUEST`` authorizers. Optional.
+</ResponseField>
+
+<ResponseField name="authorizer_payload_format_version" type="string">
+  Specifies the format of the payload sent to an HTTP API Lambda authorizer. Required for HTTP API Lambda authorizers. Supported values are ``1.0`` and ``2.0``. To learn more, see [Working with Lambda authorizers for HTTP APIs](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-lambda-authorizer.html). Optional.
+</ResponseField>
+
+<ResponseField name="authorizer_result_ttl_in_seconds" type="number">
+  The time to live (TTL) for cached authorizer results, in seconds. If it equals 0, authorization caching is disabled. If it is greater than 0, API Gateway caches authorizer responses. The maximum value is 3600, or 1 hour. Supported only for HTTP API Lambda authorizers. Optional.
+</ResponseField>
+
+<ResponseField name="authorizer_type" type="string" required>
+  The authorizer type. Specify ``REQUEST`` for a Lambda function using incoming request parameters. Specify ``JWT`` to use JSON Web Tokens (supported only for HTTP APIs). Required.
+</ResponseField>
+
+<ResponseField name="authorizer_uri" type="string">
+  The authorizer's Uniform Resource Identifier (URI). For ``REQUEST`` authorizers, this must be a well-formed Lambda function URI, for example, ``arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:&#123;account_id&#125;:function:&#123;lambda_function_name&#125;/invocations``. In general, the URI has this form: ``arn:aws:apigateway:&#123;region&#125;:lambda:path/&#123;service_api&#125;``, where *&#123;region&#125;* is the same as the region hosting the Lambda function, path indicates that the remaining substring in the URI should be treated as the path to the resource, including the initial ``/``. For Lambda functions, this is usually of the form ``/2015-03-31/functions/[FunctionARN]/invocations``. Optional.
+</ResponseField>
+
+<ResponseField name="enable_simple_responses" type="bool">
+  Specifies whether a Lambda authorizer returns a response in a simple format. By default, a Lambda authorizer must return an IAM policy. If enabled, the Lambda authorizer can return a boolean value instead of an IAM policy. Supported only for HTTP APIs. To learn more, see [Working with Lambda authorizers for HTTP APIs](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-lambda-authorizer.html). Optional.
+</ResponseField>
+
+<ResponseField name="identity_source" type="list(string)">
+  The identity source for which authorization is requested. For a ``REQUEST`` authorizer, this is optional. The value is a set of one or more mapping expressions of the specified request parameters. The identity source can be headers, query string parameters, stage variables, and context parameters. For example, if an Auth header and a Name query string parameter are defined as identity sources, this value is route.request.header.Auth, route.request.querystring.Name for WebSocket APIs. For HTTP APIs, use selection expressions prefixed with ``$``, for example, ``$request.header.Auth``, ``$request.querystring.Name``. These parameters are used to perform runtime validation for Lambda-based authorizers by verifying all of the identity-related request parameters are present in the request, not null, and non-empty. Only when this is true does the authorizer invoke the authorizer Lambda function. Otherwise, it returns a 401 Unauthorized response without calling the Lambda function. For HTTP APIs, identity sources are also used as the cache key when caching is enabled. To learn more, see [Working with Lambda authorizers for HTTP APIs](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-lambda-authorizer.html). For ``JWT``, a single entry that specifies where to extract the JSON Web Token (JWT) from inbound requests. Currently only header-based and query parameter-based selections are supported, for example ``$request.header.Authorization``. Optional.
+</ResponseField>
+
+<ResponseField name="identity_validation_expression" type="string">
+  This parameter is not used. Optional.
+</ResponseField>
+
+<ResponseField name="jwt_configuration" type="object">
+  The ``JWTConfiguration`` property specifies the configuration of a JWT authorizer. Required for the ``JWT`` authorizer type. Supported only for HTTP APIs. Optional.
+  <Expandable title="properties">
+    <ResponseField name="audience" type="list(string)">
+      A list of the intended recipients of the JWT. A valid JWT must provide an ``aud`` that matches at least one entry in this list. See [RFC 7519](https://docs.aws.amazon.com/https://tools.ietf.org/html/rfc7519#section-4.1.3). Required for the ``JWT`` authorizer type. Supported only for HTTP APIs. Optional.
+    </ResponseField>
+    <ResponseField name="issuer" type="string">
+      The base domain of the identity provider that issues JSON Web Tokens. For example, an Amazon Cognito user pool has the following format: ``https://cognito-idp.&#123;region&#125;.amazonaws.com/&#123;userPoolId&#125;``. Required for the ``JWT`` authorizer type. Supported only for HTTP APIs. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the authorizer. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="authorizer_id" type="string">
+  The unique AuthorizerId assigned by AWS to the API Gateway v2 authorizer, returned as a read-only attribute and used to reference the authorizer in other resources. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

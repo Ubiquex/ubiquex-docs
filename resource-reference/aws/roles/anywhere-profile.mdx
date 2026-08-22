@@ -1,0 +1,169 @@
+---
+title: "aws_roles_anywhere_profile"
+description: "`aws_roles_anywhere_profile` defines a real set of IAM roles and session policies that an `aws_roles_anywhere_trust_anchor`'s authenticated..."
+---
+
+`aws_roles_anywhere_profile` defines a real set of IAM roles and session policies that an `aws_roles_anywhere_trust_anchor`'s authenticated certificates are allowed to assume, the resource that actually maps a validated on-premises identity to AWS permissions.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	roles "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/roles"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own anywhere profile"})
+
+    		ubx.Resource(roles.AnywhereProfile, "ci-runner", roles.AnywhereProfileConfig{
+    			Name:                      "ci-runner",
+    			RoleArns:                  []string{"example"},
+    			AcceptRoleSessionName:     true,
+    			AttributeMappings:         []map[string]any{{"certificate_field": "example"}},
+    			DurationSeconds:           7200,
+    			Enabled:                   true,
+    			ManagedPolicyArns:         []string{"example"},
+    			RequireInstanceProperties: true,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AnywhereProfile } from "./local-sdk/aws/sdk/typescript/aws/roles/anywhere_profile.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own anywhere profile" });
+
+      resource(AnywhereProfile, "ci-runner", {
+        name: "ci-runner",
+        roleArns: ["example"],
+        acceptRoleSessionName: true,
+        attributeMappings: [{ certificateField: "example" }],
+        durationSeconds: 7200,
+        enabled: true,
+        managedPolicyArns: ["example"],
+        requireInstanceProperties: true,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.roles import AnywhereProfile, AnywhereProfileConfig
+
+    def describe():
+        ubx.intent("payments own anywhere profile")
+
+        ubx.resource(AnywhereProfile, "ci-runner", AnywhereProfileConfig(
+            name="ci-runner",
+            role_arns=["example"],
+            accept_role_session_name=True,
+            attribute_mappings=[{"certificate_field": "example"}],
+            duration_seconds=7200,
+            enabled=True,
+            managed_policy_arns=["example"],
+            require_instance_properties=True,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_roles_anywhere_profile called "ci-runner", with role
+    arns a set value, accept role session name true, attribute
+    mappings a set value, duration seconds 7200, enabled true,
+    managed policy arns a set value, require instance properties
+    true.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="accept_role_session_name" type="bool">
+  Specifies whether the profile allows the caller to pass a session name in the AssumeRole request's role session name field. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="attribute_mappings" type="list(object)">
+  Attribute mappings in the AWS Roles Anywhere profile define how to use regular-expression rules to extract values from authenticating X.509 certificate attributes (like the subject or issuer DN) and populate them as session tags on the temporary AWS credentials that the profile grants. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="certificate_field" type="string">
+      Identifies which X.509 certificate field (such as `x509Subject`, `x509Issuer`, or `x509SAN`) to evaluate when matching mapping rules in an AWS Roles Anywhere profile. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="mapping_rules" type="list(object)">
+      Defines the list of matching criteria (source certificate attribute and value pattern) that must be satisfied for the parent attribute mapping to be applied, controlling how certificate attributes are converted into session names or tags for an IAM Roles Anywhere profile. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="specifier" type="string">
+          Specifies the exact certificate or SAML assertion attribute value (such as a subject field or attribute name) that this mapping rule matches to populate the IAM session tag defined by the parent attribute mapping. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="duration_seconds" type="number">
+  Defines how long, in seconds, the temporary AWS access credentials issued to a session that uses this profile remain valid. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="enabled" type="bool">
+  A boolean that indicates whether the Roles Anywhere profile is enabled and can be used to issue temporary credentials. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="managed_policy_arns" type="list(string)">
+  Specifies the ARNs of IAM managed policies that are attached to the temporary session credentials when a role is assumed using this AWS Roles Anywhere profile. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The friendly name assigned to the IAM Roles Anywhere profile, used as a human-readable identifier for the profile. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="require_instance_properties" type="bool">
+  Specifies whether a session created with this profile must include instance properties (such as EC2 instance identifiers) when requesting temporary credentials. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="role_arns" type="list(string)" required>
+  The list of IAM role ARNs that this profile is allowed to assume for temporary AWS credentials. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="session_policy" type="string">
+  The IAM session policy (as a JSON or YAML policy document) that limits the permissions of the temporary credentials issued by the Roles Anywhere profile. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Specifies the tags (key-value pairs) that are attached to the AWS Roles Anywhere profile, which can be used for cost allocation, access control via IAM policies, and resource organization. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag (metadata) assigned to the AWS Roles Anywhere profile, used to organize and identify the profile. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="profile_arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies the AWS Roles Anywhere profile. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="profile_id" type="string">
+  The unique identifier of the IAM Roles Anywhere profile, assigned by AWS when the profile is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

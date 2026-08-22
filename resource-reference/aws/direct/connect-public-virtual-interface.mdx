@@ -1,0 +1,167 @@
+---
+title: "aws_direct_connect_public_virtual_interface"
+description: "`aws_direct_connect_public_virtual_interface` carries real traffic over an `aws_direct_connect_connection` to AWS's own public-facing services, S3..."
+---
+
+`aws_direct_connect_public_virtual_interface` carries real traffic over an `aws_direct_connect_connection` to AWS's own public-facing services, S3, DynamoDB, and similar, over their public IP ranges, distinct from `aws_direct_connect_private_virtual_interface`'s route into a specific VPC.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	direct "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/direct"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own connect public virtual interface"})
+
+    		ubx.Resource(direct.ConnectPublicVirtualInterface, "ci-runner", direct.ConnectPublicVirtualInterfaceConfig{
+    			ConnectionId:                          "example",
+    			VirtualInterfaceName:                  "example-virtual-interface-name",
+    			Vlan:                                  1,
+    			AllocatePublicVirtualInterfaceRoleArn: "arn:aws:iam::123456789012:policy/ci",
+    			RateLimit:                             "example",
+    			RouteFilterPrefixes:                   []string{"example"},
+    			Tags:                                  []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ConnectPublicVirtualInterface } from "./local-sdk/aws/sdk/typescript/aws/direct/connect_public_virtual_interface.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own connect public virtual interface" });
+
+      resource(ConnectPublicVirtualInterface, "ci-runner", {
+        connectionId: "example",
+        virtualInterfaceName: "example-virtual-interface-name",
+        vlan: 1,
+        allocatePublicVirtualInterfaceRoleArn:
+          "arn:aws:iam::123456789012:policy/ci",
+        rateLimit: "example",
+        routeFilterPrefixes: ["example"],
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.direct import ConnectPublicVirtualInterface, ConnectPublicVirtualInterfaceConfig
+
+    def describe():
+        ubx.intent("payments own connect public virtual interface")
+
+        ubx.resource(ConnectPublicVirtualInterface, "ci-runner", ConnectPublicVirtualInterfaceConfig(
+            connection_id="example",
+            virtual_interface_name="example-virtual-interface-name",
+            vlan=1,
+            allocate_public_virtual_interface_role_arn="arn:aws:iam::123456789012:policy/ci",
+            rate_limit="example",
+            route_filter_prefixes=["example"],
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_direct_connect_public_virtual_interface, with
+    connection id example, virtual interface name
+    example-virtual-interface-name, vlan 1, allocate public virtual
+    interface role arn arn:aws:iam::123456789012:policy/ci, rate
+    limit example, route filter prefixes a set value, tags a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="allocate_public_virtual_interface_role_arn" type="string">
+  The Amazon Resource Name (ARN) of the role to allocate the public virtual interface. Needs directconnect:AllocatePublicVirtualInterface permissions and tag permissions if applicable. Optional.
+</ResponseField>
+
+<ResponseField name="connection_id" type="any" required>
+  The ID or ARN of the connection or LAG. Required.
+</ResponseField>
+
+<ResponseField name="rate_limit" type="string">
+  The rate limit (bandwidth allocation) for the virtual interface. The value must be one of the supported bandwidth values (e.g., 50Mbps, 1Gbps, 10Gbps) and cannot exceed the bandwidth of the parent connection or LAG. Optional.
+</ResponseField>
+
+<ResponseField name="route_filter_prefixes" type="list(string)">
+  The routes to be advertised to the AWS network in this region. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags associated with the public virtual interface. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Specifies the key of a tag to apply to the AWS Direct Connect public virtual interface for managing and categorizing the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a tag key-value pair attached to the AWS Direct Connect public virtual interface, used to organize or identify the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="virtual_interface_name" type="string" required>
+  The name of the virtual interface assigned by the customer network. The name has a maximum of 100 characters. The following are valid characters: a-z, 0-9 and a hyphen (-). Required.
+</ResponseField>
+
+<ResponseField name="vlan" type="number" required>
+  The ID of the VLAN. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="bgp_peers" type="list(object)">
+  The BGP peers configured on this virtual interface. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="address_family" type="string">
+      The IP address family (IPv4 or IPv6) to use for the BGP peer on this Direct Connect public virtual interface. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="amazon_address" type="string">
+      The public IP address assigned to the Amazon side of the BGP session for this peer on the Direct Connect public virtual interface. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="asn" type="string">
+      The autonomous system number (ASN) of the BGP peer for this Direct Connect public virtual interface. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="auth_key" type="string">
+      Specifies the BGP MD5 authentication key (BGP password) required for establishing the BGP session with this Direct Connect peer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="bgp_peer_id" type="string">
+      The BGP peer ID is a unique identifier assigned by AWS Direct Connect to this BGP peer when it is created on the public virtual interface. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="customer_address" type="string">
+      The customer-side IP address for this BGP peer, used as the BGP endpoint on the customer's router for the public virtual interface. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="virtual_interface_arn" type="string">
+  The ARN of the virtual interface. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="virtual_interface_id" type="string">
+  The ID of the virtual interface. Computed by AWS after `ship`.
+</ResponseField>

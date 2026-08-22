@@ -1,0 +1,141 @@
+---
+title: "aws_certificate_manager_acme_domain_validation"
+description: "`aws_certificate_manager_acme_domain_validation` pre-approves a real domain and provisions the required CNAME record for..."
+---
+
+`aws_certificate_manager_acme_domain_validation` pre-approves a real domain and provisions the required CNAME record for an `aws_certificate_manager_acme_endpoint`, so an ACME client can later request a certificate for that domain without a separate manual validation step each time. ACM's ACME support was announced in July 2026, roughly a month ago.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	certificate "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/certificate"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own manager acme domain validation"})
+
+    		ubx.Resource(certificate.ManagerAcmeDomainValidation, "ci-runner", certificate.ManagerAcmeDomainValidationConfig{
+    			AcmeEndpointArn:      "arn:aws:iam::123456789012:policy/ci",
+    			DomainName:           "example-domain-name",
+    			PrevalidationOptions: map[string]any{"dns_prevalidation": map[string]any{"domain_scope": map[string]any{"exact_domain": "example"}}},
+    			Tags:                 []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ManagerAcmeDomainValidation } from "./local-sdk/aws/sdk/typescript/aws/certificate/manager_acme_domain_validation.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own manager acme domain validation" });
+
+      resource(ManagerAcmeDomainValidation, "ci-runner", {
+        acmeEndpointArn: "arn:aws:iam::123456789012:policy/ci",
+        domainName: "example-domain-name",
+        prevalidationOptions: {
+          dnsPrevalidation: { domainScope: { exactDomain: "example" } },
+        },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.certificate import ManagerAcmeDomainValidation, ManagerAcmeDomainValidationConfig
+
+    def describe():
+        ubx.intent("payments own manager acme domain validation")
+
+        ubx.resource(ManagerAcmeDomainValidation, "ci-runner", ManagerAcmeDomainValidationConfig(
+            acme_endpoint_arn="arn:aws:iam::123456789012:policy/ci",
+            domain_name="example-domain-name",
+            prevalidation_options={"dns_prevalidation": {"domain_scope": {"exact_domain": "example"}}},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_certificate_manager_acme_domain_validation, with acme
+    endpoint arn arn:aws:iam::123456789012:policy/ci, domain name
+    example-domain-name, prevalidation options a set value, tags a
+    set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="acme_endpoint_arn" type="string" required>
+  The ARN of the ACME endpoint this domain validation is associated with. Required.
+</ResponseField>
+
+<ResponseField name="domain_name" type="string" required>
+  The domain name to validate. Required.
+</ResponseField>
+
+<ResponseField name="prevalidation_options" type="object" required>
+  Prevalidation method configuration. Currently only DNS-based prevalidation is supported. Required.
+  <Expandable title="properties">
+    <ResponseField name="dns_prevalidation" type="object" required>
+      DNS-based prevalidation options for the domain validation. Required.
+      <Expandable title="properties">
+        <ResponseField name="domain_scope" type="object">
+          Controls which certificate types are authorized to be issued for the domain via the ACME endpoint. Optional.
+          <Expandable title="properties">
+            <ResponseField name="exact_domain" type="string">
+              Whether certificates may be issued for the exact domain. Optional.
+            </ResponseField>
+            <ResponseField name="subdomains" type="string">
+              Whether certificates may be issued for subdomains of the domain. Optional.
+            </ResponseField>
+            <ResponseField name="wildcards" type="string">
+              Whether wildcard certificates may be issued for the domain. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="hosted_zone_id" type="string">
+          The Route 53 hosted zone ID for automatic DNS record management. When provided, the service creates the validation DNS record on the customer's behalf. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Tags associated with the domain validation. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the domain validation. Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,162 @@
+---
+title: "aws_code_deploy_deployment_config"
+description: "`aws_code_deploy_deployment_config` defines the real rollout pace an `aws_code_deploy_deployment_group` deploys with, one instance at a time..."
+---
+
+`aws_code_deploy_deployment_config` defines the real rollout pace an `aws_code_deploy_deployment_group` deploys with, one instance at a time, half at a time, or all at once, among CodeDeploy's predefined configs, or a custom one.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	code "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/code"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own deploy deployment config"})
+
+    		ubx.Resource(code.DeployDeploymentConfig, "ci-runner", code.DeployDeploymentConfigConfig{
+    			ComputePlatform:      "example",
+    			DeploymentConfigName: "example-deployment-config-name",
+    			MinimumHealthyHosts:  map[string]any{"type": "example"},
+    			TrafficRoutingConfig: map[string]any{"type": "example"},
+    			ZonalConfig:          map[string]any{"first_zone_monitor_duration_in_seconds": 1},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { DeployDeploymentConfig } from "./local-sdk/aws/sdk/typescript/aws/code/deploy_deployment_config.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own deploy deployment config" });
+
+      resource(DeployDeploymentConfig, "ci-runner", {
+        computePlatform: "example",
+        deploymentConfigName: "example-deployment-config-name",
+        minimumHealthyHosts: { type: "example" },
+        trafficRoutingConfig: { type: "example" },
+        zonalConfig: { firstZoneMonitorDurationInSeconds: 1 },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.code import DeployDeploymentConfig, DeployDeploymentConfigConfig
+
+    def describe():
+        ubx.intent("payments own deploy deployment config")
+
+        ubx.resource(DeployDeploymentConfig, "ci-runner", DeployDeploymentConfigConfig(
+            compute_platform="example",
+            deployment_config_name="example-deployment-config-name",
+            minimum_healthy_hosts={"type": "example"},
+            traffic_routing_config={"type": "example"},
+            zonal_config={"first_zone_monitor_duration_in_seconds": 1},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_code_deploy_deployment_config, with compute platform
+    example, deployment config name example-deployment-config-name,
+    minimum healthy hosts a set value, traffic routing config a set
+    value, zonal config a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="compute_platform" type="string">
+  The destination platform type for the deployment (Lambda, Server, or ECS). Optional.
+</ResponseField>
+
+<ResponseField name="deployment_config_name" type="string">
+  A name for the deployment configuration. If you don't specify a name, AWS CloudFormation generates a unique physical ID and uses that ID for the deployment configuration name. For more information, see Name Type. Optional.
+</ResponseField>
+
+<ResponseField name="minimum_healthy_hosts" type="object">
+  Defines the minimum number or percentage of healthy hosts that must remain available during a deployment, where the object specifies a type (HOST_COUNT or FLEET_PERCENT) and a numerical value. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="type" type="string" required>
+      Specifies whether the minimum healthy hosts value is an absolute number of instances (HOST_COUNT) or a percentage of the fleet (FLEET_PERCENT) that must remain healthy during a deployment. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="number" required>
+      The numeric value that defines the minimum number of healthy hosts (when type is HOST_COUNT) or the minimum percentage of the deployment fleet that must be healthy (when type is FLEET_PERCENT) during a CodeDeploy deployment. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="traffic_routing_config" type="object">
+  Configures how traffic is shifted from the original fleet to the replacement fleet during a deployment, such as a linear or canary strategy with a step percentage and interval. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="time_based_canary" type="object">
+      The time_based_canary object inside traffic_routing_config for an AWS CodeDeploy deployment config specifies a canary-style traffic shift, moving a defined percentage of traffic to the new revision first and then the remaining traffic after a fixed time interval. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="canary_interval" type="number" required>
+          In a time-based canary deployment, this is the number of minutes to wait after shifting the canary percentage of traffic before shifting the remaining traffic. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="canary_percentage" type="number" required>
+          The percentage of traffic to shift to the updated deployment group in the first (canary) increment of a time-based canary deployment, with the remaining traffic shifted in the second increment after the configured interval. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="time_based_linear" type="object">
+      Specifies a time-based linear traffic routing configuration for a CodeDeploy deployment, which shifts a set percentage of traffic to the updated environment at regular time intervals until deployment completes. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="linear_interval" type="number" required>
+          The number of minutes to wait between each incremental shift of traffic during a time-based linear deployment, used with linear_percentage to control the pace of the rollout. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="linear_percentage" type="number" required>
+          The percentage of traffic to shift to newly added instances at each interval in a time-based linear deployment configuration. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      Specifies the traffic-routing strategy for the deployment  --  allowed values are AllAtOnce (all traffic shifted immediately), TimeBasedLinear (shift traffic incrementally at regular intervals), and TimeBasedCanary (shift a canary portion of traffic, then the remainder). Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="zonal_config" type="object">
+  Configures zonal deployment behavior for the deployment config, including settings such as the first-zone monitoring duration, overall monitor duration, and the minimum number of healthy hosts required per zone. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="first_zone_monitor_duration_in_seconds" type="number">
+      The number of seconds AWS CodeDeploy waits to monitor the health of the first Availability Zone in a zonal ECS deployment before proceeding to the next zone. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="minimum_healthy_hosts_per_zone" type="object">
+      Specifies the minimum number or percentage of healthy hosts that must be available in each Availability Zone during a CodeDeploy zonal deployment, configured via a type (HOST_COUNT or FLEET_PERCENT) and a value. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="type" type="string" required>
+          Specifies whether the minimum healthy hosts per Availability Zone is expressed as an absolute host count (HOST_COUNT) or as a percentage of the total fleet (FLEET_PERCENT). Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value" type="number" required>
+          Specifies the numeric threshold (as a host count or zone fleet percentage, determined by the associated 'type' property) for the minimum number of healthy instances that must remain available in each Availability Zone during a zonal deployment in AWS CodeDeploy. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="monitor_duration_in_seconds" type="number">
+      The number of seconds that AWS CodeDeploy monitors the health of the first region after its deployment succeeds, before starting deployment to the next region in a zonal deployment. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>

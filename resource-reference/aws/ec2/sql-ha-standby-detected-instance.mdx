@@ -1,0 +1,99 @@
+---
+title: "aws_ec2_sql_ha_standby_detected_instance"
+description: "`aws_ec2_sql_ha_standby_detected_instance` registers a real Windows EC2 instance running license-included SQL Server for standby detection: AWS uses..."
+---
+
+`aws_ec2_sql_ha_standby_detected_instance` registers a real Windows EC2 instance running license-included SQL Server for standby detection: AWS uses Systems Manager to determine whether the instance is the active or standby node in a SQL Server High Availability cluster, and automatically waives SQL Server licensing fees on whichever node is currently standby, cutting licensing cost by up to 40%.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ec2 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ec2"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own sql ha standby detected instance"})
+
+    		ubx.Resource(ec2.SqlHaStandbyDetectedInstance, "ci-runner", ec2.SqlHaStandbyDetectedInstanceConfig{
+    			InstanceId:           "example",
+    			SqlServerCredentials: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { SqlHaStandbyDetectedInstance } from "./local-sdk/aws/sdk/typescript/aws/ec2/sql_ha_standby_detected_instance.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own sql ha standby detected instance" });
+
+      resource(SqlHaStandbyDetectedInstance, "ci-runner", {
+        instanceId: "example",
+        sqlServerCredentials: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ec2 import SqlHaStandbyDetectedInstance, SqlHaStandbyDetectedInstanceConfig
+
+    def describe():
+        ubx.intent("payments own sql ha standby detected instance")
+
+        ubx.resource(SqlHaStandbyDetectedInstance, "ci-runner", SqlHaStandbyDetectedInstanceConfig(
+            instance_id="example",
+            sql_server_credentials="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ec2_sql_ha_standby_detected_instance, with instance id
+    example, sql server credentials example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="instance_id" type="string" required>
+  The ID of the EC2 instance to enable for SQL Server high availability standby detection. Required.
+</ResponseField>
+
+<ResponseField name="sql_server_credentials" type="string">
+  The ARN of the AWS Secrets Manager secret containing SQL Server access credentials to the EC2 instance. If not specified, AWS Systems Manager agent will use default local user credentials. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="ha_status" type="string">
+  The SQL Server high availability status of the EC2 instance. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="last_updated_time" type="string">
+  The timestamp when the EC2 instance's SQL Server high availability status was last updated. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="sql_server_license_usage" type="string">
+  The SQL Server license type of the EC2 instance. Computed by AWS after `ship`.
+</ResponseField>

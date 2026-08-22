@@ -1,0 +1,115 @@
+---
+title: "aws_ecr_replication_configuration"
+description: "`aws_ecr_replication_configuration` automatically copies real images pushed to an `aws_ecr_repository` into other Regions or accounts..."
+---
+
+`aws_ecr_replication_configuration` automatically copies real images pushed to an `aws_ecr_repository` into other Regions or accounts, so a caller doesn't have to build and maintain their own image-copying pipeline for multi-Region availability.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ecr "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ecr"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own replication configuration"})
+
+    		ubx.Resource(ecr.ReplicationConfiguration, "ci-runner", ecr.ReplicationConfigurationConfig{
+    			ReplicationConfiguration: map[string]any{"rules": []map[string]any{{"destinations": []map[string]any{{"region": "example"}}}}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ReplicationConfiguration } from "./local-sdk/aws/sdk/typescript/aws/ecr/replication_configuration.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own replication configuration" });
+
+      resource(ReplicationConfiguration, "ci-runner", {
+        replicationConfiguration: {
+          rules: [{ destinations: [{ region: "example" }] }],
+        },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ecr import ReplicationConfiguration, ReplicationConfigurationConfig
+
+    def describe():
+        ubx.intent("payments own replication configuration")
+
+        ubx.resource(ReplicationConfiguration, "ci-runner", ReplicationConfigurationConfig(
+            replication_configuration={"rules": [{"destinations": [{"region": "example"}]}]},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ecr_replication_configuration, with replication
+    configuration a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="replication_configuration" type="object" required>
+  The replication configuration for a registry. Required.
+  <Expandable title="properties">
+    <ResponseField name="rules" type="list(object)" required>
+      An array of objects representing the replication destinations and repository filters for a replication configuration. Required.
+      <Expandable title="properties">
+        <ResponseField name="destinations" type="list(object)">
+          Specifies the destination registry details, including the AWS Region and registry ID, to which this replication rule replicates images. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="region" type="string">
+              The AWS region of the destination registry to which container images are replicated, such as us-east-1. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="registry_id" type="string">
+              The AWS account ID of the destination registry where replicated images are stored. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="repository_filters" type="list(object)">
+          Defines which repositories in the source registry are replicated by the rule, using filter type (such as PREFIX_MATCH) and a filter value that matches repository names. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="filter" type="string">
+              The repository name prefix pattern (e.g., 'prod/') that determines which ECR repositories are included in the replication rule, matching repositories whose names begin with this filter string. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="filter_type" type="string">
+              Specifies the type of repository filter in an ECR replication rule, where PREFIX_MATCH is the only supported value and indicates that the filter value matches repository names by prefix. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="registry_id" type="string">
+  The registry_id is the AWS account ID (or registry ID) of the Amazon ECR private registry that this replication configuration is associated with, automatically assigned by CloudFormation. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

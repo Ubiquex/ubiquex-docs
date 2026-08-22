@@ -1,0 +1,132 @@
+---
+title: "aws_kms_replica_key"
+description: "`aws_kms_replica_key` creates a real multi-Region replica of an `aws_kms_key` primary key in a different AWS Region."
+---
+
+A replica shares its primary's key ID, key material, key spec, key usage, and rotation status, so data encrypted under the key in one Region can be decrypted under the replica in another without a cross-Region call or exposing plaintext in transit.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	kms "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/kms"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own replica key"})
+
+    		ubx.Resource(kms.ReplicaKey, "ci-runner", kms.ReplicaKeyConfig{
+    			KeyPolicy:           "example",
+    			PrimaryKeyArn:       "arn:aws:iam::123456789012:policy/ci",
+    			Description:         "Managed by ubx.",
+    			Enabled:             true,
+    			PendingWindowInDays: 1,
+    			Tags:                []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ReplicaKey } from "./local-sdk/aws/sdk/typescript/aws/kms/replica_key.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own replica key" });
+
+      resource(ReplicaKey, "ci-runner", {
+        keyPolicy: "example",
+        primaryKeyArn: "arn:aws:iam::123456789012:policy/ci",
+        description: "Managed by ubx.",
+        enabled: true,
+        pendingWindowInDays: 1,
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.kms import ReplicaKey, ReplicaKeyConfig
+
+    def describe():
+        ubx.intent("payments own replica key")
+
+        ubx.resource(ReplicaKey, "ci-runner", ReplicaKeyConfig(
+            key_policy="example",
+            primary_key_arn="arn:aws:iam::123456789012:policy/ci",
+            description="Managed by ubx.",
+            enabled=True,
+            pending_window_in_days=1,
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_kms_replica_key, with key policy example, primary key
+    arn arn:aws:iam::123456789012:policy/ci, description Managed by
+    ubx., enabled true, pending window in days 1, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  A description of the AWS KMS key. Use a description that helps you to distinguish this AWS KMS key from others in the account, such as its intended use. Optional.
+</ResponseField>
+
+<ResponseField name="enabled" type="bool">
+  Specifies whether the AWS KMS key is enabled. Disabled AWS KMS keys cannot be used in cryptographic operations. Optional.
+</ResponseField>
+
+<ResponseField name="key_policy" type="any" required>
+  The key policy that authorizes use of the AWS KMS key. The key policy must observe the following rules. Required.
+</ResponseField>
+
+<ResponseField name="pending_window_in_days" type="number">
+  Specifies the number of days in the waiting period before AWS KMS deletes an AWS KMS key that has been removed from a CloudFormation stack. Enter a value between 7 and 30 days. The default value is 30 days. Optional.
+</ResponseField>
+
+<ResponseField name="primary_key_arn" type="string" required>
+  Identifies the primary AWS KMS key to create a replica of. Specify the Amazon Resource Name (ARN) of the AWS KMS key. You cannot specify an alias or key ID. For help finding the ARN, see Finding the Key ID and ARN in the AWS Key Management Service Developer Guide. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the AWS KMS replica key, used as part of a key-value pair to identify, categorize, and manage the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value component of a key-value tag that can be assigned to the AWS KMS replica key for resource identification and management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the replica key. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="key_id" type="string">
+  The unique identifier of the replica KMS key, returned as a 32-character UUID string, which can be used to reference the key in IAM policies, aliases, and encryption operations. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

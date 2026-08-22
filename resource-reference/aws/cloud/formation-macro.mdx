@@ -1,0 +1,114 @@
+---
+title: "aws_cloud_formation_macro"
+description: "`aws_cloud_formation_macro` registers real, custom template-processing logic..."
+---
+
+`aws_cloud_formation_macro` registers real, custom template-processing logic, invoked via a template's Transform section or the `Fn::Transform` intrinsic function, that CloudFormation runs against a template or template fragment before creating a stack from it, anything from a simple find-and-replace to a full template rewrite.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	cloud "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/cloud"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own formation macro"})
+
+    		ubx.Resource(cloud.FormationMacro, "ci-runner", cloud.FormationMacroConfig{
+    			FunctionName: "example-function-name",
+    			Name:         "ci-runner",
+    			Description:  "Managed by ubx.",
+    			LogGroupName: "example-log-group-name",
+    			LogRoleArn:   "arn:aws:iam::123456789012:policy/ci",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { FormationMacro } from "./local-sdk/aws/sdk/typescript/aws/cloud/formation_macro.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own formation macro" });
+
+      resource(FormationMacro, "ci-runner", {
+        functionName: "example-function-name",
+        name: "ci-runner",
+        description: "Managed by ubx.",
+        logGroupName: "example-log-group-name",
+        logRoleArn: "arn:aws:iam::123456789012:policy/ci",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.cloud import FormationMacro, FormationMacroConfig
+
+    def describe():
+        ubx.intent("payments own formation macro")
+
+        ubx.resource(FormationMacro, "ci-runner", FormationMacroConfig(
+            function_name="example-function-name",
+            name="ci-runner",
+            description="Managed by ubx.",
+            log_group_name="example-log-group-name",
+            log_role_arn="arn:aws:iam::123456789012:policy/ci",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_cloud_formation_macro called "ci-runner", with
+    function name example-function-name, description Managed by ubx.,
+    log group name example-log-group-name, log role arn
+    arn:aws:iam::123456789012:policy/ci.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  The description field provides a human-readable summary of the macro's purpose or transformation logic, aiding users in understanding what the macro does. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="function_name" type="string" required>
+  Specifies the name of the AWS Lambda function that AWS CloudFormation invokes to process template snippets when the macro is executed. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="log_group_name" type="string">
+  The Amazon CloudWatch Logs log group where the macro function's execution logs are delivered. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="log_role_arn" type="string">
+  The ARN of the IAM role that CloudFormation assumes to send logs about the macro execution to the CloudWatch log group. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Defines the name of the macro, used to reference it in CloudFormation templates and required to be unique within the account and region. Required. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The macro's name, which serves as its unique identifier within CloudFormation. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

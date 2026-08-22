@@ -1,0 +1,147 @@
+---
+title: "aws_backup_restore_testing_plan"
+description: "`aws_backup_restore_testing_plan` schedules AWS Backup to automatically restore a sample of real recovery points on a recurring basis and validate..."
+---
+
+`aws_backup_restore_testing_plan` schedules AWS Backup to automatically restore a sample of real recovery points on a recurring basis and validate the restore succeeded, catching a broken or unrestorable backup before an actual disaster does, rather than trusting an untested backup plan.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	backup "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/backup"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own restore testing plan"})
+
+    		ubx.Resource(backup.RestoreTestingPlan, "ci-runner", backup.RestoreTestingPlanConfig{
+    			RecoveryPointSelection:     map[string]any{"algorithm": "example"},
+    			RestoreTestingPlanName:     "example-restore-testing-plan-name",
+    			ScheduleExpression:         "example",
+    			ScheduleExpressionTimezone: "example",
+    			StartWindowHours:           1,
+    			Tags:                       []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { RestoreTestingPlan } from "./local-sdk/aws/sdk/typescript/aws/backup/restore_testing_plan.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own restore testing plan" });
+
+      resource(RestoreTestingPlan, "ci-runner", {
+        recoveryPointSelection: { algorithm: "example" },
+        restoreTestingPlanName: "example-restore-testing-plan-name",
+        scheduleExpression: "example",
+        scheduleExpressionTimezone: "example",
+        startWindowHours: 1,
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.backup import RestoreTestingPlan, RestoreTestingPlanConfig
+
+    def describe():
+        ubx.intent("payments own restore testing plan")
+
+        ubx.resource(RestoreTestingPlan, "ci-runner", RestoreTestingPlanConfig(
+            recovery_point_selection={"algorithm": "example"},
+            restore_testing_plan_name="example-restore-testing-plan-name",
+            schedule_expression="example",
+            schedule_expression_timezone="example",
+            start_window_hours=1,
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_backup_restore_testing_plan, with recovery point
+    selection a set value, restore testing plan name
+    example-restore-testing-plan-name, schedule expression example,
+    schedule expression timezone example, start window hours 1, tags
+    a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="recovery_point_selection" type="object" required>
+  Defines the recovery point selection criteria for the restore testing plan, including the selection algorithm (e.g., latest or random within a window) and optional filters on resource types and backup vault names to narrow which recovery points are tested. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="algorithm" type="string" required>
+      Specifies the algorithm used to select recovery points for restore testing, where `LATEST_WITHIN_WINDOW` picks the most recent recovery point within the selection window and `RANDOM_WITHIN_WINDOW` picks a random recovery point from that window. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="exclude_vaults" type="list(string)">
+      Specifies the names of backup vaults whose recovery points are excluded from the restore testing plan selection, preventing those vaults' recovery points from being used in restore tests. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="include_vaults" type="list(string)" required>
+      Specifies the names of backup vaults to include in the recovery point selection, so that only recovery points from these vaults are considered for restore testing. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="recovery_point_types" type="list(string)" required>
+      Specifies the types of backup recovery points to include in the restore testing plan, such as 'CONTINUOUS' or 'SNAPSHOT', determining which recovery points are eligible for testing. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="selection_window_days" type="number">
+      Specifies the number of days prior to the current date from which recovery points are eligible for selection in the restore testing plan, restricting tests to recently created recovery points. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="restore_testing_plan_name" type="string" required>
+  The name of the restore testing plan, which must be unique within your AWS account and is used to identify the plan in AWS Backup. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="schedule_expression" type="string" required>
+  Defines the cron or rate expression that determines when the restore testing plan automatically initiates restore tests, such as 'cron(0 12 * * ? *)' or 'rate(1 day)'. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="schedule_expression_timezone" type="string">
+  Specifies the IANA timezone (in Area/Location format, e.g., 'America/New_York') used to evaluate the restore testing plan's schedule expression, enabling the test schedule to run at a local time. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="start_window_hours" type="number">
+  Defines the number of hours after the scheduled time that the restore testing plan is allowed to begin its restore test, providing a time buffer for the test to start within that window. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of key-value pairs that assign tags to the AWS Backup restore testing plan, used for organizing, identifying, and managing the plan through cost allocation and access control. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the AWS Backup restore testing plan, used for organizing, identifying, and managing the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="restore_testing_plan_arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies the restore testing plan, assigned by AWS when the plan is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

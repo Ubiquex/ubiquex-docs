@@ -1,0 +1,235 @@
+---
+title: "aws_transfer_connector"
+description: "`aws_transfer_connector` creates a real, outbound connection to a remote SFTP or AS2 trading partner..."
+---
+
+`aws_transfer_connector` creates a real, outbound connection to a remote SFTP or AS2 trading partner, letting Transfer Family actively push or pull files to that external server rather than only accepting inbound connections through an `aws_transfer_server`.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	transfer "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/transfer"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own connector"})
+
+    		ubx.Resource(transfer.Connector, "ci-runner", transfer.ConnectorConfig{
+    			AccessRole:         "example",
+    			As2Config:          map[string]any{"async_mdn_config": map[string]any{"server_ids": []string{"example"}}},
+    			EgressConfig:       map[string]any{"vpc_lattice": map[string]any{"resource_configuration_arn": "example"}},
+    			EgressType:         "example",
+    			IpAddressType:      "example",
+    			LoggingRole:        "example",
+    			SecurityPolicyName: "example-security-policy-name",
+    			SftpConfig:         map[string]any{"max_concurrent_connections": 1},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Connector } from "./local-sdk/aws/sdk/typescript/aws/transfer/connector.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own connector" });
+
+      resource(Connector, "ci-runner", {
+        accessRole: "example",
+        as2Config: { asyncMdnConfig: { serverIds: ["example"] } },
+        egressConfig: { vpcLattice: { resourceConfigurationArn: "example" } },
+        egressType: "example",
+        ipAddressType: "example",
+        loggingRole: "example",
+        securityPolicyName: "example-security-policy-name",
+        sftpConfig: { maxConcurrentConnections: 1 },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.transfer import Connector, ConnectorConfig
+
+    def describe():
+        ubx.intent("payments own connector")
+
+        ubx.resource(Connector, "ci-runner", ConnectorConfig(
+            access_role="example",
+            as2_config={"async_mdn_config": {"server_ids": ["example"]}},
+            egress_config={"vpc_lattice": {"resource_configuration_arn": "example"}},
+            egress_type="example",
+            ip_address_type="example",
+            logging_role="example",
+            security_policy_name="example-security-policy-name",
+            sftp_config={"max_concurrent_connections": 1},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_transfer_connector, with access role example, as2
+    config a set value, egress config a set value, egress type
+    example, ip address type example, logging role example, security
+    policy name example-security-policy-name, sftp config a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="access_role" type="string" required>
+  Specifies the access role for the connector. Required.
+</ResponseField>
+
+<ResponseField name="as2_config" type="object">
+  Configuration for an AS2 connector. Optional.
+  <Expandable title="properties">
+    <ResponseField name="async_mdn_config" type="object">
+      Configures asynchronous Message Disposition Notification (MDN) handling for the AS2 connector, specifying the destination URL, the Secrets Manager secret ARN used to sign the HTTPS request, and whether to send the original message with the MDN (BOTH or NONE). Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="server_ids" type="list(string)" required>
+          Specifies the list of AS2 server IDs that are used as the intended recipients for asynchronous MDN (Message Disposition Notification) responses in this connector's AS2 configuration. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="url" type="string" required>
+          URL of the server to receive the MDN response on Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="basic_auth_secret_id" type="string">
+      ARN or name of the secret in AWS Secrets Manager which contains the credentials for Basic authentication. If empty, Basic authentication is disabled for the AS2 connector Optional.
+    </ResponseField>
+    <ResponseField name="compression" type="string">
+      Compression setting for this AS2 connector configuration. Optional.
+    </ResponseField>
+    <ResponseField name="encryption_algorithm" type="string">
+      Encryption algorithm for this AS2 connector configuration. Optional.
+    </ResponseField>
+    <ResponseField name="local_profile_id" type="string">
+      A unique identifier for the local profile. Optional.
+    </ResponseField>
+    <ResponseField name="mdn_response" type="string">
+      MDN Response setting for this AS2 connector configuration. Optional.
+    </ResponseField>
+    <ResponseField name="mdn_signing_algorithm" type="string">
+      MDN Signing algorithm for this AS2 connector configuration. Optional.
+    </ResponseField>
+    <ResponseField name="message_subject" type="string">
+      The message subject for this AS2 connector configuration. Optional.
+    </ResponseField>
+    <ResponseField name="partner_profile_id" type="string">
+      A unique identifier for the partner profile. Optional.
+    </ResponseField>
+    <ResponseField name="preserve_content_type" type="string">
+      Specifies whether to use the AWS S3 object content-type as the content-type for the AS2 message. Optional.
+    </ResponseField>
+    <ResponseField name="signing_algorithm" type="string">
+      Signing algorithm for this AS2 connector configuration. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="egress_config" type="object">
+  Specifies the S3 access point that acts as the source location from which the AWS Transfer Family connector reads files to send to the remote server. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="vpc_lattice" type="object" required>
+      Specifies the VPC Lattice configuration used by the AWS Transfer Family connector for routing outbound connections, allowing integration with a VPC Lattice service network to securely reach remote hosts. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="port_number" type="number">
+          Port to connect to on the target VPC Lattice resource Optional.
+        </ResponseField>
+        <ResponseField name="resource_configuration_arn" type="string" required>
+          ARN of the VPC Lattice resource configuration Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="egress_type" type="string">
+  Specifies the protocol type for the connector (either 'AS2' or 'SFTP') to use for outbound file transfers. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="ip_address_type" type="string">
+  IP address type for Connector Optional.
+</ResponseField>
+
+<ResponseField name="logging_role" type="string">
+  Specifies the logging role for the connector. Optional.
+</ResponseField>
+
+<ResponseField name="security_policy_name" type="string">
+  Security policy for SFTP Connector Optional.
+</ResponseField>
+
+<ResponseField name="sftp_config" type="object">
+  Configuration for an SFTP connector. Optional.
+  <Expandable title="properties">
+    <ResponseField name="max_concurrent_connections" type="number">
+      Specifies the number of active connections that your connector can establish with the remote server at the same time. Optional.
+    </ResponseField>
+    <ResponseField name="trusted_host_keys" type="list(string)">
+      List of public host keys, for the external server to which you are connecting. Optional.
+    </ResponseField>
+    <ResponseField name="user_secret_id" type="string">
+      ARN or name of the secret in AWS Secrets Manager which contains the SFTP user's private keys or passwords. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Key-value pairs that can be used to group and search for connectors. Tags are metadata attached to connectors for any purpose. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a user-defined tag attached to the AWS Transfer Family connector, used for metadata such as cost allocation or organizational identification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="url" type="string">
+  URL for Connector Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  Specifies the unique Amazon Resource Name (ARN) for the connector. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="connector_id" type="string">
+  A unique identifier for the connector. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="error_message" type="string">
+  Detailed error message when Connector in ERRORED status Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="service_managed_egress_ip_addresses" type="list(string)">
+  The list of egress IP addresses of this connector. These IP addresses are assigned automatically when you create the connector. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The current lifecycle status of the Transfer Family connector, such as ACTIVE or INACTIVE, indicating whether the connector is enabled for file transfers. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

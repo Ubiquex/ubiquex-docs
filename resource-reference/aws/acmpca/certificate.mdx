@@ -1,0 +1,398 @@
+---
+title: "aws_acmpca_certificate"
+description: "`aws_acmpca_certificate` is a certificate issued by an `aws_acmpca_certificate_authority`."
+---
+
+AWS Private CA issues it against the CA's own signing key and policy, the certificate itself carries no independent configuration beyond what its issuing CA allows.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	acmpca "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/acmpca"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own certificate"})
+
+    		ubx.Resource(acmpca.Certificate, "ci-runner", acmpca.CertificateConfig{
+    			CertificateAuthorityArn:   "arn:aws:iam::123456789012:policy/ci",
+    			CertificateSigningRequest: "example",
+    			SigningAlgorithm:          "example",
+    			Validity:                  map[string]any{"type": "example"},
+    			ApiPassthrough:            map[string]any{"extensions": map[string]any{"certificate_policies": []map[string]any{{"cert_policy_id": "example"}}}},
+    			TemplateArn:               "arn:aws:iam::123456789012:policy/ci",
+    			ValidityNotBefore:         map[string]any{"type": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Certificate } from "./local-sdk/aws/sdk/typescript/aws/acmpca/certificate.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own certificate" });
+
+      resource(Certificate, "ci-runner", {
+        certificateAuthorityArn: "arn:aws:iam::123456789012:policy/ci",
+        certificateSigningRequest: "example",
+        signingAlgorithm: "example",
+        validity: { type: "example" },
+        apiPassthrough: {
+          extensions: { certificatePolicies: [{ certPolicyId: "example" }] },
+        },
+        templateArn: "arn:aws:iam::123456789012:policy/ci",
+        validityNotBefore: { type: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.acmpca import Certificate, CertificateConfig
+
+    def describe():
+        ubx.intent("payments own certificate")
+
+        ubx.resource(Certificate, "ci-runner", CertificateConfig(
+            certificate_authority_arn="arn:aws:iam::123456789012:policy/ci",
+            certificate_signing_request="example",
+            signing_algorithm="example",
+            validity={"type": "example"},
+            api_passthrough={"extensions": {"certificate_policies": [{"cert_policy_id": "example"}]}},
+            template_arn="arn:aws:iam::123456789012:policy/ci",
+            validity_not_before={"type": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_acmpca_certificate, with certificate authority arn
+    arn:aws:iam::123456789012:policy/ci, certificate signing request
+    example, signing algorithm example, validity a set value, api
+    passthrough a set value, template arn
+    arn:aws:iam::123456789012:policy/ci, validity not before a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="api_passthrough" type="object">
+  Contains X.509 certificate information to be placed in an issued certificate. An ``APIPassthrough`` or ``APICSRPassthrough`` template variant must be selected, or else this parameter is ignored. If conflicting or duplicate certificate information is supplied from other sources, AWS Private CA applies [order of operation rules](https://docs.aws.amazon.com/privateca/latest/userguide/UsingTemplates.html#template-order-of-operations) to determine what information is used. Optional.
+  <Expandable title="properties">
+    <ResponseField name="extensions" type="object">
+      Contains X.509 extension information for a certificate. Optional.
+      <Expandable title="properties">
+        <ResponseField name="certificate_policies" type="list(object)">
+          Specifies the certificate policies extension to include in the issued certificate, where each object contains a policy OID and optional policy qualifiers under the API passthrough extensions. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="cert_policy_id" type="string">
+              The object identifier (OID) of a certificate policy, as used in the CertificatePolicies X.509 extension (RFC 5280), which identifies the policy under which the certificate is issued. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="policy_qualifiers" type="list(object)">
+              A list of policy qualifiers that provide additional information, such as a certification practice statement (CPS) URI, for each certificate policy extension in the certificate. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="policy_qualifier_id" type="string">
+                  The OID identifying the type of certificate policy qualifier (id-qt-cps for a CPS pointer or id-qt-unotice for a user notice). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="qualifier" type="object">
+                  For a certificate policy qualifier, the Qualifier object carries the CPS URI (a Uniform Resource Identifier pointing to the Certification Practice Statement) as required by RFC 5280. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="cps_uri" type="string">
+                      The URI of the Certification Practice Statement (CPS) for the certificate policy qualifier, specifying where the CA's practices are published. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="custom_extensions" type="list(object)">
+          Array of X.509 extensions for a certificate. Optional.
+          <Expandable title="properties">
+            <ResponseField name="critical" type="bool">
+              Indicates whether the custom extension is marked as critical in the X.509 certificate, as defined by RFC 5280. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="object_identifier" type="string">
+              The object identifier (OID) for the custom X.509 extension, which is included in the certificate's extensions when using API passthrough in AWS Certificate Manager Private Certificate Authority. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The string value of the custom X.509 extension, containing the extension's data (often ASN.1 encoded) to be placed in the certificate. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="extended_key_usage" type="list(object)">
+          Sets the ExtendedKeyUsage extension in the certificate's X.509 extensions (as pass-through to ACM Private CA), listing permitted usages such as server authentication, client authentication, code signing, or custom OID-based purposes. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="extended_key_usage_object_identifier" type="string">
+              Specifies a custom object identifier (OID) for the ExtendedKeyUsage extension, allowing a non-standard extended key usage value instead of a predefined ExtendedKeyUsageType. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="extended_key_usage_type" type="string">
+              Specifies a standard extended key usage type (such as SERVER_AUTH, CLIENT_AUTH, CODE_SIGNING, or EMAIL_PROTECTION) to include in the certificate's ExtendedKeyUsage extension via the api_passthrough structure. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="key_usage" type="object">
+          Defines one or more purposes for which the key contained in the certificate can be used. Default value for each option is false. Optional.
+          <Expandable title="properties">
+            <ResponseField name="crlsign" type="bool">
+              Key can be used to sign CRLs. Optional.
+            </ResponseField>
+            <ResponseField name="data_encipherment" type="bool">
+              Key can be used to decipher data. Optional.
+            </ResponseField>
+            <ResponseField name="decipher_only" type="bool">
+              Key can be used only to decipher data. Optional.
+            </ResponseField>
+            <ResponseField name="digital_signature" type="bool">
+              Key can be used for digital signing. Optional.
+            </ResponseField>
+            <ResponseField name="encipher_only" type="bool">
+              Key can be used only to encipher data. Optional.
+            </ResponseField>
+            <ResponseField name="key_agreement" type="bool">
+              Key can be used in a key-agreement protocol. Optional.
+            </ResponseField>
+            <ResponseField name="key_cert_sign" type="bool">
+              Key can be used to sign certificates. Optional.
+            </ResponseField>
+            <ResponseField name="key_encipherment" type="bool">
+              Key can be used to encipher data. Optional.
+            </ResponseField>
+            <ResponseField name="non_repudiation" type="bool">
+              Key can be used for non-repudiation. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="subject_alternative_names" type="list(object)">
+          Specifies one or more subject alternative names (SANs) to include in the certificate's subjectAltName extension, such as DNS names, IP addresses, or email addresses. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="directory_name" type="object">
+              This field specifies a directory name (a distinguished name) to be included as a subject alternative name in the certificate, representing the ASN.1 `directoryName` general name type in the SubjectAlternativeNames extension via the ACM PCA API passthrough. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="common_name" type="string">
+                  The Common Name (CN) component of a directory name (X.500 distinguished name) used as a subject alternative name in the certificate's X.509 extensions, passed through to the ACM Private CA API via the ApiPassthrough structure. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="country" type="string">
+                  The two-letter ISO 3166 country code in the directoryName form of the SubjectAlternativeName extension when passing X.509 extensions through the ACM Private CA certificate API. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="custom_attributes" type="list(object)">
+                  A list of custom attribute (OID/value) pairs that further qualify the X.500 directory name in the subject alternative names extension of the certificate, passed through to the private CA. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="object_identifier" type="string">
+                      The dotted decimal object identifier (OID) that identifies the attribute type in a custom DirectoryName attribute within a subject alternative name extension of an AWS Private CA certificate. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="value" type="string">
+                      The value of a custom attribute within an X.500 distinguished name (DN) that is used as a subject alternative name (DirectoryName) in the certificate's API passthrough extensions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="distinguished_name_qualifier" type="string">
+                  Specifies the distinguished name qualifier (DNQ) to include in the directoryName entry of the Subject Alternative Name extension for the certificate, an optional X.520 attribute that helps disambiguate otherwise identical distinguished names. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="generation_qualifier" type="string">
+                  Specifies the generation qualifier (e.g., Jr., III) for a DirectoryName subject alternative name in the API passthrough configuration for an AWS Private CA certificate. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="given_name" type="string">
+                  Specifies the given name (first name) attribute of the X.500 distinguished name used as a directory-name subject alternative name in the certificate issued by the private CA. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="initials" type="string">
+                  Specifies the initials attribute of an X.500 distinguished name used in the directoryName entry of a SubjectAlternativeNames extension in the certificate's ApiPassthrough configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="locality" type="string">
+                  Specifies the locality (L) attribute of a directory name in the subject alternative names extension, indicating the city or place for that certificate subject. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="organization" type="string">
+                  The organization (O) attribute of a directory name used as a subject alternative name, specifying the organization to which the certificate subject belongs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="organizational_unit" type="string">
+                  Specifies the organizational unit (OU) component of the X.500 directory name in a subject alternative name extension, used to identify the entity associated with the certificate. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="pseudonym" type="string">
+                  Specifies the pseudonym attribute (an X.520 name component) of an X.509 directory name used as a subject alternative name, passed through to ACM Private CA's certificate API as part of the extensions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="serial_number" type="string">
+                  The serial number attribute of the X.500 distinguished name in a directoryName subject alternative name, used to identify the subject within the directory namespace (not the certificate's serial number). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="state" type="string">
+                  The state or province attribute of the directory name (DN) in a subject alternative name extension for the certificate, as provided via the API passthrough. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="surname" type="string">
+                  Specifies the surname (family name) component of the distinguished name used as a directoryName entry in the subject alternative names extension of the certificate. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="title" type="string">
+                  Specifies the title attribute (e.g., 'Dr.', 'Esq.') of the X.500 directory name used as a subject alternative name in the certificate. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="dns_name" type="string">
+              The DNS name to include in the Subject Alternative Name extension of the certificate, passed through via the API passthrough. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="edi_party_name" type="object">
+              Configures an EDI (Electronic Data Interchange) party name to be included as an entry in the certificate's Subject Alternative Name extension, with fields for the party name and the optional name assigner (the organization that assigned it). Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="name_assigner" type="string">
+                  Specifies the name assigner element of an EDI party name included in the Subject Alternative Name extension, identifying the organization that assigned the EDI party name, passed through to the private CA for certificate issuance. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="party_name" type="string">
+                  Specifies the name of the EDI (Electronic Data Interchange) party, typically an organization or individual, used in the subject alternative name extension of the certificate to identify the certificate holder for EDI messaging purposes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="ip_address" type="string">
+              The IP address (IPv4 or IPv6) to include as a subject alternative name extension in the certificate issued by the private CA. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="other_name" type="object">
+              Specifies an otherName subject alternative name, which consists of an object identifier (type_id) and a string-encoded value, for the certificate's Subject Alternative Name extension. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="type_id" type="string">
+                  Specifies the object identifier (OID) that defines the type of the 'other name' in a SubjectAlternativeName extension within the certificate's ApiPassthrough, as per RFC 5280. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="value" type="string">
+                  The value of the OtherName subject alternative name, carrying the actual data (such as a user principal name or a custom string) for the name type identified by the corresponding TypeId OID. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="registered_id" type="string">
+              Holds the object identifier (OID) string for a subject alternative name of type REGISTERED_ID, which can be included in the certificate's Subject Alternative Name extension to specify a custom registered identifier. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="rfc822_name" type="string">
+              The RFC 822 email address to include as a subject alternative name on the certificate. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="uniform_resource_identifier" type="string">
+              Specifies a uniform resource identifier (URI) to include as a subject alternative name (SAN) in the certificate's subjectAlternativeName extension. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="subject" type="object">
+      Contains information about the certificate subject. The ``Subject`` field in the certificate identifies the entity that owns or controls the public key in the certificate. The entity can be a user, computer, device, or service. The ``Subject``must contain an X.500 distinguished name (DN). A DN is a sequence of relative distinguished names (RDNs). The RDNs are separated by commas in the certificate. Optional.
+      <Expandable title="properties">
+        <ResponseField name="common_name" type="string">
+          For CA and end-entity certificates in a private PKI, the common name (CN) can be any string within the length limit. Note: In publicly trusted certificates, the common name must be a fully qualified domain name (FQDN) associated with the certificate subject. Optional.
+        </ResponseField>
+        <ResponseField name="country" type="string">
+          Two-digit code that specifies the country in which the certificate subject located. Optional.
+        </ResponseField>
+        <ResponseField name="custom_attributes" type="list(object)">
+          Array of X.500 attribute type and value. CustomAttributes cannot be used along with pre-defined attributes. Optional.
+          <Expandable title="properties">
+            <ResponseField name="object_identifier" type="string">
+              The object identifier (OID) of the custom attribute to include in the certificate subject. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The value of a custom X.509 subject attribute (such as an organizational unit or domain component) that is passed through from the original API request to the certificate's subject in AWS ACM Private CA. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="distinguished_name_qualifier" type="string">
+          Disambiguating information for the certificate subject. Optional.
+        </ResponseField>
+        <ResponseField name="generation_qualifier" type="string">
+          Typically a qualifier appended to the name of an individual. Examples include Jr. for junior, Sr. for senior, and III for third. Optional.
+        </ResponseField>
+        <ResponseField name="given_name" type="string">
+          First name. Optional.
+        </ResponseField>
+        <ResponseField name="initials" type="string">
+          Concatenation that typically contains the first letter of the *GivenName*, the first letter of the middle name if one exists, and the first letter of the *Surname*. Optional.
+        </ResponseField>
+        <ResponseField name="locality" type="string">
+          The locality (such as a city or town) in which the certificate subject is located. Optional.
+        </ResponseField>
+        <ResponseField name="organization" type="string">
+          Legal name of the organization with which the certificate subject is affiliated. Optional.
+        </ResponseField>
+        <ResponseField name="organizational_unit" type="string">
+          A subdivision or unit of the organization (such as sales or finance) with which the certificate subject is affiliated. Optional.
+        </ResponseField>
+        <ResponseField name="pseudonym" type="string">
+          Typically a shortened version of a longer *GivenName*. For example, Jonathan is often shortened to John. Elizabeth is often shortened to Beth, Liz, or Eliza. Optional.
+        </ResponseField>
+        <ResponseField name="serial_number" type="string">
+          The certificate serial number. Optional.
+        </ResponseField>
+        <ResponseField name="state" type="string">
+          State in which the subject of the certificate is located. Optional.
+        </ResponseField>
+        <ResponseField name="surname" type="string">
+          Family name. In the US and the UK, for example, the surname of an individual is ordered last. In Asian cultures the surname is typically ordered first. Optional.
+        </ResponseField>
+        <ResponseField name="title" type="string">
+          A title such as Mr. or Ms., which is pre-pended to the name to refer formally to the certificate subject. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="certificate_authority_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the private certificate authority (CA) that issues the certificate. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="certificate_signing_request" type="string" required>
+  The certificate signing request (CSR) for the certificate. Required.
+</ResponseField>
+
+<ResponseField name="signing_algorithm" type="string" required>
+  The name of the algorithm that will be used to sign the certificate to be issued. This parameter should not be confused with the ``SigningAlgorithm`` parameter used to sign a CSR in the ``CreateCertificateAuthority`` action. The specified signing algorithm family (RSA or ECDSA) must match the algorithm family of the CA's secret key. Required.
+</ResponseField>
+
+<ResponseField name="template_arn" type="string">
+  Specifies the ARN of the certificate template that determines the certificate type (such as end-entity or subordinate CA) and its extensions for the issued certificate. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="validity" type="object" required>
+  Length of time for which the certificate issued by your private certificate authority (CA), or by the private CA itself, is valid in days, months, or years. You can issue a certificate by calling the ``IssueCertificate`` operation. Required.
+  <Expandable title="properties">
+    <ResponseField name="type" type="string" required>
+      Specifies whether the ``Value`` parameter represents days, months, or years. Required.
+    </ResponseField>
+    <ResponseField name="value" type="number" required>
+      A long integer interpreted according to the value of ``Type``, below. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="validity_not_before" type="object">
+  Length of time for which the certificate issued by your private certificate authority (CA), or by the private CA itself, is valid in days, months, or years. You can issue a certificate by calling the ``IssueCertificate`` operation. Optional.
+  <Expandable title="properties">
+    <ResponseField name="type" type="string" required>
+      Specifies whether the ``Value`` parameter represents days, months, or years. Required.
+    </ResponseField>
+    <ResponseField name="value" type="number" required>
+      A long integer interpreted according to the value of ``Type``, below. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the issued certificate, uniquely identifying it within the AWS account and region. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="certificate" type="string">
+  The PEM-encoded certificate issued by the private CA for the requested certificate signing request. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

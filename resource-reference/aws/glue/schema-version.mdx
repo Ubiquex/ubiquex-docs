@@ -1,0 +1,102 @@
+---
+title: "aws_glue_schema_version"
+description: "`aws_glue_schema_version` publishes a real, immutable version of an `aws_glue_schema`'s definition..."
+---
+
+`aws_glue_schema_version` publishes a real, immutable version of an `aws_glue_schema`'s definition, letting a Kafka or Kinesis producer/consumer pin to a specific, compatible schema version rather than the schema's current, evolving definition.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	glue "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/glue"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own schema version"})
+
+    		ubx.Resource(glue.SchemaVersion, "ci-runner", glue.SchemaVersionConfig{
+    			Schema:           map[string]any{"registry_name": "example-registry-name"},
+    			SchemaDefinition: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { SchemaVersion } from "./local-sdk/aws/sdk/typescript/aws/glue/schema_version.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own schema version" });
+
+      resource(SchemaVersion, "ci-runner", {
+        schema: { registryName: "example-registry-name" },
+        schemaDefinition: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.glue import SchemaVersion, SchemaVersionConfig
+
+    def describe():
+        ubx.intent("payments own schema version")
+
+        ubx.resource(SchemaVersion, "ci-runner", SchemaVersionConfig(
+            schema={"registry_name": "example-registry-name"},
+            schema_definition="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_glue_schema_version, with schema a set value, schema
+    definition example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="schema" type="object" required>
+  Identifier for the schema where the schema version will be created. Required.
+  <Expandable title="properties">
+    <ResponseField name="registry_name" type="string">
+      Name of the registry to identify where the Schema is located. Optional.
+    </ResponseField>
+    <ResponseField name="schema_arn" type="string">
+      Amazon Resource Name for the Schema. This attribute can be used to uniquely represent the Schema. Optional.
+    </ResponseField>
+    <ResponseField name="schema_name" type="string">
+      Name of the schema. This parameter requires RegistryName to be provided. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="schema_definition" type="string" required>
+  Complete definition of the schema in plain-text. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="version_id" type="string">
+  Represents the version ID associated with the schema version. Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,145 @@
+---
+title: "aws_logs_delivery"
+description: "`aws_logs_delivery` creates a real, active connection between an `aws_logs_delivery_source` and an `aws_logs_delivery_destination`..."
+---
+
+`aws_logs_delivery` creates a real, active connection between an `aws_logs_delivery_source` and an `aws_logs_delivery_destination`, the resource that actually turns a configured source and destination into a flowing pipeline of vended logs.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	logs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/logs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own delivery"})
+
+    		ubx.Resource(logs.Delivery, "ci-runner", logs.DeliveryConfig{
+    			DeliveryDestinationArn:     "arn:aws:iam::123456789012:policy/ci",
+    			DeliverySourceName:         "example-delivery-source-name",
+    			FieldDelimiter:             "example",
+    			RecordFields:               []string{"example"},
+    			S3EnableHiveCompatiblePath: true,
+    			S3SuffixPath:               "example",
+    			Tags:                       []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Delivery } from "./local-sdk/aws/sdk/typescript/aws/logs/delivery.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own delivery" });
+
+      resource(Delivery, "ci-runner", {
+        deliveryDestinationArn: "arn:aws:iam::123456789012:policy/ci",
+        deliverySourceName: "example-delivery-source-name",
+        fieldDelimiter: "example",
+        recordFields: ["example"],
+        s3EnableHiveCompatiblePath: true,
+        s3SuffixPath: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.logs import Delivery, DeliveryConfig
+
+    def describe():
+        ubx.intent("payments own delivery")
+
+        ubx.resource(Delivery, "ci-runner", DeliveryConfig(
+            delivery_destination_arn="arn:aws:iam::123456789012:policy/ci",
+            delivery_source_name="example-delivery-source-name",
+            field_delimiter="example",
+            record_fields=["example"],
+            s3_enable_hive_compatible_path=True,
+            s3_suffix_path="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_logs_delivery, with delivery destination arn
+    arn:aws:iam::123456789012:policy/ci, delivery source name
+    example-delivery-source-name, field delimiter example, record
+    fields a set value, s3 enable hive compatible path true, s3
+    suffix path example, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="delivery_destination_arn" type="string" required>
+  Amazon Resource Name (ARN) that uniquely identify AWS resource. Required.
+</ResponseField>
+
+<ResponseField name="delivery_source_name" type="string" required>
+  The name of the delivery source that is associated with this delivery. Required.
+</ResponseField>
+
+<ResponseField name="field_delimiter" type="string">
+  The field delimiter to use between record fields when the final output format of a delivery is in Plain , W3C , or Raw format. Optional.
+</ResponseField>
+
+<ResponseField name="record_fields" type="list(string)">
+  The list of record fields to be delivered to the destination, in order. If the delivery's log source has mandatory fields, they must be included in this list. Optional.
+</ResponseField>
+
+<ResponseField name="s3_enable_hive_compatible_path" type="bool">
+  This parameter causes the S3 objects that contain delivered logs to use a prefix structure that allows for integration with Apache Hive. Optional.
+</ResponseField>
+
+<ResponseField name="s3_suffix_path" type="string">
+  This string allows re-configuring the S3 object prefix to contain either static or variable sections. The valid variables to use in the suffix path will vary by each log source. See ConfigurationTemplate$allowedSuffixPathFields for more info on what values are supported in the suffix path for each log source. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags that have been assigned to this delivery. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to this CloudWatch Logs delivery, used to assign metadata for identifying, organizing, and managing the delivery resource, including cost allocation and access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  Amazon Resource Name (ARN) that uniquely identify AWS resource. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="delivery_destination_type" type="string">
+  Displays whether the delivery destination associated with this delivery is CloudWatch Logs, Amazon S3, or Kinesis Data Firehose. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="delivery_id" type="string">
+  The unique ID that identifies this delivery in your account. Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,151 @@
+---
+title: "aws_logs_metric_filter"
+description: "`aws_logs_metric_filter` defines a real pattern that CloudWatch Logs evaluates against incoming events in an `aws_logs_log_group`..."
+---
+
+`aws_logs_metric_filter` defines a real pattern that CloudWatch Logs evaluates against incoming events in an `aws_logs_log_group`, publishing a CloudWatch metric data point each time a log event matches, the mechanism behind turning free-text logs into alarmable numeric metrics.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	logs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/logs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own metric filter"})
+
+    		ubx.Resource(logs.MetricFilter, "ci-runner", logs.MetricFilterConfig{
+    			FilterPattern:             "example",
+    			LogGroupName:              "example-log-group-name",
+    			MetricTransformations:     []map[string]any{{"default_value": 1}},
+    			ApplyOnTransformedLogs:    true,
+    			EmitSystemFieldDimensions: []string{"example"},
+    			FieldSelectionCriteria:    "example",
+    			FilterName:                "example-filter-name",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MetricFilter } from "./local-sdk/aws/sdk/typescript/aws/logs/metric_filter.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own metric filter" });
+
+      resource(MetricFilter, "ci-runner", {
+        filterPattern: "example",
+        logGroupName: "example-log-group-name",
+        metricTransformations: [{ defaultValue: 1 }],
+        applyOnTransformedLogs: true,
+        emitSystemFieldDimensions: ["example"],
+        fieldSelectionCriteria: "example",
+        filterName: "example-filter-name",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.logs import MetricFilter, MetricFilterConfig
+
+    def describe():
+        ubx.intent("payments own metric filter")
+
+        ubx.resource(MetricFilter, "ci-runner", MetricFilterConfig(
+            filter_pattern="example",
+            log_group_name="example-log-group-name",
+            metric_transformations=[{"default_value": 1}],
+            apply_on_transformed_logs=True,
+            emit_system_field_dimensions=["example"],
+            field_selection_criteria="example",
+            filter_name="example-filter-name",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_logs_metric_filter, with filter pattern example, log
+    group name example-log-group-name, metric transformations a set
+    value, apply on transformed logs true, emit system field
+    dimensions a set value, field selection criteria example, filter
+    name example-filter-name.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="apply_on_transformed_logs" type="bool">
+  This parameter is valid only for log groups that have an active log transformer. For more information about log transformers, see [PutTransformer](https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutTransformer.html). If this value is ``true``, the metric filter is applied on the transformed version of the log events instead of the original ingested log events. Optional.
+</ResponseField>
+
+<ResponseField name="emit_system_field_dimensions" type="list(string)">
+  The list of system fields that are emitted as additional dimensions in the generated metrics. Returns the ``emitSystemFieldDimensions`` value if it was specified when the metric filter was created. Optional.
+</ResponseField>
+
+<ResponseField name="field_selection_criteria" type="string">
+  The filter expression that specifies which log events are processed by this metric filter based on system fields. Returns the ``fieldSelectionCriteria`` value if it was specified when the metric filter was created. Optional.
+</ResponseField>
+
+<ResponseField name="filter_name" type="string">
+  The name of the metric filter. Optional.
+</ResponseField>
+
+<ResponseField name="filter_pattern" type="string" required>
+  A filter pattern for extracting metric data out of ingested log events. For more information, see [Filter and Pattern Syntax](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html). Required.
+</ResponseField>
+
+<ResponseField name="log_group_name" type="string" required>
+  The name of an existing log group that you want to associate with this metric filter. Required.
+</ResponseField>
+
+<ResponseField name="metric_transformations" type="list(object)" required>
+  The metric transformations. Required.
+  <Expandable title="properties">
+    <ResponseField name="default_value" type="number">
+      Specifies the default value to assign to the CloudWatch metric when a log event matches the filter pattern but no metric value can be extracted from the log data. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="dimensions" type="list(object)">
+      Specifies the dimensions for the metric filter, where each dimension object contains a Key and Value that define a dimension on which to group the metric data. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          The name/key of a dimension that is attached to the metric emitted by this CloudWatch Logs metric filter, used to segment the metric data. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value" type="string">
+          The value of the dimension, which can be a literal string or a JSON path expression (e.g., $.eventType) used to extract a value from the log event and attach it as a dimension to the metric. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="metric_name" type="string">
+      The name of the CloudWatch metric that the metric filter publishes matching log events to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="metric_namespace" type="string">
+      The CloudWatch namespace under which the extracted metric is published by this metric filter transformation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="metric_value" type="string">
+      The value to publish for the metric, which can be a literal number or a JSON expression (like '$.field') evaluated from the matched log event and sent to CloudWatch Metrics. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="unit" type="string">
+      The unit of measure for the metric value (e.g., Seconds, Bytes, Count) that CloudWatch uses to interpret and display the metric's data, aligning with standard AWS unit enums. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>

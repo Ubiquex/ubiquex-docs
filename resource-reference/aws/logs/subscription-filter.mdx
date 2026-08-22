@@ -1,0 +1,134 @@
+---
+title: "aws_logs_subscription_filter"
+description: "`aws_logs_subscription_filter` streams real log events matching a pattern from an `aws_logs_log_group` to a destination, a Kinesis stream, Firehose..."
+---
+
+`aws_logs_subscription_filter` streams real log events matching a pattern from an `aws_logs_log_group` to a destination, a Kinesis stream, Firehose, or Lambda function, in near real time as they're ingested.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	logs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/logs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own subscription filter"})
+
+    		ubx.Resource(logs.SubscriptionFilter, "ci-runner", logs.SubscriptionFilterConfig{
+    			DestinationArn:         "arn:aws:iam::123456789012:policy/ci",
+    			FilterPattern:          "example",
+    			LogGroupName:           "example-log-group-name",
+    			ApplyOnTransformedLogs: true,
+    			Distribution:           "example",
+    			EmitSystemFields:       []string{"example"},
+    			FieldSelectionCriteria: "example",
+    			FilterName:             "example-filter-name",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { SubscriptionFilter } from "./local-sdk/aws/sdk/typescript/aws/logs/subscription_filter.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own subscription filter" });
+
+      resource(SubscriptionFilter, "ci-runner", {
+        destinationArn: "arn:aws:iam::123456789012:policy/ci",
+        filterPattern: "example",
+        logGroupName: "example-log-group-name",
+        applyOnTransformedLogs: true,
+        distribution: "example",
+        emitSystemFields: ["example"],
+        fieldSelectionCriteria: "example",
+        filterName: "example-filter-name",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.logs import SubscriptionFilter, SubscriptionFilterConfig
+
+    def describe():
+        ubx.intent("payments own subscription filter")
+
+        ubx.resource(SubscriptionFilter, "ci-runner", SubscriptionFilterConfig(
+            destination_arn="arn:aws:iam::123456789012:policy/ci",
+            filter_pattern="example",
+            log_group_name="example-log-group-name",
+            apply_on_transformed_logs=True,
+            distribution="example",
+            emit_system_fields=["example"],
+            field_selection_criteria="example",
+            filter_name="example-filter-name",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_logs_subscription_filter, with destination arn
+    arn:aws:iam::123456789012:policy/ci, filter pattern example, log
+    group name example-log-group-name, apply on transformed logs
+    true, distribution example, emit system fields a set value, field
+    selection criteria example, filter name example-filter-name.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="apply_on_transformed_logs" type="bool">
+  This parameter is valid only for log groups that have an active log transformer. For more information about log transformers, see [PutTransformer](https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutTransformer.html). If this value is ``true``, the subscription filter is applied on the transformed version of the log events instead of the original ingested log events. Optional.
+</ResponseField>
+
+<ResponseField name="destination_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the destination. Required.
+</ResponseField>
+
+<ResponseField name="distribution" type="string">
+  The method used to distribute log data to the destination, which can be either random or grouped by log stream. Optional.
+</ResponseField>
+
+<ResponseField name="emit_system_fields" type="list(string)">
+  The list of system fields that are included in the log events sent to the subscription destination. Returns the ``emitSystemFields`` value if it was specified when the subscription filter was created. Optional.
+</ResponseField>
+
+<ResponseField name="field_selection_criteria" type="string">
+  The filter expression that specifies which log events are processed by this subscription filter based on system fields. Returns the ``fieldSelectionCriteria`` value if it was specified when the subscription filter was created. Optional.
+</ResponseField>
+
+<ResponseField name="filter_name" type="string">
+  The name of the subscription filter. Optional.
+</ResponseField>
+
+<ResponseField name="filter_pattern" type="string" required>
+  The filtering expressions that restrict what gets delivered to the destination AWS resource. For more information about the filter pattern syntax, see [Filter and Pattern Syntax](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html). Required.
+</ResponseField>
+
+<ResponseField name="log_group_name" type="string" required>
+  The log group to associate with the subscription filter. All log events that are uploaded to this log group are filtered and delivered to the specified AWS resource if the filter pattern matches the log events. Required.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string">
+  The ARN of an IAM role that grants CWL permissions to deliver ingested log events to the destination stream. You don't need to provide the ARN when you are working with a logical destination for cross-account delivery. Optional.
+</ResponseField>

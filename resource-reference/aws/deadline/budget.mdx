@@ -1,0 +1,180 @@
+---
+title: "aws_deadline_budget"
+description: "`aws_deadline_budget` sets a real spending threshold for rendering activity within an `aws_deadline_farm`..."
+---
+
+`aws_deadline_budget` sets a real spending threshold for rendering activity within an `aws_deadline_farm`, tracked through Deadline Cloud's own cost management and usage explorer, so runaway render costs get flagged before a bill arrives rather than after.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	deadline "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/deadline"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own budget"})
+
+    		ubx.Resource(deadline.Budget, "ci-runner", deadline.BudgetConfig{
+    			Actions:                []map[string]any{{"description": "example"}},
+    			ApproximateDollarLimit: 1,
+    			DisplayName:            "example-display-name",
+    			FarmId:                 "example",
+    			Schedule:               map[string]any{"fixed": map[string]any{"end_time": "example"}},
+    			UsageTrackingResource:  map[string]any{"queue_id": "example"},
+    			Description:            "Managed by ubx.",
+    			Tags:                   []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Budget } from "./local-sdk/aws/sdk/typescript/aws/deadline/budget.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own budget" });
+
+      resource(Budget, "ci-runner", {
+        actions: [{ description: "example" }],
+        approximateDollarLimit: 1,
+        displayName: "example-display-name",
+        farmId: "example",
+        schedule: { fixed: { endTime: "example" } },
+        usageTrackingResource: { queueId: "example" },
+        description: "Managed by ubx.",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.deadline import Budget, BudgetConfig
+
+    def describe():
+        ubx.intent("payments own budget")
+
+        ubx.resource(Budget, "ci-runner", BudgetConfig(
+            actions=[{"description": "example"}],
+            approximate_dollar_limit=1,
+            display_name="example-display-name",
+            farm_id="example",
+            schedule={"fixed": {"end_time": "example"}},
+            usage_tracking_resource={"queue_id": "example"},
+            description="Managed by ubx.",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_deadline_budget, with actions a set value, approximate
+    dollar limit 1, display name example-display-name, farm id
+    example, schedule a set value, usage tracking resource a set
+    value, description Managed by ubx., tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="actions" type="list(object)" required>
+  The budget actions to specify what happens when the budget runs out. Required.
+  <Expandable title="properties">
+    <ResponseField name="description" type="string">
+      A human-readable description of a budget action, explaining the action taken when the budget threshold is reached. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="threshold_percentage" type="number">
+      The percentage of the budget's usage threshold that, when reached, triggers the corresponding budget action (such as stopping or limiting the farm). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      Defines the type of budget action to take when the threshold is reached, such as STOP_SESSION_WORKER or STOP_QUEUE. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="approximate_dollar_limit" type="number" required>
+  The dollar limit based on consumed usage. Required.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  The description of the budget. Optional.
+</ResponseField>
+
+<ResponseField name="display_name" type="string" required>
+  The display name of the budget. Required.
+</ResponseField>
+
+<ResponseField name="farm_id" type="string" required>
+  The farm ID. Required.
+</ResponseField>
+
+<ResponseField name="schedule" type="object" required>
+  The start and end time of the budget. Required.
+  <Expandable title="properties">
+    <ResponseField name="fixed" type="object" required>
+      The details of a fixed budget schedule. Required.
+      <Expandable title="properties">
+        <ResponseField name="end_time" type="string" required>
+          When the budget ends. Required.
+        </ResponseField>
+        <ResponseField name="start_time" type="string" required>
+          When the budget starts. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag attached to the AWS Deadline budget, used for organizing and managing the budget resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="usage_tracking_resource" type="object" required>
+  The usage details of the allotted budget. Required.
+  <Expandable title="properties">
+    <ResponseField name="queue_id" type="string" required>
+      The queue ID. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The ARN of the budget. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="budget_id" type="string">
+  The budget ID. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The status of the budget. Computed by AWS after `ship`.
+</ResponseField>

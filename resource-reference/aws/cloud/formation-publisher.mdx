@@ -1,0 +1,104 @@
+---
+title: "aws_cloud_formation_publisher"
+description: "`aws_cloud_formation_publisher` registers a real account as a CloudFormation Registry publisher, verified against a linked Bitbucket, GitHub..."
+---
+
+`aws_cloud_formation_publisher` registers a real account as a CloudFormation Registry publisher, verified against a linked Bitbucket, GitHub, or GitLab identity, the prerequisite before that account can publish a resource type or module to the public CloudFormation Registry for other accounts to use.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	cloud "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/cloud"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own formation publisher"})
+
+    		ubx.Resource(cloud.FormationPublisher, "ci-runner", cloud.FormationPublisherConfig{
+    			AcceptTermsAndConditions: true,
+    			ConnectionArn:            "arn:aws:iam::123456789012:policy/ci",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { FormationPublisher } from "./local-sdk/aws/sdk/typescript/aws/cloud/formation_publisher.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own formation publisher" });
+
+      resource(FormationPublisher, "ci-runner", {
+        acceptTermsAndConditions: true,
+        connectionArn: "arn:aws:iam::123456789012:policy/ci",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.cloud import FormationPublisher, FormationPublisherConfig
+
+    def describe():
+        ubx.intent("payments own formation publisher")
+
+        ubx.resource(FormationPublisher, "ci-runner", FormationPublisherConfig(
+            accept_terms_and_conditions=True,
+            connection_arn="arn:aws:iam::123456789012:policy/ci",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_cloud_formation_publisher, with accept terms and
+    conditions true, connection arn
+    arn:aws:iam::123456789012:policy/ci.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="accept_terms_and_conditions" type="bool" required>
+  Whether you accept the terms and conditions for publishing extensions in the CloudFormation registry. You must accept the terms and conditions in order to publish public extensions to the CloudFormation registry. The terms and conditions can be found at https://cloudformation-registry-documents.s3.amazonaws.com/Terms_and_Conditions_for_AWS_CloudFormation_Registry_Publishers.pdf Required.
+</ResponseField>
+
+<ResponseField name="connection_arn" type="string">
+  If you are using a Bitbucket or GitHub account for identity verification, the Amazon Resource Name (ARN) for your connection to that account. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="identity_provider" type="string">
+  The type of account used as the identity provider when registering this publisher with CloudFormation. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="publisher_id" type="string">
+  The reserved publisher id for this type, or the publisher id assigned by CloudFormation for publishing in this region. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="publisher_profile" type="string">
+  The URL to the publisher's profile with the identity provider. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="publisher_status" type="string">
+  Whether the publisher is verified. Computed by AWS after `ship`.
+</ResponseField>

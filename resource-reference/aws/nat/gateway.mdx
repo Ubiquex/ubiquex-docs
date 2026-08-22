@@ -1,0 +1,187 @@
+---
+title: "aws_nat_gateway"
+description: "`aws_nat_gateway` creates a real managed NAT gateway in a public subnet..."
+---
+
+`aws_nat_gateway` creates a real managed NAT gateway in a public subnet, letting instances in a private subnet initiate outbound traffic to the internet or other VPCs without being directly reachable from outside.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	nat "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/nat"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own gateway"})
+
+    		ubx.Resource(nat.Gateway, "ci-runner", nat.GatewayConfig{
+    			AllocationId:                   "example",
+    			AvailabilityMode:               "example",
+    			AvailabilityZoneAddresses:      []map[string]any{{"allocation_ids": []string{"example"}}},
+    			ConnectivityType:               "example",
+    			MaxDrainDurationSeconds:        7200,
+    			PrivateIpAddress:               "example",
+    			SecondaryAllocationIds:         []string{"example"},
+    			SecondaryPrivateIpAddressCount: 1,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Gateway } from "./local-sdk/aws/sdk/typescript/aws/nat/gateway.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own gateway" });
+
+      resource(Gateway, "ci-runner", {
+        allocationId: "example",
+        availabilityMode: "example",
+        availabilityZoneAddresses: [{ allocationIds: ["example"] }],
+        connectivityType: "example",
+        maxDrainDurationSeconds: 7200,
+        privateIpAddress: "example",
+        secondaryAllocationIds: ["example"],
+        secondaryPrivateIpAddressCount: 1,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.nat import Gateway, GatewayConfig
+
+    def describe():
+        ubx.intent("payments own gateway")
+
+        ubx.resource(Gateway, "ci-runner", GatewayConfig(
+            allocation_id="example",
+            availability_mode="example",
+            availability_zone_addresses=[{"allocation_ids": ["example"]}],
+            connectivity_type="example",
+            max_drain_duration_seconds=7200,
+            private_ip_address="example",
+            secondary_allocation_ids=["example"],
+            secondary_private_ip_address_count=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_nat_gateway, with allocation id example, availability
+    mode example, availability zone addresses a set value,
+    connectivity type example, max drain duration seconds 7200,
+    private ip address example, secondary allocation ids a set value,
+    secondary private ip address count 1.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="allocation_id" type="string">
+  [Public NAT gateway only] The allocation ID of the Elastic IP address that's associated with the NAT gateway. This property is required for a public NAT gateway and cannot be specified with a private NAT gateway. Optional.
+</ResponseField>
+
+<ResponseField name="availability_mode" type="string">
+  Indicates whether this is a zonal (single-AZ) or regional (multi-AZ) NAT gateway. A zonal NAT gateway is a NAT Gateway that provides redundancy and scalability within a single availability zone. A regional NAT gateway is a single NAT Gateway that works across multiple availability zones (AZs) in your VPC, providing redundancy, scalability and availability across all the AZs in a Region. For more information, see [Regional NAT gateways for automatic multi-AZ expansion](https://docs.aws.amazon.com/vpc/latest/userguide/nat-gateways-regional.html) in the *Amazon VPC User Guide*. Optional.
+</ResponseField>
+
+<ResponseField name="availability_zone_addresses" type="list(object)">
+  For regional NAT gateways only: Specifies which Availability Zones you want the NAT gateway to support and the Elastic IP addresses (EIPs) to use in each AZ. The regional NAT gateway uses these EIPs to handle outbound NAT traffic from their respective AZs. If not specified, the NAT gateway will automatically expand to new AZs and associate EIPs upon detection of an elastic network interface. If you specify this parameter, auto-expansion is disabled and you must manually manage AZ coverage. A regional NAT gateway is a single NAT Gateway that works across multiple availability zones (AZs) in your VPC, providing redundancy, scalability and availability across all the AZs in a Region. For more information, see [Regional NAT gateways for automatic multi-AZ expansion](https://docs.aws.amazon.com/vpc/latest/userguide/nat-gateways-regional.html) in the *Amazon VPC User Guide*. Optional.
+  <Expandable title="properties">
+    <ResponseField name="allocation_ids" type="list(string)">
+      The allocation IDs of the Elastic IPs to associate with the NAT Gateway for each usable Availability Zone, so that a specific public IP is assigned per AZ. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="availability_zone" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="availability_zone_id" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="connectivity_type" type="string">
+  Indicates whether the NAT gateway supports public or private connectivity. The default is public connectivity. Optional.
+</ResponseField>
+
+<ResponseField name="max_drain_duration_seconds" type="number">
+  The maximum amount of time to wait (in seconds) before forcibly releasing the IP addresses if connections are still in progress. Default value is 350 seconds. Optional.
+</ResponseField>
+
+<ResponseField name="private_ip_address" type="string">
+  The private IPv4 address to assign to the NAT gateway. If you don't provide an address, a private IPv4 address will be automatically assigned. Optional.
+</ResponseField>
+
+<ResponseField name="secondary_allocation_ids" type="list(string)">
+  Secondary EIP allocation IDs. For more information, see [Create a NAT gateway](https://docs.aws.amazon.com/vpc/latest/userguide/nat-gateway-working-with.html) in the *Amazon VPC User Guide*. Optional.
+</ResponseField>
+
+<ResponseField name="secondary_private_ip_address_count" type="number">
+  [Private NAT gateway only] The number of secondary private IPv4 addresses you want to assign to the NAT gateway. For more information about secondary addresses, see [Create a NAT gateway](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating) in the *Amazon Virtual Private Cloud User Guide*. ``SecondaryPrivateIpAddressCount`` and ``SecondaryPrivateIpAddresses`` cannot be set at the same time. Optional.
+</ResponseField>
+
+<ResponseField name="secondary_private_ip_addresses" type="list(string)">
+  Secondary private IPv4 addresses. For more information about secondary addresses, see [Create a NAT gateway](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating) in the *Amazon Virtual Private Cloud User Guide*. ``SecondaryPrivateIpAddressCount`` and ``SecondaryPrivateIpAddresses`` cannot be set at the same time. Optional.
+</ResponseField>
+
+<ResponseField name="subnet_id" type="string">
+  The ID of the subnet in which the NAT gateway is located. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags for the NAT gateway. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag in the tag set for the NAT gateway, used to categorize and identify the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a tag attached to the NAT gateway, used for resource metadata, organization, and cost allocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vpc_id" type="string">
+  The ID of the VPC in which the NAT gateway is located. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="auto_provision_zones" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="auto_scaling_ips" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="eni_id" type="string">
+  The identifier of the Elastic Network Interface (ENI) automatically created for the NAT gateway to provide network connectivity, as returned by AWS. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="nat_gateway_id" type="string">
+  The unique identifier assigned by AWS to the NAT gateway. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="route_table_id" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,176 @@
+---
+title: "aws_guard_duty_detector"
+description: "`aws_guard_duty_detector` turns on GuardDuty for an account and Region, the real, top-level resource that continuously analyzes VPC Flow Logs..."
+---
+
+`aws_guard_duty_detector` turns on GuardDuty for an account and Region, the real, top-level resource that continuously analyzes VPC Flow Logs, DNS logs, and CloudTrail events for threats, every other GuardDuty resource, filters, IP lists, member associations, attaches to a detector.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	guard "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/guard"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own duty detector"})
+
+    		ubx.Resource(guard.DutyDetector, "ci-runner", guard.DutyDetectorConfig{
+    			Enable:                     true,
+    			DataSources:                map[string]any{"kubernetes": map[string]any{"audit_logs": map[string]any{"enable": true}}},
+    			Features:                   []map[string]any{{"name": "example-name"}},
+    			FindingPublishingFrequency: "example",
+    			Tags:                       []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { DutyDetector } from "./local-sdk/aws/sdk/typescript/aws/guard/duty_detector.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own duty detector" });
+
+      resource(DutyDetector, "ci-runner", {
+        enable: true,
+        dataSources: { kubernetes: { auditLogs: { enable: true } } },
+        features: [{ name: "example-name" }],
+        findingPublishingFrequency: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.guard import DutyDetector, DutyDetectorConfig
+
+    def describe():
+        ubx.intent("payments own duty detector")
+
+        ubx.resource(DutyDetector, "ci-runner", DutyDetectorConfig(
+            enable=True,
+            data_sources={"kubernetes": {"audit_logs": {"enable": True}}},
+            features=[{"name": "example-name"}],
+            finding_publishing_frequency="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_guard_duty_detector, with enable true, data sources a
+    set value, features a set value, finding publishing frequency
+    example, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="data_sources" type="object">
+  Specifies which GuardDuty data sources (e.g., S3 logs, Kubernetes audit logs, Malware Protection) are enabled for the detector. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="kubernetes" type="object">
+      Configures Kubernetes audit logs as a GuardDuty data source for this detector. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="audit_logs" type="object" required>
+          Configures whether AWS GuardDuty uses Kubernetes audit logs as a data source, typically containing an 'Enable' boolean to turn this feature on or off. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="enable" type="bool" required>
+              Whether to enable Kubernetes audit logs as a data source for the GuardDuty detector. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="malware_protection" type="object">
+      Configuration for GuardDuty Malware Protection, which controls whether EC2 instances with active Amazon GuardDuty findings are scanned for malware. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="scan_ec2_instance_with_findings" type="object">
+          This object configures Malware Protection for EC2 instances with active GuardDuty findings, with the nested `ebs_volumes` property controlling whether attached EBS volumes are scanned for malware. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="ebs_volumes" type="bool">
+              When enabled, GuardDuty malware protection scans the EBS volumes attached to EC2 instances associated with GuardDuty findings, under the scan_ec2_instance_with_findings malware protection configuration. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="s3_logs" type="object">
+      Configures whether GuardDuty monitors S3 data events by enabling the S3 logs data source for the detector. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="enable" type="bool" required>
+          Whether to enable S3 logs as a data source for the GuardDuty detector. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="enable" type="bool" required>
+  Enables or disables the GuardDuty detector, determining whether GuardDuty is active and can generate findings for the account in the specified region. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="features" type="list(object)">
+  Specifies which optional GuardDuty features (such as S3 Protection, EBS Protection, or EKS Audit Logs) are enabled for the detector, with each entry containing a feature name and an enabled/disabled status. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="additional_configuration" type="list(object)">
+      Specifies the list of additional configuration settings for a GuardDuty feature, where each object defines a Name (e.g., EKS_ADDON_MANAGEMENT) and a Status (ENABLED or DISABLED) to enable or disable that supplementary setting. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="name" type="string">
+          The name of a specific additional configuration setting for a GuardDuty detector feature, such as 'EBS_SNAPSHOT' for the malware protection feature, identifying which optional sub-setting is being configured. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="status" type="string">
+          Indicates whether a specific additional configuration (sub-feature) of a GuardDuty detector feature is enabled or disabled, with values such as 'ENABLED' or 'DISABLED'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Specifies the name of an additional GuardDuty feature to enable or configure, such as S3_DATA_EVENTS or EKS_AUDIT_LOGS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="status" type="string">
+      Specifies whether the corresponding GuardDuty feature (e.g., S3_DATA_EVENTS) is currently enabled or disabled, accepting values 'ENABLED' or 'DISABLED'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="finding_publishing_frequency" type="string">
+  Specifies how often GuardDuty publishes new findings to CloudWatch Events and S3, with valid values of FIFTEEN_MINUTES, ONE_HOUR, or SIX_HOURS. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Specifies a list of key-value tags to attach to the GuardDuty detector, which can be used for identifying and organizing the detector resource. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a single tag assigned to the GuardDuty detector, a user-defined string used for metadata, access control, and cost allocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The unique identifier for the GuardDuty detector, generated by the service when the detector is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

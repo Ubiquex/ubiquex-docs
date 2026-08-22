@@ -1,0 +1,202 @@
+---
+title: "aws_customer_profiles_event_trigger"
+description: "`aws_customer_profiles_event_trigger` reacts to a real incoming event on an `aws_customer_profiles_event_stream`..."
+---
+
+`aws_customer_profiles_event_trigger` reacts to a real incoming event on an `aws_customer_profiles_event_stream`, updating a segment or firing a downstream action, so a profile-affecting event is acted on as it arrives rather than only discoverable later on a schedule.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	customer "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/customer"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own profiles event trigger"})
+
+    		ubx.Resource(customer.ProfilesEventTrigger, "ci-runner", customer.ProfilesEventTriggerConfig{
+    			DomainName:             "example-domain-name",
+    			EventTriggerConditions: []map[string]any{{"event_trigger_dimensions": []map[string]any{{"object_attributes": []map[string]any{{"comparison_operator": "example"}}}}}},
+    			EventTriggerName:       "example-event-trigger-name",
+    			ObjectTypeName:         "example-object-type-name",
+    			Description:            "Managed by ubx.",
+    			EventTriggerLimits:     map[string]any{"event_expiration": 1},
+    			SegmentFilter:          "example",
+    			Tags:                   []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ProfilesEventTrigger } from "./local-sdk/aws/sdk/typescript/aws/customer/profiles_event_trigger.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own profiles event trigger" });
+
+      resource(ProfilesEventTrigger, "ci-runner", {
+        domainName: "example-domain-name",
+        eventTriggerConditions: [{
+          eventTriggerDimensions: [{
+            objectAttributes: [{ comparisonOperator: "example" }],
+          }],
+        }],
+        eventTriggerName: "example-event-trigger-name",
+        objectTypeName: "example-object-type-name",
+        description: "Managed by ubx.",
+        eventTriggerLimits: { eventExpiration: 1 },
+        segmentFilter: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.customer import ProfilesEventTrigger, ProfilesEventTriggerConfig
+
+    def describe():
+        ubx.intent("payments own profiles event trigger")
+
+        ubx.resource(ProfilesEventTrigger, "ci-runner", ProfilesEventTriggerConfig(
+            domain_name="example-domain-name",
+            event_trigger_conditions=[{"event_trigger_dimensions": [{"object_attributes": [{"comparison_operator": "example"}]}]}],
+            event_trigger_name="example-event-trigger-name",
+            object_type_name="example-object-type-name",
+            description="Managed by ubx.",
+            event_trigger_limits={"event_expiration": 1},
+            segment_filter="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_customer_profiles_event_trigger, with domain name
+    example-domain-name, event trigger conditions a set value, event
+    trigger name example-event-trigger-name, object type name
+    example-object-type-name, description Managed by ubx., event
+    trigger limits a set value, segment filter example, tags a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  The description of the event trigger. Optional.
+</ResponseField>
+
+<ResponseField name="domain_name" type="string" required>
+  The unique name of the domain. Required.
+</ResponseField>
+
+<ResponseField name="event_trigger_conditions" type="list(object)" required>
+  A list of conditions that determine when an event should trigger the destination. Required.
+  <Expandable title="properties">
+    <ResponseField name="event_trigger_dimensions" type="list(object)">
+      Specifies a list of event trigger dimensions, each defining the object type and matching attribute dimensions (type and values) that together form a condition under which the event trigger fires. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="object_attributes" type="list(object)">
+          Defines the list of customer profile object attributes, along with their comparison operators and values, used as dimensions to evaluate whether the event trigger conditions are met. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="comparison_operator" type="string">
+              The comparison operator that determines how the referenced object attribute's value is evaluated against the configured values (for example, EQUAL, GREATER_THAN, LESS_THAN, or BETWEEN) in an event trigger condition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="field_name" type="string">
+              Specifies the name of the profile object attribute (e.g., 'Email' or 'LastName') that the event trigger condition evaluates to determine whether to activate the associated workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="source" type="string">
+              The name of the source object type (e.g., Profile or Order) whose field is used as the grouping dimension in the event trigger condition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="values" type="list(string)">
+              The list of attribute values that the object attribute (specified by the parent object_attributes.source field) must equal for the event trigger condition to be satisfied. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="logical_operator" type="string">
+      Specifies the logical operator (AND or OR) used to combine the event triggers within this condition group in the AWS Customer Profiles event trigger, determining whether all or any of the triggers must match. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="event_trigger_limits" type="object">
+  Defines limits controlling whether an event triggers the destination, based on ingestion latency and the number of invocations per profile over specific time periods. Optional.
+  <Expandable title="properties">
+    <ResponseField name="event_expiration" type="number">
+      Specifies that an event will only trigger the destination if it is processed within a certain latency period. Optional.
+    </ResponseField>
+    <ResponseField name="periods" type="list(object)">
+      A list of time periods during which the limits apply. Optional.
+      <Expandable title="properties">
+        <ResponseField name="max_invocations_per_profile" type="number">
+          Defines the maximum number of times the event trigger can be invoked for a single customer profile within the specified time period. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="unit" type="string">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+        <ResponseField name="unlimited" type="bool">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+        <ResponseField name="value" type="number">
+          In an Amazon Customer Profiles event trigger limit period, this value specifies the number of time units (such as days or hours) that define the duration during which the trigger's maximum invocations are constrained. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="event_trigger_name" type="string" required>
+  The unique name of the event trigger. Required.
+</ResponseField>
+
+<ResponseField name="object_type_name" type="string" required>
+  The unique name of the object type. Required.
+</ResponseField>
+
+<ResponseField name="segment_filter" type="string">
+  The destination is triggered only for profiles that meet the criteria of a segment definition. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The tag key component of a key-value pair assigned to the event trigger, identifying the tag's name within the resource's tag set. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="created_at" type="string">
+  The timestamp of when the event trigger was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="last_updated_at" type="string">
+  The timestamp of when the event trigger was most recently updated. Computed by AWS after `ship`.
+</ResponseField>

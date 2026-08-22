@@ -1,0 +1,207 @@
+---
+title: "aws_greengrass_function_definition"
+description: "`aws_greengrass_function_definition` lists the real Lambda functions an `aws_greengrass_group`'s core device runs locally, at the edge..."
+---
+
+`aws_greengrass_function_definition` lists the real Lambda functions an `aws_greengrass_group`'s core device runs locally, at the edge, rather than in the AWS Cloud. Part of Greengrass V1's maintenance-only lifecycle since June 2023.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	greengrass "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/greengrass"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own function definition"})
+
+    		ubx.Resource(greengrass.FunctionDefinition, "ci-runner", greengrass.FunctionDefinitionConfig{
+    			Name:           "ci-runner",
+    			InitialVersion: map[string]any{"functions": []map[string]any{{"function_arn": "example"}}},
+    			Tags:           "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { FunctionDefinition } from "./local-sdk/aws/sdk/typescript/aws/greengrass/function_definition.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own function definition" });
+
+      resource(FunctionDefinition, "ci-runner", {
+        name: "ci-runner",
+        initialVersion: { functions: [{ functionArn: "example" }] },
+        tags: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.greengrass import FunctionDefinition, FunctionDefinitionConfig
+
+    def describe():
+        ubx.intent("payments own function definition")
+
+        ubx.resource(FunctionDefinition, "ci-runner", FunctionDefinitionConfig(
+            name="ci-runner",
+            initial_version={"functions": [{"function_arn": "example"}]},
+            tags="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_greengrass_function_definition called "ci-runner",
+    with initial version a set value, tags example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="initial_version" type="object">
+  Provides the initial version of the function definition, specifying the default configuration and the Lambda functions to be deployed. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="default_config" type="object">
+      Specifies the default execution configuration (such as container isolation mode, memory limit, and timeout) applied to all Lambda functions in this function definition version unless overridden by an individual function's settings. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="execution" type="object" required>
+          Defines the default execution settings for all functions in the definition version, specifying the container isolation mode (e.g., GreengrassContainer or NoContainer) and the system user/group (runAs) that Lambda functions use when running on the Greengrass core. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="isolation_mode" type="string">
+              Specifies the container isolation mode for the Lambda function, either 'GreengrassContainer' or 'NoContainer', determining whether the function runs inside a Greengrass-managed container. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="run_as" type="object">
+              Specifies the user and group identifiers (UID and GID) that Lambda functions in the Greengrass group run as, controlling operating system permissions for execution. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="gid" type="number">
+                  The Linux group ID (GID) that the Lambda function runs as when executed on the Greengrass core, used to override the default system group for the function's process. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="uid" type="number">
+                  The numeric user ID (UID) under which the Lambda function runs when Greengrass executes it, as specified in the default execution run-as configuration for the function definition version. Optional. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="functions" type="list(object)" required>
+      Defines the list of functions included in the initial version of this AWS Greengrass function definition, where each function entry provides the function ARN and its configuration such as memory limit, timeout, and environment variables. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="function_arn" type="string">
+          The Amazon Resource Name (ARN) of the Lambda function that this Greengrass function invokes on the core. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="function_configuration" type="object">
+          Specifies the runtime configuration for the Lambda function in a Greengrass function definition version, including memory size, timeout, environment variables, and execution parameters. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="encoding_type" type="string">
+              Specifies the encoding type (binary or json) of the input payload for the Lambda function in the Greengrass function definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="environment" type="object">
+              Defines the Lambda function's runtime environment, including environment variables (Variables) and access to local Greengrass resources (ResourceAccessPolicies). Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="access_sysfs" type="bool">
+                  Indicates whether the Lambda function can access the host's /sys filesystem. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="execution" type="object">
+                  Specifies the execution settings for the Lambda function, such as the container isolation mode (GreengrassContainer or NoContainer) and the run-as user/group that the function uses. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="isolation_mode" type="string">
+                      Determines whether the Lambda function runs in a Greengrass container (GreengrassContainer) or directly on the host (NoContainer), controlling the isolation level of the execution environment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="run_as" type="object">
+                      Specifies the Unix user ID (Uid) and group ID (Gid) that the Lambda function uses to run in the Greengrass container. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="gid" type="number">
+                          The numeric group ID (GID) of the system group that the Lambda function runs as in the Greengrass execution environment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="uid" type="number">
+                          The numeric user ID (UID) that the Lambda function runs as in the Greengrass group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="resource_access_policies" type="list(object)">
+                  The list of resource access policies that grant the Lambda function permissions (read or write) on specific Greengrass local resources, each referencing a resource ID. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="permission" type="string">
+                      Specifies the access level for the function to the local resource, either 'ro' for read-only or 'rw' for read/write. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="resource_id" type="string">
+                      The ID of the Greengrass group resource (for example, a local volume or device) that the function is granted access to via this resource access policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="variables" type="any">
+                  A map of environment variable names to values that are made available to the Lambda function when it runs on the Greengrass core. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="exec_args" type="string">
+              In a Greengrass function definition's function configuration, this specifies the command-line arguments to pass to the executable when the Lambda function runs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="executable" type="string">
+              The path to the executable file (e.g., a script or binary) that the Lambda function runs on the Greengrass core. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="memory_size" type="number">
+              The amount of memory, in megabytes, to allocate to the Lambda function on the Greengrass core for this function configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="pinned" type="bool">
+              Indicates whether the Lambda function is pinned to the Greengrass core, which causes it to be deployed and kept running in memory rather than invoked on demand. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="timeout" type="number">
+              The maximum time in seconds that the Lambda function is allowed to execute before it is terminated, as part of the function configuration for this AWS Greengrass function definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="id" type="string">
+          A user-defined, unique identifier for this function within the Greengrass function definition version. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the Greengrass function definition, serving as a user-friendly identifier for the resource. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  A map of key-value pairs that you can attach to the function definition resource to identify and organize it. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the function definition. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The unique ID that AWS IoT Greengrass assigns to this function definition, returned as a read-only attribute after the resource is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="latest_version_arn" type="string">
+  The Amazon Resource Name (ARN) of the latest version of the Greengrass function definition, automatically assigned by AWS and updated whenever a new version is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

@@ -1,0 +1,376 @@
+---
+title: "aws_transfer_workflow"
+description: "`aws_transfer_workflow` defines a real sequence of post-upload processing steps, tagging, copying, running a Lambda function..."
+---
+
+`aws_transfer_workflow` defines a real sequence of post-upload processing steps, tagging, copying, running a Lambda function, that Transfer Family automatically runs against a file after it's fully uploaded to an `aws_transfer_server`.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	transfer "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/transfer"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own workflow"})
+
+    		ubx.Resource(transfer.Workflow, "ci-runner", transfer.WorkflowConfig{
+    			Steps:            []map[string]any{{"copy_step_details": map[string]any{"name": "example-name"}}},
+    			Description:      "Managed by ubx.",
+    			OnExceptionSteps: []map[string]any{{"copy_step_details": map[string]any{"name": "example-name"}}},
+    			Tags:             []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Workflow } from "./local-sdk/aws/sdk/typescript/aws/transfer/workflow.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own workflow" });
+
+      resource(Workflow, "ci-runner", {
+        steps: [{ copyStepDetails: { name: "example-name" } }],
+        description: "Managed by ubx.",
+        onExceptionSteps: [{ copyStepDetails: { name: "example-name" } }],
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.transfer import Workflow, WorkflowConfig
+
+    def describe():
+        ubx.intent("payments own workflow")
+
+        ubx.resource(Workflow, "ci-runner", WorkflowConfig(
+            steps=[{"copy_step_details": {"name": "example-name"}}],
+            description="Managed by ubx.",
+            on_exception_steps=[{"copy_step_details": {"name": "example-name"}}],
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_transfer_workflow, with steps a set value, description
+    Managed by ubx., on exception steps a set value, tags a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  A textual description for the workflow. Optional.
+</ResponseField>
+
+<ResponseField name="on_exception_steps" type="list(object)">
+  Specifies the steps (actions) to take if any errors are encountered during execution of the workflow. Optional.
+  <Expandable title="properties">
+    <ResponseField name="copy_step_details" type="object">
+      Configures the destination Amazon S3 bucket, key prefix, and optional overwrite behavior for copying a file when this step runs as part of the workflow's on-exception path. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="destination_file_location" type="object">
+          Defines the target S3 bucket/prefix or EFS path to which the file is copied when this copy step executes as part of the workflow's exception handling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="s3_file_location" type="object">
+              Specifies the S3 destination bucket and key prefix for the copy step within an exception handler of an AWS Transfer Family workflow, defining where the file will be copied when an error occurs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="bucket" type="string">
+                  The name of the S3 bucket that serves as the destination for the file copy operation in this exception step of the Transfer Family workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="key" type="string">
+                  Specifies the S3 object key (file path) used as the destination location for the copy step when a workflow executes in its on-exception path. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The user-defined descriptive name for this copy step in the exception handler branch of the AWS Transfer Family workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="overwrite_existing" type="string">
+          Specifies whether the copy step overwrites an existing destination file (TRUE) or does not overwrite it (FALSE) when executed as part of an on_exception_steps path in an AWS Transfer Family workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source_file_location" type="string">
+          Specifies the source file path for a copy step, which can be a literal path or a workflow variable (e.g., $&#123;original.file&#125;) that identifies the file to copy from the source server. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="custom_step_details" type="object">
+      The custom_step_details object specifies the AWS Lambda function target and an optional name for a custom step within an exception-handling branch of an AWS Transfer Family workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="name" type="string">
+          The `name` property specifies a descriptive name for a custom step (which invokes an AWS Lambda function) in the on-exception steps of an AWS Transfer Family workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source_file_location" type="string">
+          Specifies the source file location (relative to the user's home directory) that is used as input to this custom step in an AWS Transfer Family workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="target" type="string">
+          The ARN of the AWS Lambda function invoked by this custom step when it runs as part of the workflow's on-exception branch. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="timeout_seconds" type="number">
+          The maximum time in seconds that a custom step in the exception path is allowed to run before the workflow times out. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="decrypt_step_details" type="object">
+      Specifies the decryption configuration for a copy/decrypt step in the workflow's error-handling branch, including source and destination file locations, the decryption key type (e.g., PGP), and whether to overwrite existing files. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="destination_file_location" type="object">
+          For a decrypt step in an AWS Transfer Family workflow exception path, this object defines the destination (either an S3 bucket/prefix or an EFS file system path) where the decrypted file is written. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="efs_file_location" type="object">
+              The EFS file system location (file system ID and path) where the decrypted file is written as the destination for the decrypt step. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="file_system_id" type="string">
+                  The unique identifier of the Amazon EFS file system to which the decrypted file is written as part of the workflow step. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="path" type="string">
+                  The EFS filesystem path (directory) to which the decrypted file is written when this decrypt step runs as part of the workflow's exception handling steps. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="s3_file_location" type="object">
+              Specifies the Amazon S3 bucket and object key that serve as the destination location for files after the decryption step in an exception handling path of an AWS Transfer Family workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="bucket" type="string">
+                  The name of the Amazon S3 bucket that receives the decrypted file when this decrypt step runs as part of the workflow's exception handling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="key" type="string">
+                  The S3 object key (or key prefix) under which the decrypted file is stored in the destination S3 bucket when this decrypt step is executed as part of the on-exception (failure) path of the AWS Transfer Family workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Sets a descriptive name for the decrypt step when it is included in the workflow's on-exception steps. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="overwrite_existing" type="string">
+          Specifies whether to overwrite an existing file with the same name or rename the existing file when the decrypted file is written to the destination. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source_file_location" type="string">
+          Specifies the source file location (such as an S3 object key or EFS path) that the decrypt step in the workflow operates on. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          Specifies the decryption type to use, such as PGP, for the file processed in this workflow step. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="delete_step_details" type="object">
+      Specifies the details of a delete step (such as the source file location and file name) that runs when this workflow's on-exception branch is triggered. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="name" type="string">
+          The name field in the delete step details assigns a descriptive identifier to the delete step within the workflow's on-exception branch, used to recognize the step in logs and operational monitoring. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source_file_location" type="string">
+          The source file location (path) of the file to delete in the delete step, which can be a static path or a workflow variable such as $&#123;original.file&#125;, resolved against the user's home directory on the AWS Transfer Family server. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="tag_step_details" type="object">
+      Specifies the tag key (Name) and value (Value) for a TAG step in the onExceptionSteps list of an AWS Transfer Family workflow, which are applied to the transferred file when a prior step in the workflow fails. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="name" type="string">
+          Specifies the tag key (the name of the tag) to assign to the file when this tag step runs as part of the workflow's exception handling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source_file_location" type="string">
+          Specifies the file path or workflow variable that identifies which uploaded file this tag step (on an exception branch) applies tags to, defaulting to the original file if omitted. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="tags" type="list(object)">
+          The key-value tags that are applied to a file when a tag step runs as part of the on-exception path (exception handling) of an AWS Transfer Family workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The key of a tag to attach to the file when this tag step runs in the on-exception branch of the Transfer Family workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The value of a user-defined tag to apply to the file when the tag step runs as part of the workflow's exception handler. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      The type of workflow step to run when an exception occurs, such as COPY, CUSTOM, DELETE, TAG, or TRANSFORM. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="steps" type="list(object)" required>
+  Specifies the details for the steps that are in the specified workflow. Required.
+  <Expandable title="properties">
+    <ResponseField name="copy_step_details" type="object">
+      Configures a copy step in the workflow, specifying the destination file location (S3 bucket and key or EFS file system) and whether to overwrite existing files. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="destination_file_location" type="object">
+          This object defines the destination for a copied file in an AWS Transfer Family workflow Copy step, specifying either an Amazon S3 file location or an Amazon EFS file location. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="s3_file_location" type="object">
+              Specifies the Amazon S3 bucket and optional key prefix that define the destination location for a file copied by the workflow's copy step. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="bucket" type="string">
+                  The name of the Amazon S3 bucket that serves as the destination for the file copied by this workflow copy step. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="key" type="string">
+                  The S3 object key (file name) under which the copied file is stored in the destination bucket, which can be static or include variables such as `$&#123;file_name&#125;` for dynamic naming. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The user-defined name that identifies this copy step within the AWS Transfer workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="overwrite_existing" type="string">
+          Determines whether the copy step overwrites an existing file at the destination, with allowed values 'TRUE' or 'FALSE'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source_file_location" type="string">
+          Specifies the source file path (or a variable) to use as the source for the copy operation in a Transfer Family workflow copy step. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="custom_step_details" type="object">
+      For a workflow step of type CUSTOM, this object specifies the AWS Lambda function to invoke (via its ARN in the `Name` property) and the optional `TimeoutSeconds` setting for the invocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="name" type="string">
+          The name of the custom step in the AWS Transfer Family workflow, used to identify the step. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source_file_location" type="string">
+          Specifies which file the custom Lambda step should process, either the original uploaded file or the output from a previous workflow step. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="target" type="string">
+          The ARN of the AWS Lambda function that this custom workflow step invokes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="timeout_seconds" type="number">
+          The maximum time in seconds (defaulting to 900) that the custom Lambda step is allowed to run before the workflow step is marked as failed, as defined in the CustomStepDetails of an AWS Transfer Family workflow step. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="decrypt_step_details" type="object">
+      Provides settings for a workflow step that decrypts files, including the decryption type (such as PGP), the destination S3 location, and options like overwriting existing files. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="destination_file_location" type="object">
+          Defines the target location (an Amazon S3 bucket and key prefix or an Amazon EFS file system path) where the decrypted file is written after the workflow's decrypt step completes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="efs_file_location" type="object">
+              Specifies the EFS file system ID and path on the destination where the decrypted file is stored. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="file_system_id" type="string">
+                  The unique identifier of the Amazon EFS file system to which the decrypted file is written in this transform step. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="path" type="string">
+                  The path within the specified Amazon EFS file system where the decrypted file is stored as the destination of the decrypt step in the Transfer Family workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="s3_file_location" type="object">
+              Specifies the S3 bucket and key (file location) to which the decrypted file is written after the decrypt step in the Transfer Family workflow executes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="bucket" type="string">
+                  The name of the S3 bucket where the decrypted file is stored as the destination in the decrypt step of an AWS Transfer Family workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="key" type="string">
+                  The S3 object key (file path) where the decrypted file is stored after the decrypt step in the AWS Transfer Family workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The descriptive name for the decrypt step in an AWS Transfer Family workflow, used to identify the step in the console and API operations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="overwrite_existing" type="string">
+          Indicates whether the decrypt step overwrites an existing file with the same name in the destination location. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source_file_location" type="string">
+          Specifies the location of the source file to be decrypted by the decrypt step in an AWS Transfer Family workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          Specifies the encryption type used for the decryption step, with 'PGP' as the only supported value in AWS Transfer Family workflows. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="delete_step_details" type="object">
+      Specifies the details of a DELETE step in the AWS Transfer workflow, including the step name and the source file location (such as $&#123;original.file&#125;) that identifies which file to delete. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="name" type="string">
+          Specifies a human-readable name for the delete step, which AWS Transfer Family uses as a unique identifier for the step within the workflow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source_file_location" type="string">
+          Specifies the location of the file to delete, given as either a static path relative to the user's home directory or a workflow variable such as `$&#123;source&#125;`. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="tag_step_details" type="object">
+      Provides the configuration for a workflow step that adds tags to a file, including the step name, source file location, and the tags to apply. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="name" type="string">
+          The user-defined name for this tag step in the AWS Transfer Family workflow, used to identify the step within the workflow definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source_file_location" type="string">
+          Specifies which file to use as the source for the tagging operation, either 'ORIGINAL' (the initial uploaded file) or the unique ID of a previous workflow step whose output file should be tagged. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="tags" type="list(object)">
+          The list of tag key-value pairs that this workflow step applies to the transferred file. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The key of a tag to assign to the transferred file as part of the workflow's tag step. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The value of the key-value tag that this tag step in the AWS Transfer Family workflow assigns to the target resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      Specifies the type of the workflow step, determining the operation performed on the transferred file (e.g., COPY, DELETE, TAG, or CUSTOM). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Key-value pairs that can be used to group and search for workflows. Tags are metadata attached to workflows for any purpose. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The tag key (e.g., 'environment') assigned to the AWS Transfer Family workflow as part of a metadata tag for resource identification and cost allocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag attached to the AWS Transfer Family workflow, which is a user-defined string that metadataizes the resource for identification, categorization, and access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  Specifies the unique Amazon Resource Name (ARN) for the workflow. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="workflow_id" type="string">
+  A unique identifier for the workflow. Computed by AWS after `ship`.
+</ResponseField>

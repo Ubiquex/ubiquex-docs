@@ -1,0 +1,251 @@
+---
+title: "aws_osis_pipeline"
+description: "`aws_osis_pipeline` creates a real, fully managed OpenSearch Ingestion pipeline, a serverless Data Prepper configuration (in YAML) that filters..."
+---
+
+`aws_osis_pipeline` creates a real, fully managed OpenSearch Ingestion pipeline, a serverless Data Prepper configuration (in YAML) that filters, transforms, and routes data from a source such as S3 into an OpenSearch domain or collection without infrastructure to manage.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	osis "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/osis"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own pipeline"})
+
+    		ubx.Resource(osis.Pipeline, "ci-runner", osis.PipelineConfig{
+    			MaxUnits:                  1,
+    			MinUnits:                  1,
+    			PipelineConfigurationBody: "example",
+    			PipelineName:              "example-pipeline-name",
+    			BufferOptions:             map[string]any{"persistent_buffer_enabled": true},
+    			EncryptionAtRestOptions:   map[string]any{"kms_key_arn": "example"},
+    			LogPublishingOptions:      map[string]any{"cloud_watch_log_destination": map[string]any{"log_group": "example"}},
+    			PipelineRoleArn:           "arn:aws:iam::123456789012:policy/ci",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Pipeline } from "./local-sdk/aws/sdk/typescript/aws/osis/pipeline.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own pipeline" });
+
+      resource(Pipeline, "ci-runner", {
+        maxUnits: 1,
+        minUnits: 1,
+        pipelineConfigurationBody: "example",
+        pipelineName: "example-pipeline-name",
+        bufferOptions: { persistentBufferEnabled: true },
+        encryptionAtRestOptions: { kmsKeyArn: "example" },
+        logPublishingOptions: { cloudWatchLogDestination: { logGroup: "example" } },
+        pipelineRoleArn: "arn:aws:iam::123456789012:policy/ci",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.osis import Pipeline, PipelineConfig
+
+    def describe():
+        ubx.intent("payments own pipeline")
+
+        ubx.resource(Pipeline, "ci-runner", PipelineConfig(
+            max_units=1,
+            min_units=1,
+            pipeline_configuration_body="example",
+            pipeline_name="example-pipeline-name",
+            buffer_options={"persistent_buffer_enabled": True},
+            encryption_at_rest_options={"kms_key_arn": "example"},
+            log_publishing_options={"cloud_watch_log_destination": {"log_group": "example"}},
+            pipeline_role_arn="arn:aws:iam::123456789012:policy/ci",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_osis_pipeline, with max units 1, min units 1, pipeline
+    configuration body example, pipeline name example-pipeline-name,
+    buffer options a set value, encryption at rest options a set
+    value, log publishing options a set value, pipeline role arn
+    arn:aws:iam::123456789012:policy/ci.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="buffer_options" type="object">
+  Key-value pairs to configure buffering. Optional.
+  <Expandable title="properties">
+    <ResponseField name="persistent_buffer_enabled" type="bool" required>
+      Whether persistent buffering should be enabled. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="encryption_at_rest_options" type="object">
+  Key-value pairs to configure encryption at rest. Optional.
+  <Expandable title="properties">
+    <ResponseField name="kms_key_arn" type="string" required>
+      The KMS key to use for encrypting data. By default an AWS owned key is used Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="log_publishing_options" type="object">
+  Key-value pairs to configure log publishing. Optional.
+  <Expandable title="properties">
+    <ResponseField name="cloud_watch_log_destination" type="object">
+      The destination for OpenSearch Ingestion Service logs sent to Amazon CloudWatch. Optional.
+      <Expandable title="properties">
+        <ResponseField name="log_group" type="string" required>
+          The name of the CloudWatch Logs log group where the OpenSearch Ingestion pipeline publishes logs. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="is_logging_enabled" type="bool">
+      Whether logs should be published. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="max_units" type="number" required>
+  The maximum pipeline capacity, in Ingestion OpenSearch Compute Units (OCUs). Required.
+</ResponseField>
+
+<ResponseField name="min_units" type="number" required>
+  The minimum pipeline capacity, in Ingestion OpenSearch Compute Units (OCUs). Required.
+</ResponseField>
+
+<ResponseField name="pipeline_configuration_body" type="string" required>
+  The Data Prepper pipeline configuration. Required.
+</ResponseField>
+
+<ResponseField name="pipeline_name" type="string" required>
+  Name of the OpenSearch Ingestion Service pipeline to create. Pipeline names are unique across the pipelines owned by an account within an AWS Region. Required.
+</ResponseField>
+
+<ResponseField name="pipeline_role_arn" type="string">
+  The Pipeline Role (ARN) for the pipeline. Optional.
+</ResponseField>
+
+<ResponseField name="resource_policy" type="object">
+  The IAM resource policy that grants other AWS services permissions to send messages or data to the OpenSearch Ingestion pipeline. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="policy" type="any" required>
+      The `policy` field specifies the JSON resource-based policy document that defines permissions for the OpenSearch Ingestion pipeline to access specified AWS resources, such as the source and sink data stores. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a user-defined tag to attach to the OpenSearch Ingestion pipeline. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag attached to the OpenSearch Ingestion pipeline, used to store metadata such as environment, owner, or cost center for resource identification and management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vpc_options" type="object">
+  Container for the values required to configure VPC access for the pipeline. If you don't specify these values, OpenSearch Ingestion Service creates the pipeline with a public endpoint. Optional.
+  <Expandable title="properties">
+    <ResponseField name="security_group_ids" type="list(string)">
+      A list of security groups associated with the VPC endpoint. Optional.
+    </ResponseField>
+    <ResponseField name="subnet_ids" type="list(string)" required>
+      A list of subnet IDs associated with the VPC endpoint. Required.
+    </ResponseField>
+    <ResponseField name="vpc_attachment_options" type="object">
+      Options for attaching a VPC to the pipeline. Optional.
+      <Expandable title="properties">
+        <ResponseField name="attach_to_vpc" type="bool" required>
+          Whether the pipeline should be attached to the provided VPC Required.
+        </ResponseField>
+        <ResponseField name="cidr_block" type="string" required>
+          The CIDR block to be reserved for OpenSearch Ingestion to create elastic network interfaces (ENIs). Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="vpc_endpoint_management" type="string">
+      Defines whether you or Amazon OpenSearch Ingestion service create and manage the VPC endpoint configured for the pipeline. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="ingest_endpoint_urls" type="list(string)">
+  A list of endpoints that can be used for ingesting data into a pipeline Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="pipeline_arn" type="string">
+  The Amazon Resource Name (ARN) of the pipeline. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="vpc_endpoint_service" type="string">
+  The VPC endpoint service name for the pipeline. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="vpc_endpoints" type="list(object)">
+  The VPC interface endpoints that have access to the pipeline. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="vpc_endpoint_id" type="string">
+      The unique identifier of a VPC endpoint that clients can use to access the OpenSearch Ingestion pipeline within its VPC. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="vpc_id" type="string">
+      The ID of the VPC in which the VPC endpoint for the OpenSearch Ingestion pipeline is automatically created, allowing the pipeline to be accessed within that VPC. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="vpc_options" type="object">
+      VPC configuration for a VPC endpoint, specifying the subnet IDs and security group IDs associated with the endpoint in the pipeline's VPC. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="security_group_ids" type="list(string)">
+          Specifies the security group IDs to attach to the VPC endpoint for the OpenSearch Ingestion pipeline, controlling network traffic to and from the endpoint within the VPC. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="subnet_ids" type="list(string)">
+          Specifies the subnet IDs within the VPC where the OpenSearch Ingestion pipeline's VPC endpoint will be provisioned. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="vpc_attachment_options" type="object">
+          Configures VPC attachment options for the OpenSearch Ingestion pipeline's VPC endpoint, including whether to attach to a VPC endpoint service and the IAM role used for that attachment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="attach_to_vpc" type="bool">
+              Indicates whether the OpenSearch Ingestion pipeline's VPC endpoint is attached to a VPC, enabling the pipeline to access resources within that VPC when set to true. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="cidr_block" type="string">
+              The CIDR block (e.g., 10.0.0.0/16) that defines the IP address range for the VPC attachment of the OpenSearch Ingestion pipeline's VPC endpoint. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="vpc_endpoint_management" type="string">
+          Indicates whether the VPC endpoint for this OpenSearch Ingestion pipeline is managed by the customer ('CUSTOMER') or by the AWS service ('SERVICE') in the pipeline's VPC options. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>

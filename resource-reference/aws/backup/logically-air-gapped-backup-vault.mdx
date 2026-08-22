@@ -1,0 +1,153 @@
+---
+title: "aws_backup_logically_air_gapped_backup_vault"
+description: "`aws_backup_logically_air_gapped_backup_vault` stores backups in an isolated, service-owned account..."
+---
+
+`aws_backup_logically_air_gapped_backup_vault` stores backups in an isolated, service-owned account, locked by default and encrypted with AWS-owned keys, real protection against ransomware that specifically targets and deletes an account's own backup data, without requiring a separate copy of every backup to achieve it.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	backup "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/backup"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own logically air gapped backup vault"})
+
+    		ubx.Resource(backup.LogicallyAirGappedBackupVault, "ci-runner", backup.LogicallyAirGappedBackupVaultConfig{
+    			BackupVaultName:    "example-backup-vault-name",
+    			MaxRetentionDays:   1,
+    			MinRetentionDays:   1,
+    			AccessPolicy:       "example",
+    			BackupVaultTags:    "example",
+    			EncryptionKeyArn:   "arn:aws:iam::123456789012:policy/ci",
+    			MpaApprovalTeamArn: "arn:aws:iam::123456789012:policy/ci",
+    			Notifications:      map[string]any{"backup_vault_events": []string{"example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { LogicallyAirGappedBackupVault } from "./local-sdk/aws/sdk/typescript/aws/backup/logically_air_gapped_backup_vault.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own logically air gapped backup vault" });
+
+      resource(LogicallyAirGappedBackupVault, "ci-runner", {
+        backupVaultName: "example-backup-vault-name",
+        maxRetentionDays: 1,
+        minRetentionDays: 1,
+        accessPolicy: "example",
+        backupVaultTags: "example",
+        encryptionKeyArn: "arn:aws:iam::123456789012:policy/ci",
+        mpaApprovalTeamArn: "arn:aws:iam::123456789012:policy/ci",
+        notifications: { backupVaultEvents: ["example"] },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.backup import LogicallyAirGappedBackupVault, LogicallyAirGappedBackupVaultConfig
+
+    def describe():
+        ubx.intent("payments own logically air gapped backup vault")
+
+        ubx.resource(LogicallyAirGappedBackupVault, "ci-runner", LogicallyAirGappedBackupVaultConfig(
+            backup_vault_name="example-backup-vault-name",
+            max_retention_days=1,
+            min_retention_days=1,
+            access_policy="example",
+            backup_vault_tags="example",
+            encryption_key_arn="arn:aws:iam::123456789012:policy/ci",
+            mpa_approval_team_arn="arn:aws:iam::123456789012:policy/ci",
+            notifications={"backup_vault_events": ["example"]},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_backup_logically_air_gapped_backup_vault, with backup
+    vault name example-backup-vault-name, max retention days 1, min
+    retention days 1, access policy example, backup vault tags
+    example, encryption key arn arn:aws:iam::123456789012:policy/ci,
+    mpa approval team arn arn:aws:iam::123456789012:policy/ci,
+    notifications a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="access_policy" type="any">
+  The access policy is a JSON resource-based policy that controls which IAM principals can perform actions (such as creating, deleting, or restoring backups) on this logically air-gapped backup vault. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="backup_vault_name" type="string" required>
+  The name of the logically air-gapped backup vault, which uniquely identifies it within an AWS account and region and must be provided when creating the vault. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="backup_vault_tags" type="any">
+  Specifies the key-value tags to assign to the backup vault, enabling you to organize and manage the logically air-gapped vault in AWS Backup. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="encryption_key_arn" type="string">
+  Specifies the AWS KMS key ARN used to encrypt the backups stored in this logically air-gapped backup vault, allowing you to control encryption with a customer-managed key. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="max_retention_days" type="number" required>
+  Specifies the maximum retention period in days for backups that can be stored in this logically air-gapped backup vault. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="min_retention_days" type="number" required>
+  The minimum number of days that backups in this logically air-gapped vault must be retained before they can be deleted, enforcing a locked retention floor. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="mpa_approval_team_arn" type="string">
+  The ARN of the IAM approval team that must authorize the deletion of this logically air-gapped backup vault, enabling multi-party approval (MPA) as a safeguard against accidental or malicious removal. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="notifications" type="object">
+  Configures an optional SNS topic and a list of backup vault event types (such as BACKUP_JOB_COMPLETED or RESTORE_JOB_FAILED) that trigger notifications for this logically air-gapped backup vault. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="backup_vault_events" type="list(string)" required>
+      Specifies the list of backup vault event types (e.g., BACKUP_JOB_STARTED, BACKUP_JOB_COMPLETED, RESTORE_JOB_STARTED) that trigger an SNS notification when they occur for this logically air-gapped backup vault. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="snstopic_arn" type="string" required>
+      The ARN of the Amazon SNS topic that AWS Backup uses to send notifications for events related to this logically air-gapped backup vault. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="backup_vault_arn" type="string">
+  The Amazon Resource Name (ARN) assigned to the logically air-gapped backup vault, used to reference the vault in other AWS Backup operations. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="vault_state" type="string">
+  The current lifecycle state of the logically air-gapped backup vault (e.g., CREATING, AVAILABLE, FAILED), indicating whether it is ready to store recovery points. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="vault_type" type="string">
+  The type of the backup vault, which for this logically air-gapped resource is set to LOGICALLY_AIR_GAPPED_BACKUP_VAULT to indicate its immutable, WORM-compliant storage behavior. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

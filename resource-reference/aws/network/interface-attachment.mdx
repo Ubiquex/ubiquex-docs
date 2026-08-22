@@ -1,0 +1,134 @@
+---
+title: "aws_network_interface_attachment"
+description: "`aws_network_interface_attachment` attaches a real `aws_network_interface` to a specific EC2 instance at a chosen device index..."
+---
+
+`aws_network_interface_attachment` attaches a real `aws_network_interface` to a specific EC2 instance at a chosen device index, the resource that actually represents the attach action rather than the interface itself.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	network "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/network"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own interface attachment"})
+
+    		ubx.Resource(network.InterfaceAttachment, "ci-runner", network.InterfaceAttachmentConfig{
+    			DeviceIndex:         "example",
+    			InstanceId:          "example",
+    			NetworkInterfaceId:  "example",
+    			DeleteOnTermination: true,
+    			EnaQueueCount:       1,
+    			EnaSrdSpecification: map[string]any{"ena_srd_enabled": true},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { InterfaceAttachment } from "./local-sdk/aws/sdk/typescript/aws/network/interface_attachment.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own interface attachment" });
+
+      resource(InterfaceAttachment, "ci-runner", {
+        deviceIndex: "example",
+        instanceId: "example",
+        networkInterfaceId: "example",
+        deleteOnTermination: true,
+        enaQueueCount: 1,
+        enaSrdSpecification: { enaSrdEnabled: true },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.network import InterfaceAttachment, InterfaceAttachmentConfig
+
+    def describe():
+        ubx.intent("payments own interface attachment")
+
+        ubx.resource(InterfaceAttachment, "ci-runner", InterfaceAttachmentConfig(
+            device_index="example",
+            instance_id="example",
+            network_interface_id="example",
+            delete_on_termination=True,
+            ena_queue_count=1,
+            ena_srd_specification={"ena_srd_enabled": True},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_network_interface_attachment, with device index
+    example, instance id example, network interface id example,
+    delete on termination true, ena queue count 1, ena srd
+    specification a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="delete_on_termination" type="bool">
+  Whether to delete the network interface when the instance terminates. By default, this value is set to ``true``. Optional.
+</ResponseField>
+
+<ResponseField name="device_index" type="string" required>
+  The network interface's position in the attachment order. For example, the first attached network interface has a ``DeviceIndex`` of 0. Required.
+</ResponseField>
+
+<ResponseField name="ena_queue_count" type="number">
+  The number of ENA queues created with the instance. Optional.
+</ResponseField>
+
+<ResponseField name="ena_srd_specification" type="object">
+  ENA Express uses AWS Scalable Reliable Datagram (SRD) technology to increase the maximum bandwidth used per stream and minimize tail latency of network traffic between EC2 instances. With ENA Express, you can communicate between two EC2 instances in the same subnet within the same account, or in different accounts. Both sending and receiving instances must have ENA Express enabled. To improve the reliability of network packet delivery, ENA Express reorders network packets on the receiving end by default. However, some UDP-based applications are designed to handle network packets that are out of order to reduce the overhead for packet delivery at the network layer. When ENA Express is enabled, you can specify whether UDP network traffic uses it. Optional.
+  <Expandable title="properties">
+    <ResponseField name="ena_srd_enabled" type="bool">
+      Indicates whether ENA Express is enabled for the network interface. Optional.
+    </ResponseField>
+    <ResponseField name="ena_srd_udp_specification" type="object">
+      Configures ENA Express for UDP network traffic. Optional.
+      <Expandable title="properties">
+        <ResponseField name="ena_srd_udp_enabled" type="bool">
+          Enable ENA Express (Scalable Reliable Datagram) for UDP traffic on the network interface attachment, which can improve throughput and reduce latency for UDP workloads. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="instance_id" type="string" required>
+  The ID of the instance to which you will attach the ENI. Required.
+</ResponseField>
+
+<ResponseField name="network_interface_id" type="string" required>
+  The ID of the ENI that you want to attach. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="attachment_id" type="string">
+  The unique identifier for the attachment between the network interface and the instance. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

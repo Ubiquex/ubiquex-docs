@@ -1,0 +1,131 @@
+---
+title: "aws_omics_configuration"
+description: "`aws_omics_configuration` sets real account-level default run configuration for AWS HealthOmics workflow runs..."
+---
+
+`aws_omics_configuration` sets real account-level default run configuration for AWS HealthOmics workflow runs, such as default VPC subnet and security group settings, so individual `aws_omics_workflow` runs don't need to specify that configuration every time.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	omics "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/omics"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own configuration"})
+
+    		ubx.Resource(omics.Configuration, "ci-runner", omics.ConfigurationConfig{
+    			Name:              "ci-runner",
+    			RunConfigurations: map[string]any{"vpc_config": map[string]any{"security_group_ids": []string{"example"}}},
+    			Description:       "Managed by ubx.",
+    			Tags:              "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Configuration } from "./local-sdk/aws/sdk/typescript/aws/omics/configuration.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own configuration" });
+
+      resource(Configuration, "ci-runner", {
+        name: "ci-runner",
+        runConfigurations: { vpcConfig: { securityGroupIds: ["example"] } },
+        description: "Managed by ubx.",
+        tags: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.omics import Configuration, ConfigurationConfig
+
+    def describe():
+        ubx.intent("payments own configuration")
+
+        ubx.resource(Configuration, "ci-runner", ConfigurationConfig(
+            name="ci-runner",
+            run_configurations={"vpc_config": {"security_group_ids": ["example"]}},
+            description="Managed by ubx.",
+            tags="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_omics_configuration called "ci-runner", with run
+    configurations a set value, description Managed by ubx., tags
+    example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  Optional description for the configuration. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  User-friendly name for the configuration. Required.
+</ResponseField>
+
+<ResponseField name="run_configurations" type="object" required>
+  The run_configurations object specifies the JSON run configuration settings (such as parameters and output locations) that are used when starting workflow runs for this Omics configuration. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="vpc_config" type="object">
+      Specifies the VPC settings (subnet IDs and security group IDs) for the compute environment used by Omics runs, enabling workflows to access resources within a Virtual Private Cloud. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="security_group_ids" type="list(string)">
+          Optional.
+        </ResponseField>
+        <ResponseField name="subnet_ids" type="list(string)">
+          Specifies the list of subnet IDs to use in the VPC configuration for an AWS Omics workflow run configuration. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  A map of resource tags Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  Unique resource identifier for the configuration. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="creation_time" type="string">
+  Configuration creation timestamp. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current configuration status. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="uuid" type="string">
+  Unique identifier for the configuration. Computed by AWS after `ship`.
+</ResponseField>

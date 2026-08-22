@@ -1,0 +1,304 @@
+---
+title: "aws_mwaa_environment"
+description: "`aws_mwaa_environment` creates a real, provisioned Amazon Managed Workflows for Apache Airflow environment, its own Airflow web server, scheduler..."
+---
+
+`aws_mwaa_environment` creates a real, provisioned Amazon Managed Workflows for Apache Airflow environment, its own Airflow web server, scheduler, and workers running continuously, for orchestrating DAGs stored in S3.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	mwaa "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/mwaa"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own environment"})
+
+    		ubx.Resource(mwaa.Environment, "ci-runner", mwaa.EnvironmentConfig{
+    			Name:                        "ci-runner",
+    			AirflowConfigurationOptions: "example",
+    			AirflowVersion:              "example",
+    			DagS3Path:                   "example",
+    			EndpointManagement:          "example",
+    			EnvironmentClass:            "example",
+    			ExecutionRoleArn:            "arn:aws:iam::123456789012:policy/ci",
+    			KmsKey:                      "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Environment } from "./local-sdk/aws/sdk/typescript/aws/mwaa/environment.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own environment" });
+
+      resource(Environment, "ci-runner", {
+        name: "ci-runner",
+        airflowConfigurationOptions: "example",
+        airflowVersion: "example",
+        dagS3Path: "example",
+        endpointManagement: "example",
+        environmentClass: "example",
+        executionRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        kmsKey: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.mwaa import Environment, EnvironmentConfig
+
+    def describe():
+        ubx.intent("payments own environment")
+
+        ubx.resource(Environment, "ci-runner", EnvironmentConfig(
+            name="ci-runner",
+            airflow_configuration_options="example",
+            airflow_version="example",
+            dag_s3_path="example",
+            endpoint_management="example",
+            environment_class="example",
+            execution_role_arn="arn:aws:iam::123456789012:policy/ci",
+            kms_key="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_mwaa_environment called "ci-runner", with airflow
+    configuration options example, airflow version example, dag s3
+    path example, endpoint management example, environment class
+    example, execution role arn arn:aws:iam::123456789012:policy/ci,
+    kms key example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="airflow_configuration_options" type="any">
+  Key/value pairs representing Airflow configuration variables. Keys are prefixed by their section: [core] dags_folder=&#123;AIRFLOW_HOME&#125;/dags Would be represented as "core.dags_folder": "&#123;AIRFLOW_HOME&#125;/dags" Optional.
+</ResponseField>
+
+<ResponseField name="airflow_version" type="string">
+  Version of airflow to deploy to the environment. Optional.
+</ResponseField>
+
+<ResponseField name="dag_s3_path" type="string">
+  Represents an S3 prefix relative to the root of an S3 bucket. Optional.
+</ResponseField>
+
+<ResponseField name="endpoint_management" type="string">
+  Defines whether the VPC endpoints configured for the environment are created, and managed, by the customer or by Amazon MWAA. Optional.
+</ResponseField>
+
+<ResponseField name="environment_class" type="string">
+  Templated configuration for airflow processes and backing infrastructure. Optional.
+</ResponseField>
+
+<ResponseField name="execution_role_arn" type="string">
+  IAM role to be used by tasks. Optional.
+</ResponseField>
+
+<ResponseField name="kms_key" type="string">
+  The identifier of the AWS Key Management Service (AWS KMS) customer master key (CMK) to use for MWAA data encryption. You can specify the CMK using any of the following: Key ID. For example, key/1234abcd-12ab-34cd-56ef-1234567890ab. Key alias. For example, alias/ExampleAlias. Key ARN. For example, arn:aws:kms:us-east-1:012345678910:key/abcd1234-a123-456a-a12b-a123b4cd56ef. Alias ARN. For example, arn:aws:kms:us-east-1:012345678910:alias/ExampleAlias. AWS authenticates the CMK asynchronously. Therefore, if you specify an ID, alias, or ARN that is not valid, the action can appear to complete, but eventually fails. Optional.
+</ResponseField>
+
+<ResponseField name="max_webservers" type="number">
+  Maximum webserver compute units. Optional.
+</ResponseField>
+
+<ResponseField name="max_workers" type="number">
+  Maximum worker compute units. Optional.
+</ResponseField>
+
+<ResponseField name="min_webservers" type="number">
+  Minimum webserver compute units. Optional.
+</ResponseField>
+
+<ResponseField name="min_workers" type="number">
+  Minimum worker compute units. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Customer-defined identifier for the environment, unique per customer region. Required.
+</ResponseField>
+
+<ResponseField name="network_configuration" type="object">
+  Configures the network resources of the environment. Optional.
+  <Expandable title="properties">
+    <ResponseField name="security_group_ids" type="list(string)">
+      A list of security groups to use for the environment. Optional.
+    </ResponseField>
+    <ResponseField name="subnet_ids" type="list(string)">
+      A list of subnets to use for the environment. These must be private subnets, in the same VPC, in two different availability zones. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="plugins_s3_object_version" type="string">
+  Represents an version ID for an S3 object. Optional.
+</ResponseField>
+
+<ResponseField name="plugins_s3_path" type="string">
+  Represents an S3 prefix relative to the root of an S3 bucket. Optional.
+</ResponseField>
+
+<ResponseField name="requirements_s3_object_version" type="string">
+  Represents an version ID for an S3 object. Optional.
+</ResponseField>
+
+<ResponseField name="requirements_s3_path" type="string">
+  Represents an S3 prefix relative to the root of an S3 bucket. Optional.
+</ResponseField>
+
+<ResponseField name="schedulers" type="number">
+  Scheduler compute units. Optional.
+</ResponseField>
+
+<ResponseField name="source_bucket_arn" type="string">
+  ARN for the AWS S3 bucket to use as the source of DAGs and plugins for the environment. Optional.
+</ResponseField>
+
+<ResponseField name="startup_script_s3_object_version" type="string">
+  Represents an version ID for an S3 object. Optional.
+</ResponseField>
+
+<ResponseField name="startup_script_s3_path" type="string">
+  Represents an S3 prefix relative to the root of an S3 bucket. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  A map of tags for the environment. Optional.
+</ResponseField>
+
+<ResponseField name="webserver_access_mode" type="string">
+  Choice for mode of webserver access including over public internet or via private VPC endpoint. Optional.
+</ResponseField>
+
+<ResponseField name="weekly_maintenance_window_start" type="string">
+  Start time for the weekly maintenance window. Optional.
+</ResponseField>
+
+<ResponseField name="worker_replacement_strategy" type="string">
+  The worker replacement strategy to use when updating the environment. Valid values: `FORCED`, `GRACEFUL`. FORCED means Apache Airflow workers will be stopped and replaced without waiting for tasks to complete before an update. GRACEFUL means Apache Airflow workers will be able to complete running tasks for up to 12 hours during an update before being stopped and replaced. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  ARN for the MWAA environment. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="celery_executor_queue" type="string">
+  The celery executor queue associated with the environment. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="database_vpc_endpoint_service" type="string">
+  The database VPC endpoint service name. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="logging_configuration" type="object">
+  Logging configuration for the environment. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="dag_processing_logs" type="object">
+      Logging configuration for a specific airflow component. Optional.
+      <Expandable title="properties">
+        <ResponseField name="cloud_watch_log_group_arn" type="string">
+          The ARN of the CloudWatch log group where Apache Airflow DAG processing logs are delivered in the MWAA environment. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="enabled" type="bool">
+          Indicates whether DAG processing logs are enabled for the Amazon Managed Workflows for Apache Airflow (MWAA) environment. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="log_level" type="string">
+          Sets the log level (e.g., CRITICAL, ERROR, WARNING, INFO, or DEBUG) for the DAG processing logs in the Amazon MWAA environment. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="scheduler_logs" type="object">
+      Logging configuration for a specific airflow component. Optional.
+      <Expandable title="properties">
+        <ResponseField name="cloud_watch_log_group_arn" type="string">
+          The ARN of the CloudWatch Logs log group that receives the scheduler logs for the MWAA environment, enabling access and monitoring of those logs in CloudWatch. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="enabled" type="bool">
+          Whether to enable the publishing of scheduler logs to Amazon CloudWatch Logs for the MWAA environment. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="log_level" type="string">
+          Sets the CloudWatch Logs log level (e.g., INFO, DEBUG) for the scheduler component of the Amazon MWAA environment, controlling the verbosity of scheduler logs. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="task_logs" type="object">
+      Logging configuration for a specific airflow component. Optional.
+      <Expandable title="properties">
+        <ResponseField name="cloud_watch_log_group_arn" type="string">
+          The ARN of the CloudWatch Logs log group to which the MWAA environment delivers its Airflow task logs. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="enabled" type="bool">
+          Whether to enable task-level logging for the Amazon MWAA environment, which captures logs from Airflow task instances. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="log_level" type="string">
+          The log level for Amazon MWAA task logs, controlling which task-level Airflow log messages are recorded in CloudWatch Logs. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="webserver_logs" type="object">
+      Logging configuration for a specific airflow component. Optional.
+      <Expandable title="properties">
+        <ResponseField name="cloud_watch_log_group_arn" type="string">
+          The ARN of the CloudWatch Logs log group that receives the Apache Airflow web server logs for the MWAA environment. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="enabled" type="bool">
+          Whether to enable the collection of Apache Airflow web server logs into CloudWatch Logs for this MWAA environment. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="log_level" type="string">
+          The severity threshold for the Amazon MWAA web server logs, which determines the verbosity of log output and accepts values like CRITICAL, ERROR, WARNING, INFO, and DEBUG. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="worker_logs" type="object">
+      Logging configuration for a specific airflow component. Optional.
+      <Expandable title="properties">
+        <ResponseField name="cloud_watch_log_group_arn" type="string">
+          The ARN of a pre-existing CloudWatch Logs log group where Amazon MWAA sends worker environment logs, allowing you to use a custom log group instead of the automatically created one. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="enabled" type="bool">
+          Whether to enable logging for the worker instances in the MWAA environment. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="log_level" type="string">
+          Specifies the verbosity level (CRITICAL, ERROR, WARNING, INFO, or DEBUG) for Airflow worker logs in the MWAA environment's CloudWatch log group. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="webserver_url" type="string">
+  Url endpoint for the environment's Airflow UI. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="webserver_vpc_endpoint_service" type="string">
+  The webserver VPC endpoint service name, applicable if private webserver access mode selected. Computed by AWS after `ship`.
+</ResponseField>

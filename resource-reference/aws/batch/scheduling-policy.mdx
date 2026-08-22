@@ -1,0 +1,130 @@
+---
+title: "aws_batch_scheduling_policy"
+description: "`aws_batch_scheduling_policy` defines fair-share scheduling for an `aws_batch_job_queue`, assigning share identifiers, decay time..."
+---
+
+`aws_batch_scheduling_policy` defines fair-share scheduling for an `aws_batch_job_queue`, assigning share identifiers, decay time, and weight factors so one user or workload can't monopolize a queue's compute, real logic a queue defaults to plain FIFO without.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	batch "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/batch"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own scheduling policy"})
+
+    		ubx.Resource(batch.SchedulingPolicy, "ci-runner", batch.SchedulingPolicyConfig{
+    			Name:             "ci-runner",
+    			FairsharePolicy:  map[string]any{"compute_reservation": 1},
+    			QuotaSharePolicy: map[string]any{"idle_resource_assignment_strategy": "example"},
+    			Tags:             "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { SchedulingPolicy } from "./local-sdk/aws/sdk/typescript/aws/batch/scheduling_policy.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own scheduling policy" });
+
+      resource(SchedulingPolicy, "ci-runner", {
+        name: "ci-runner",
+        fairsharePolicy: { computeReservation: 1 },
+        quotaSharePolicy: { idleResourceAssignmentStrategy: "example" },
+        tags: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.batch import SchedulingPolicy, SchedulingPolicyConfig
+
+    def describe():
+        ubx.intent("payments own scheduling policy")
+
+        ubx.resource(SchedulingPolicy, "ci-runner", SchedulingPolicyConfig(
+            name="ci-runner",
+            fairshare_policy={"compute_reservation": 1},
+            quota_share_policy={"idle_resource_assignment_strategy": "example"},
+            tags="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_batch_scheduling_policy called "ci-runner", with
+    fairshare policy a set value, quota share policy a set value,
+    tags example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="fairshare_policy" type="object">
+  Fair Share Policy for the Job Queue. Optional.
+  <Expandable title="properties">
+    <ResponseField name="compute_reservation" type="number">
+      The percentage (0-99) of compute resources reserved for this scheduling policy's jobs, guaranteeing a minimum level of capacity even when shares are low. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="share_decay_seconds" type="number">
+      The amount of time in seconds used to calculate the decay factor for the fair share policy, controlling how quickly the share of resources for a job family decreases over time based on its age. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="share_distribution" type="list(object)">
+      List of Share Attributes Optional.
+      <Expandable title="properties">
+        <ResponseField name="share_identifier" type="string">
+          Identifies an individual share within the fair share policy's share distribution list, used by AWS Batch to calculate each share's proportional allocation of compute resources based on its assigned weight factor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="weight_factor" type="number">
+          The relative weight assigned to a share in an AWS Batch fairshare scheduling policy, controlling the proportional amount of vCPUs or resources allocated to that share compared to others. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Name of Scheduling Policy. Optional.
+</ResponseField>
+
+<ResponseField name="quota_share_policy" type="object">
+  Quota Share Policy for the Job Queue. Optional.
+  <Expandable title="properties">
+    <ResponseField name="idle_resource_assignment_strategy" type="string">
+      Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  A key-value pair to associate with a resource. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  ARN of the Scheduling Policy. Computed by AWS after `ship`.
+</ResponseField>

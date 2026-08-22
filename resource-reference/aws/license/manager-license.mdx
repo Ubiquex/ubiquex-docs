@@ -1,0 +1,234 @@
+---
+title: "aws_license_manager_license"
+description: "`aws_license_manager_license` represents a real granted license for a product purchased from AWS Marketplace or from a seller integrated with AWS..."
+---
+
+`aws_license_manager_license` represents a real granted license for a product purchased from AWS Marketplace or from a seller integrated with AWS License Manager's managed entitlements, tracking the license's entitlements, validity period, and consumption rules.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	license "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/license"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own manager license"})
+
+    		ubx.Resource(license.ManagerLicense, "ci-runner", license.ManagerLicenseConfig{
+    			Beneficiary:              "example",
+    			ConsumptionConfiguration: map[string]any{"borrow_configuration": map[string]any{"allow_early_check_in": true}},
+    			Entitlements:             []map[string]any{{"name": "example-name"}},
+    			HomeRegion:               "example",
+    			Issuer:                   map[string]any{"name": "example-name"},
+    			LicenseName:              "example-license-name",
+    			ProductName:              "example-product-name",
+    			ProductSku:               "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ManagerLicense } from "./local-sdk/aws/sdk/typescript/aws/license/manager_license.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own manager license" });
+
+      resource(ManagerLicense, "ci-runner", {
+        beneficiary: "example",
+        consumptionConfiguration: {
+          borrowConfiguration: { allowEarlyCheckIn: true },
+        },
+        entitlements: [{ name: "example-name" }],
+        homeRegion: "example",
+        issuer: { name: "example-name" },
+        licenseName: "example-license-name",
+        productName: "example-product-name",
+        productSku: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.license import ManagerLicense, ManagerLicenseConfig
+
+    def describe():
+        ubx.intent("payments own manager license")
+
+        ubx.resource(ManagerLicense, "ci-runner", ManagerLicenseConfig(
+            beneficiary="example",
+            consumption_configuration={"borrow_configuration": {"allow_early_check_in": True}},
+            entitlements=[{"name": "example-name"}],
+            home_region="example",
+            issuer={"name": "example-name"},
+            license_name="example-license-name",
+            product_name="example-product-name",
+            product_sku="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_license_manager_license, with beneficiary example,
+    consumption configuration a set value, entitlements a set value,
+    home region example, issuer a set value, license name
+    example-license-name, product name example-product-name, product
+    sku example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="beneficiary" type="string" required>
+  Beneficiary of the license. Required.
+</ResponseField>
+
+<ResponseField name="consumption_configuration" type="object" required>
+  Defines the license consumption model, specifying the renewal type (e.g., none, weekly, monthly) and any optional borrow or provisional configurations that govern how the license is used. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="borrow_configuration" type="object">
+      Configures the borrowing parameters for the license, including whether early check-in is allowed and the maximum duration in minutes that the license can be borrowed for offline use. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="allow_early_check_in" type="bool" required>
+          Determines whether licensees can return a borrowed license before the maximum borrow time expires. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="max_time_to_live_in_minutes" type="number" required>
+          The maximum time, in minutes, that a license can be borrowed when the license's consumption configuration uses a borrow configuration. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="provisional_configuration" type="object">
+      Specifies the provisional configuration for the license, which defines the maximum time in minutes that the license remains valid in its provisional state before expiring. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="max_time_to_live_in_minutes" type="number" required>
+          Specifies the maximum time in minutes that a license can be provisionally consumed before it expires, requiring renewal or a different consumption configuration. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="renew_type" type="string">
+      Specifies how often the license renews automatically, with valid values being 'None', 'Weekly', or 'Monthly'. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="entitlements" type="list(object)" required>
+  Defines the list of entitlements granted by the license, each specifying a name, unit, and value (such as a maximum count of a resource like vCPUs or instances). Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="allow_check_in" type="bool">
+      Indicates whether the entitlement can be checked in (returned) after use, releasing the license capacity back to the available pool. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="max_count" type="number">
+      The maximum number of units (such as vCPUs, instances, or other license-allowable resources) that can be consumed under this entitlement. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      The name of the entitlement, which defines the specific resource or capability (e.g., vCPU, instance type) that the license grants usage rights for. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="overage" type="bool">
+      Indicates whether this license entitlement allows overage, meaning usage beyond the allowed maximum count is permitted. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="unit" type="string">
+      The unit of measurement for the entitlement (for example, 'Count' or 'None'), indicating how the entitlement value is quantified. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      For each entitlement in the license, this is the entitlement's value (for example, a quantity or usage amount) expressed as a string. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="home_region" type="string" required>
+  Home region for the created license. Required.
+</ResponseField>
+
+<ResponseField name="issuer" type="object" required>
+  Defines the entity that issues the license, including the issuer's name (and optionally a signing key) used to identify and verify the license source. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="name" type="string" required>
+      The name of the issuer that grants the license, identifying the entity (such as 'AWS' or a custom vendor) that created the license record. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="sign_key" type="string">
+      The Amazon Resource Name (ARN) of the AWS KMS symmetric customer managed key used by the issuer to sign the license. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="license_metadata" type="list(object)">
+  Specifies a list of key-value pairs (metadata) that AWS License Manager attaches to the license and exposes for tracking and management. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="name" type="string">
+      Specifies the name (key) of a metadata entry in a license's custom metadata list, used to store key-value information for the license. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Specifies the value portion of a key-value metadata pair attached to an AWS License Manager license, used to store custom information such as cost center or department alongside the corresponding `key` field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="license_name" type="string" required>
+  Name for the created license. Required.
+</ResponseField>
+
+<ResponseField name="product_name" type="string" required>
+  Product name for the created license. Required.
+</ResponseField>
+
+<ResponseField name="product_sku" type="string" required>
+  ProductSKU of the license. Required.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Specifies the desired status of the license, such as AVAILABLE to activate it immediately or PENDING_AVAILABLE to keep it inactive until a later time. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of tags to attach. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="validity" type="object" required>
+  Defines the start and end dates of the license's validity period, during which the license can be used. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="begin" type="string" required>
+      Validity begin date for the license. Required.
+    </ResponseField>
+    <ResponseField name="end" type="string" required>
+      Validity begin date for the license. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="license_arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies the license. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="version" type="string">
+  The version of the license. Computed by AWS after `ship`.
+</ResponseField>

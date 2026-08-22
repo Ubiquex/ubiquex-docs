@@ -1,0 +1,163 @@
+---
+title: "aws_app_config_deployment"
+description: "`aws_app_config_deployment` starts the actual rollout of a specific configuration version to an `aws_app_config_environment`..."
+---
+
+`aws_app_config_deployment` starts the actual rollout of a specific configuration version to an `aws_app_config_environment`, following a chosen `aws_app_config_deployment_strategy` and validated against any validators the `aws_app_config_configuration_profile` defines, with automatic CloudWatch-alarm-triggered rollback if something breaks mid-rollout.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	app "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/app"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own config deployment"})
+
+    		ubx.Resource(app.ConfigDeployment, "ci-runner", app.ConfigDeploymentConfig{
+    			ApplicationId:              "example",
+    			ConfigurationProfileId:     "example",
+    			ConfigurationVersion:       "example",
+    			DeploymentStrategyId:       "example",
+    			EnvironmentId:              "example",
+    			Description:                "Managed by ubx.",
+    			DynamicExtensionParameters: []map[string]any{{"extension_reference": "example"}},
+    			KmsKeyIdentifier:           "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ConfigDeployment } from "./local-sdk/aws/sdk/typescript/aws/app/config_deployment.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own config deployment" });
+
+      resource(ConfigDeployment, "ci-runner", {
+        applicationId: "example",
+        configurationProfileId: "example",
+        configurationVersion: "example",
+        deploymentStrategyId: "example",
+        environmentId: "example",
+        description: "Managed by ubx.",
+        dynamicExtensionParameters: [{ extensionReference: "example" }],
+        kmsKeyIdentifier: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.app import ConfigDeployment, ConfigDeploymentConfig
+
+    def describe():
+        ubx.intent("payments own config deployment")
+
+        ubx.resource(ConfigDeployment, "ci-runner", ConfigDeploymentConfig(
+            application_id="example",
+            configuration_profile_id="example",
+            configuration_version="example",
+            deployment_strategy_id="example",
+            environment_id="example",
+            description="Managed by ubx.",
+            dynamic_extension_parameters=[{"extension_reference": "example"}],
+            kms_key_identifier="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_app_config_deployment, with application id example,
+    configuration profile id example, configuration version example,
+    deployment strategy id example, environment id example,
+    description Managed by ubx., dynamic extension parameters a set
+    value, kms key identifier example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="application_id" type="string" required>
+  The application ID. Required.
+</ResponseField>
+
+<ResponseField name="configuration_profile_id" type="string" required>
+  The configuration profile ID. Required.
+</ResponseField>
+
+<ResponseField name="configuration_version" type="string" required>
+  The configuration version to deploy. If deploying an AWS AppConfig hosted configuration version, you can specify either the version number or version label. For all other configurations, you must specify the version number. Required.
+</ResponseField>
+
+<ResponseField name="deployment_strategy_id" type="string" required>
+  The deployment strategy ID. Required.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A description of the deployment. Optional.
+</ResponseField>
+
+<ResponseField name="dynamic_extension_parameters" type="list(object)">
+  A list of key-value pairs that specify dynamic parameter values to be passed to the AppConfig extension hooks (e.g., Lambda functions) when the deployment is executed. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="extension_reference" type="string">
+      The name of the AppConfig extension that consumes this dynamic parameter during deployment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="parameter_name" type="string">
+      The name of the dynamic extension parameter being set for the AppConfig deployment, used to pass custom configuration to an extension (such as a Lambda function) during a deployment event. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="parameter_value" type="string">
+      Provides the dynamic value supplied to an extension parameter at deployment time, overriding the extension's default parameter value for this deployment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="environment_id" type="string" required>
+  The environment ID. Required.
+</ResponseField>
+
+<ResponseField name="kms_key_identifier" type="string">
+  The AWS Key Management Service key identifier (key ID, key alias, or key ARN) provided when the resource was created or updated. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="deployment_number" type="string">
+  The sequence number of the deployment. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  The state of the deployment. Computed by AWS after `ship`.
+</ResponseField>

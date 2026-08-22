@@ -1,0 +1,197 @@
+---
+title: "aws_game_lift_game_server_group"
+description: "`aws_game_lift_game_server_group` runs GameLift FleetIQ on top of a real, self-managed EC2 Auto Scaling group..."
+---
+
+`aws_game_lift_game_server_group` runs GameLift FleetIQ on top of a real, self-managed EC2 Auto Scaling group, optimizing for Spot Instance savings while protecting instances that are still hosting active game sessions from early termination.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	game "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/game"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own lift game server group"})
+
+    		ubx.Resource(game.LiftGameServerGroup, "ci-runner", game.LiftGameServerGroupConfig{
+    			GameServerGroupName:        "example-game-server-group-name",
+    			InstanceDefinitions:        []map[string]any{{"instance_type": "example"}},
+    			RoleArn:                    "arn:aws:iam::123456789012:policy/ci",
+    			AutoScalingPolicy:          map[string]any{"target_tracking_configuration": map[string]any{"target_value": 1}},
+    			BalancingStrategy:          "example",
+    			DeleteOption:               "example",
+    			GameServerProtectionPolicy: "example",
+    			LaunchTemplate:             map[string]any{"launch_template_id": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { LiftGameServerGroup } from "./local-sdk/aws/sdk/typescript/aws/game/lift_game_server_group.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own lift game server group" });
+
+      resource(LiftGameServerGroup, "ci-runner", {
+        gameServerGroupName: "example-game-server-group-name",
+        instanceDefinitions: [{ instanceType: "example" }],
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        autoScalingPolicy: { targetTrackingConfiguration: { targetValue: 1 } },
+        balancingStrategy: "example",
+        deleteOption: "example",
+        gameServerProtectionPolicy: "example",
+        launchTemplate: { launchTemplateId: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.game import LiftGameServerGroup, LiftGameServerGroupConfig
+
+    def describe():
+        ubx.intent("payments own lift game server group")
+
+        ubx.resource(LiftGameServerGroup, "ci-runner", LiftGameServerGroupConfig(
+            game_server_group_name="example-game-server-group-name",
+            instance_definitions=[{"instance_type": "example"}],
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            auto_scaling_policy={"target_tracking_configuration": {"target_value": 1}},
+            balancing_strategy="example",
+            delete_option="example",
+            game_server_protection_policy="example",
+            launch_template={"launch_template_id": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_game_lift_game_server_group, with game server group
+    name example-game-server-group-name, instance definitions a set
+    value, role arn arn:aws:iam::123456789012:policy/ci, auto scaling
+    policy a set value, balancing strategy example, delete option
+    example, game server protection policy example, launch template a
+    set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="auto_scaling_policy" type="object">
+  Configuration settings to define a scaling policy for the Auto Scaling group that is optimized for game hosting. Updating this game server group property will not take effect for the created EC2 Auto Scaling group, please update the EC2 Auto Scaling group directly after creating the resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="estimated_instance_warmup" type="number">
+      Length of time, in seconds, it takes for a new instance to start new game server processes and register with GameLift FleetIQ. Optional.
+    </ResponseField>
+    <ResponseField name="target_tracking_configuration" type="object" required>
+      Settings for a target-based scaling policy applied to Auto Scaling group. Required.
+      <Expandable title="properties">
+        <ResponseField name="target_value" type="number" required>
+          Desired value to use with a game server group target-based scaling policy. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="balancing_strategy" type="string">
+  The fallback balancing method to use for the game server group when Spot Instances in a Region become unavailable or are not viable for game hosting. Optional.
+</ResponseField>
+
+<ResponseField name="delete_option" type="string">
+  The type of delete to perform. Optional.
+</ResponseField>
+
+<ResponseField name="game_server_group_name" type="string" required>
+  An identifier for the new game server group. Required.
+</ResponseField>
+
+<ResponseField name="game_server_protection_policy" type="string">
+  A flag that indicates whether instances in the game server group are protected from early termination. Optional.
+</ResponseField>
+
+<ResponseField name="instance_definitions" type="list(object)" required>
+  A set of EC2 instance types to use when creating instances in the group. Required.
+  <Expandable title="properties">
+    <ResponseField name="instance_type" type="string">
+      The EC2 instance type (e.g., c5.large, m5.large) that GameLift uses to launch instances in this game server group's underlying fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="weighted_capacity" type="string">
+      Sets the relative weighting that this instance type contributes to the game server group's total capacity, used by Amazon GameLift to determine how many instances of each type are needed to meet the group's target capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="launch_template" type="object">
+  The EC2 launch template that contains configuration settings and game server code to be deployed to all instances in the game server group. Updating this game server group property will not take effect for the created EC2 Auto Scaling group, please update the EC2 Auto Scaling group directly after creating the resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="launch_template_id" type="string">
+      A unique identifier for an existing EC2 launch template. Optional.
+    </ResponseField>
+    <ResponseField name="launch_template_name" type="string">
+      A readable identifier for an existing EC2 launch template. Optional.
+    </ResponseField>
+    <ResponseField name="version" type="string">
+      The version of the EC2 launch template to use. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="max_size" type="number">
+  The maximum number of instances allowed in the EC2 Auto Scaling group. Updating this game server group property will not take effect for the created EC2 Auto Scaling group, please update the EC2 Auto Scaling group directly after creating the resource. Optional.
+</ResponseField>
+
+<ResponseField name="min_size" type="number">
+  The minimum number of instances allowed in the EC2 Auto Scaling group. Updating this game server group property will not take effect for the created EC2 Auto Scaling group, please update the EC2 Auto Scaling group directly after creating the resource. Optional.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  The Amazon Resource Name (ARN) for an IAM role that allows Amazon GameLift to access your EC2 Auto Scaling groups. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of labels to assign to the new game server group resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag assigned to this GameLift game server group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of an arbitrary tag key assigned to the GameLift GameServerGroup, used for resource organization, cost allocation, and access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vpc_subnets" type="list(string)">
+  A list of virtual private cloud (VPC) subnets to use with instances in the game server group. Updating this game server group property will not take effect for the created EC2 Auto Scaling group, please update the EC2 Auto Scaling group directly after creating the resource. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="auto_scaling_group_arn" type="string">
+  A generated unique ID for the EC2 Auto Scaling group that is associated with this game server group. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="game_server_group_arn" type="string">
+  A generated unique ID for the game server group. Computed by AWS after `ship`.
+</ResponseField>

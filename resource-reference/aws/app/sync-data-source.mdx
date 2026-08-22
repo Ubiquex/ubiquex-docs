@@ -1,0 +1,258 @@
+---
+title: "aws_app_sync_data_source"
+description: "`aws_app_sync_data_source` connects an `aws_app_sync_api` to a real backend, a DynamoDB table, a Lambda function, an HTTP endpoint, or another source..."
+---
+
+`aws_app_sync_data_source` connects an `aws_app_sync_api` to a real backend, a DynamoDB table, a Lambda function, an HTTP endpoint, or another source, that an `aws_app_sync_resolver` then reads from or writes to when a matching query or mutation runs.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	app "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/app"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own sync data source"})
+
+    		ubx.Resource(app.SyncDataSource, "ci-runner", app.SyncDataSourceConfig{
+    			ApiId:               "example",
+    			Name:                "ci-runner",
+    			Type:                "example",
+    			Description:         "Managed by ubx.",
+    			DynamoDbconfig:      map[string]any{"aws_region": "example"},
+    			ElasticsearchConfig: map[string]any{"aws_region": "example"},
+    			EventBridgeConfig:   map[string]any{"event_bus_arn": "example"},
+    			HttpConfig:          map[string]any{"endpoint": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { SyncDataSource } from "./local-sdk/aws/sdk/typescript/aws/app/sync_data_source.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own sync data source" });
+
+      resource(SyncDataSource, "ci-runner", {
+        apiId: "example",
+        name: "ci-runner",
+        type: "example",
+        description: "Managed by ubx.",
+        dynamoDbconfig: { awsRegion: "example" },
+        elasticsearchConfig: { awsRegion: "example" },
+        eventBridgeConfig: { eventBusArn: "example" },
+        httpConfig: { endpoint: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.app import SyncDataSource, SyncDataSourceConfig
+
+    def describe():
+        ubx.intent("payments own sync data source")
+
+        ubx.resource(SyncDataSource, "ci-runner", SyncDataSourceConfig(
+            api_id="example",
+            name="ci-runner",
+            type="example",
+            description="Managed by ubx.",
+            dynamo_dbconfig={"aws_region": "example"},
+            elasticsearch_config={"aws_region": "example"},
+            event_bridge_config={"event_bus_arn": "example"},
+            http_config={"endpoint": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_app_sync_data_source called "ci-runner", with api id
+    example, type example, description Managed by ubx., dynamo
+    dbconfig a set value, elasticsearch config a set value, event
+    bridge config a set value, http config a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="api_id" type="string" required>
+  Unique AWS AppSync GraphQL API identifier where this data source will be created. Required.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  The description of the data source. Optional.
+</ResponseField>
+
+<ResponseField name="dynamo_dbconfig" type="object">
+  Provides the DynamoDB-specific configuration for the AppSync data source, including the target table name and AWS region (and optionally the read and write capacity settings used by the data source). Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="aws_region" type="string" required>
+      The AWS Region. Required.
+    </ResponseField>
+    <ResponseField name="delta_sync_config" type="object">
+      Configures delta synchronization for the DynamoDB-backed AppSync data source, defining the delta sync table and TTL settings that allow the API to push incremental changes (including deletes) to connected clients. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="base_table_ttl" type="string" required>
+          The number of minutes that an Item is stored in the data source. Required.
+        </ResponseField>
+        <ResponseField name="delta_sync_table_name" type="string" required>
+          The Delta Sync table name. Required.
+        </ResponseField>
+        <ResponseField name="delta_sync_table_ttl" type="string" required>
+          The number of minutes that a Delta Sync log entry is stored in the Delta Sync table. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="table_name" type="string" required>
+      The table name. Required.
+    </ResponseField>
+    <ResponseField name="use_caller_credentials" type="bool">
+      Set to TRUE to use AWS Identity and Access Management with this data source. Optional.
+    </ResponseField>
+    <ResponseField name="versioned" type="bool">
+      Set to TRUE to use Conflict Detection and Resolution with this data source. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="elasticsearch_config" type="object">
+  Specifies the endpoint and AWS region of an Amazon OpenSearch Service (formerly Elasticsearch) domain that the AppSync data source connects to when the data source type is AMAZON_ELASTICSEARCH. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="aws_region" type="string" required>
+      The AWS Region. Required.
+    </ResponseField>
+    <ResponseField name="endpoint" type="string" required>
+      The endpoint. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="event_bridge_config" type="object">
+  Configures an Amazon EventBridge data source by specifying the event bus ARN that the AppSync data source will use to interact with EventBridge events. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="event_bus_arn" type="string" required>
+      ARN for the EventBridge bus. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="http_config" type="object">
+  Configures the HTTP endpoint and optional authorization settings for an AWS AppSync HTTP data source, including the endpoint URL and any IAM or API key authorization details. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="authorization_config" type="object">
+      Specifies the authorization type and, when using AWS_IAM, the AWS IAM signing configuration (signing region and service name) for requests to the HTTP endpoint. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="authorization_type" type="string" required>
+          The authorization type that the HTTP endpoint requires. Required.
+        </ResponseField>
+        <ResponseField name="aws_iam_config" type="object">
+          Specifies the IAM signing region and service name for signing HTTP requests to the data source endpoint when the authorization type is AWS_IAM. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="signing_region" type="string">
+              The signing Region for AWS Identity and Access Management authorization. Optional.
+            </ResponseField>
+            <ResponseField name="signing_service_name" type="string">
+              The signing service name for AWS Identity and Access Management authorization. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="endpoint" type="string" required>
+      The endpoint. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="lambda_config" type="object">
+  The configuration for an AWS Lambda data source, including the ARN of the Lambda function that AppSync invokes to read and write data. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="lambda_function_arn" type="string" required>
+      The ARN for the Lambda function. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="metrics_config" type="string">
+  Specifies whether CloudWatch metrics are enabled for this AppSync data source, with allowed values 'ENABLED' or 'DISABLED'. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Friendly name for you to identify your AppSync data source after creation. Required.
+</ResponseField>
+
+<ResponseField name="open_search_service_config" type="object">
+  Defines the connection settings (endpoint and region) for using an Amazon OpenSearch Service domain as the AppSync data source. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="aws_region" type="string" required>
+      The AWS Region. Required.
+    </ResponseField>
+    <ResponseField name="endpoint" type="string" required>
+      The endpoint. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="relational_database_config" type="object">
+  Specifies the configuration for connecting the AppSync data source to an Amazon RDS or Aurora relational database, defining either the RDS HTTP endpoint (Data API) settings or a Lambda function that accesses the database. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="rds_http_endpoint_config" type="object">
+      The HTTP endpoint configuration for the Amazon RDS relational database used by the AppSync data source, specifying the Aurora Serverless DB cluster, AWS Secrets Manager secret ARN, database name, and region to connect to. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="aws_region" type="string" required>
+          AWS Region for RDS HTTP endpoint. Required.
+        </ResponseField>
+        <ResponseField name="aws_secret_store_arn" type="string" required>
+          The ARN for database credentials stored in AWS Secrets Manager. Required.
+        </ResponseField>
+        <ResponseField name="database_name" type="string">
+          Logical database name. Optional.
+        </ResponseField>
+        <ResponseField name="db_cluster_identifier" type="string" required>
+          Amazon RDS cluster Amazon Resource Name (ARN). Required.
+        </ResponseField>
+        <ResponseField name="schema" type="string">
+          Logical schema name. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="relational_database_source_type" type="string" required>
+      The type of relational data source. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="service_role_arn" type="string">
+  The AWS Identity and Access Management service role ARN for the data source. The system assumes this role when accessing the data source. Optional.
+</ResponseField>
+
+<ResponseField name="type" type="string" required>
+  The type of the data source. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="data_source_arn" type="string">
+  The Amazon Resource Name (ARN) of the API key, such as arn:aws:appsync:us-east-1:123456789012:apis/graphqlapiid/datasources/datasourcename. Computed by AWS after `ship`.
+</ResponseField>

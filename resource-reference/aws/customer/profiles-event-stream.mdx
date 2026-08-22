@@ -1,0 +1,134 @@
+---
+title: "aws_customer_profiles_event_stream"
+description: "`aws_customer_profiles_event_stream` streams real profile change events out of an `aws_customer_profiles_domain` as they happen..."
+---
+
+`aws_customer_profiles_event_stream` streams real profile change events out of an `aws_customer_profiles_domain` as they happen, the mechanism for reacting to profile updates elsewhere rather than polling Customer Profiles for changes.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	customer "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/customer"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own profiles event stream"})
+
+    		ubx.Resource(customer.ProfilesEventStream, "ci-runner", customer.ProfilesEventStreamConfig{
+    			DomainName:      "example-domain-name",
+    			EventStreamName: "example-event-stream-name",
+    			Uri:             "example",
+    			Tags:            []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ProfilesEventStream } from "./local-sdk/aws/sdk/typescript/aws/customer/profiles_event_stream.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own profiles event stream" });
+
+      resource(ProfilesEventStream, "ci-runner", {
+        domainName: "example-domain-name",
+        eventStreamName: "example-event-stream-name",
+        uri: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.customer import ProfilesEventStream, ProfilesEventStreamConfig
+
+    def describe():
+        ubx.intent("payments own profiles event stream")
+
+        ubx.resource(ProfilesEventStream, "ci-runner", ProfilesEventStreamConfig(
+            domain_name="example-domain-name",
+            event_stream_name="example-event-stream-name",
+            uri="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_customer_profiles_event_stream, with domain name
+    example-domain-name, event stream name example-event-stream-name,
+    uri example, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="domain_name" type="string" required>
+  The unique name of the domain. Required.
+</ResponseField>
+
+<ResponseField name="event_stream_name" type="string" required>
+  The name of the event stream. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags used to organize, track, or control access for this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a user-defined tag applied to the event stream resource, which is used for metadata organization, cost allocation, and access control within AWS Customer Profiles. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      For an AWS Customer Profiles event stream, this is the value component of a tag entry, used to define a custom attribute for the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="uri" type="string" required>
+  The StreamARN of the destination to deliver profile events to. For example, arn:aws:kinesis:region:account-id:stream/stream-name Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="created_at" type="string">
+  The timestamp of when the export was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="destination_details" type="object">
+  Details regarding the Kinesis stream. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="status" type="string" required>
+      The status of enabling the Kinesis stream as a destination for export. Required.
+    </ResponseField>
+    <ResponseField name="uri" type="string" required>
+      The StreamARN of the destination to deliver profile events to. For example, arn:aws:kinesis:region:account-id:stream/stream-name Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="event_stream_arn" type="string">
+  A unique identifier for the event stream. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  The operational state of destination stream for export. Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,417 @@
+---
+title: "aws_logs_transformer"
+description: "`aws_logs_transformer` attaches a real ordered pipeline of processors to an `aws_logs_log_group`..."
+---
+
+`aws_logs_transformer` attaches a real ordered pipeline of processors to an `aws_logs_log_group`, applying transformations to each log event at ingestion time so that later Logs Insights queries and metric filters can operate on the transformed, structured version rather than the raw text.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	logs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/logs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own transformer"})
+
+    		ubx.Resource(logs.Transformer, "ci-runner", logs.TransformerConfig{
+    			LogGroupIdentifier: "example",
+    			TransformerConfig:  []map[string]any{{"add_keys": map[string]any{"entries": []map[string]any{{"key": "example"}}}}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Transformer } from "./local-sdk/aws/sdk/typescript/aws/logs/transformer.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own transformer" });
+
+      resource(Transformer, "ci-runner", {
+        logGroupIdentifier: "example",
+        transformerConfig: [{ addKeys: { entries: [{ key: "example" }] } }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.logs import Transformer, TransformerConfig
+
+    def describe():
+        ubx.intent("payments own transformer")
+
+        ubx.resource(Transformer, "ci-runner", TransformerConfig(
+            log_group_identifier="example",
+            transformer_config=[{"add_keys": {"entries": [{"key": "example"}]}}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_logs_transformer, with log group identifier example,
+    transformer config a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="log_group_identifier" type="string" required>
+  Existing log group that you want to associate with this transformer. Required.
+</ResponseField>
+
+<ResponseField name="transformer_config" type="list(object)" required>
+  List of processors in a transformer Required.
+  <Expandable title="properties">
+    <ResponseField name="add_keys" type="object">
+      Defines a set of key-value pairs to append to each log event processed by the transformer, where each entry specifies a key and a value to add to the log record. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="entries" type="list(object)">
+          The entries list defines the key-value pairs to add to log events, where each entry specifies a key and its value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The name of the new field that CloudWatch Logs Transformer adds to the log event, serving as the key in the key-value pair inserted by the add_keys operation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="overwrite_if_exists" type="bool">
+              For the add_keys processor of a CloudWatch Logs transformer, this boolean specifies whether to overwrite the value of a key if it already exists in a log event (true) or leave the original value unchanged (false). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The value to assign to the new key when the add_keys transformation is applied to a log event in the AWS::Logs::Transformer resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="copy_value" type="object">
+      Defines the copyValue transformation for a CloudWatch Logs Transformer, which copies the value from a specified source field to a target field in each log event via a list of entries containing source and target field names. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="entries" type="list(object)">
+          Defines copy operations that duplicate a value from a source field to a target field within each log event, with each entry specifying the source and target keys. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="overwrite_if_exists" type="bool">
+              Specifies whether to overwrite the destination field with the copied value if that destination field already exists in the log event. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="source" type="string">
+              The name of the source field in the log event whose value is copied to the target field by the copy_value transformation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="target" type="string">
+              Specifies the destination field name in the log event where the value from the source key is copied by the copyValue transformation processor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="csv" type="object">
+      The 'csv' property within the transformer configuration defines a processor that parses comma-separated values from a log event field, with options for the source field, delimiter, quote character, column names, and handling of missing or trailing fields. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="columns" type="list(string)">
+          Provides the ordered list of column names that the CSV transformation processor uses to map comma-separated values extracted from each log event. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="delimiter" type="string">
+          The delimiter character used by the CSV transformer to separate fields in the log message for parsing. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="quote_character" type="string">
+          Specifies the character used to enclose quoted fields in the CSV input, so that delimiters within quoted fields are treated as literal characters rather than separators. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source" type="string">
+          The name of the source field in the log event that contains the CSV-formatted data to be parsed into separate fields by the CSV transformer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="date_time_converter" type="object">
+      Configures the date-time converter processor, which transforms a datetime field in a log event by specifying a source field, a destination field, and the target output format. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="locale" type="string">
+          Specifies the locale (e.g., en-US) used by the date-time converter when parsing or formatting date/time values, affecting language-specific month/day names and date format conventions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="match_patterns" type="list(string)">
+          The list of date/time patterns that the DateTimeConverter processor attempts to match against the source field's value in order to parse it before converting to the specified target format. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source" type="string">
+          The source field specifies the name of the log event field that contains the datetime value to be converted by the date-time converter processor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source_timezone" type="string">
+          Specifies the time zone (e.g., 'UTC', 'America/New_York') of the source timestamp, which the DateTimeConverter processor uses to interpret and convert the log record's time before applying the target format. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="target" type="string">
+          Specifies the log event field name where the date/time converter writes the converted date/time value, using the configured target format. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="target_format" type="string">
+          Defines the target strftime-compatible format (e.g., '%Y-%m-%d %H:%M:%S') that the dateTimeConverter processor uses to rewrite the value of the source datetime field in transformed log events. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="target_timezone" type="string">
+          Specifies the IANA time zone (e.g., 'America/New_York') to which the source date/time value is converted when setting the target field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="delete_keys" type="object">
+      Specifies the log event keys to be removed by the deleteKeys processor within the AWS Logs transformer configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="with_keys" type="list(string)">
+          The list of log event field names to delete when the transformer's deleteKeys operation is applied. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="grok" type="object">
+      Defines a Grok-based transformation processor that uses user-supplied Grok patterns to parse and extract structured fields from a log event's source field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="match" type="string">
+          The grok pattern string used to match and extract named fields from the log event, e.g. '%&#123;TIMESTAMP_ISO8601:timestamp&#125; %&#123;LOGLEVEL:level&#125; %&#123;GREEDYDATA:message&#125;'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source" type="string">
+          Specifies the source log event field (e.g., @message or a custom field name) that the grok pattern is applied to for extracting structured data. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="list_to_map" type="object">
+      Configures the list-to-map processor, which converts a source list field into a map by extracting key-value pairs from each element. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="flatten" type="bool">
+          When true, the list_to_map processor flattens the resulting map so that each key maps directly to the value field of the source object, rather than to the entire object. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="flattened_element" type="string">
+          Specifies how the list-to-map transformation handles multiple list elements that share the same key, with valid values 'first' (use the first value), 'last' (use the last value), or 'all' (collect all values into an array). Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="key" type="string">
+          The name of the attribute in each source list element that is used as the map key when transforming a list of objects into a map. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source" type="string">
+          The name of the log event field that contains the list of strings to be converted into a map by the ListToMap processor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="target" type="string">
+          The name of the destination field where the map created from the source list is written. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value_key" type="string">
+          Specifies the field in each list item whose value is used as the value in the map produced by the list-to-map transformation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="lower_case_string" type="object">
+      Configures the lowerCaseString processor, which lowercases the values of specified keys in log events. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="with_keys" type="list(string)">
+          Specifies which fields (keys) in the log event should have their string values converted to lowercase by the lower_case_string transformation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="move_keys" type="object">
+      In the AWS::Logs::Transformer resource, this field defines the key-rename mappings for the moveKeys processor, where each mapping specifies a source key and a target key to rename fields in incoming log events. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="entries" type="list(object)">
+          Specifies the list of move-key entries, where each entry defines a source and target key to rename fields in a log event as part of the moveKeys processor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="overwrite_if_exists" type="bool">
+              Whether to overwrite the target key in the log event if it already exists when moving the source key to the target key. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="source" type="string">
+              The source key path in the log event whose value is moved to the target key by the MoveKeys processor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="target" type="string">
+              The destination key path to which the value of the source key is moved within the log event. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="parse_cloudfront" type="object">
+      This field configures the CloudFront access log parser, where you specify the source log field to parse (and optionally a destination field for the extracted structured data). Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="source" type="string">
+          The source field specifies the name of the log event attribute that contains the raw CloudFront access log line to be parsed by the parse_cloudfront processor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="parse_json" type="object">
+      Configures the parse JSON processor to parse a specified log message field as JSON and add the resulting key-value pairs to the log event. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="destination" type="string">
+          In the `parseJson` processor, `destination` is the output field path where the JSON-decoded content of the source field is placed; if omitted, the parsed fields are merged directly into the root of the log event. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source" type="string">
+          Specifies the name of the source field within the log event whose JSON string value is parsed by the ParseJSON processor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="parse_key_value" type="object">
+      This field configures the `parse_key_value` processor within the CloudFormation `AWS::Logs::Transformer` resource, defining how key-value pairs are extracted from log messages by specifying parameters such as `source`, `destination`, `delimiter`, `key_value_delimiter`, and `key_prefix`. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="destination" type="string">
+          Specifies the destination field in the log event where the parsed key-value pairs are written, such as a top-level key or a nested path. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="field_delimiter" type="string">
+          Specifies the delimiter used to separate key-value pairs (fields) in the source log event when applying the parse_key_value transformation, for example a space or comma. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="key_prefix" type="string">
+          When set, prepends this string to every key parsed from the log message by the parse_key_value processor, so that the generated CloudWatch Logs fields are namespaced under the specified prefix. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="key_value_delimiter" type="string">
+          Sets the specific character (such as '=' or ':') that separates a key from its value when the parse-key-value processor splits a log entry into key-value pairs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="non_match_value" type="string">
+          Sets the string value to substitute for a key when the input text does not contain a matching value delimiter, so the key is still present with this fallback value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="overwrite_if_exists" type="bool">
+          When parsing key-value pairs from the log message, if this flag is true the parser replaces the value of any existing target key with the newly parsed value, otherwise it keeps the existing value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source" type="string">
+          Specifies the name of the source field in a log event that contains a key-value pair string, which the transformer parses into individual fields according to the configured delimiters. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="parse_postgres" type="object">
+      This object configures the Postgres log parser within the CloudWatch Logs Transformer, specifying the source field that contains the raw PostgreSQL log message so that structured data is extracted from it. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="source" type="string">
+          The name of the log event field containing the PostgreSQL query text that the parse_postgres transformer will parse. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="parse_route53" type="object">
+      Configures the transformation that parses Route 53 DNS query log events, extracting structured fields such as domain name, query type, and response code from the raw log line. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="source" type="string">
+          Specifies the key (field) in each incoming log event that contains the Route 53 DNS query log text to be parsed by this transformer processor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="parse_to_ocsf" type="object">
+      Specifies the configuration for the parse-to-OCSF processor within the transformer, which converts incoming log events to the Open Cybersecurity Schema Framework (OCSF) format. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="event_source" type="string">
+          Specifies the OCSF event source (such as 'cloudtrail' or 'vpcflow') that the ParseToOCSF transformer uses to interpret and map the log record into the OCSF schema. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="mapping_version" type="string">
+          Specifies the version of the OCSF (Open Cybersecurity Schema Framework) mapping to use when converting the log event to OCSF format. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="ocsf_version" type="string">
+          Specifies the version of the Open Cybersecurity Schema Framework (OCSF) to use when converting log records to OCSF format. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source" type="string">
+          Specifies the name of the source field in the incoming log event that contains the data to be parsed and converted into OCSF format. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="parse_vpc" type="object">
+      Defines the ParseVpc processor settings for the transformer, including the source field to parse VPC flow log data from and the target field to write the parsed structured fields to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="source" type="string">
+          The name of the source field in the log event containing the VPC flow log record to parse; if omitted, defaults to the `message` field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="parse_waf" type="object">
+      Configures a processor that parses AWS WAF log entries into a structured format, extracting fields such as the rule, action, and request details from the raw JSON logs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="source" type="string">
+          Specifies the name of the log event key that contains the raw AWS WAF log string to be parsed by the parse_waf processor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="rename_keys" type="object">
+      Specifies a mapping of original log field names to their replacement names, used to rename fields during log transformation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="entries" type="list(object)">
+          Defines a list of key rename mappings, where each mapping specifies an existing log event key and the new key name to replace it with during transformation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The original key name in the log event that will be renamed to the value of this entry in the renameKeys transformation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="overwrite_if_exists" type="bool">
+              If true, the transformer overwrites the target key's value when renaming a source key to a key name that already exists; if false, the rename does not overwrite the existing key and leaves the original key unchanged. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="rename_to" type="string">
+              Specifies the new name to assign to a log event key in a renameKeys entry of the CloudWatch Logs transformer, replacing the original key name. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="split_string" type="object">
+      Configures a split-string processor that divides a specified string field into an array of substrings using a delimiter. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="entries" type="list(object)">
+          The list of split operations, where each entry defines the source field to split, the delimiter to use, and the target field names to receive the resulting substrings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="delimiter" type="string">
+              The delimiter string used by the splitString processor to divide the source log field's value into separate parts. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="source" type="string">
+              Specifies the field in the log event whose string value is segmented into multiple substrings using the configured delimiter for the splitString processor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="substitute_string" type="object">
+      The substitute_string object configures a string substitution processor that replaces occurrences of a specified source pattern (regular expression) in the log event message with the provided replacement string. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="entries" type="list(object)">
+          The list of source-target string pairs, where each entry specifies a source pattern to find in the log message and the replacement target string to substitute in its place when this SubstituteString transformation runs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="from" type="string">
+              Specifies the literal substring within the log event that the substituteString processor will replace with the corresponding 'to' string. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="source" type="string">
+              The literal string to find within the log event that will be replaced by the corresponding target string in this substitute_string entry. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="to" type="string">
+              The replacement string that is substituted for every occurrence of the entry's source string in the log event during this transformer's substitute_string processing. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="trim_string" type="object">
+      This object configures the TrimString processor, which trims leading and trailing whitespace from the values of the specified fields in the log event. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="with_keys" type="list(string)">
+          The with_keys property under trim_string specifies the list of log event keys whose string values should have leading and trailing whitespace trimmed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type_converter" type="object">
+      Specifies the type converter processor that changes the data type of selected fields in CloudWatch Logs events to a target type (such as integer, double, boolean, or string) for normalization and downstream processing. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="entries" type="list(object)">
+          Specifies the list of type conversion entries for the typeConverter processor, where each entry defines a log field name and the target data type to convert that field to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The key is the name of the log event field that the type converter processes, telling the transformer which field's value should be converted to the target type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="type" type="string">
+              The target data type to which the field value is converted, such as integer, double, boolean, or string. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="upper_case_string" type="object">
+      The upper_case_string processor in the transformer config converts the string values of the specified log event fields to uppercase. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="with_keys" type="list(string)">
+          Specifies the list of log event keys whose values are converted to uppercase in the upper-case-string transformer processor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>

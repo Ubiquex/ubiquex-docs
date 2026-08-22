@@ -1,0 +1,253 @@
+---
+title: "aws_emrcontainers_security_configuration"
+description: "`aws_emrcontainers_security_configuration` is a real, reusable security setup, including AWS Lake Formation integration..."
+---
+
+`aws_emrcontainers_security_configuration` is a real, reusable security setup, including AWS Lake Formation integration, that gets applied to an `aws_emrcontainers_virtual_cluster` when it's created, rather than every virtual cluster's security being configured individually.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	emrcontainers "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/emrcontainers"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own security configuration"})
+
+    		ubx.Resource(emrcontainers.SecurityConfiguration, "ci-runner", emrcontainers.SecurityConfigurationConfig{
+    			SecurityConfigurationData: map[string]any{"authentication_configuration": map[string]any{"iamconfiguration": map[string]any{"system_role": "example"}}},
+    			Name:                      "ci-runner",
+    			ContainerProvider:         map[string]any{"id": "example"},
+    			Tags:                      []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { SecurityConfiguration } from "./local-sdk/aws/sdk/typescript/aws/emrcontainers/security_configuration.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own security configuration" });
+
+      resource(SecurityConfiguration, "ci-runner", {
+        securityConfigurationData: {
+          authenticationConfiguration: {
+            iamconfiguration: { systemRole: "example" },
+          },
+        },
+        name: "ci-runner",
+        containerProvider: { id: "example" },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.emrcontainers import SecurityConfiguration, SecurityConfigurationConfig
+
+    def describe():
+        ubx.intent("payments own security configuration")
+
+        ubx.resource(SecurityConfiguration, "ci-runner", SecurityConfigurationConfig(
+            security_configuration_data={"authentication_configuration": {"iamconfiguration": {"system_role": "example"}}},
+            name="ci-runner",
+            container_provider={"id": "example"},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_emrcontainers_security_configuration called
+    "ci-runner", with security configuration data a set value,
+    container provider a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="container_provider" type="object">
+  Container provider information. Optional.
+  <Expandable title="properties">
+    <ResponseField name="id" type="string" required>
+      The container provider ID. Required.
+    </ResponseField>
+    <ResponseField name="info" type="object">
+      Container information. Optional.
+      <Expandable title="properties">
+        <ResponseField name="eks_info" type="object">
+          EKS information. Optional.
+          <Expandable title="properties">
+            <ResponseField name="namespace" type="string">
+              The EKS namespace. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      The container provider type. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the security configuration. Optional.
+</ResponseField>
+
+<ResponseField name="security_configuration_data" type="object" required>
+  Security configuration data containing encryption and authorization settings. Required.
+  <Expandable title="properties">
+    <ResponseField name="authentication_configuration" type="object">
+      Authentication configuration for the security configuration. Optional.
+      <Expandable title="properties">
+        <ResponseField name="iamconfiguration" type="object">
+          IAM configuration. Optional.
+          <Expandable title="properties">
+            <ResponseField name="system_role" type="string">
+              The system role ARN. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="identity_center_configuration" type="object">
+          Identity Center configuration. Optional.
+          <Expandable title="properties">
+            <ResponseField name="enable_identity_center" type="bool">
+              Whether to enable Identity Center integration. Optional.
+            </ResponseField>
+            <ResponseField name="identity_center_application_assignment_required" type="bool">
+              Whether Identity Center application assignment is required. Optional.
+            </ResponseField>
+            <ResponseField name="identity_center_instance_arn" type="string">
+              The ARN of the Identity Center instance. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="authorization_configuration" type="object">
+      Authorization configuration for the security configuration. Optional.
+      <Expandable title="properties">
+        <ResponseField name="lake_formation_configuration" type="object">
+          Lake Formation configuration. Optional.
+          <Expandable title="properties">
+            <ResponseField name="authorized_session_tag_value" type="string">
+              The session tag to authorize Lake Formation access. Optional.
+            </ResponseField>
+            <ResponseField name="query_access_control_enabled" type="bool">
+              Whether query access control is enabled. Optional.
+            </ResponseField>
+            <ResponseField name="query_engine_role_arn" type="string">
+              The ARN of the query engine role. Optional.
+            </ResponseField>
+            <ResponseField name="secure_namespace_info" type="object">
+              Secure namespace information for Lake Formation. Optional.
+              <Expandable title="properties">
+                <ResponseField name="cluster_id" type="string">
+                  The ID of the cluster. Optional.
+                </ResponseField>
+                <ResponseField name="namespace" type="string">
+                  The namespace. Optional.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="encryption_configuration" type="object">
+      Encryption configuration for the security configuration. Optional.
+      <Expandable title="properties">
+        <ResponseField name="at_rest_encryption_configuration" type="object">
+          At-rest encryption configuration. Optional.
+          <Expandable title="properties">
+            <ResponseField name="local_disk_encryption_configuration" type="object">
+              Local disk encryption configuration. Optional.
+              <Expandable title="properties">
+                <ResponseField name="aws_kms_key_id" type="string">
+                  The AWS KMS key ID. Optional.
+                </ResponseField>
+                <ResponseField name="encryption_key_provider_type" type="string">
+                  The encryption key provider type. Optional.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="s3_encryption_configuration" type="object">
+              S3 encryption configuration. Optional.
+              <Expandable title="properties">
+                <ResponseField name="encryption_option" type="string">
+                  The S3 encryption option. Optional.
+                </ResponseField>
+                <ResponseField name="kmskey_id" type="string">
+                  The KMS key ID for encryption. Optional.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="in_transit_encryption_configuration" type="object">
+          In-transit encryption configuration. Optional.
+          <Expandable title="properties">
+            <ResponseField name="tlscertificate_configuration" type="object">
+              TLS certificate configuration for in-transit encryption. Optional.
+              <Expandable title="properties">
+                <ResponseField name="certificate_provider_type" type="string">
+                  The certificate provider type. Optional.
+                </ResponseField>
+                <ResponseField name="private_key_secret_arn" type="string">
+                  The ARN of the secret containing the private key. Optional.
+                </ResponseField>
+                <ResponseField name="public_key_secret_arn" type="string">
+                  The ARN of the secret containing the public key. Optional.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this security configuration. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key (name) of a user-defined tag attached to the EMR Containers security configuration, used for identifying, categorizing, and managing this AWS resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Specifies the value portion of a key-value tag assigned to the EMR Containers security configuration, which can be used to filter and manage the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The ARN of the security configuration. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The ID of the security configuration. Computed by AWS after `ship`.
+</ResponseField>

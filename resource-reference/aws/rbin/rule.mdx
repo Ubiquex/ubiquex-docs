@@ -1,0 +1,183 @@
+---
+title: "aws_rbin_rule"
+description: "`aws_rbin_rule` creates a real Recycle Bin retention rule that intercepts deletion of a matching resource, an EBS snapshot or EBS-backed AMI..."
+---
+
+`aws_rbin_rule` creates a real Recycle Bin retention rule that intercepts deletion of a matching resource, an EBS snapshot or EBS-backed AMI, retaining it in the bin for a configured period so it can be recovered instead of being permanently deleted immediately.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	rbin "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/rbin"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own rule"})
+
+    		ubx.Resource(rbin.Rule, "ci-runner", rbin.RuleConfig{
+    			ResourceType:        "example",
+    			RetentionPeriod:     map[string]any{"retention_period_unit": "example"},
+    			Description:         "Managed by ubx.",
+    			ExcludeResourceTags: []map[string]any{{"resource_tag_key": "example"}},
+    			LockConfiguration:   map[string]any{"unlock_delay_unit": "example"},
+    			ResourceTags:        []map[string]any{{"resource_tag_key": "example"}},
+    			Status:              "example",
+    			Tags:                []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Rule } from "./local-sdk/aws/sdk/typescript/aws/rbin/rule.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own rule" });
+
+      resource(Rule, "ci-runner", {
+        resourceType: "example",
+        retentionPeriod: { retentionPeriodUnit: "example" },
+        description: "Managed by ubx.",
+        excludeResourceTags: [{ resourceTagKey: "example" }],
+        lockConfiguration: { unlockDelayUnit: "example" },
+        resourceTags: [{ resourceTagKey: "example" }],
+        status: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.rbin import Rule, RuleConfig
+
+    def describe():
+        ubx.intent("payments own rule")
+
+        ubx.resource(Rule, "ci-runner", RuleConfig(
+            resource_type="example",
+            retention_period={"retention_period_unit": "example"},
+            description="Managed by ubx.",
+            exclude_resource_tags=[{"resource_tag_key": "example"}],
+            lock_configuration={"unlock_delay_unit": "example"},
+            resource_tags=[{"resource_tag_key": "example"}],
+            status="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_rbin_rule, with resource type example, retention
+    period a set value, description Managed by ubx., exclude resource
+    tags a set value, lock configuration a set value, resource tags a
+    set value, status example, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  The description of the retention rule. Optional.
+</ResponseField>
+
+<ResponseField name="exclude_resource_tags" type="list(object)">
+  Information about the exclude resource tags used to identify resources that are excluded by the retention rule. Optional.
+  <Expandable title="properties">
+    <ResponseField name="resource_tag_key" type="string">
+      Specifies the tag key used to identify resources that should be excluded from the retention rule's cleanup (i.e., resources with this tag key will not be affected by the rule). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="resource_tag_value" type="string">
+      The value of a resource tag that, when matched on a resource, excludes that resource from the retention rule's effect. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="lock_configuration" type="object">
+  The lock configuration for the Recycle Bin rule, specifying the lock mode ('governance' or 'compliance') that determines whether the rule can be modified or deleted after creation. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="unlock_delay_unit" type="string">
+      The unit of time in which to measure the unlock delay. Currently, the unlock delay can be measure only in days. Optional.
+    </ResponseField>
+    <ResponseField name="unlock_delay_value" type="number">
+      The unlock delay period, measured in the unit specified for UnlockDelayUnit. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="resource_tags" type="list(object)">
+  Information about the resource tags used to identify resources that are retained by the retention rule. Optional.
+  <Expandable title="properties">
+    <ResponseField name="resource_tag_key" type="string">
+      The tag key that must be present on a resource for the Recycle Bin rule to match it. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="resource_tag_value" type="string">
+      The value of a resource tag that a resource must have to be matched by this Recycle Bin retention rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="resource_type" type="string" required>
+  The resource type retained by the retention rule. Required.
+</ResponseField>
+
+<ResponseField name="retention_period" type="object" required>
+  The retention period of the rule. Required.
+  <Expandable title="properties">
+    <ResponseField name="retention_period_unit" type="string" required>
+      The retention period unit of the rule Required.
+    </ResponseField>
+    <ResponseField name="retention_period_value" type="number" required>
+      The retention period value of the rule. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The state of the retention rule. Only retention rules that are in the available state retain resources. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Information about the tags assigned to the retention rule. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  Rule Arn is unique for each rule. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="identifier" type="string">
+  The unique ID of the retention rule. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="lock_state" type="string">
+  The lock state for the retention rule. Computed by AWS after `ship`.
+</ResponseField>

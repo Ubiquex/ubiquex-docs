@@ -1,0 +1,146 @@
+---
+title: "aws_proton_environment_account_connection"
+description: "`aws_proton_environment_account_connection` establishes a real cross-account IAM role that lets an AWS Proton management account provision..."
+---
+
+`aws_proton_environment_account_connection` establishes a real cross-account IAM role that lets an AWS Proton management account provision an `aws_proton_environment_template`'s resources into a separate target account, without the target account's own credentials being shared. AWS Proton is being discontinued: it closed to new customers on October 7, 2025, and AWS will end support on October 7, 2026, a date roughly a month and a half from now.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	proton "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/proton"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own environment account connection"})
+
+    		ubx.Resource(proton.EnvironmentAccountConnection, "ci-runner", proton.EnvironmentAccountConnectionConfig{
+    			CodebuildRoleArn:     "arn:aws:iam::123456789012:policy/ci",
+    			ComponentRoleArn:     "arn:aws:iam::123456789012:policy/ci",
+    			EnvironmentAccountId: "example",
+    			EnvironmentName:      "example-environment-name",
+    			ManagementAccountId:  "example",
+    			RoleArn:              "arn:aws:iam::123456789012:policy/ci",
+    			Tags:                 []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { EnvironmentAccountConnection } from "./local-sdk/aws/sdk/typescript/aws/proton/environment_account_connection.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own environment account connection" });
+
+      resource(EnvironmentAccountConnection, "ci-runner", {
+        codebuildRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        componentRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        environmentAccountId: "example",
+        environmentName: "example-environment-name",
+        managementAccountId: "example",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.proton import EnvironmentAccountConnection, EnvironmentAccountConnectionConfig
+
+    def describe():
+        ubx.intent("payments own environment account connection")
+
+        ubx.resource(EnvironmentAccountConnection, "ci-runner", EnvironmentAccountConnectionConfig(
+            codebuild_role_arn="arn:aws:iam::123456789012:policy/ci",
+            component_role_arn="arn:aws:iam::123456789012:policy/ci",
+            environment_account_id="example",
+            environment_name="example-environment-name",
+            management_account_id="example",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_proton_environment_account_connection, with codebuild
+    role arn arn:aws:iam::123456789012:policy/ci, component role arn
+    arn:aws:iam::123456789012:policy/ci, environment account id
+    example, environment name example-environment-name, management
+    account id example, role arn arn:aws:iam::123456789012:policy/ci,
+    tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="codebuild_role_arn" type="string">
+  The Amazon Resource Name (ARN) of an IAM service role in the environment account. AWS Proton uses this role to provision infrastructure resources using CodeBuild-based provisioning in the associated environment account. Optional.
+</ResponseField>
+
+<ResponseField name="component_role_arn" type="string">
+  The Amazon Resource Name (ARN) of the IAM service role that AWS Proton uses when provisioning directly defined components in the associated environment account. It determines the scope of infrastructure that a component can provision in the account. Optional.
+</ResponseField>
+
+<ResponseField name="environment_account_id" type="string">
+  The environment account that's connected to the environment account connection. Optional.
+</ResponseField>
+
+<ResponseField name="environment_name" type="string">
+  The name of the AWS Proton environment that's created in the associated management account. Optional.
+</ResponseField>
+
+<ResponseField name="management_account_id" type="string">
+  The ID of the management account that accepts or rejects the environment account connection. You create an manage the AWS Proton environment in this account. If the management account accepts the environment account connection, AWS Proton can use the associated IAM role to provision environment infrastructure resources in the associated environment account. Optional.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string">
+  The Amazon Resource Name (ARN) of the IAM service role that's created in the environment account. AWS Proton uses this role to provision infrastructure resources in the associated environment account. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  &lt;p&gt;An optional list of metadata items that you can associate with the Proton environment account connection. A tag is a key-value pair.&lt;/p&gt; &lt;p&gt;For more information, see &lt;a href="https://docs.aws.amazon.com/proton/latest/userguide/resources.html"&gt;Proton resources and tagging&lt;/a&gt; in the &lt;i&gt;Proton User Guide&lt;/i&gt;.&lt;/p&gt; Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Identifies a tag key assigned to the AWS Proton environment account connection resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag assigned to the Proton environment account connection, used for categorizing and managing the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the environment account connection. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The ID of the environment account connection. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The current lifecycle status of the environment account connection, which can be PENDING, CONNECTED, or REJECTED. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

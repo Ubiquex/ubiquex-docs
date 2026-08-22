@@ -1,0 +1,145 @@
+---
+title: "aws_backup_legal_hold"
+description: "`aws_backup_legal_hold` places one or more real backups under an indefinite hold that blocks deletion and pauses any lifecycle transition that would..."
+---
+
+`aws_backup_legal_hold` places one or more real backups under an indefinite hold that blocks deletion and pauses any lifecycle transition that would remove them, until a user with sufficient permissions releases it, the mechanism AWS Backup provides for litigation and compliance retention that overrides a plan's own lifecycle rules.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	backup "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/backup"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own legal hold"})
+
+    		ubx.Resource(backup.LegalHold, "ci-runner", backup.LegalHoldConfig{
+    			Description:            "Managed by ubx.",
+    			RecoveryPointSelection: map[string]any{"date_range": map[string]any{"from_date": "example"}},
+    			Title:                  "example",
+    			Tags:                   []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { LegalHold } from "./local-sdk/aws/sdk/typescript/aws/backup/legal_hold.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own legal hold" });
+
+      resource(LegalHold, "ci-runner", {
+        description: "Managed by ubx.",
+        recoveryPointSelection: { dateRange: { fromDate: "example" } },
+        title: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.backup import LegalHold, LegalHoldConfig
+
+    def describe():
+        ubx.intent("payments own legal hold")
+
+        ubx.resource(LegalHold, "ci-runner", LegalHoldConfig(
+            description="Managed by ubx.",
+            recovery_point_selection={"date_range": {"from_date": "example"}},
+            title="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_backup_legal_hold, with description Managed by ubx.,
+    recovery point selection a set value, title example, tags a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string" required>
+  The description of the legal hold. Required.
+</ResponseField>
+
+<ResponseField name="recovery_point_selection" type="object" required>
+  The criteria to assign a set of resources, such as resource types or backup vaults. Required.
+  <Expandable title="properties">
+    <ResponseField name="date_range" type="object">
+      A date range for filtering recovery points. Optional.
+      <Expandable title="properties">
+        <ResponseField name="from_date" type="string" required>
+          The beginning date, inclusive. ISO 8601 date-time. Required.
+        </ResponseField>
+        <ResponseField name="to_date" type="string" required>
+          The end date, inclusive. ISO 8601 date-time. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="resource_identifiers" type="list(string)">
+      The resources included in the resource selection. Optional.
+    </ResponseField>
+    <ResponseField name="vault_names" type="list(string)">
+      The names of the vaults in which the selected recovery points are contained. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Optional tags to include. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a user-defined tag to attach to the AWS Backup legal hold, used for organizing, categorizing, and controlling access to the resource through IAM tag policies. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="title" type="string" required>
+  The title of the legal hold. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the legal hold. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="creation_date" type="string">
+  The time when the legal hold was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="legal_hold_id" type="string">
+  The ID of the legal hold. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The status of the legal hold. Computed by AWS after `ship`.
+</ResponseField>

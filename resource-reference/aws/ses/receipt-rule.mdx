@@ -1,0 +1,229 @@
+---
+title: "aws_ses_receipt_rule"
+description: "`aws_ses_receipt_rule` defines a real rule, evaluated against inbound email accepted by SES's original (pre-Mail-Manager) receiving pipeline..."
+---
+
+`aws_ses_receipt_rule` defines a real rule, evaluated against inbound email accepted by SES's original (pre-Mail-Manager) receiving pipeline, that decides what action, deliver to S3, invoke Lambda, bounce, to take on matching mail.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ses "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ses"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own receipt rule"})
+
+    		ubx.Resource(ses.ReceiptRule, "ci-runner", ses.ReceiptRuleConfig{
+    			Rule:        map[string]any{"name": "example-name"},
+    			RuleSetName: "example-rule-set-name",
+    			After:       "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ReceiptRule } from "./local-sdk/aws/sdk/typescript/aws/ses/receipt_rule.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own receipt rule" });
+
+      resource(ReceiptRule, "ci-runner", {
+        rule: { name: "example-name" },
+        ruleSetName: "example-rule-set-name",
+        after: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ses import ReceiptRule, ReceiptRuleConfig
+
+    def describe():
+        ubx.intent("payments own receipt rule")
+
+        ubx.resource(ReceiptRule, "ci-runner", ReceiptRuleConfig(
+            rule={"name": "example-name"},
+            rule_set_name="example-rule-set-name",
+            after="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ses_receipt_rule, with rule a set value, rule set name
+    example-rule-set-name, after example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="after" type="string">
+  The name of an existing rule after which the new rule is placed. If this parameter is null, the new rule is inserted at the beginning of the rule list. Optional.
+</ResponseField>
+
+<ResponseField name="rule" type="object" required>
+  A data structure that contains the specified rule's name, actions, recipients, domains, enabled status, scan status, and TLS policy. Required.
+  <Expandable title="properties">
+    <ResponseField name="actions" type="list(object)">
+      An ordered list of actions to perform on messages that match at least one of the recipient email addresses or domains specified in the receipt rule. Optional.
+      <Expandable title="properties">
+        <ResponseField name="add_header_action" type="object">
+          Specifies an action that adds a header to an incoming email when the receipt rule matches, using the provided header name and value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="header_name" type="string">
+              The name of the custom header that this action adds to the incoming email, such as 'X-Custom-Header'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="header_value" type="string">
+              The value to be included in the custom header that the receipt rule adds to incoming email messages. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="bounce_action" type="object">
+          Configures a bounce action that rejects an incoming email and sends a bounce response to the sender, with configurable message text and optional notification to an SNS topic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="message" type="string">
+              The message text to include in the bounce response sent to the original sender when the receipt rule's bounce action triggers. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="sender" type="string">
+              The email address that the bounce message is sent from when this bounce action is triggered. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="smtp_reply_code" type="string">
+              Defines the three-digit SMTP reply code (e.g., '550') that SES returns to the sender when a bounce action is triggered for a received message. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="status_code" type="string">
+              The SMTP reply code to return to the sender when the email is bounced by this rule, specified as a three-digit numeric string (e.g., '550'). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="topic_arn" type="string">
+              The ARN of the Amazon SNS topic that SES publishes a notification to when the bounce action is applied to a received message. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="connect_action" type="object">
+          Optional; if omitted, computed by AWS.
+          <Expandable title="properties">
+            <ResponseField name="iamrole_arn" type="string">
+              The ARN of the IAM role that Amazon SES assumes to grant access to the specified Amazon Connect instance when delivering an email through the Connect action of this receipt rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="instance_arn" type="string">
+              The ARN of the Amazon Connect instance that the SES receipt rule's ConnectAction connects the incoming email to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="lambda_action" type="object">
+          Specifies a Lambda action that invokes an AWS Lambda function when the receipt rule matches an incoming email, with properties for the function ARN, invocation type (Event or RequestResponse), and an optional SNS topic for error notifications. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="function_arn" type="string">
+              The Amazon Resource Name (ARN) of the AWS Lambda function that Amazon SES invokes when the receipt rule matches an incoming email. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="invocation_type" type="string">
+              Specifies whether the Lambda function is invoked asynchronously (Event) or synchronously (RequestResponse) when the SES receipt rule matches an incoming email. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="topic_arn" type="string">
+              The ARN of an Amazon SNS topic that Amazon SES notifies when the Lambda action is invoked by a receipt rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="s3_action" type="object">
+          Configures the S3 action for a receipt rule, which saves the incoming email message to an Amazon S3 bucket. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="bucket_name" type="string">
+              The name of the Amazon S3 bucket where the received email message is stored when this S3 action is invoked. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="iam_role_arn" type="string">
+              The ARN of the IAM role that Amazon SES assumes to write to the S3 bucket specified in this S3 action of the receipt rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="kms_key_arn" type="string">
+              The ARN of the AWS KMS key used to encrypt the object stored in Amazon S3 by the S3 action of this SES receipt rule; if not provided, Amazon SES uses the default AWS-managed key for the account. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="object_key_prefix" type="string">
+              The key prefix to prepend to the object name when storing the received email into the S3 bucket specified by the S3 action of this receipt rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="topic_arn" type="string">
+              The ARN of an Amazon SNS topic that Amazon SES publishes a notification to when the message is successfully saved to the S3 bucket by this action. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="snsaction" type="object">
+          Defines an SNS action that publishes the received email notification to an Amazon SNS topic when an incoming email matches the receipt rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="encoding" type="string">
+              Specifies the encoding (UTF-8 or Base64) used for the email content in the Amazon SNS notification sent by this action. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="topic_arn" type="string">
+              The ARN of the Amazon SNS topic to which the receipt rule publishes a notification when an incoming email matches the rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="stop_action" type="object">
+          Terminates the receipt rule's action chain, causing SES to stop evaluating subsequent actions and rules for the incoming email. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="scope" type="string">
+              Specifies the scope of the SES receipt rule stop action, which must be set to `RuleSet` to stop evaluating the entire receipt rule set. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="topic_arn" type="string">
+              The ARN of the Amazon SNS topic to which the SES receipt rule's stop action publishes a notification when the rule set evaluation is terminated. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="workmail_action" type="object">
+          Configures the WorkMail action for a receipt rule, specifying the Amazon WorkMail organization ARN (and optional SNS topic) that receives the incoming email. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="organization_arn" type="string">
+              The ARN of the Amazon WorkMail organization that receives the email when the receipt rule's WorkMail action is invoked. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="topic_arn" type="string">
+              The ARN of an Amazon SNS topic to notify when the WorkMail action is triggered by a receipt rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="enabled" type="bool">
+      If true, the receipt rule is active. The default value is false. Optional.
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      The name of the receipt rule. The name must meet the following requirements: Contain only ASCII letters (a-z, A-Z), numbers (0-9), underscores (_), dashes (-), or periods (.). Start and end with a letter or number. Contain 64 characters or fewer. Optional.
+    </ResponseField>
+    <ResponseField name="recipients" type="list(string)">
+      The recipient domains and email addresses that the receipt rule applies to. If this field is not specified, this rule matches all recipients on all verified domains. Optional.
+    </ResponseField>
+    <ResponseField name="scan_enabled" type="bool">
+      If true, then messages that this receipt rule applies to are scanned for spam and viruses. The default value is false. Optional.
+    </ResponseField>
+    <ResponseField name="tls_policy" type="string">
+      Specifies whether Amazon SES should require that incoming email is delivered over a connection encrypted with Transport Layer Security (TLS). If this parameter is set to Require, Amazon SES bounces emails that are not received over TLS. The default is Optional. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="rule_set_name" type="string" required>
+  The name of the rule set where the receipt rule is added. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="rule_name" type="string">
+  The name of the rule Computed by AWS after `ship`.
+</ResponseField>

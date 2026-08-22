@@ -1,0 +1,252 @@
+---
+title: "aws_auto_scaling_plans_scaling_plan"
+description: "`aws_auto_scaling_plans_scaling_plan` combines target tracking and predictive scaling into one set of instructions applied across a tagged or..."
+---
+
+`aws_auto_scaling_plans_scaling_plan` combines target tracking and predictive scaling into one set of instructions applied across a tagged or CloudFormation-scoped group of resources, generating the real, underlying scaling policies on the caller's behalf from a single higher-level strategy like optimize-for-cost or optimize-for-availability.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	auto "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/auto"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own scaling plans scaling plan"})
+
+    		ubx.Resource(auto.ScalingPlansScalingPlan, "ci-runner", auto.ScalingPlansScalingPlanConfig{
+    			ApplicationSource:   map[string]any{"cloud_formation_stack_arn": "example"},
+    			ScalingInstructions: []map[string]any{{"customized_load_metric_specification": map[string]any{"dimensions": []map[string]any{{"name": "example-name"}}}}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ScalingPlansScalingPlan } from "./local-sdk/aws/sdk/typescript/aws/auto/scaling_plans_scaling_plan.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own scaling plans scaling plan" });
+
+      resource(ScalingPlansScalingPlan, "ci-runner", {
+        applicationSource: { cloudFormationStackArn: "example" },
+        scalingInstructions: [{
+          customizedLoadMetricSpecification: {
+            dimensions: [{ name: "example-name" }],
+          },
+        }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.auto import ScalingPlansScalingPlan, ScalingPlansScalingPlanConfig
+
+    def describe():
+        ubx.intent("payments own scaling plans scaling plan")
+
+        ubx.resource(ScalingPlansScalingPlan, "ci-runner", ScalingPlansScalingPlanConfig(
+            application_source={"cloud_formation_stack_arn": "example"},
+            scaling_instructions=[{"customized_load_metric_specification": {"dimensions": [{"name": "example-name"}]}}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_auto_scaling_plans_scaling_plan, with application
+    source a set value, scaling instructions a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="application_source" type="object" required>
+  Defines the application source for the scaling plan, including either CloudFormation stack names or tag filters that identify the resources to scale. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="cloud_formation_stack_arn" type="string">
+      The Amazon Resource Name (ARN) of the CloudFormation stack whose resources define the application for the scaling plan, used when the application source is a CloudFormation stack. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="tag_filters" type="list(object)">
+      Specifies tag-based filters that identify the AWS resources (such as EC2 instances) to include in the scaling plan from the source application. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          The tag key used in a tag filter to identify resources that belong to the application source for the scaling plan. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="values" type="list(string)">
+          The tag values to match for the associated tag key; when specified, only resources whose tag value for that key equals one of these values are included in the application source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="scaling_instructions" type="list(object)" required>
+  Specifies the scaling instructions for the resources to be managed, including the service namespace, resource ID, scalable dimension, minimum and maximum capacities, and target tracking configurations. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="customized_load_metric_specification" type="object">
+      Defines a custom load metric (metric name, statistic, dimensions, and unit) used for predictive scaling within this scaling instruction, tracking application load to forecast capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="dimensions" type="list(object)">
+          Specifies the CloudWatch metric dimensions (key-value pairs) that uniquely identify the custom load metric used by AWS Auto Scaling for load forecasting. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="name" type="string">
+              Specifies the dimension name (key) used to define a metric dimension (such as LoadBalancerName or TargetGroup) for the customized load metric specification in the scaling plan's predictive scaling configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The value that corresponds to the dimension key for the custom load metric, used to fully identify the metric in CloudWatch for the scaling plan's load forecasting. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="metric_name" type="string">
+          The name of the CloudWatch metric used as the customized load metric for predictive scaling, specified in a scaling instruction's customized load metric specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="namespace" type="string">
+          The CloudWatch namespace of the custom load metric used for predictive scaling, such as 'AWS/SQS' or a custom namespace, which is required to identify the metared in CloudWatch. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="statistic" type="string">
+          The statistic of the customized load metric, such as Sum or Average, that AWS Auto Scaling uses to calculate load capacity for the scaling plan. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="unit" type="string">
+          The unit of measure for the customized load metric (e.g., Count, Percent, Bytes) that AWS Auto Scaling uses to evaluate the metric values when predicting capacity requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="disable_dynamic_scaling" type="bool">
+      When true, disables dynamic scaling for the resources targeted by this scaling instruction, so that capacity will not be automatically adjusted in response to load. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="max_capacity" type="number">
+      The maximum capacity that the scalable resource can reach, used by the scaling plan to limit scale-out activities for the resource defined in this scaling instruction. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="min_capacity" type="number">
+      Defines the minimum capacity of the scalable resource, so that the scaling plan does not scale the resource below this value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="predefined_load_metric_specification" type="object">
+      Specifies the predefined load metric configuration for predictive scaling within a scaling instruction, identifying the load metric type (such as ASGTotalCPUUtilization or ALBRequestCountPerTarget) used to calculate the forecast load. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="predefined_load_metric_type" type="string">
+          The type of predefined load metric (e.g., ASGTotalCPUUtilization, ALBTargetGroupRequestCount) that the scaling plan uses to track resource load for predictive scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="resource_label" type="string">
+          This field specifies the resource identifier (such as an Application Load Balancer target group ARN) that the predefined load metric applies to, required only when the predefined_load_metric_type references a resource-specific metric like ALBTargetGroupRequestCount. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="predictive_scaling_max_capacity_behavior" type="string">
+      Determines how the maximum capacity of the Auto Scaling group is set when predictive scaling is active, with allowed values such as SetForecastCapacityToMaxCapacity, SetMaxCapacityToForecastCapacity, and SetMaxCapacityAboveForecastCapacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="predictive_scaling_max_capacity_buffer" type="number">
+      The maximum capacity buffer, expressed as a percentage, that predictive scaling can exceed the forecasted capacity to accommodate forecast inaccuracies in each scaling instruction. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="predictive_scaling_mode" type="string">
+      Determines whether predictive scaling only generates forecasts (ForecastOnly) or also uses those forecasts to scale capacity (ForecastAndScale). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="resource_id" type="string">
+      Specifies the identifier of the resource to scale, formatted as the resource type followed by a colon and the resource's unique name (for example, autoScalingGroup:my-asg for an Auto Scaling group). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="scalable_dimension" type="string">
+      The scalable dimension that the scaling instruction applies to, such as an Auto Scaling group's desired capacity or an ECS service's desired count. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="scaling_policy_update_behavior" type="string">
+      Determines whether AWS Auto Scaling keeps or replaces existing scaling policies on the target resource when the scaling plan is applied, with allowed values KeepExternalPolicies and ReplaceExternalPolicies. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="scheduled_action_buffer_time" type="number">
+      Specifies the buffer time (in seconds) that AWS Auto Scaling waits before applying a scheduled scaling action, to account for latency in resource initialization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="service_namespace" type="string">
+      The AWS service namespace (e.g., autoscaling, dynamodb, ecs, etc.) that identifies the service or resource type to which this scaling instruction applies, determining which scalable targets are configured. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="target_tracking_configurations" type="list(object)">
+      In each scaling instruction, defines the list of target tracking configurations that specify a metric and target value, causing the scaling plan to adjust capacity when the metric deviates from the target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="customized_scaling_metric_specification" type="object">
+          Defines the custom CloudWatch metric specification used for target tracking scaling, allowing you to specify a metric name, namespace, dimensions, and statistic instead of using a predefined metric. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="dimensions" type="list(object)">
+              Defines the CloudWatch metric dimensions (as name-value pairs) that filter the customized metric used for target tracking scaling within the scaling plan's instructions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="name" type="string">
+                  The name of a CloudWatch metric dimension (key) used to scope the customized scaling metric for the target tracking configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="value" type="string">
+                  Specifies the value of a CloudWatch metric dimension key -- value pair that identifies the metric used in the customized scaling metric specification for target tracking in the AWS Auto Scaling Plan. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="metric_name" type="string">
+              The name of the CloudWatch metric that AWS Auto Scaling Plans uses to monitor the resource for target tracking scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="namespace" type="string">
+              The CloudWatch metric namespace (such as AWS/EC2) that the customized scaling metric belongs to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="statistic" type="string">
+              The statistic to apply to the custom scaling metric, with allowed values including Average, Sum, Minimum, Maximum, and SampleCount. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="unit" type="string">
+              The unit of measure for the custom scaling metric, such as 'Percent' or 'Count', used in the target tracking configuration for the scaling plan. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="disable_scale_in" type="bool">
+          When set to true, this target tracking configuration prevents scale-in actions, meaning the Auto Scaling group will only scale out based on the metric, not scale in. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="estimated_instance_warmup" type="number">
+          Specifies the estimated time, in seconds, until a newly launched instance can contribute to the CloudWatch metrics used for target tracking scaling, preventing premature scaling actions based on instances that are still warming up. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="predefined_scaling_metric_specification" type="object">
+          Defines the predefined CloudWatch metric (such as DynamoDBReadCapacityUtilization or DynamoDBWriteCapacityUtilization) that the target tracking scaling policy uses to track utilization, including an optional resource label to identify the specific resource dimension. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="predefined_scaling_metric_type" type="string">
+              The type of predefined metric that the target tracking scaling policy uses, such as ASGAverageCPUUtilization or DynamoDBReadCapacityUtilization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="resource_label" type="string">
+              The resource label identifies the specific AWS resource (such as a DynamoDB table name or Aurora DB cluster name) whose predefined metric is used for target tracking scaling, and it is required for predefined metric types that are not EC2 or Application Auto Scaling metrics. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="scale_in_cooldown" type="number">
+          The amount of time, in seconds, after a scale-in activity completes before another scale-in activity can start. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="scale_out_cooldown" type="number">
+          The amount of time, in seconds, after a scale-out activity completes before another scale-out activity can start for the target tracking configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="target_value" type="number">
+          The target value for the metric that the scaling policy will maintain, such as a CPU utilization percentage or a request count per target, used to trigger scaling actions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The Terraform resource identifier for an Auto Scaling Plan, set to the scale plan's unique name used for state tracking and import. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="scaling_plan_name" type="string">
+  The name of the scaling plan, which uniquely identifies it within the AWS account and is used to reference the plan in AWS Auto Scaling APIs and other resources. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="scaling_plan_version" type="string">
+  The version number of the scaling plan, which must be provided on updates to ensure you are modifying the latest version of the plan. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

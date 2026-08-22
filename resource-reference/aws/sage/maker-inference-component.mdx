@@ -1,0 +1,281 @@
+---
+title: "aws_sage_maker_inference_component"
+description: "`aws_sage_maker_inference_component` deploys a real individual model, with its own dedicated resource allocation..."
+---
+
+`aws_sage_maker_inference_component` deploys a real individual model, with its own dedicated resource allocation, onto a shared `aws_sage_maker_endpoint`, letting multiple models with different compute needs be packed efficiently behind one endpoint instead of each requiring its own.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	sage "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sage"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own maker inference component"})
+
+    		ubx.Resource(sage.MakerInferenceComponent, "ci-runner", sage.MakerInferenceComponentConfig{
+    			EndpointName:           "example-endpoint-name",
+    			DeploymentConfig:       map[string]any{"auto_rollback_configuration": map[string]any{"alarms": []map[string]any{{"alarm_name": "example-alarm-name"}}}},
+    			EndpointArn:            "arn:aws:iam::123456789012:policy/ci",
+    			InferenceComponentName: "example-inference-component-name",
+    			Tags:                   []map[string]any{{"key": "example"}},
+    			VariantName:            "example-variant-name",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MakerInferenceComponent } from "./local-sdk/aws/sdk/typescript/aws/sage/maker_inference_component.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own maker inference component" });
+
+      resource(MakerInferenceComponent, "ci-runner", {
+        endpointName: "example-endpoint-name",
+        deploymentConfig: {
+          autoRollbackConfiguration: {
+            alarms: [{ alarmName: "example-alarm-name" }],
+          },
+        },
+        endpointArn: "arn:aws:iam::123456789012:policy/ci",
+        inferenceComponentName: "example-inference-component-name",
+        tags: [{ key: "example" }],
+        variantName: "example-variant-name",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.sage import MakerInferenceComponent, MakerInferenceComponentConfig
+
+    def describe():
+        ubx.intent("payments own maker inference component")
+
+        ubx.resource(MakerInferenceComponent, "ci-runner", MakerInferenceComponentConfig(
+            endpoint_name="example-endpoint-name",
+            deployment_config={"auto_rollback_configuration": {"alarms": [{"alarm_name": "example-alarm-name"}]}},
+            endpoint_arn="arn:aws:iam::123456789012:policy/ci",
+            inference_component_name="example-inference-component-name",
+            tags=[{"key": "example"}],
+            variant_name="example-variant-name",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_sage_maker_inference_component, with endpoint name
+    example-endpoint-name, deployment config a set value, endpoint
+    arn arn:aws:iam::123456789012:policy/ci, inference component name
+    example-inference-component-name, tags a set value, variant name
+    example-variant-name.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="deployment_config" type="object">
+  The deployment config for the inference component Optional.
+  <Expandable title="properties">
+    <ResponseField name="auto_rollback_configuration" type="object">
+      Specifies the CloudWatch alarms that trigger automatic rollback of the SageMaker inference component deployment when they enter an alarm state. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="alarms" type="list(object)" required>
+          A list of CloudWatch alarms that, when triggered, cause the inference component deployment to automatically roll back to the previous configuration. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="alarm_name" type="string">
+              The name of the CloudWatch alarm that triggers an automatic rollback of the SageMaker inference component deployment when it enters an alarm state. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="rolling_update_policy" type="object">
+      The rolling update policy for the inference component Optional.
+      <Expandable title="properties">
+        <ResponseField name="maximum_batch_size" type="object">
+          Capacity size configuration for the inference component Optional.
+          <Expandable title="properties">
+            <ResponseField name="type" type="string" required>
+              Specifies whether the maximum batch size for a rolling update to a SageMaker Inference Component is expressed as an instance count or as a percentage of the endpoint's total capacity, determining how many instances are updated concurrently during the deployment. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="number" required>
+              The number of copies for the inference component Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="maximum_execution_timeout_in_seconds" type="number">
+          Specifies the maximum time in seconds that a rolling update of the SageMaker inference component is allowed to run before the update is considered failed and is rolled back. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="rollback_maximum_batch_size" type="object">
+          Capacity size configuration for the inference component Optional.
+          <Expandable title="properties">
+            <ResponseField name="type" type="string" required>
+              The type of the maximum batch size for a rollback, either 'COUNT' (a fixed number of instances) or 'PERCENTAGE' (a proportion of the deployment's instances). Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="number" required>
+              The number of copies for the inference component Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="wait_interval_in_seconds" type="number">
+          Specifies the number of seconds to wait after each batch of instances is updated before the next batch is deployed during a rolling update for the SageMaker inference component. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="endpoint_arn" type="string">
+  The Amazon Resource Name (ARN) of the endpoint the inference component is associated with Optional.
+</ResponseField>
+
+<ResponseField name="endpoint_name" type="string" required>
+  The name of the endpoint the inference component is associated with Required.
+</ResponseField>
+
+<ResponseField name="inference_component_name" type="string">
+  The name of the inference component Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of tags to apply to the resource Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag assigned to the SageMaker inference component, used to identify, organize, and manage the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag key-value pair attached to the SageMaker inference component, providing metadata for organizing, managing, and identifying the component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="variant_name" type="string">
+  The name of the endpoint variant the inference component is associated with Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="creation_time" type="string">
+  The date and time when the SageMaker inference component was created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="failure_reason" type="string">
+  The failure reason if the inference component is in a failed state Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="inference_component_arn" type="string">
+  The Amazon Resource Name (ARN) of the inference component Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="inference_component_status" type="string">
+  Indicates the current lifecycle status of the SageMaker inference component, such as Creating, InService, Updating, Deleting, or Failed. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="last_modified_time" type="string">
+  The date and time when the SageMaker inference component was last modified. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="runtime_config" type="object">
+  The runtime config for the inference component Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="copy_count" type="number">
+      The number of copies for the inference component Optional.
+    </ResponseField>
+    <ResponseField name="current_copy_count" type="number">
+      The number of copies for the inference component Optional.
+    </ResponseField>
+    <ResponseField name="desired_copy_count" type="number">
+      The number of copies for the inference component Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="specification" type="object">
+  The specification for the inference component Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="base_inference_component_name" type="string">
+      The name of the base inference component Optional.
+    </ResponseField>
+    <ResponseField name="compute_resource_requirements" type="object">
+      Defines the compute resources required for the inference component, including the number of accelerator devices, the number of inference copies, and the minimum and maximum memory (in MB) needed to run the component. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="max_memory_required_in_mb" type="number">
+          Specifies the maximum amount of memory, in megabytes, that the inference component requires for deployment, which SageMaker uses to place the component on an endpoint and ensure sufficient resources are available. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="min_memory_required_in_mb" type="number">
+          Specifies the minimum amount of memory, in megabytes, that the SageMaker inference component needs for its model and runtime to operate successfully. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="number_of_accelerator_devices_required" type="number">
+          The number of accelerator devices required for the inference component, used to determine the appropriate instance type for deployment. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="number_of_cpu_cores_required" type="number">
+          The exact number of CPU cores that must be allocated to the inference component, used when a fixed compute resource allocation is specified rather than a range. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="container" type="object">
+      Specifies the container configuration for the SageMaker inference component, including the Docker image, model artifact URL, and environment variables. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="artifact_url" type="string">
+          The Amazon S3 URI where the model artifacts for this inference component container are stored. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="deployed_image" type="object">
+          The `deployed_image` object contains the resolved image URI and the resolution method that SageMaker actually used for the inference component's container after deployment, which may differ from the image originally specified. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="resolution_time" type="string">
+              The timestamp at which the image URI for the container was resolved to the actual image used for the deployed inference component, as a string. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="resolved_image" type="string">
+              The image to use for the container that will be materialized for the inference component Optional.
+            </ResponseField>
+            <ResponseField name="specified_image" type="string">
+              The image to use for the container that will be materialized for the inference component Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="environment" type="any">
+          Environment variables to specify on the container Optional.
+        </ResponseField>
+        <ResponseField name="image" type="string">
+          The image to use for the container that will be materialized for the inference component Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="model_name" type="string">
+      The name of the model to use with the inference component Optional.
+    </ResponseField>
+    <ResponseField name="startup_parameters" type="object">
+      Specifies startup parameters for the inference component's model container, including the model data download timeout and container startup health check timeout, used to control how the container is launched and validated before it begins serving inference traffic. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="container_startup_health_check_timeout_in_seconds" type="number">
+          The timeout in seconds that SageMaker waits for the container's health check to succeed during component startup. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="model_data_download_timeout_in_seconds" type="number">
+          The maximum time, in seconds, allowed for downloading the model data during inference component startup before the startup is considered failed. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>

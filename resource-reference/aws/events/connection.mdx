@@ -1,0 +1,291 @@
+---
+title: "aws_events_connection"
+description: "`aws_events_connection` stores the real authorization credentials, API key, OAuth, basic auth..."
+---
+
+`aws_events_connection` stores the real authorization credentials, API key, OAuth, basic auth, that an `aws_events_api_destination` uses to actually authenticate its calls, kept separate so the same credentials can be reused across multiple destinations.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	events "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/events"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own connection"})
+
+    		ubx.Resource(events.Connection, "ci-runner", events.ConnectionConfig{
+    			Name:              "ci-runner",
+    			AuthorizationType: "example",
+    			Description:       "Managed by ubx.",
+    			KmsKeyIdentifier:  "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Connection } from "./local-sdk/aws/sdk/typescript/aws/events/connection.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own connection" });
+
+      resource(Connection, "ci-runner", {
+        name: "ci-runner",
+        authorizationType: "example",
+        description: "Managed by ubx.",
+        kmsKeyIdentifier: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.events import Connection, ConnectionConfig
+
+    def describe():
+        ubx.intent("payments own connection")
+
+        ubx.resource(Connection, "ci-runner", ConnectionConfig(
+            name="ci-runner",
+            authorization_type="example",
+            description="Managed by ubx.",
+            kms_key_identifier="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_events_connection called "ci-runner", with
+    authorization type example, description Managed by ubx., kms key
+    identifier example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="authorization_type" type="string">
+  Specifies the authorization type for the EventBridge connection, which can be one of BASIC, OAUTH_CLIENT_CREDENTIALS, or API_KEY, determining how the connection authenticates to the API destination. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Description of the connection. Optional.
+</ResponseField>
+
+<ResponseField name="kms_key_identifier" type="string">
+  Specifies the AWS KMS key (by ID, ARN, or alias) used to encrypt the connection's credentials and other sensitive parameters, enabling customer-managed encryption instead of the default AWS-owned key. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Name of the connection. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The arn of the connection resource. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="arn_for_policy" type="string">
+  The arn of the connection resource to be used in IAM policies. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="auth_parameters" type="object">
+  The authentication parameters for the event connection, specifying how requests to the destination are authenticated (via API key, basic, or OAuth credentials) along with optional HTTP invocation parameters. Computed by AWS after `ship`. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="api_key_auth_parameters" type="object">
+      Specifies the API key name and value used for API key authorization when EventBridge invokes the API destination associated with this connection. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="api_key_name" type="string" required>
+          The name of the API key for API key authentication, which is used together with the API key value to authenticate requests made through the EventBridge connection. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="api_key_value" type="string" required>
+          The value of the API key used for authentication when the EventBridge connection uses API key authorization. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="basic_auth_parameters" type="object">
+      Defines the username and password used for basic authentication when the EventBridge connection invokes the API destination. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="password" type="string" required>
+          The password to use for basic authentication when connecting to the API destination or endpoint, paired with the username in the same basic auth parameters. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="username" type="string" required>
+          The username for basic authentication when the EventBridge connection invokes the API destination. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="connectivity_parameters" type="object">
+      Defines the private connectivity parameters for an EventBridge connection, including a resource configuration ARN and optional resource-specific settings used to reach endpoints within a VPC or via a PrivateLink resource configuration. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="resource_parameters" type="object" required>
+          Contains the ARN of the VPC endpoint in the 'ResourceArn' subproperty, defining the private resource target for the EventBridge connection. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="resource_association_arn" type="string">
+              The ARN of the resource association used for the connectivity parameters of the EventBridge connection. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="resource_configuration_arn" type="string" required>
+              The ARN of the AWS resource configuration (such as a VPC endpoint) used by the EventBridge connection to route traffic through a private network to the destination API. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="invocation_http_parameters" type="object">
+      Configures the HTTP headers, query string, and path parameters that are passed to the API destination invocation when using this connection. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="body_parameters" type="list(object)">
+          This list of key-value objects defines the body parameters that are URL-encoded and sent as the HTTP request body when the EventBridge connection invokes the API destination. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="is_value_secret" type="bool">
+              Indicates whether the value of this body parameter is a secret stored in AWS Secrets Manager, which EventBridge retrieves and uses when making the HTTP invocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="key" type="string">
+              The name of the body parameter to include in the HTTP invocation request for the EventBridge connection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The value to be paired with the key for a body parameter in the HTTP invocation parameters of the EventBridge connection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="header_parameters" type="list(object)">
+          A list of key-value pairs (each with `Key` and `Value`) that define the HTTP headers to include in the API invocation request for this EventBridge connection. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="is_value_secret" type="bool">
+              Specifies whether the value of this header parameter is a secret that should be retrieved from AWS Secrets Manager. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="key" type="string">
+              The name of an HTTP header to include in the API destination invocation request, defined within the connection's invocation HTTP parameters. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The value to be sent as the header value in the HTTP request to the API destination, which can be a static string or a JSONPath expression that extracts data from the event at runtime. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="query_string_parameters" type="list(object)">
+          Defines the query string parameters to be sent in the HTTP request for the EventBridge connection, where each item specifies a parameter key, its value, and whether the value is a secret. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="is_value_secret" type="bool">
+              Indicates whether the value of this query string parameter is a secret stored in AWS Secrets Manager (true) or a plaintext value (false), where when true the Value field references the secret name to be resolved at invocation time. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="key" type="string">
+              The key specifies the name of a query string parameter in the invocation HTTP request, used by the API destination connection's authentication parameters. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              Specifies the value of a query string parameter sent in the HTTP request when the EventBridge connection invokes the API destination. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="oauth_parameters" type="object">
+      Configuration for OAuth authorization within the connection's authentication parameters, including the authorization endpoint, client application credentials, and HTTP method used to request the token. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="authorization_endpoint" type="string" required>
+          The URL of the OAuth authorization server's endpoint where the connection redirects users for authentication and consent during the OAuth authorization code grant flow. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="client_parameters" type="object" required>
+          Specifies the OAuth client ID and client secret used to authenticate the connection with the authorization endpoint. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="client_id" type="string" required>
+              The OAuth client ID used by the EventBridge connection to authenticate with the target API. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="client_secret" type="string" required>
+              The client secret that the EventBridge connection uses to authenticate to the OAuth authorization endpoint. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="http_method" type="string" required>
+          The HTTP method (e.g., GET or POST) used for the OAuth authorization request to the specified authorization endpoint for the EventBridge connection. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="oauth_http_parameters" type="object">
+          Specifies additional HTTP parameters (header parameters, query string parameters, and body parameters) to include when making the OAuth authorization request to the authorization endpoint. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="body_parameters" type="list(object)">
+              Specifies a list of key-value pairs to include in the body of the HTTP request used when obtaining an OAuth token for the EventBridge connection, allowing custom data to be sent in the token request body. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="is_value_secret" type="bool">
+                  Specifies whether the value for this OAuth body parameter is a secret stored in AWS Secrets Manager (true) or a plaintext string (false). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="key" type="string">
+                  The key that identifies the specific body parameter entry in the OAuth HTTP request body parameters for this EventBridge connection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="value" type="string">
+                  The value of a body parameter that is sent in the HTTP request when retrieving the OAuth token, paired with its corresponding key. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="header_parameters" type="list(object)">
+              Defines the HTTP header key-value pairs to include in the OAuth authorization request for the EventBridge connection. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="is_value_secret" type="bool">
+                  This boolean flag indicates whether the header parameter's value is a secret (stored and encrypted as a secret in AWS Secrets Manager) rather than a plaintext value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="key" type="string">
+                  The name of an HTTP header to include in the OAuth-authenticated request for this EventBridge connection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="value" type="string">
+                  The value of the HTTP header parameter that will be included in the OAuth request to the API destination. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="query_string_parameters" type="list(object)">
+              Specifies key-value pairs to append as query string parameters to the OAuth HTTP request for an EventBridge connection's authorization flow. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="is_value_secret" type="bool">
+                  Indicates whether the value of the query string parameter is a secret that is stored in AWS Secrets Manager, allowing EventBridge to reference it securely in the OAuth HTTP request. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="key" type="string">
+                  The key (name) of a query string parameter to be included in the OAuth HTTP request made by the EventBridge connection when obtaining an OAuth token. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="value" type="string">
+                  The value of the query-string parameter to be included in the OAuth HTTP request when authorizing the EventBridge connection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="invocation_connectivity_parameters" type="object">
+  The private resource the HTTP request will be sent to. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="resource_parameters" type="object" required>
+      Specifies the resource parameters used for invocation connectivity, specifically containing the ARN of the private resource (such as a VPC endpoint) that EventBridge uses to route invocations. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="resource_association_arn" type="string">
+          The ARN of the resource association (such as a VPC endpoint) that EventBridge uses to route connection invocations to a private resource. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="resource_configuration_arn" type="string" required>
+          Specifies the ARN of the resource configuration that defines the private VPC endpoint network access used by the EventBridge connection when invoking the target resource. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="secret_arn" type="string">
+  The arn of the secrets manager secret created in the customer account. Computed by AWS after `ship`.
+</ResponseField>

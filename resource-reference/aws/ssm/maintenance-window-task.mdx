@@ -1,0 +1,273 @@
+---
+title: "aws_ssm_maintenance_window_task"
+description: "`aws_ssm_maintenance_window_task` schedules a real Systems Manager task, running an `aws_ssm_document`, a Lambda function..."
+---
+
+`aws_ssm_maintenance_window_task` schedules a real Systems Manager task, running an `aws_ssm_document`, a Lambda function, or a Step Functions state machine, against an `aws_ssm_maintenance_window`'s registered targets whenever its window opens.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ssm "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ssm"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own maintenance window task"})
+
+    		ubx.Resource(ssm.MaintenanceWindowTask, "ci-runner", ssm.MaintenanceWindowTaskConfig{
+    			Priority:       1,
+    			TaskArn:        "arn:aws:iam::123456789012:policy/ci",
+    			TaskType:       "example",
+    			WindowId:       "example",
+    			Name:           "ci-runner",
+    			CutoffBehavior: "example",
+    			Description:    "Managed by ubx.",
+    			LoggingInfo:    map[string]any{"region": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MaintenanceWindowTask } from "./local-sdk/aws/sdk/typescript/aws/ssm/maintenance_window_task.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own maintenance window task" });
+
+      resource(MaintenanceWindowTask, "ci-runner", {
+        priority: 1,
+        taskArn: "arn:aws:iam::123456789012:policy/ci",
+        taskType: "example",
+        windowId: "example",
+        name: "ci-runner",
+        cutoffBehavior: "example",
+        description: "Managed by ubx.",
+        loggingInfo: { region: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ssm import MaintenanceWindowTask, MaintenanceWindowTaskConfig
+
+    def describe():
+        ubx.intent("payments own maintenance window task")
+
+        ubx.resource(MaintenanceWindowTask, "ci-runner", MaintenanceWindowTaskConfig(
+            priority=1,
+            task_arn="arn:aws:iam::123456789012:policy/ci",
+            task_type="example",
+            window_id="example",
+            name="ci-runner",
+            cutoff_behavior="example",
+            description="Managed by ubx.",
+            logging_info={"region": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ssm_maintenance_window_task called "ci-runner", with
+    priority 1, task arn arn:aws:iam::123456789012:policy/ci, task
+    type example, window id example, cutoff behavior example,
+    description Managed by ubx., logging info a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="cutoff_behavior" type="string">
+  The specification for whether tasks should continue to run after the cutoff time specified in the maintenance windows is reached. Optional.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A description of the task. Optional.
+</ResponseField>
+
+<ResponseField name="logging_info" type="object">
+  Specifies the Amazon S3 bucket, region, and prefix where the maintenance window task execution logs are stored. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="region" type="string" required>
+      The AWS Region where the S3 bucket that receives the maintenance window task logs is located. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="s3_bucket" type="string" required>
+      The name of the S3 bucket to which the maintenance window task's execution logs are written, as part of the LoggingInfo configuration for this AWS::SSM::MaintenanceWindowTask resource. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="s3_prefix" type="string">
+      The S3 key prefix (folder path) in the logging bucket where the maintenance window task's output logs are stored. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="max_concurrency" type="string">
+  The maximum number of targets this task can be run for, in parallel. Optional.
+</ResponseField>
+
+<ResponseField name="max_errors" type="string">
+  The maximum number of errors allowed before this task stops being scheduled. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The task name. Optional.
+</ResponseField>
+
+<ResponseField name="priority" type="number" required>
+  The priority of the task in the maintenance window. The lower the number, the higher the priority. Tasks that have the same priority are scheduled in parallel. Required.
+</ResponseField>
+
+<ResponseField name="service_role_arn" type="string">
+  The Amazon Resource Name (ARN) of the IAM service role for AWS Systems Manager to assume when running a maintenance window task. Optional.
+</ResponseField>
+
+<ResponseField name="targets" type="list(object)">
+  The targets (either instances or window target ids). Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key field specifies the type of target for the maintenance window task, such as InstanceIds, ResourceGroupNames, or WindowTargetIds, determining how the corresponding values are interpreted. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="values" type="list(string)">
+      Specifies the values for the maintenance window task target key, such as EC2 instance IDs, resource group names, or tag values, that define which resources the task runs on. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="task_arn" type="string" required>
+  The resource that the task uses during execution. Required.
+</ResponseField>
+
+<ResponseField name="task_invocation_parameters" type="object">
+  Defines the parameters that AWS Systems Manager uses to run the maintenance window task, including for Run Command, Automation, Step Functions, or Lambda invocation types. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="maintenance_window_automation_parameters" type="object">
+      Specifies the information needed to run an Automation workflow as the maintenance window task, including the document version and the runtime parameters (a map of key-value pairs) that the Automation document requires. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="document_version" type="string">
+          The version of the SSM Automation document to use when the maintenance window task runs, such as a specific document version or '$LATEST'. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="parameters" type="any">
+          The parameters to pass to the AWS Systems Manager Automation runbook (SSM document) when the maintenance window task is executed, specified as a map of parameter names to one or more values. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="maintenance_window_lambda_parameters" type="object">
+      Configures how the maintenance window invokes an AWS Lambda function, specifying optional client context, function version qualifier, and invocation payload. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="client_context" type="string">
+          Base64-encoded client context data to pass to the Lambda function invoked by the maintenance window task. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="payload" type="string">
+          The JSON string that is passed as the input payload to the Lambda function when the maintenance window task invokes it. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="qualifier" type="string">
+          The Lambda function version or alias to invoke for this maintenance window task. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="maintenance_window_run_command_parameters" type="object">
+      Specifies the parameters for an AWS Systems Manager Run Command task within a maintenance window, including settings like command timeout, S3 output location, IAM service role, and parameters passed to the SSM document. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="cloud_watch_output_config" type="object">
+          Configures the destination CloudWatch Logs log group and whether the AWS Systems Manager Run Command task output is written to CloudWatch Logs. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="cloud_watch_log_group_name" type="string">
+              The name of the CloudWatch log group where you want to send command output. Optional.
+            </ResponseField>
+            <ResponseField name="cloud_watch_output_enabled" type="bool">
+              Enables Systems Manager to send command output to CloudWatch Logs. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="comment" type="string">
+          The user-specified comment (a friendly description) that is included with the Run Command when the maintenance window task invokes the command. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="document_hash" type="string">
+          Specifies the SHA-256 hash of the content of the Systems Manager command document to be run, which SSM validates to ensure the document hasn't been altered before executing the maintenance window task. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="document_hash_type" type="string">
+          Specifies the hash algorithm (either Sha256 or Sha1) used by SSM Run Command to validate the integrity of the document content referenced by the maintenance window task. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="document_version" type="string">
+          The version of the SSM document to use when the maintenance window task runs the specified command, such as '1' or '$DEFAULT' or '$LATEST'. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="notification_config" type="object">
+          Specifies an Amazon SNS notification configuration for the Run Command task, including the ARN of the SNS topic, the events that trigger notifications (e.g., All, InProgress, Success, TimedOut, Cancelled, Failed), and the notification type (Command or Invocation). Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="notification_arn" type="string" required>
+              The ARN of the Amazon SNS topic that receives notifications about the status of the Run Command task executed by the maintenance window. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="notification_events" type="list(string)">
+              Specifies the Run Command task events (such as Success, Failed, or TimedOut) that trigger a notification to the configured Amazon SNS topic. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="notification_type" type="string">
+              This value indicates whether the SNS notification is for the entire command (Command) or for each instance's invocation (Invocation). Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="output_s3_bucket_name" type="string">
+          Specifies the name of the S3 bucket where the output of the Run Command will be stored for the Maintenance Window Run Command task. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_s3_key_prefix" type="string">
+          Specifies the S3 key prefix under the output S3 bucket where the Run Command invocation output is stored, acting as a subdirectory for the output files. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="parameters" type="any">
+          A map of parameter names to values that are passed to the SSM Run Command document when the maintenance window task is executed. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="service_role_arn" type="string">
+          The ARN of the IAM service role that AWS Systems Manager assumes to publish Amazon SNS notifications for the Run Command task invoked by this maintenance window. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="timeout_seconds" type="number">
+          The maximum number of seconds the command is allowed to run before being stopped and marked as timed out. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="maintenance_window_step_functions_parameters" type="object">
+      Specifies the input and execution name for a Step Functions state machine when the maintenance window task invokes a STEP_FUNCTIONS target. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="input" type="string">
+          The JSON input string passed to the Step Functions state machine execution when this maintenance window task runs. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The name to assign to the Step Functions execution when the maintenance window task invokes the state machine. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="task_parameters" type="any">
+  The parameters to pass to the task when it runs. Optional.
+</ResponseField>
+
+<ResponseField name="task_type" type="string" required>
+  The type of task. Required.
+</ResponseField>
+
+<ResponseField name="window_id" type="string" required>
+  The ID of the maintenance window where the task is registered. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="window_task_id" type="string">
+  Unique identifier of the maintenance window task. Computed by AWS after `ship`.
+</ResponseField>

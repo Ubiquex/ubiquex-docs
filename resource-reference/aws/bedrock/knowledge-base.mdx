@@ -1,0 +1,615 @@
+---
+title: "aws_bedrock_knowledge_base"
+description: "`aws_bedrock_knowledge_base` is Amazon Bedrock's managed Retrieval Augmented Generation capability..."
+---
+
+`aws_bedrock_knowledge_base` is Amazon Bedrock's managed Retrieval Augmented Generation capability, converting ingested documents into vector embeddings in a real vector store (OpenSearch Serverless by default, or Aurora, Neptune Analytics, MongoDB, Pinecone, and others), so an `aws_bedrock_agent` or a direct query can retrieve relevant context to ground a model's response in real data rather than its training alone.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	bedrock "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/bedrock"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own knowledge base"})
+
+    		ubx.Resource(bedrock.KnowledgeBase, "ci-runner", bedrock.KnowledgeBaseConfig{
+    			KnowledgeBaseConfiguration: map[string]any{"type": "example"},
+    			Name:                       "ci-runner",
+    			RoleArn:                    "arn:aws:iam::123456789012:policy/ci",
+    			Description:                "Managed by ubx.",
+    			StorageConfiguration:       map[string]any{"type": "example"},
+    			Tags:                       "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { KnowledgeBase } from "./local-sdk/aws/sdk/typescript/aws/bedrock/knowledge_base.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own knowledge base" });
+
+      resource(KnowledgeBase, "ci-runner", {
+        knowledgeBaseConfiguration: { type: "example" },
+        name: "ci-runner",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        description: "Managed by ubx.",
+        storageConfiguration: { type: "example" },
+        tags: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.bedrock import KnowledgeBase, KnowledgeBaseConfig
+
+    def describe():
+        ubx.intent("payments own knowledge base")
+
+        ubx.resource(KnowledgeBase, "ci-runner", KnowledgeBaseConfig(
+            knowledge_base_configuration={"type": "example"},
+            name="ci-runner",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            description="Managed by ubx.",
+            storage_configuration={"type": "example"},
+            tags="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_bedrock_knowledge_base called "ci-runner", with
+    knowledge base configuration a set value, role arn
+    arn:aws:iam::123456789012:policy/ci, description Managed by ubx.,
+    storage configuration a set value, tags example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  Description of the Resource. Optional.
+</ResponseField>
+
+<ResponseField name="knowledge_base_configuration" type="object" required>
+  Contains details about the embeddings model used for the knowledge base. Required.
+  <Expandable title="properties">
+    <ResponseField name="kendra_knowledge_base_configuration" type="object">
+      Configurations for a Kendra knowledge base Optional.
+      <Expandable title="properties">
+        <ResponseField name="kendra_index_arn" type="string" required>
+          Arn of a Kendra index Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="managed_knowledge_base_configuration" type="object">
+      Contains details about the model used to create vector embeddings for a managed knowledge base. Optional.
+      <Expandable title="properties">
+        <ResponseField name="embedding_model_arn" type="string">
+          The ARN of the model used to create vector embeddings for the knowledge base. Optional.
+        </ResponseField>
+        <ResponseField name="embedding_model_configuration" type="object">
+          The embeddings model configuration details for the vector model used in Knowledge Base. Optional.
+          <Expandable title="properties">
+            <ResponseField name="bedrock_embedding_model_configuration" type="object">
+              The vector configuration details for the Bedrock embeddings model. Optional.
+              <Expandable title="properties">
+                <ResponseField name="audio" type="list(object)">
+                  List of audio configurations for multi modal ingestion. Optional.
+                  <Expandable title="properties">
+                    <ResponseField name="segmentation_configuration" type="object">
+                      Configures how audio content is split into segments for embedding generation, including segmentation strategy and segment duration, when creating a knowledge base in Amazon Bedrock. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="fixed_length_duration" type="number">
+                          Specifies the fixed duration in seconds for splitting audio into segments for embedding in the Bedrock knowledge base. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="dimensions" type="number">
+                  The dimensions details for the vector configuration used on the Bedrock embeddings model. Optional.
+                </ResponseField>
+                <ResponseField name="embedding_data_type" type="string">
+                  The data type for the vectors when using a model to convert text into vector embeddings. Optional.
+                </ResponseField>
+                <ResponseField name="video" type="list(object)">
+                  List of video configurations for multi modal ingestion. Optional.
+                  <Expandable title="properties">
+                    <ResponseField name="segmentation_configuration" type="object">
+                      Defines how uploaded videos are divided into discrete segments (e.g., segment length and overlap) so the embedding model processes each segment separately for the knowledge base. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="fixed_length_duration" type="number">
+                          The duration in seconds of each fixed-length segment into which the video is divided before being embedded, used when the video segmentation configuration specifies a fixed-length segmentation mode. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="embedding_model_type" type="string">
+          The type of embedding model to use for the managed knowledge base. Optional.
+        </ResponseField>
+        <ResponseField name="server_side_encryption_configuration" type="object">
+          Contains details about the server-side encryption for the managed knowledge base. Optional.
+          <Expandable title="properties">
+            <ResponseField name="kms_key_arn" type="string">
+              The ARN of the AWS KMS key used to encrypt the managed knowledge base. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="sql_knowledge_base_configuration" type="object">
+      Configurations for a SQL knowledge base Optional.
+      <Expandable title="properties">
+        <ResponseField name="redshift_configuration" type="object">
+          Configurations for a Redshift knowledge base Optional.
+          <Expandable title="properties">
+            <ResponseField name="query_engine_configuration" type="object" required>
+              Configurations for Redshift query engine Required.
+              <Expandable title="properties">
+                <ResponseField name="provisioned_configuration" type="object">
+                  Configurations for provisioned Redshift query engine Optional.
+                  <Expandable title="properties">
+                    <ResponseField name="auth_configuration" type="object" required>
+                      Configurations for Redshift query engine provisioned auth setup Required.
+                      <Expandable title="properties">
+                        <ResponseField name="database_user" type="string">
+                          Redshift database user Optional.
+                        </ResponseField>
+                        <ResponseField name="type" type="string" required>
+                          Provisioned Redshift auth type Required.
+                        </ResponseField>
+                        <ResponseField name="username_password_secret_arn" type="string">
+                          Arn of a SecretsManager Secret Optional.
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="cluster_identifier" type="string" required>
+                      Redshift cluster identifier Required.
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="serverless_configuration" type="object">
+                  Configurations for serverless Redshift query engine Optional.
+                  <Expandable title="properties">
+                    <ResponseField name="auth_configuration" type="object" required>
+                      Configurations for Redshift query engine serverless auth setup Required.
+                      <Expandable title="properties">
+                        <ResponseField name="type" type="string" required>
+                          Serverless Redshift auth type Required.
+                        </ResponseField>
+                        <ResponseField name="username_password_secret_arn" type="string">
+                          Arn of a SecretsManager Secret Optional.
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="workgroup_arn" type="string" required>
+                      Workgroup arn Required.
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="type" type="string" required>
+                  Redshift query engine type Required.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="query_generation_configuration" type="object">
+              Configurations for generating Redshift engine queries Optional.
+              <Expandable title="properties">
+                <ResponseField name="execution_timeout_seconds" type="number">
+                  Max query execution timeout Optional.
+                </ResponseField>
+                <ResponseField name="generation_context" type="object">
+                  Context used to improve query generation Optional.
+                  <Expandable title="properties">
+                    <ResponseField name="curated_queries" type="list(object)">
+                      List of example queries and results Optional.
+                      <Expandable title="properties">
+                        <ResponseField name="natural_language" type="string">
+                          The natural language phrasing of a curated example query, representing the user's question or intent that the corresponding SQL statement is meant to answer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="sql" type="string">
+                          The SQL query string of a curated query that serves as an example to guide the model's SQL generation for the Redshift-based knowledge base. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="tables" type="list(object)">
+                      List of tables used for Redshift query generation context Optional.
+                      <Expandable title="properties">
+                        <ResponseField name="columns" type="list(object)">
+                          Specifies the list of columns for each table in the query generation context, where each column object defines the column name and data type used by the model to generate SQL queries. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="description" type="string">
+                              Provides a natural-language description of a column in the table context, used by Bedrock to generate accurate SQL queries against the Redshift database. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                            <ResponseField name="inclusion" type="string">
+                              Specifies whether the column is included in the generation context for query generation in the Redshift configuration of the SQL knowledge base. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                            <ResponseField name="name" type="string">
+                              Specifies the name of a column in a Redshift table that the knowledge base uses as context for generating SQL queries. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                        <ResponseField name="description" type="string">
+                          Provides a human-readable description of the table to help the query generation model understand its purpose and contents for generating SQL queries. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="inclusion" type="string">
+                          Specifies whether the listed Redshift table is included in or excluded from the query generation context, using an enum value such as 'INCLUDE' or 'EXCLUDE'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="name" type="string">
+                          The name of the Redshift table that is included in the query generation context, allowing the knowledge base to reference this table when generating SQL queries. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="storage_configurations" type="list(object)" required>
+              List of configurations for available Redshift query engine storage types Required.
+              <Expandable title="properties">
+                <ResponseField name="aws_data_catalog_configuration" type="object">
+                  Defines the AWS Glue Data Catalog settings (catalog ID, database name, and table name) that identify the Redshift data source to use for the knowledge base's SQL configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="table_names" type="list(string)">
+                      The list of table names in the AWS Glue Data Catalog that the Redshift SQL knowledge base will use for querying and retrieving data. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="redshift_configuration" type="object">
+                  Defines the Amazon Redshift connection details for one storage configuration in an Amazon Bedrock SQL knowledge base, including the Redshift server and authentication parameters. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <Note>`redshift_configuration` recurs here (its own type contains itself); see the `redshift_configuration` field's own properties above for the repeating pattern.</Note>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="type" type="string">
+                  Specifies the storage format for the Redshift table in the knowledge base's SQL configuration, with allowed values 'ROW' or 'COLUMNAR'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="type" type="string" required>
+          SQL query engine type Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      The type of a knowledge base. Required.
+    </ResponseField>
+    <ResponseField name="vector_knowledge_base_configuration" type="object">
+      Contains details about the model used to create vector embeddings for the knowledge base. Optional.
+      <Expandable title="properties">
+        <ResponseField name="embedding_model_arn" type="string" required>
+          The ARN of the model used to create vector embeddings for the knowledge base. Required.
+        </ResponseField>
+        <ResponseField name="embedding_model_configuration" type="object">
+          The embeddings model configuration details for the vector model used in Knowledge Base. Optional.
+          <Expandable title="properties">
+            <ResponseField name="bedrock_embedding_model_configuration" type="object">
+              The vector configuration details for the Bedrock embeddings model. Optional.
+              <Expandable title="properties">
+                <ResponseField name="audio" type="list(object)">
+                  List of audio configurations for multi modal ingestion. Optional.
+                  <Expandable title="properties">
+                    <ResponseField name="segmentation_configuration" type="object">
+                      Configures how audio files are split into segments for embedding generation, such as the duration of each audio segment, when using a Bedrock embedding model with audio support. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="fixed_length_duration" type="number">
+                          When the audio segmentation strategy is set to FIXED_LENGTH, this property defines the duration (in seconds) of each audio segment before embedding. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="dimensions" type="number">
+                  The dimensions details for the vector configuration used on the Bedrock embeddings model. Optional.
+                </ResponseField>
+                <ResponseField name="embedding_data_type" type="string">
+                  The data type for the vectors when using a model to convert text into vector embeddings. Optional.
+                </ResponseField>
+                <ResponseField name="video" type="list(object)">
+                  List of video configurations for multi modal ingestion. Optional.
+                  <Expandable title="properties">
+                    <ResponseField name="segmentation_configuration" type="object">
+                      This object specifies how input videos are segmented into smaller pieces before the embedding model processes them, controlling the granularity of video embeddings in the knowledge base. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="fixed_length_duration" type="number">
+                          Specifies the fixed segment duration (in seconds) used to split a video into chunks before generating embeddings for a Bedrock knowledge base. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="supplemental_data_storage_configuration" type="object">
+          Configurations for supplemental data storage. Optional.
+          <Expandable title="properties">
+            <ResponseField name="supplemental_data_storage_locations" type="list(object)" required>
+              List of supplemental data storage locations. Required.
+              <Expandable title="properties">
+                <ResponseField name="s3_location" type="object">
+                  The S3 location (bucket and key prefix) that specifies where supplemental data files for the knowledge base are stored, used alongside the vector index for retrieval. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="uri" type="string">
+                      The S3 URI (e.g., s3://bucket-name/object-key) of a supplemental data storage location where additional data for the Bedrock vector knowledge base is stored. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="supplemental_data_storage_location_type" type="string">
+                  Specifies whether the supplemental data storage location is an Amazon S3 bucket (S3) or in-memory storage (IN_MEMORY) for the Bedrock knowledge base. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the knowledge base. Required.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  The ARN of the IAM role with permissions to invoke API operations on the knowledge base. The ARN must begin with AmazonBedrockExecutionRoleForKnowledgeBase_ Required.
+</ResponseField>
+
+<ResponseField name="storage_configuration" type="object">
+  The vector store service in which the knowledge base is stored. Optional.
+  <Expandable title="properties">
+    <ResponseField name="mongo_db_atlas_configuration" type="object">
+      Contains the storage configuration of the knowledge base in MongoDb Atlas Cloud. Optional.
+      <Expandable title="properties">
+        <ResponseField name="collection_name" type="string" required>
+          Name of the collection within MongoDB Atlas. Required.
+        </ResponseField>
+        <ResponseField name="credentials_secret_arn" type="string" required>
+          The ARN of the secret that you created in AWS Secrets Manager that is linked to your Amazon Mongo database. Required.
+        </ResponseField>
+        <ResponseField name="database_name" type="string" required>
+          Name of the database within MongoDB Atlas. Required.
+        </ResponseField>
+        <ResponseField name="endpoint" type="string" required>
+          MongoDB Atlas endpoint. Required.
+        </ResponseField>
+        <ResponseField name="endpoint_service_name" type="string">
+          MongoDB Atlas endpoint service name. Optional.
+        </ResponseField>
+        <ResponseField name="field_mapping" type="object" required>
+          Contains the names of the fields to which to map information about the vector store. Required.
+          <Expandable title="properties">
+            <ResponseField name="metadata_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores metadata about the vector store. Required.
+            </ResponseField>
+            <ResponseField name="text_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores the raw text from your data. The text is split according to the chunking strategy you choose. Required.
+            </ResponseField>
+            <ResponseField name="vector_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores the vector embeddings for your data sources. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="text_index_name" type="string">
+          Name of a MongoDB Atlas text index. Optional.
+        </ResponseField>
+        <ResponseField name="vector_index_name" type="string" required>
+          Name of a MongoDB Atlas index. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="neptune_analytics_configuration" type="object">
+      Contains the configurations to use Neptune Analytics as Vector Store. Optional.
+      <Expandable title="properties">
+        <ResponseField name="field_mapping" type="object" required>
+          A mapping of Bedrock Knowledge Base fields to Neptune Analytics fields. Required.
+          <Expandable title="properties">
+            <ResponseField name="metadata_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores metadata about the vector store. Required.
+            </ResponseField>
+            <ResponseField name="text_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores the raw text from your data. The text is split according to the chunking strategy you choose. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="graph_arn" type="string" required>
+          ARN for Neptune Analytics graph database. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="opensearch_managed_cluster_configuration" type="object">
+      Contains the storage configuration of the knowledge base in Amazon OpenSearch Service. Optional.
+      <Expandable title="properties">
+        <ResponseField name="domain_arn" type="string" required>
+          The Amazon Resource Name (ARN) of the OpenSearch domain. Required.
+        </ResponseField>
+        <ResponseField name="domain_endpoint" type="string" required>
+          The endpoint URL the OpenSearch domain. Required.
+        </ResponseField>
+        <ResponseField name="field_mapping" type="object" required>
+          A mapping of Bedrock Knowledge Base fields to OpenSearch Managed Cluster field names Required.
+          <Expandable title="properties">
+            <ResponseField name="metadata_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores metadata about the vector store. Required.
+            </ResponseField>
+            <ResponseField name="text_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores the raw text from your data. The text is split according to the chunking strategy you choose. Required.
+            </ResponseField>
+            <ResponseField name="vector_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores the vector embeddings for your data sources. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="vector_index_name" type="string" required>
+          The name of the vector store. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="opensearch_serverless_configuration" type="object">
+      Contains the storage configuration of the knowledge base in Amazon OpenSearch Service. Optional.
+      <Expandable title="properties">
+        <ResponseField name="collection_arn" type="string" required>
+          The ARN of the OpenSearch Service vector store. Required.
+        </ResponseField>
+        <ResponseField name="field_mapping" type="object" required>
+          A mapping of Bedrock Knowledge Base fields to OpenSearch Serverless field names Required.
+          <Expandable title="properties">
+            <ResponseField name="metadata_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores metadata about the vector store. Required.
+            </ResponseField>
+            <ResponseField name="text_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores the raw text from your data. The text is split according to the chunking strategy you choose. Required.
+            </ResponseField>
+            <ResponseField name="vector_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores the vector embeddings for your data sources. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="vector_index_name" type="string" required>
+          The name of the vector store. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="pinecone_configuration" type="object">
+      Contains the storage configuration of the knowledge base in Pinecone. Optional.
+      <Expandable title="properties">
+        <ResponseField name="connection_string" type="string" required>
+          The endpoint URL for your index management page. Required.
+        </ResponseField>
+        <ResponseField name="credentials_secret_arn" type="string" required>
+          The ARN of the secret that you created in AWS Secrets Manager that is linked to your Pinecone API key. Required.
+        </ResponseField>
+        <ResponseField name="field_mapping" type="object" required>
+          Contains the names of the fields to which to map information about the vector store. Required.
+          <Expandable title="properties">
+            <ResponseField name="metadata_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores metadata about the vector store. Required.
+            </ResponseField>
+            <ResponseField name="text_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores the raw text from your data. The text is split according to the chunking strategy you choose. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="namespace" type="string">
+          The namespace to be used to write new data to your database. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="rds_configuration" type="object">
+      Contains details about the storage configuration of the knowledge base in Amazon RDS. For more information, see Create a vector index in Amazon RDS. Optional.
+      <Expandable title="properties">
+        <ResponseField name="credentials_secret_arn" type="string" required>
+          The ARN of the secret that you created in AWS Secrets Manager that is linked to your Amazon RDS database. Required.
+        </ResponseField>
+        <ResponseField name="database_name" type="string" required>
+          The name of your Amazon RDS database. Required.
+        </ResponseField>
+        <ResponseField name="field_mapping" type="object" required>
+          Contains the names of the fields to which to map information about the vector store. Required.
+          <Expandable title="properties">
+            <ResponseField name="custom_metadata_field" type="string">
+              The name of the field in which Amazon Bedrock stores custom metadata about the vector store. Optional.
+            </ResponseField>
+            <ResponseField name="metadata_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores metadata about the vector store. Required.
+            </ResponseField>
+            <ResponseField name="primary_key_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores the ID for each entry. Required.
+            </ResponseField>
+            <ResponseField name="text_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores the raw text from your data. The text is split according to the chunking strategy you choose. Required.
+            </ResponseField>
+            <ResponseField name="vector_field" type="string" required>
+              The name of the field in which Amazon Bedrock stores the vector embeddings for your data sources. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="resource_arn" type="string" required>
+          The ARN of the vector store. Required.
+        </ResponseField>
+        <ResponseField name="table_name" type="string" required>
+          The name of the table in the database. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="s3_vectors_configuration" type="object">
+      Contains the storage configuration of the knowledge base for S3 vectors. Optional.
+      <Expandable title="properties">
+        <ResponseField name="index_arn" type="string">
+          The Amazon Resource Name (ARN) of the vector index used for the knowledge base. This ARN identifies the specific vector index resource within Amazon Bedrock. Optional.
+        </ResponseField>
+        <ResponseField name="index_name" type="string">
+          The name of the vector index used for the knowledge base. This name identifies the vector index within the Amazon Bedrock service. Optional.
+        </ResponseField>
+        <ResponseField name="vector_bucket_arn" type="string">
+          The Amazon Resource Name (ARN) of the S3 bucket where vector embeddings are stored. This bucket contains the vector data used by the knowledge base. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      The storage type of a knowledge base. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  A map of tag keys and values Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="created_at" type="string">
+  The time at which the knowledge base was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="failure_reasons" type="list(string)">
+  A list of reasons that the API operation on the knowledge base failed. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="knowledge_base_arn" type="string">
+  The ARN of the knowledge base. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="knowledge_base_id" type="string">
+  The unique identifier of the knowledge base. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The status of a knowledge base. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  The time at which the knowledge base was last updated. Computed by AWS after `ship`.
+</ResponseField>

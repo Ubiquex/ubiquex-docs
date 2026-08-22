@@ -1,0 +1,445 @@
+---
+title: "aws_msk_cluster"
+description: "`aws_msk_cluster` creates a real provisioned Amazon MSK cluster, its broker nodes, storage, and networking..."
+---
+
+`aws_msk_cluster` creates a real provisioned Amazon MSK cluster, its broker nodes, storage, and networking, the managed Apache Kafka cluster that topics, consumers, and producers actually connect to.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	msk "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/msk"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own cluster"})
+
+    		ubx.Resource(msk.Cluster, "ci-runner", msk.ClusterConfig{
+    			BrokerNodeGroupInfo:  map[string]any{"client_subnets": []string{"example"}},
+    			ClusterName:          "example-cluster-name",
+    			KafkaVersion:         "example",
+    			NumberOfBrokerNodes:  1,
+    			ClientAuthentication: map[string]any{"sasl": map[string]any{"iam": map[string]any{"enabled": true}}},
+    			ConfigurationInfo:    map[string]any{"arn": "example"},
+    			EncryptionInfo:       map[string]any{"encryption_at_rest": map[string]any{"data_volume_kmskey_id": "example"}},
+    			EnhancedMonitoring:   "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Cluster } from "./local-sdk/aws/sdk/typescript/aws/msk/cluster.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own cluster" });
+
+      resource(Cluster, "ci-runner", {
+        brokerNodeGroupInfo: { clientSubnets: ["example"] },
+        clusterName: "example-cluster-name",
+        kafkaVersion: "example",
+        numberOfBrokerNodes: 1,
+        clientAuthentication: { sasl: { iam: { enabled: true } } },
+        configurationInfo: { arn: "example" },
+        encryptionInfo: { encryptionAtRest: { dataVolumeKmskeyId: "example" } },
+        enhancedMonitoring: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.msk import Cluster, ClusterConfig
+
+    def describe():
+        ubx.intent("payments own cluster")
+
+        ubx.resource(Cluster, "ci-runner", ClusterConfig(
+            broker_node_group_info={"client_subnets": ["example"]},
+            cluster_name="example-cluster-name",
+            kafka_version="example",
+            number_of_broker_nodes=1,
+            client_authentication={"sasl": {"iam": {"enabled": True}}},
+            configuration_info={"arn": "example"},
+            encryption_info={"encryption_at_rest": {"data_volume_kmskey_id": "example"}},
+            enhanced_monitoring="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_msk_cluster, with broker node group info a set value,
+    cluster name example-cluster-name, kafka version example, number
+    of broker nodes 1, client authentication a set value,
+    configuration info a set value, encryption info a set value,
+    enhanced monitoring example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="broker_node_group_info" type="object" required>
+  Configures the compute and networking resources for the Apache Kafka broker nodes, including instance type, number of brokers, subnets, and EBS storage settings. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="broker_azdistribution" type="string">
+      Defines how broker nodes are distributed across Availability Zones for the MSK cluster, with `DEFAULT` distributing them evenly and `USE_DEFAULT_AVAILABILITY_ZONES` using the cluster's default AZ configuration. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="client_subnets" type="list(string)" required>
+      The list of subnets in the VPC where the Apache Kafka broker nodes are deployed, determining their Availability Zone placement and network reachability for clients. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="connectivity_info" type="object">
+      Configures VPC connectivity and public access settings for the broker nodes in the MSK cluster. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="network_type" type="string">
+          Specifies the network type for the broker nodes, either 'VPC' for private VPC-only access or 'PUBLIC' for public internet access. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="public_access" type="object">
+          Defines public accessibility for the cluster brokers by setting a type, such as DISABLED (no public access) or SERVICE_PROVIDED_EIPS (public access via Elastic IP addresses). Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="type" type="string">
+              Specifies the public access mode for the MSK cluster brokers, with allowed values DISABLED (no public access) or SERVICE_PROVIDED_EIPS (brokers are assigned public Elastic IP addresses). Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="vpc_connectivity" type="object">
+          Configures VPC connectivity for the cluster's broker nodes, specifying client authentication methods (TLS and SASL) for clients accessing the cluster over VPC. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="client_authentication" type="object">
+              Specifies the client authentication methods (SASL/SCRAM, SASL/IAM, and TLS) that clients must use when connecting to the MSK cluster brokers through VPC connectivity. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="sasl" type="object">
+                  Configures SASL authentication (enabling IAM, SCRAM, or both) for clients connecting to the cluster via VPC connectivity. Optional. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="iam" type="object">
+                      Specifies whether AWS Identity and Access Management (IAM) is enabled for SASL authentication for clients connecting via VPC connectivity. Optional. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="enabled" type="bool" required>
+                          When set to true, enables IAM-based SASL authentication for clients connecting to the cluster through VPC connectivity. Required. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="scram" type="object">
+                      Specifies the SCRAM authentication settings for MSK cluster VPC connectivity, including an Enabled flag to turn on SASL/SCRAM username-password authentication for clients. Optional. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="enabled" type="bool" required>
+                          Indicates whether SCRAM (Salted Challenge Response Authentication Mechanism) authentication is enabled for SASL client authentication over VPC connectivity in the MSK cluster. Required. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="tls" type="object">
+                  Specifies the TLS client authentication settings for clients using VPC connectivity, allowing you to enable or disable mutual TLS authentication for the cluster. Optional. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="enabled" type="bool" required>
+                      When set to true, enables TLS client authentication for clients connecting to the MSK cluster through VPC connectivity, requiring them to present valid certificates. Required. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="instance_type" type="string" required>
+      The EC2 instance type for the broker nodes, such as kafka.m5.large, which determines the compute and memory capacity of each broker. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="security_groups" type="list(string)">
+      One or more security group IDs to attach to the cluster's broker nodes, controlling inbound and outbound network traffic to the Apache Kafka brokers. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="storage_info" type="object">
+      Specifies the EBS storage configuration for the broker nodes, including the volume size and optional provisioned throughput settings. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="ebsstorage_info" type="object">
+          Configures the size and optional provisioned throughput of the Amazon EBS storage volumes attached to each broker node of the MSK cluster. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="provisioned_throughput" type="object">
+              This object configures provisioned I/O throughput for the EBS storage volumes attached to the MSK broker nodes, allowing you to specify a higher throughput than the baseline for performance-critical workloads. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="enabled" type="bool">
+                  Indicates whether to enable provisioned throughput on the EBS storage attached to the broker nodes. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="volume_throughput" type="number">
+                  Sets the target provisioned throughput in MiB/s for the EBS volumes attached to the Kafka broker nodes. Optional. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="volume_size" type="number">
+              Specifies the size in GiB of the EBS storage volume for each broker node in the MSK cluster, determining the total storage capacity available for Kafka data. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="client_authentication" type="object">
+  Defines client authentication methods for the MSK cluster, such as TLS, SASL/SCRAM, IAM, or unauthenticated access, via the nested `sasl`, `tls`, and `unauthenticated` properties. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="sasl" type="object">
+      Configures the SASL authentication mechanisms (e.g., SCRAM or IAM) enabled for clients connecting to this MSK cluster. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="iam" type="object">
+          Enable IAM-based access control for SASL authentication, allowing Kafka clients to authenticate using AWS IAM credentials. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="enabled" type="bool" required>
+              Enables AWS Identity and Access Management (IAM) as the SASL authentication mechanism for the cluster, allowing clients to authenticate using IAM credentials. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="scram" type="object">
+          Configures SASL/SCRAM authentication for the MSK cluster, including whether it is enabled and how credentials are stored in AWS Secrets Manager. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="enabled" type="bool" required>
+              Enables SASL/SCRAM authentication for the MSK cluster, allowing clients to authenticate with usernames and passwords stored in AWS Secrets Manager. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="tls" type="object">
+      Enables TLS mutual authentication for clients connecting to the MSK cluster by specifying the Certificate Authority (CA) ARNs used to issue and verify client certificates. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="certificate_authority_arn_list" type="list(string)">
+          A list of AWS Private Certificate Authority (ACM PCA) ARNs used to validate client certificates for mutual TLS authentication in the MSK cluster. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="enabled" type="bool">
+          Controls whether TLS-based client authentication (mutual TLS) is enabled for the MSK cluster, requiring clients to present valid certificates when connecting. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="unauthenticated" type="object">
+      This is a boolean flag that enables or disables unauthenticated (anonymous) access to the Apache Kafka brokers in the MSK cluster, allowing clients to connect without SASL/SCRAM or IAM authentication when set to true. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="enabled" type="bool" required>
+          Enables or disables unauthenticated access to the Apache Kafka cluster, allowing clients to connect without providing credentials when set to true. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="cluster_name" type="string" required>
+  A unique, user-friendly name for the MSK cluster, which must be unique within the AWS account and Region and is used as the cluster's identifier in the AWS Management Console and API calls. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="configuration_info" type="object">
+  Specifies the Amazon MSK configuration (ARN and revision) to use for the cluster. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="arn" type="string" required>
+      The Amazon Resource Name (ARN) of the MSK cluster configuration that the cluster is associated with. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="revision" type="number" required>
+      The revision number of the Amazon MSK configuration to apply to the cluster. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="encryption_info" type="object">
+  Specifies the encryption configuration for the MSK cluster, including encryption at rest using a KMS key and encryption in transit for client and broker communication. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="encryption_at_rest" type="object">
+      Configures encryption of data at rest for the MSK cluster's broker volumes, including the AWS KMS key used for encryption. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="data_volume_kmskey_id" type="string" required>
+          The ARN or ID of the AWS KMS key used to encrypt data at rest on the broker volume(s) of the MSK cluster. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="encryption_in_transit" type="object">
+      Specifies in-transit encryption settings for the MSK cluster, including the client broker encryption mode (TLS, TLS_PLAINTEXT, or PLAINTEXT) and whether communication between brokers within the cluster is encrypted. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="client_broker" type="string">
+          Specifies the encryption setting for client-to-broker communication, with valid values TLS, TLS_PLAINTEXT, or PLAINTEXT. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="in_cluster" type="bool">
+          Indicates whether data encryption among broker nodes in the Amazon MSK cluster is enabled (default true). Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="enhanced_monitoring" type="string">
+  Determines the granularity of Amazon CloudWatch metrics for the MSK cluster, with valid values including DEFAULT, PER_BROKER, PER_TOPIC_PER_BROKER, and PER_TOPIC_PER_PARTITION. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="kafka_version" type="string" required>
+  The version of Apache Kafka to use for the cluster, such as '2.8.1'. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="logging_info" type="object">
+  Specifies the broker log delivery configuration for the MSK cluster, including destinations such as CloudWatch Logs, Amazon S3, and Amazon Kinesis Data Firehose. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="authorizer_logs" type="object">
+      Defines the destinations and settings for delivering Amazon MSK authorizer logs, which contain details about authentication and authorization requests for the cluster's IAM access control. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="cloud_watch_logs" type="object">
+          Configures the destination and enablement for streaming the cluster's authorizer logs (from the AWS IAM access control) to Amazon CloudWatch Logs, specifying the log group to which MSK delivers them. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="enabled" type="bool" required>
+              When true, enables delivery of Amazon MSK authorizer logs to the configured CloudWatch Logs log group. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="log_group" type="string">
+              The name of the CloudWatch Logs log group where MSK delivers authorizer logs (records of client authentication and authorization attempts). Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="firehose" type="object">
+          Configures the delivery of Amazon MSK authorizer logs (Kafka authentication and authorization events) to an Amazon Kinesis Data Firehose delivery stream, including whether delivery is enabled and the name of the destination delivery stream. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="delivery_stream" type="string">
+              The name of the Amazon Kinesis Data Firehose delivery stream that the MSK cluster's authorizer logs are sent to when Firehose logging is enabled. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="enabled" type="bool" required>
+              Whether to enable delivering Amazon MSK authorizer logs to the specified Amazon Data Firehose delivery stream. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="s3" type="object">
+          Configures delivery of MSK authorizer logs to an Amazon S3 bucket, including whether delivery is enabled, the destination bucket name, and an optional key prefix. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="bucket" type="string">
+              The name of the S3 bucket where Amazon MSK sends authorizer logs for the cluster. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="enabled" type="bool" required>
+              Whether to enable delivery of Amazon MSK authorizer logs to the specified Amazon S3 bucket. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="prefix" type="string">
+              Specifies the S3 key prefix under which authorizer logs are stored in the destination bucket. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="broker_logs" type="object">
+      Configures delivery of the cluster's Apache Kafka broker logs to one or more supported destinations (CloudWatch Logs, Amazon S3, or Kinesis Data Firehose), including whether each destination is enabled. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="cloud_watch_logs" type="object">
+          Specifies the settings for delivering Apache Kafka broker logs to Amazon CloudWatch Logs, including an Enabled flag and an optional LogGroup name. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="enabled" type="bool" required>
+              Whether Amazon MSK delivers Kafka broker logs to the specified Amazon CloudWatch Logs log group. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="log_group" type="string">
+              The name of the CloudWatch Logs log group where Amazon MSK broker logs are delivered when CloudWatch Logs logging is enabled. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="firehose" type="object">
+          Specifies the configuration for delivering Amazon MSK broker logs to an Amazon Kinesis Data Firehose delivery stream, including whether delivery is enabled and the ARN of the destination delivery stream. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="delivery_stream" type="string">
+              The name of the Amazon Kinesis Data Firehose delivery stream that receives the MSK broker logs when Firehose is chosen as the logging destination. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="enabled" type="bool" required>
+              Indicates whether broker logs are delivered to the specified Amazon Kinesis Data Firehose delivery stream for this MSK cluster. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="s3" type="object">
+          Specifies the Amazon S3 destination for Apache Kafka broker logs, including whether delivery is enabled, the bucket name, and an optional key prefix. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="bucket" type="string">
+              The name of the S3 bucket where Amazon MSK delivers broker logs when S3 logging is enabled. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="enabled" type="bool" required>
+              Whether to enable the delivery of Apache Kafka broker logs to an Amazon S3 bucket. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="prefix" type="string">
+              The S3 object key prefix that is prepended to the names of the broker log files uploaded to the S3 bucket for MSK broker logs. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="number_of_broker_nodes" type="number" required>
+  The number of broker nodes to be provisioned in the Amazon MSK cluster. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="open_monitoring" type="object">
+  Configures open monitoring settings for the MSK cluster, including Prometheus exporter settings for JMX and node metrics. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="prometheus" type="object" required>
+      Specifies the Prometheus exporter configuration for the MSK cluster's open monitoring, with nested settings for the JMX and node exporters. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="jmx_exporter" type="object">
+          Configures the JMX Exporter settings for the cluster's Prometheus open monitoring, including whether the exporter is enabled on the brokers. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="enabled_in_broker" type="bool" required>
+              Indicates whether to enable the JMX Exporter on the Apache Kafka broker nodes to expose JMX metrics to Prometheus for open monitoring. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="node_exporter" type="object">
+          Specifies the Node Exporter configuration for the cluster's Prometheus monitoring, including the flag that enables or disables the Node Exporter on the broker nodes. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="enabled_in_broker" type="bool" required>
+              Enables the Prometheus NodeExporter on each MSK broker node to expose node-level metrics (CPU, memory, disk, network) for open monitoring. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="rebalancing" type="object">
+  Specifies the rebalancing settings for the MSK cluster, which control how the cluster automatically reassigns partition leaders and replicas among brokers during topology changes. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="status" type="string" required>
+      Determines whether automatic partition rebalancing is enabled (ENABLED) or disabled (DISABLED) for the MSK cluster. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="storage_mode" type="string">
+  Specifies the storage mode for the MSK cluster, either LOCAL for local EBS storage only or TIERED to enable tiered storage that automatically moves older data to Amazon S3. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  A key-value pair to associate with a resource. Optional.
+</ResponseField>
+
+<ResponseField name="zookeeper_access" type="object">
+  Optional.
+  <Expandable title="properties">
+    <ResponseField name="enabled" type="bool">
+      Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies the MSK cluster. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="current_version" type="string">
+  The current version of the MSK cluster Computed by AWS after `ship`.
+</ResponseField>

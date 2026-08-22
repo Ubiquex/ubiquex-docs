@@ -1,0 +1,105 @@
+---
+title: "aws_vpc_endpoint"
+description: "`aws_vpc_endpoint` creates a real, named private connectivity endpoint scoped to a VPC, its own subnets and security groups."
+---
+
+Its real, live field schema (name, vpc_id, subnet_ids, security_group_ids) is notably simpler than the classic `aws_ec2_vpcendpoint`'s own service_name/policy_document-driven shape, and no dedicated public documentation page for this specific, newer resource type turned up despite searching -- verified as real via its own live CFN field schema this session rather than a fetched overview, and flagged here as thinly documented rather than presented as fully understood.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	vpc "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/vpc"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own endpoint"})
+
+    		ubx.Resource(vpc.Endpoint, "ci-runner", vpc.EndpointConfig{
+    			Name:             "ci-runner",
+    			SubnetIds:        []string{"example"},
+    			VpcId:            "example",
+    			SecurityGroupIds: []string{"example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Endpoint } from "./local-sdk/aws/sdk/typescript/aws/vpc/endpoint.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own endpoint" });
+
+      resource(Endpoint, "ci-runner", {
+        name: "ci-runner",
+        subnetIds: ["example"],
+        vpcId: "example",
+        securityGroupIds: ["example"],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.vpc import Endpoint, EndpointConfig
+
+    def describe():
+        ubx.intent("payments own endpoint")
+
+        ubx.resource(Endpoint, "ci-runner", EndpointConfig(
+            name="ci-runner",
+            subnet_ids=["example"],
+            vpc_id="example",
+            security_group_ids=["example"],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_vpc_endpoint called "ci-runner", with subnet ids a set
+    value, vpc id example, security group ids a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="name" type="string" required>
+  The name of the VPC Endpoint Required.
+</ResponseField>
+
+<ResponseField name="security_group_ids" type="list(string)">
+  The ID of one or more security groups to associate with the endpoint network interface Optional.
+</ResponseField>
+
+<ResponseField name="subnet_ids" type="list(string)" required>
+  The ID of one or more subnets in which to create an endpoint network interface Required.
+</ResponseField>
+
+<ResponseField name="vpc_id" type="string" required>
+  The ID of the VPC in which the endpoint will be used. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The identifier of the VPC Endpoint Computed by AWS after `ship`.
+</ResponseField>

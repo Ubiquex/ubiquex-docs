@@ -1,0 +1,153 @@
+---
+title: "aws_kafka_connect_custom_plugin"
+description: "`aws_kafka_connect_custom_plugin` uploads the real connector code, a JDBC sink, an S3 source, that an `aws_kafka_connect_connector` actually runs..."
+---
+
+`aws_kafka_connect_custom_plugin` uploads the real connector code, a JDBC sink, an S3 source, that an `aws_kafka_connect_connector` actually runs, MSK Connect's own way of using a connector implementation that isn't AWS-provided.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	kafka "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/kafka"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own connect custom plugin"})
+
+    		ubx.Resource(kafka.ConnectCustomPlugin, "ci-runner", kafka.ConnectCustomPluginConfig{
+    			ContentType: "example",
+    			Location:    map[string]any{"s3_location": map[string]any{"bucket_arn": "example"}},
+    			Name:        "ci-runner",
+    			Description: "Managed by ubx.",
+    			Tags:        []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ConnectCustomPlugin } from "./local-sdk/aws/sdk/typescript/aws/kafka/connect_custom_plugin.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own connect custom plugin" });
+
+      resource(ConnectCustomPlugin, "ci-runner", {
+        contentType: "example",
+        location: { s3Location: { bucketArn: "example" } },
+        name: "ci-runner",
+        description: "Managed by ubx.",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.kafka import ConnectCustomPlugin, ConnectCustomPluginConfig
+
+    def describe():
+        ubx.intent("payments own connect custom plugin")
+
+        ubx.resource(ConnectCustomPlugin, "ci-runner", ConnectCustomPluginConfig(
+            content_type="example",
+            location={"s3_location": {"bucket_arn": "example"}},
+            name="ci-runner",
+            description="Managed by ubx.",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_kafka_connect_custom_plugin called "ci-runner", with
+    content type example, location a set value, description Managed
+    by ubx., tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="content_type" type="string" required>
+  The type of the plugin file. Required.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A summary description of the custom plugin. Optional.
+</ResponseField>
+
+<ResponseField name="location" type="object" required>
+  Information about the location of a custom plugin. Required.
+  <Expandable title="properties">
+    <ResponseField name="s3_location" type="object" required>
+      The S3 bucket Amazon Resource Name (ARN), file key, and object version of the plugin file stored in Amazon S3. Required.
+      <Expandable title="properties">
+        <ResponseField name="bucket_arn" type="string" required>
+          The Amazon Resource Name (ARN) of an S3 bucket. Required.
+        </ResponseField>
+        <ResponseField name="file_key" type="string" required>
+          The file key for an object in an S3 bucket. Required.
+        </ResponseField>
+        <ResponseField name="object_version" type="string">
+          The version of an object in an S3 bucket. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the custom plugin. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag applied to the AWS Kafka Connect custom plugin, used to organize and manage the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag key-value pair applied to the Kafka Connect custom plugin, used for AWS resource tagging to support cost allocation, access control, and resource management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="custom_plugin_arn" type="string">
+  The Amazon Resource Name (ARN) of the custom plugin to use. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="file_description" type="object">
+  Details about the custom plugin file. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="file_md5" type="string">
+      The hex-encoded MD5 checksum of the custom plugin file. You can use it to validate the file. Optional.
+    </ResponseField>
+    <ResponseField name="file_size" type="number">
+      The size in bytes of the custom plugin file. You can use it to validate the file. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="revision" type="number">
+  The revision of the custom plugin. Computed by AWS after `ship`.
+</ResponseField>

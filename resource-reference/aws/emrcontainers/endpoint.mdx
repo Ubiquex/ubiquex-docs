@@ -1,0 +1,244 @@
+---
+title: "aws_emrcontainers_endpoint"
+description: "`aws_emrcontainers_endpoint` is a real, managed gateway connecting an `aws_emr_studio` to an `aws_emrcontainers_virtual_cluster`..."
+---
+
+`aws_emrcontainers_endpoint` is a real, managed gateway connecting an `aws_emr_studio` to an `aws_emrcontainers_virtual_cluster`, so Studio's notebooks can actually communicate with and submit interactive work to that virtual cluster.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	emrcontainers "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/emrcontainers"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own endpoint"})
+
+    		ubx.Resource(emrcontainers.Endpoint, "ci-runner", emrcontainers.EndpointConfig{
+    			ExecutionRoleArn:            "arn:aws:iam::123456789012:policy/ci",
+    			ReleaseLabel:                "example",
+    			Type:                        "example",
+    			VirtualClusterId:            "example",
+    			Name:                        "ci-runner",
+    			ConfigurationOverrides:      map[string]any{"application_configuration": []map[string]any{{"classification": "example"}}},
+    			SessionIdleTimeoutInMinutes: 1,
+    			Tags:                        []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Endpoint } from "./local-sdk/aws/sdk/typescript/aws/emrcontainers/endpoint.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own endpoint" });
+
+      resource(Endpoint, "ci-runner", {
+        executionRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        releaseLabel: "example",
+        type: "example",
+        virtualClusterId: "example",
+        name: "ci-runner",
+        configurationOverrides: {
+          applicationConfiguration: [{ classification: "example" }],
+        },
+        sessionIdleTimeoutInMinutes: 1,
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.emrcontainers import Endpoint, EndpointConfig
+
+    def describe():
+        ubx.intent("payments own endpoint")
+
+        ubx.resource(Endpoint, "ci-runner", EndpointConfig(
+            execution_role_arn="arn:aws:iam::123456789012:policy/ci",
+            release_label="example",
+            type="example",
+            virtual_cluster_id="example",
+            name="ci-runner",
+            configuration_overrides={"application_configuration": [{"classification": "example"}]},
+            session_idle_timeout_in_minutes=1,
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_emrcontainers_endpoint called "ci-runner", with
+    execution role arn arn:aws:iam::123456789012:policy/ci, release
+    label example, type example, virtual cluster id example,
+    configuration overrides a set value, session idle timeout in
+    minutes 1, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="configuration_overrides" type="object">
+  Specifies configuration overrides for the EMR on EKS managed endpoint, including application configurations (e.g., Spark properties) and monitoring configurations (e.g., CloudWatch logging and metrics). Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="application_configuration" type="list(object)">
+      Specifies application-level configuration overrides (e.g., Spark settings) to apply to workloads using this endpoint, where each list entry is a Configuration object containing a classification and its properties. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="classification" type="string">
+          The classification for the application configuration override, such as 'spark-defaults', 'hive-site', or 'yarn-site', which identifies the type of configuration properties being applied when the endpoint is created. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="configurations" type="list(any)">
+          Provides a list of application configuration objects, each containing a classification (e.g., spark-defaults) and key-value properties, that override the default EMR on EKS application settings for the endpoint. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="properties" type="any">
+          Key-value pairs for a configuration classification, used to override application-level settings for the EMR on EKS managed endpoint. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="monitoring_configuration" type="object">
+      This object overrides the default monitoring configuration for jobs running through the EMR Containers endpoint, specifying where to send logs (CloudWatch log group and S3 location) and whether to enable the persistent application UI. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="cloud_watch_monitoring_configuration" type="object">
+          This object defines the CloudWatch monitoring configuration for the endpoint, specifying the log group name and optional log stream prefix where EMR Containers delivers application logs. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="log_group_name" type="string" required>
+              The name of the CloudWatch log group to which EMR on EKS container logs are delivered when monitoring configuration is enabled for this endpoint. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="log_stream_name_prefix" type="string">
+              Specifies the prefix that is prepended to CloudWatch log stream names for monitoring logs emitted by the EMR on EKS managed endpoint. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="container_log_rotation_configuration" type="object">
+          Specifies the container log rotation settings for the endpoint's monitoring configuration, including the rotation size in megabytes and the maximum number of log files to keep. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="max_files_to_keep" type="number" required>
+              The maximum number of rotated container log files to retain for a pod after rotation, after which the oldest logs are deleted. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="rotation_size" type="string" required>
+              The size threshold in MB at which container logs are rotated for the Amazon EMR on EKS endpoint's monitoring configuration. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="persistent_app_ui" type="string">
+          Determines whether persistent Spark UI is enabled (ENABLED) or disabled (DISABLED) for job runs submitted through this EMR Containers endpoint. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="s3_monitoring_configuration" type="object">
+          Defines the Amazon S3 configuration for monitoring logs of the EMR containers endpoint, including the destination S3 URI (LogUri) and optional encryption key. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="log_uri" type="string" required>
+              Specifies the S3 URI where logs are stored for monitoring of the EMR on EKS endpoint. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="execution_role_arn" type="string" required>
+  The execution role ARN for the managed endpoint. Required.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the managed endpoint. Optional.
+</ResponseField>
+
+<ResponseField name="release_label" type="string" required>
+  The Amazon EMR release label. Required.
+</ResponseField>
+
+<ResponseField name="session_idle_timeout_in_minutes" type="number">
+  The idle timeout in minutes for sessions on the managed endpoint. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this managed endpoint. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a user-defined tag attached to the Amazon EMR on EKS endpoint, used for cost allocation and resource identification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag assigned to the Amazon EMR on EKS endpoint, used for resource identification, cost allocation, and access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="type" type="string" required>
+  The type of the managed endpoint. Required.
+</ResponseField>
+
+<ResponseField name="virtual_cluster_id" type="string" required>
+  The ID of the virtual cluster for which the managed endpoint is created. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The ARN of the managed endpoint. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="auth_proxy_url" type="string">
+  The auth proxy URL for Spark Connect connections. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="certificate_authority" type="object">
+  The certificate_authority object contains the certificate authority details (such as the certificate ARN) for the EKS cluster backing the EMR Containers endpoint, used to establish TLS trust for the endpoint connection. Computed by AWS after `ship`. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="certificate_arn" type="string">
+      The ARN of the AWS Certificate Manager (ACM) certificate used to secure the TLS certificate authority for the EMR Containers endpoint. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="certificate_data" type="string">
+      The PEM-encoded certificate data from the certificate authority that secures the EMR Containers managed endpoint, used by clients to verify TLS connections. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  The date and time when the managed endpoint was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="failure_reason" type="string">
+  The reason for a failed managed endpoint. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The ID of the managed endpoint. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="security_group" type="string">
+  The security group associated with the managed endpoint. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="server_url" type="string">
+  The server URL of the managed endpoint. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  The state of the managed endpoint. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="state_details" type="string">
+  Additional details about the state of the managed endpoint. Computed by AWS after `ship`.
+</ResponseField>

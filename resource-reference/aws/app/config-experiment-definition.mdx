@@ -1,0 +1,210 @@
+---
+title: "aws_app_config_experiment_definition"
+description: "`aws_app_config_experiment_definition` runs a real A/B test or gradual rollout on production traffic..."
+---
+
+`aws_app_config_experiment_definition` runs a real A/B test or gradual rollout on production traffic, built directly on top of AppConfig's own feature-flag configuration profiles rather than a separate experimentation stack, splitting traffic between variants and tracking operational metrics through CloudWatch as exposure increases.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	app "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/app"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own config experiment definition"})
+
+    		ubx.Resource(app.ConfigExperimentDefinition, "ci-runner", app.ConfigExperimentDefinitionConfig{
+    			ApplicationIdentifier:          "example",
+    			AudienceRule:                   "example",
+    			ConfigurationProfileIdentifier: "example",
+    			EnvironmentIdentifier:          "example",
+    			FlagKey:                        "example",
+    			Name:                           "ci-runner",
+    			AudienceDescription:            "example",
+    			Hypothesis:                     "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ConfigExperimentDefinition } from "./local-sdk/aws/sdk/typescript/aws/app/config_experiment_definition.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own config experiment definition" });
+
+      resource(ConfigExperimentDefinition, "ci-runner", {
+        applicationIdentifier: "example",
+        audienceRule: "example",
+        configurationProfileIdentifier: "example",
+        environmentIdentifier: "example",
+        flagKey: "example",
+        name: "ci-runner",
+        audienceDescription: "example",
+        hypothesis: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.app import ConfigExperimentDefinition, ConfigExperimentDefinitionConfig
+
+    def describe():
+        ubx.intent("payments own config experiment definition")
+
+        ubx.resource(ConfigExperimentDefinition, "ci-runner", ConfigExperimentDefinitionConfig(
+            application_identifier="example",
+            audience_rule="example",
+            configuration_profile_identifier="example",
+            environment_identifier="example",
+            flag_key="example",
+            name="ci-runner",
+            audience_description="example",
+            hypothesis="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_app_config_experiment_definition called "ci-runner",
+    with application identifier example, audience rule example,
+    configuration profile identifier example, environment identifier
+    example, flag key example, audience description example,
+    hypothesis example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="application_identifier" type="string" required>
+  The application ID, name, or ARN. Required.
+</ResponseField>
+
+<ResponseField name="audience_description" type="string">
+  Human-readable description of the audience. Optional.
+</ResponseField>
+
+<ResponseField name="audience_rule" type="string" required>
+  Rule expression defining the experiment audience. Required.
+</ResponseField>
+
+<ResponseField name="configuration_profile_identifier" type="string" required>
+  The configuration profile ID, name, or ARN. Required.
+</ResponseField>
+
+<ResponseField name="environment_identifier" type="string" required>
+  The environment ID, name, or ARN. Required.
+</ResponseField>
+
+<ResponseField name="flag_key" type="string" required>
+  The key of the existing flag in the configuration profile to experiment on. Required.
+</ResponseField>
+
+<ResponseField name="hypothesis" type="string">
+  The hypothesis of the experiment. Optional.
+</ResponseField>
+
+<ResponseField name="launch_criteria" type="string">
+  Criteria for launching the experiment. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  A name for the experiment definition. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Tags to associate with the experiment definition. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="application_id" type="string">
+  The resolved application ID (read-only, assigned by service). Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="control" type="object">
+  A treatment variant with weight and flag value. The Key is auto-generated by the service. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="attribute_values" type="any">
+      Map of attribute name to attribute value. Optional.
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      Optional.
+    </ResponseField>
+    <ResponseField name="enabled" type="bool" required>
+      Whether the flag is enabled for this variant. Required.
+    </ResponseField>
+    <ResponseField name="key" type="string">
+      The treatment key (read-only, auto-generated by service). Optional.
+    </ResponseField>
+    <ResponseField name="weight" type="number" required>
+      Traffic weight percentage. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO-8601 creation timestamp. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The experiment definition ID. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current status. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="treatments" type="list(object)">
+  Treatment variants (1-5). Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="attribute_values" type="any">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      A user-defined description of a treatment, which explains the purpose or configuration of that treatment in an AWS AppConfig experiment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="enabled" type="bool">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="weight" type="number">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  ISO-8601 last update timestamp. Computed by AWS after `ship`.
+</ResponseField>

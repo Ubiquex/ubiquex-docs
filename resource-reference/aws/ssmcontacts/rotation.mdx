@@ -1,0 +1,180 @@
+---
+title: "aws_ssmcontacts_rotation"
+description: "`aws_ssmcontacts_rotation` defines a real, recurring on-call schedule that rotates which `aws_ssmcontacts_contact`s are considered on-duty..."
+---
+
+`aws_ssmcontacts_rotation` defines a real, recurring on-call schedule that rotates which `aws_ssmcontacts_contact`s are considered on-duty, so an escalation plan can page whoever is currently on rotation rather than a fixed, hardcoded person.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ssmcontacts "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ssmcontacts"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own rotation"})
+
+    		ubx.Resource(ssmcontacts.Rotation, "ci-runner", ssmcontacts.RotationConfig{
+    			ContactIds: []string{"example"},
+    			Name:       "ci-runner",
+    			Recurrence: map[string]any{"daily_settings": []string{"example"}},
+    			StartTime:  "example",
+    			TimeZoneId: "example",
+    			Tags:       []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Rotation } from "./local-sdk/aws/sdk/typescript/aws/ssmcontacts/rotation.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own rotation" });
+
+      resource(Rotation, "ci-runner", {
+        contactIds: ["example"],
+        name: "ci-runner",
+        recurrence: { dailySettings: ["example"] },
+        startTime: "example",
+        timeZoneId: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ssmcontacts import Rotation, RotationConfig
+
+    def describe():
+        ubx.intent("payments own rotation")
+
+        ubx.resource(Rotation, "ci-runner", RotationConfig(
+            contact_ids=["example"],
+            name="ci-runner",
+            recurrence={"daily_settings": ["example"]},
+            start_time="example",
+            time_zone_id="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ssmcontacts_rotation called "ci-runner", with contact
+    ids a set value, recurrence a set value, start time example, time
+    zone id example, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="contact_ids" type="list(string)" required>
+  Members of the rotation Required.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Name of the Rotation Required.
+</ResponseField>
+
+<ResponseField name="recurrence" type="object" required>
+  Information about when an on-call rotation is in effect and how long the rotation period lasts. Required.
+  <Expandable title="properties">
+    <ResponseField name="daily_settings" type="list(string)">
+      Information about on-call rotations that recur daily. Optional.
+    </ResponseField>
+    <ResponseField name="monthly_settings" type="list(object)">
+      Information about on-call rotations that recur monthly. Optional.
+      <Expandable title="properties">
+        <ResponseField name="day_of_month" type="number">
+          Specifies the day of the month on which the monthly rotation shift begins, used in monthly recurrence settings for an AWS Systems Manager Incident Manager contacts rotation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="hand_off_time" type="string">
+          Specifies the time of day (in HH:MM format) when the shift handoff occurs for the monthly rotation schedule, within the monthly recurrence settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="number_of_on_calls" type="number">
+      Number of Oncalls per shift. Optional.
+    </ResponseField>
+    <ResponseField name="recurrence_multiplier" type="number">
+      The number of days, weeks, or months a single rotation lasts. Optional.
+    </ResponseField>
+    <ResponseField name="shift_coverages" type="list(object)">
+      Information about the days of the week included in on-call rotation coverage. Optional.
+      <Expandable title="properties">
+        <ResponseField name="coverage_times" type="list(object)">
+          Specifies the list of time ranges (each with start and end time) during which on-call coverage is active for a particular day of the week in the rotation's shift coverage schedule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="end_time" type="string">
+              The time (in HH:MM format) when the shift coverage window ends for the associated day in the rotation recurrence. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="start_time" type="string">
+              The start time of the daily coverage window, in 24-hour HH:MM format, that defines when this shift's on-call coverage begins. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="day_of_week" type="string">
+          The day of the week (e.g., Monday, Tuesday) that this shift coverage applies to within the rotation's recurrence schedule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="weekly_settings" type="list(object)">
+      Information about on-call rotations that recur weekly. Optional.
+      <Expandable title="properties">
+        <ResponseField name="day_of_week" type="string">
+          Specifies the day of the week (using a three-letter abbreviation such as MON, TUE, WED, THU, FRI, SAT, or SUN) on which the rotation's weekly on-call shift occurs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="hand_off_time" type="string">
+          The time of day, in 24-hour HH:MM format, when the on-call shift hands off to the next shift on the scheduled day of the week for the rotation recurrence. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="start_time" type="string" required>
+  Start time of the first shift of Oncall Schedule Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Specifies the tags to attach to the rotation, where each tag is an object containing a Key and Value, used to identify, organize, and manage the rotation resource. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag assigned to the SSM Contacts rotation, used to store metadata such as ownership, environment, or cost center for organizing and managing the rotation resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="time_zone_id" type="string" required>
+  TimeZone Identifier for the Oncall Schedule Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the rotation. Computed by AWS after `ship`.
+</ResponseField>

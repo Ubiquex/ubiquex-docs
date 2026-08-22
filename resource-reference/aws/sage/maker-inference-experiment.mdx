@@ -1,0 +1,263 @@
+---
+title: "aws_sage_maker_inference_experiment"
+description: "`aws_sage_maker_inference_experiment` runs a real, live A/B or shadow test across model variants on an existing `aws_sage_maker_endpoint`..."
+---
+
+`aws_sage_maker_inference_experiment` runs a real, live A/B or shadow test across model variants on an existing `aws_sage_maker_endpoint`, comparing a candidate model's real-time performance against production traffic before fully promoting it.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	sage "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sage"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own maker inference experiment"})
+
+    		ubx.Resource(sage.MakerInferenceExperiment, "ci-runner", sage.MakerInferenceExperimentConfig{
+    			EndpointName:      "example-endpoint-name",
+    			ModelVariants:     []map[string]any{{"infrastructure_config": map[string]any{"infrastructure_type": "example"}}},
+    			Name:              "ci-runner",
+    			RoleArn:           "arn:aws:iam::123456789012:policy/ci",
+    			Type:              "example",
+    			DataStorageConfig: map[string]any{"destination": "example"},
+    			Description:       "Managed by ubx.",
+    			DesiredState:      "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MakerInferenceExperiment } from "./local-sdk/aws/sdk/typescript/aws/sage/maker_inference_experiment.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own maker inference experiment" });
+
+      resource(MakerInferenceExperiment, "ci-runner", {
+        endpointName: "example-endpoint-name",
+        modelVariants: [{
+          infrastructureConfig: { infrastructureType: "example" },
+        }],
+        name: "ci-runner",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        type: "example",
+        dataStorageConfig: { destination: "example" },
+        description: "Managed by ubx.",
+        desiredState: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.sage import MakerInferenceExperiment, MakerInferenceExperimentConfig
+
+    def describe():
+        ubx.intent("payments own maker inference experiment")
+
+        ubx.resource(MakerInferenceExperiment, "ci-runner", MakerInferenceExperimentConfig(
+            endpoint_name="example-endpoint-name",
+            model_variants=[{"infrastructure_config": {"infrastructure_type": "example"}}],
+            name="ci-runner",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            type="example",
+            data_storage_config={"destination": "example"},
+            description="Managed by ubx.",
+            desired_state="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_sage_maker_inference_experiment called "ci-runner",
+    with endpoint name example-endpoint-name, model variants a set
+    value, role arn arn:aws:iam::123456789012:policy/ci, type
+    example, data storage config a set value, description Managed by
+    ubx., desired state example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="data_storage_config" type="object">
+  The Amazon S3 location and configuration for storing inference request and response data. Optional.
+  <Expandable title="properties">
+    <ResponseField name="content_type" type="object">
+      Configuration specifying how to treat different headers. If no headers are specified SageMaker will by default base64 encode when capturing the data. Optional.
+      <Expandable title="properties">
+        <ResponseField name="csv_content_types" type="list(string)">
+          The list of all content type headers that SageMaker will treat as CSV and capture accordingly. Optional.
+        </ResponseField>
+        <ResponseField name="json_content_types" type="list(string)">
+          The list of all content type headers that SageMaker will treat as JSON and capture accordingly. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="destination" type="string" required>
+      The Amazon S3 bucket where the inference request and response data is stored. Required.
+    </ResponseField>
+    <ResponseField name="kms_key" type="string">
+      The AWS Key Management Service key that Amazon SageMaker uses to encrypt captured data at rest using Amazon S3 server-side encryption. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  The description of the inference experiment. Optional.
+</ResponseField>
+
+<ResponseField name="desired_state" type="string">
+  The desired state of the experiment after starting or stopping operation. Optional.
+</ResponseField>
+
+<ResponseField name="endpoint_name" type="string" required>
+  The name of the endpoint used to run the inference experiment. Required.
+</ResponseField>
+
+<ResponseField name="kms_key" type="string">
+  The AWS Key Management Service (AWS KMS) key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance that hosts the endpoint. Optional.
+</ResponseField>
+
+<ResponseField name="model_variants" type="list(object)" required>
+  An array of ModelVariantConfig objects. Each ModelVariantConfig object in the array describes the infrastructure configuration for the corresponding variant. Required.
+  <Expandable title="properties">
+    <ResponseField name="infrastructure_config" type="object">
+      Specifies the hosting infrastructure (such as the instance type and instance count) for serving this model variant in the inference experiment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="infrastructure_type" type="string">
+          Specifies whether the model variant is hosted on real-time infrastructure or asynchronous inference infrastructure, with allowed values of 'RealTime' or 'Async'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="real_time_inference_config" type="object">
+          Specifies the Amazon SageMaker ML instance type and instance count to use for the model variant's real-time inference endpoint in the inference experiment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="instance_count" type="number">
+              Specifies the initial number of ML compute instances to provision for the model variant when serving real-time inference in the SageMaker Inference Experiment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="instance_type" type="string">
+              The ML compute instance type (e.g., ml.m5.large, ml.c5.xlarge) that SageMaker provisions for the real-time inference endpoint of this inference experiment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="model_name" type="string">
+      Specifies the name of the SageMaker model that this model variant deploys in the inference experiment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="variant_name" type="string">
+      The name of the model variant in a SageMaker Inference Experiment, used to uniquely identify the variant within the experiment's configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name for the inference experiment. Required.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  The Amazon Resource Name (ARN) of an IAM role that Amazon SageMaker can assume to access model artifacts and container images, and manage Amazon SageMaker Inference endpoints for model deployment. Required.
+</ResponseField>
+
+<ResponseField name="schedule" type="object">
+  The duration for which you want the inference experiment to run. Optional.
+  <Expandable title="properties">
+    <ResponseField name="end_time" type="string">
+      The timestamp at which the inference experiment ended or will end. Optional.
+    </ResponseField>
+    <ResponseField name="start_time" type="string">
+      The timestamp at which the inference experiment started or will start. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="shadow_mode_config" type="object">
+  The configuration of ShadowMode inference experiment type. Use this field to specify a production variant which takes all the inference requests, and a shadow variant to which Amazon SageMaker replicates a percentage of the inference requests. For the shadow variant also specify the percentage of requests that Amazon SageMaker replicates. Optional.
+  <Expandable title="properties">
+    <ResponseField name="shadow_model_variants" type="list(object)" required>
+      List of shadow variant configurations. Required.
+      <Expandable title="properties">
+        <ResponseField name="sampling_percentage" type="number">
+          The percentage of inference requests that are routed to this shadow model variant for evaluation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="shadow_model_variant_name" type="string">
+          The name of the model variant that receives a copy of production traffic in shadow mode, allowing you to test its performance without impacting the primary endpoint. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="source_model_variant_name" type="string" required>
+      The name of the production variant, which takes all the inference requests. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="status_reason" type="string">
+  The error message or client-specified reason from the StopInferenceExperiment API, that explains the status of the inference experiment. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the SageMaker inference experiment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Specifies the value portion of a key-value tag attached to the SageMaker inference experiment, used to organize, identify, and manage the experiment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="type" type="string" required>
+  The type of the inference experiment that you want to run. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the inference experiment. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="creation_time" type="string">
+  The timestamp at which you created the inference experiment. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="endpoint_metadata" type="object">
+  The metadata of the endpoint on which the inference experiment ran. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="endpoint_config_name" type="string">
+      The name of the endpoint configuration. Optional.
+    </ResponseField>
+    <ResponseField name="endpoint_name" type="string" required>
+      The name of the endpoint used to run the inference experiment. Required.
+    </ResponseField>
+    <ResponseField name="endpoint_status" type="string">
+      The status of the endpoint. For possible values of the status of an endpoint. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="last_modified_time" type="string">
+  The timestamp at which you last modified the inference experiment. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The status of the inference experiment. Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,139 @@
+---
+title: "aws_lambda_network_connector"
+description: "`aws_lambda_network_connector` configures the real VPC networking, subnets and security groups..."
+---
+
+`aws_lambda_network_connector` configures the real VPC networking, subnets and security groups, that an `aws_lambda_capacity_provider`'s underlying EC2 instances use to reach private resources under Lambda Managed Instances.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	lambda "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/lambda"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own network connector"})
+
+    		ubx.Resource(lambda.NetworkConnector, "ci-runner", lambda.NetworkConnectorConfig{
+    			Configuration: map[string]any{"vpc_egress_configuration": map[string]any{"associated_compute_resource_types": []string{"example"}}},
+    			Name:          "ci-runner",
+    			OperatorRole:  "example",
+    			Tags:          []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { NetworkConnector } from "./local-sdk/aws/sdk/typescript/aws/lambda/network_connector.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own network connector" });
+
+      resource(NetworkConnector, "ci-runner", {
+        configuration: {
+          vpcEgressConfiguration: { associatedComputeResourceTypes: ["example"] },
+        },
+        name: "ci-runner",
+        operatorRole: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.lambda_ import NetworkConnector, NetworkConnectorConfig
+
+    def describe():
+        ubx.intent("payments own network connector")
+
+        ubx.resource(NetworkConnector, "ci-runner", NetworkConnectorConfig(
+            configuration={"vpc_egress_configuration": {"associated_compute_resource_types": ["example"]}},
+            name="ci-runner",
+            operator_role="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_lambda_network_connector called "ci-runner", with
+    configuration a set value, operator role example, tags a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="configuration" type="object" required>
+  The network configuration for the connector. Specify a VpcEgressConfiguration to enable outbound traffic routing through your VPC. Required.
+  <Expandable title="properties">
+    <ResponseField name="vpc_egress_configuration" type="object" required>
+      The VPC egress configuration for the network connector. Specifies the subnets, security groups, and network protocol for routing outbound traffic through your VPC. Required.
+      <Expandable title="properties">
+        <ResponseField name="associated_compute_resource_types" type="list(string)" required>
+          The types of Lambda compute resources that can use this connector. Currently, only MicroVm is supported. Required.
+        </ResponseField>
+        <ResponseField name="network_protocol" type="string">
+          The network protocol for the connector. Specify IPv4 for IPv4-only networking, or DualStack for both IPv4 and IPv6. Optional.
+        </ResponseField>
+        <ResponseField name="security_group_ids" type="list(string)">
+          The IDs of the VPC security groups to attach to the ENIs. Specify 0 to 5 security groups. All security groups must be in the same VPC as the subnets. Optional.
+        </ResponseField>
+        <ResponseField name="subnet_ids" type="list(string)" required>
+          The IDs of the VPC subnets where Lambda provisions elastic network interfaces (ENIs). Specify 1 to 16 subnets. All subnets must be in the same VPC. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  A unique name for the network connector within your account and Region. Must be 1 to 64 alphanumeric characters, hyphens, or underscores. Optional.
+</ResponseField>
+
+<ResponseField name="operator_role" type="string">
+  The ARN of the IAM role that Lambda assumes to manage elastic network interfaces in your VPC. This role must have permissions for ec2:CreateNetworkInterface and related describe operations. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of tags to apply to the network connector. Use tags to categorize network connectors for cost allocation, access control, or operational management. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the network connector. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  The current state of the network connector. Computed by AWS after `ship`.
+</ResponseField>

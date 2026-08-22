@@ -1,0 +1,297 @@
+---
+title: "aws_cases_case_rule"
+description: "`aws_cases_case_rule` automatically runs whenever an `aws_cases_case` is created or updated, matching conditions like a field value, a priority..."
+---
+
+`aws_cases_case_rule` automatically runs whenever an `aws_cases_case` is created or updated, matching conditions like a field value, a priority, or an SLA breach, and taking a real action, assigning an SLA, creating a task, sending an alert, without an agent doing it by hand.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	cases "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/cases"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own case rule"})
+
+    		ubx.Resource(cases.CaseRule, "ci-runner", cases.CaseRuleConfig{
+    			Name:        "ci-runner",
+    			Rule:        map[string]any{"hidden": map[string]any{"conditions": []map[string]any{{"equal_to": map[string]any{"operand_one": map[string]any{"field_id": "example"}}}}}},
+    			Description: "Managed by ubx.",
+    			DomainId:    "example",
+    			Tags:        []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { CaseRule } from "./local-sdk/aws/sdk/typescript/aws/cases/case_rule.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own case rule" });
+
+      resource(CaseRule, "ci-runner", {
+        name: "ci-runner",
+        rule: {
+          hidden: {
+            conditions: [{ equalTo: { operandOne: { fieldId: "example" } } }],
+          },
+        },
+        description: "Managed by ubx.",
+        domainId: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.cases import CaseRule, CaseRuleConfig
+
+    def describe():
+        ubx.intent("payments own case rule")
+
+        ubx.resource(CaseRule, "ci-runner", CaseRuleConfig(
+            name="ci-runner",
+            rule={"hidden": {"conditions": [{"equal_to": {"operand_one": {"field_id": "example"}}}]}},
+            description="Managed by ubx.",
+            domain_id="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_cases_case_rule called "ci-runner", with rule a set
+    value, description Managed by ubx., domain id example, tags a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  A description explaining the purpose and behavior of this case rule. Helps administrators understand when and why this rule applies to case fields. Optional.
+</ResponseField>
+
+<ResponseField name="domain_id" type="string">
+  The unique identifier of the Cases domain. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  A descriptive name for the case rule. Must be unique within the domain and should clearly indicate the rule's purpose (e.g., 'Priority Field Required for Urgent Cases'). Required.
+</ResponseField>
+
+<ResponseField name="rule" type="object" required>
+  Defines the rule behavior and conditions. Specifies the rule type and the conditions under which it applies. In the Amazon Connect admin website, this corresponds to case field conditions. Required.
+  <Expandable title="properties">
+    <ResponseField name="hidden" type="object">
+      Optional; if omitted, computed by AWS.
+      <Expandable title="properties">
+        <ResponseField name="conditions" type="list(object)">
+          Within an Amazon Connect Cases case rule, this list contains the conditions under which the rule will hide the designated case fields from the case view. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="equal_to" type="object">
+              Defines an equality condition for a hidden case rule, matching when the value of the referenced case field exactly equals the configured value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="operand_one" type="object">
+                  This object is the first operand of an equality condition within the hidden conditions of an Amazon Connect Cases rule, specifying the source value (such as a case field reference or literal) to be compared against the second operand. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="field_id" type="string">
+                      Specifies the unique identifier of the case field that acts as the first operand in an equal-to condition used to determine whether the hidden rule action applies. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="operand_two" type="object">
+                  Defines the second operand (typically a literal value or field reference) in an equality condition of an AWS Cases case rule, specifying what the first operand must match for the condition to be true. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="boolean_value" type="bool">
+                      The Boolean value to which the case field is compared in the equal_to condition, determining when the hidden rule action applies. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="double_value" type="number">
+                      The double_value specifies the numeric floating-point value that operand_two must hold on a case for the equal_to condition to match during evaluation of the rule's hidden conditions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="empty_value" type="any">
+                      When set, this field indicates that the second operand of the 'equals' condition is an empty value, causing the rule to trigger when the specified case field is empty. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="string_value" type="string">
+                      For an `equal_to` condition in an AWS Cases case rule's hidden condition set, this field holds the second operand's string literal, which is compared against the first operand (typically a case field) to determine when the rule's action is triggered. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="result" type="bool">
+                  Optional; if omitted, computed by AWS.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="not_equal_to" type="object">
+              This object specifies a 'not equal to' comparison condition that, when true, contributes to hiding the associated field in an AWS Cases case layout. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="operand_one" type="object">
+                  Specifies the first operand to be compared in a 'not equal to' condition within the hidden conditions of the AWS Cases rule, which can reference a case field by ID or a literal value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="field_id" type="string">
+                      The unique identifier of the case field used as the left operand in a 'NotEqualTo' condition, evaluated within the rule's hidden conditions to determine if the rule is hidden. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="operand_two" type="object">
+                  Defines the second operand (either a case field reference or a fixed value) that the first operand is compared against in a 'not_equal_to' condition within a hidden rule of an AWS Cases case rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="boolean_value" type="bool">
+                      Specifies the Boolean value to compare a Boolean field against in a 'not equal to' rule condition, triggering the rule when the field's value does not equal this boolean. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="double_value" type="number">
+                      In AWS Cases case rules, this number is the double-precision value used as the second operand in a 'not equal to' condition, serving as the literal that the evaluated case field is compared against. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="empty_value" type="any">
+                      When present in operand_two of a 'not_equal_to' condition in an AWS Cases case rule, this empty_value object indicates that the rule evaluates whether the specified field's value is not empty. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="string_value" type="string">
+                      The string value of the right-hand side operand in a 'not equal to' comparison within a condition of a hidden rule for an AWS Cases case rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="result" type="bool">
+                  Optional; if omitted, computed by AWS.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="default_value" type="bool">
+          Determines whether the field is hidden by default when the hidden rule's condition does not evaluate to true (or when no condition is specified). Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="required" type="object">
+      Defines the required-field criteria for the rule, specifying which case fields must be present or carry a particular value for a case to comply with the rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="conditions" type="list(object)">
+          Optional; if omitted, computed by AWS.
+          <Expandable title="properties">
+            <ResponseField name="equal_to" type="object">
+              Specifies an equality comparison condition that must be met for the AWS Cases rule to trigger, evaluating whether a case field equals a defined value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="operand_one" type="object">
+                  Defines the first operand of an equality condition in a case rule, which is compared against the second operand to determine whether the condition matches and triggers the rule's action. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="field_id" type="string">
+                      The identifier of a case field whose value is compared to the second operand in an equal-to condition within an AWS Cases case rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="operand_two" type="object">
+                  The second operand of this 'equal to' condition, which can be a reference to a case field or a static value, used alongside the first operand to evaluate whether the rule's condition is satisfied. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="boolean_value" type="bool">
+                      In the 'equal_to' condition of a case rule, this boolean value specifies the second operand's literal value, matching when the evaluated field equals that boolean (true or false). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="double_value" type="number">
+                      Specifies the double-precision floating-point value to which a case field is compared in an 'equal_to' condition within a rule's required condition set. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="empty_value" type="any">
+                      When set to an empty object, this indicates that the second operand of the 'equal to' rule condition is the empty value, so the condition matches when the case field is empty. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="string_value" type="string">
+                      Specifies the literal string value of the second operand in an equal-to condition, used to compare against the first operand (a case field's value) to determine whether the rule's condition is met. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="result" type="bool">
+                  Specifies the boolean value to set on the target field when the equal-to condition in this AWS Cases case rule is satisfied. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="not_equal_to" type="object">
+              Optional; if omitted, computed by AWS.
+              <Expandable title="properties">
+                <ResponseField name="operand_one" type="object">
+                  Specifies the left operand for a 'not equal to' comparison in an Amazon Connect Cases rule condition, containing either a case field reference or a literal value that is compared against the second operand to trigger the rule action. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="field_id" type="string">
+                      The field_id of operand_one is the unique identifier of a case field whose value is used as the left operand in the not_equal_to condition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="operand_two" type="object">
+                  The second operand in a 'not equal to' condition of an Amazon Connect Cases rule, which holds the value (or field reference) that the first operand must not equal for the condition to match. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="boolean_value" type="bool">
+                      The boolean value that serves as the second operand for the 'not_equal_to' comparison in a case rule condition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="double_value" type="number">
+                      The double-precision numeric literal for the second operand of the 'not equal to' condition, representing the value the rule expects the field (first operand) to not match. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="empty_value" type="any">
+                      Indicates that the second operand of the `not_equal_to` condition is treated as an empty value, causing the rule to match when the source field is not empty. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="string_value" type="string">
+                      Defines the string literal for the second operand (the comparison value) in a NotEqualTo condition, so that the rule condition is satisfied only when the selected case field's value does not equal this string. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="result" type="bool">
+                  Optional; if omitted, computed by AWS.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="default_value" type="bool">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags that you attach to this case rule. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a key-value tag attached to the AWS Cases case rule, used for organizing, filtering, and managing the rule resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="case_rule_arn" type="string">
+  The Amazon Resource Name (ARN) of a case rule. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="case_rule_id" type="string">
+  The unique identifier of a case rule. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="created_time" type="string">
+  The time at which the case rule was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="last_modified_time" type="string">
+  The time at which the case rule was created or last modified. Computed by AWS after `ship`.
+</ResponseField>

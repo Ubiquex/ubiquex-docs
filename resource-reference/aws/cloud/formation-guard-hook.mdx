@@ -1,0 +1,203 @@
+---
+title: "aws_cloud_formation_guard_hook"
+description: "`aws_cloud_formation_guard_hook` implements a CloudFormation Hook using AWS CloudFormation Guard's declarative..."
+---
+
+`aws_cloud_formation_guard_hook` implements a CloudFormation Hook using AWS CloudFormation Guard's declarative, policy-as-code rules instead of a Lambda function, the same real pre-provisioning compliance check as an `aws_cloud_formation_lambda_hook` written without general-purpose code.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	cloud "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/cloud"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own formation guard hook"})
+
+    		ubx.Resource(cloud.FormationGuardHook, "ci-runner", cloud.FormationGuardHookConfig{
+    			Alias:            "example",
+    			ExecutionRole:    "example",
+    			FailureMode:      "example",
+    			HookStatus:       "example",
+    			RuleLocation:     map[string]any{"uri": "example"},
+    			TargetOperations: []string{"example"},
+    			LogBucket:        "example",
+    			Options:          "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { FormationGuardHook } from "./local-sdk/aws/sdk/typescript/aws/cloud/formation_guard_hook.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own formation guard hook" });
+
+      resource(FormationGuardHook, "ci-runner", {
+        alias: "example",
+        executionRole: "example",
+        failureMode: "example",
+        hookStatus: "example",
+        ruleLocation: { uri: "example" },
+        targetOperations: ["example"],
+        logBucket: "example",
+        options: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.cloud import FormationGuardHook, FormationGuardHookConfig
+
+    def describe():
+        ubx.intent("payments own formation guard hook")
+
+        ubx.resource(FormationGuardHook, "ci-runner", FormationGuardHookConfig(
+            alias="example",
+            execution_role="example",
+            failure_mode="example",
+            hook_status="example",
+            rule_location={"uri": "example"},
+            target_operations=["example"],
+            log_bucket="example",
+            options="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_cloud_formation_guard_hook, with alias example,
+    execution role example, failure mode example, hook status
+    example, rule location a set value, target operations a set
+    value, log bucket example, options example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="alias" type="string" required>
+  The typename alias for the hook. Required.
+</ResponseField>
+
+<ResponseField name="execution_role" type="string" required>
+  IAM Role ARN Required.
+</ResponseField>
+
+<ResponseField name="failure_mode" type="string" required>
+  Attribute to specify CloudFormation behavior on hook failure. Required.
+</ResponseField>
+
+<ResponseField name="hook_status" type="string" required>
+  Attribute to specify which stacks this hook applies to or should get invoked for Required.
+</ResponseField>
+
+<ResponseField name="log_bucket" type="string">
+  S3 Bucket where the guard validate report will be uploaded to Optional.
+</ResponseField>
+
+<ResponseField name="options" type="any">
+  Specifies the Guard hook options, including the RuleStack property that gives the Amazon S3 location of the Guard rules file CloudFormation uses to apply policy validation. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="rule_location" type="object" required>
+  S3 Source Location for the Guard files. Required.
+  <Expandable title="properties">
+    <ResponseField name="uri" type="string" required>
+      S3 uri of Guard files. Required.
+    </ResponseField>
+    <ResponseField name="version_id" type="string">
+      S3 object version Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="stack_filters" type="object">
+  Filters to allow hooks to target specific stack attributes Optional.
+  <Expandable title="properties">
+    <ResponseField name="filtering_criteria" type="string" required>
+      Attribute to specify the filtering behavior. ANY will make the Hook pass if one filter matches. ALL will make the Hook pass if all filters match Required.
+    </ResponseField>
+    <ResponseField name="stack_names" type="object">
+      List of stack names as filters Optional.
+      <Expandable title="properties">
+        <ResponseField name="exclude" type="list(string)">
+          List of stack names that the hook is going to be excluded from Optional.
+        </ResponseField>
+        <ResponseField name="include" type="list(string)">
+          List of stack names that the hook is going to target Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="stack_roles" type="object">
+      List of stack roles that are performing the stack operations. Optional.
+      <Expandable title="properties">
+        <ResponseField name="exclude" type="list(any)">
+          List of stack roles that the hook is going to be excluded from Optional.
+        </ResponseField>
+        <ResponseField name="include" type="list(any)">
+          List of stack roles that the hook is going to target Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="target_filters" type="object">
+  Attribute to specify which targets should invoke the hook Optional.
+  <Expandable title="properties">
+    <ResponseField name="actions" type="list(string)">
+      Specifies the list of stack operations (CREATE, UPDATE, DELETE) for which the Guard hook is invoked on the targeted resources. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="invocation_points" type="list(string)">
+      The invocation points of the target filter, which are the stack lifecycle events (such as BEFORE_CREATION or BEFORE_UPDATE) at which the Guard hook runs for the matched resources. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="target_names" type="list(string)">
+      Specifies the list of AWS resource type names (for example, 'AWS::S3::Bucket') that this Guard hook evaluates for violations during CloudFormation operations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="targets" type="list(object)">
+      Defines the resource targets that the Guard hook applies to, using include and exclude patterns based on resource type and resource identifiers. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="action" type="string">
+          Specifies whether the Guard hook should be invoked (INVOKE) or skipped (SKIP) for resources matching the target in this target filter. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="invocation_point" type="string">
+          The invocation point for a target in the Guard hook's target filter, indicating which CloudFormation resource lifecycle event (CREATE, UPDATE, or DELETE) triggers the hook for that target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="target_name" type="string">
+          The name of a target resource type (for example, AWS::S3::Bucket) that this Guard hook filter matches so the hook is invoked only for resources of that type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="target_operations" type="list(string)" required>
+  Which operations should this Hook run against? Resource changes, stacks or change sets. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="hook_arn" type="string">
+  The Amazon Resource Name (ARN) of the activated hook Computed by AWS after `ship`.
+</ResponseField>

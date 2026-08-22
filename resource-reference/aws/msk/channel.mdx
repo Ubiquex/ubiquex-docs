@@ -1,0 +1,346 @@
+---
+title: "aws_msk_channel"
+description: "`aws_msk_channel` creates a real, direct delivery pipeline from an MSK Kafka topic into an Apache Iceberg table, configuring the destination catalog..."
+---
+
+`aws_msk_channel` creates a real, direct delivery pipeline from an MSK Kafka topic into an Apache Iceberg table, configuring the destination catalog, database, table, and partition spec, without a separate Kafka Connect or Firehose hop in between. This is a newer MSK capability for direct-to-Iceberg ingestion, verified live this session against AWS's own field-level schema rather than general knowledge.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	msk "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/msk"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own channel"})
+
+    		ubx.Resource(msk.Channel, "ci-runner", msk.ChannelConfig{
+    			ChannelName:                     "example-channel-name",
+    			TopicConfigurationList:          []map[string]any{{"record_converter": map[string]any{"value_converter": "example"}}},
+    			ClusterArn:                      "arn:aws:iam::123456789012:policy/ci",
+    			EncryptionConfiguration:         map[string]any{"kms_key_arn": "example"},
+    			IcebergDestinationConfiguration: map[string]any{"append_only": true},
+    			LoggingInfo:                     map[string]any{"cloud_watch_logs": map[string]any{"enabled": true}},
+    			S3DestinationConfiguration:      map[string]any{"dead_letter_queue_s3": map[string]any{"bucket_arn": "example"}},
+    			Tags:                            "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Channel } from "./local-sdk/aws/sdk/typescript/aws/msk/channel.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own channel" });
+
+      resource(Channel, "ci-runner", {
+        channelName: "example-channel-name",
+        topicConfigurationList: [{
+          recordConverter: { valueConverter: "example" },
+        }],
+        clusterArn: "arn:aws:iam::123456789012:policy/ci",
+        encryptionConfiguration: { kmsKeyArn: "example" },
+        icebergDestinationConfiguration: { appendOnly: true },
+        loggingInfo: { cloudWatchLogs: { enabled: true } },
+        s3DestinationConfiguration: { deadLetterQueueS3: { bucketArn: "example" } },
+        tags: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.msk import Channel, ChannelConfig
+
+    def describe():
+        ubx.intent("payments own channel")
+
+        ubx.resource(Channel, "ci-runner", ChannelConfig(
+            channel_name="example-channel-name",
+            topic_configuration_list=[{"record_converter": {"value_converter": "example"}}],
+            cluster_arn="arn:aws:iam::123456789012:policy/ci",
+            encryption_configuration={"kms_key_arn": "example"},
+            iceberg_destination_configuration={"append_only": True},
+            logging_info={"cloud_watch_logs": {"enabled": True}},
+            s3_destination_configuration={"dead_letter_queue_s3": {"bucket_arn": "example"}},
+            tags="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_msk_channel, with channel name example-channel-name,
+    topic configuration list a set value, cluster arn
+    arn:aws:iam::123456789012:policy/ci, encryption configuration a
+    set value, iceberg destination configuration a set value, logging
+    info a set value, s3 destination configuration a set value, tags
+    example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="channel_name" type="string" required>
+  Name of the channel Required.
+</ResponseField>
+
+<ResponseField name="cluster_arn" type="string">
+  The Amazon Resource Name (ARN) of the cluster Optional.
+</ResponseField>
+
+<ResponseField name="encryption_configuration" type="object">
+  Encryption configuration Optional.
+  <Expandable title="properties">
+    <ResponseField name="kms_key_arn" type="string" required>
+      The ARN of the KMS key for encryption Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="iceberg_destination_configuration" type="object">
+  Iceberg destination configuration Optional.
+  <Expandable title="properties">
+    <ResponseField name="append_only" type="bool" required>
+      Append only mode Required.
+    </ResponseField>
+    <ResponseField name="catalog" type="object">
+      Catalog configuration of the destination Optional.
+      <Expandable title="properties">
+        <ResponseField name="catalog_arn" type="string">
+          The ARN of the catalog Optional.
+        </ResponseField>
+        <ResponseField name="warehouse_location" type="string">
+          The warehouse location Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="compression_type" type="string">
+      Compression codec for Iceberg table data files. Defaults to ZSTD. Optional.
+    </ResponseField>
+    <ResponseField name="data_freshness_in_seconds" type="number">
+      Data freshness in seconds Optional.
+    </ResponseField>
+    <ResponseField name="dead_letter_queue_s3" type="object" required>
+      Dead letter queue S3 configuration of the destination Required.
+      <Expandable title="properties">
+        <ResponseField name="bucket_arn" type="string" required>
+          The ARN of the S3 bucket Required.
+        </ResponseField>
+        <ResponseField name="error_output_prefix" type="string" required>
+          The error output prefix Required.
+        </ResponseField>
+        <ResponseField name="expected_bucket_owner" type="string">
+          Optional 12-digit AWS account ID expected to own the dead-letter S3 bucket Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="destination_table_list" type="list(object)" required>
+      List of destination tables Required.
+      <Expandable title="properties">
+        <ResponseField name="destination_database_name" type="string">
+          The name of the destination database in the target Apache Iceberg catalog where the replicated table is stored, as specified in the Iceberg destination table list. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="destination_table_name" type="string">
+          The name of the Apache Iceberg destination table that the channel's delivery stream writes records to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="partition_spec" type="object">
+          Specifies the partitioning scheme for the destination Iceberg table, defining how records are grouped into table partitions using transforms such as bucket, truncate, or time-based functions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="partition_strategy" type="string">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+            <ResponseField name="source_list" type="list(object)">
+              In the MSK channel's Iceberg destination configuration, this list defines the source columns (with their partition transforms) from each incoming Kafka record that determine how data is partitioned in the corresponding destination Iceberg table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="source_name" type="string">
+                  The name of a source field in the Kafka record (key or value) that is used as a partition column in the destination Iceberg table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="schema_evolution" type="object" required>
+      Schema evolution configuration of the destination Required.
+      <Expandable title="properties">
+        <ResponseField name="enable_schema_evolution" type="bool" required>
+          Whether schema evolution is enabled Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="service_execution_role_arn" type="string" required>
+      The Amazon Resource Name (ARN) of an IAM role used by MSK to access the table Required.
+    </ResponseField>
+    <ResponseField name="table_creation" type="object" required>
+      Table creation configuration of the destination Required.
+      <Expandable title="properties">
+        <ResponseField name="enable_table_creation" type="bool" required>
+          Whether table creation is enabled Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="logging_info" type="object">
+  Log configuration details for Channel Optional.
+  <Expandable title="properties">
+    <ResponseField name="cloud_watch_logs" type="object">
+      CloudWatch Logs log destination details Optional.
+      <Expandable title="properties">
+        <ResponseField name="enabled" type="bool" required>
+          Whether CloudWatch Logs logging is enabled Required.
+        </ResponseField>
+        <ResponseField name="log_group" type="string">
+          The CloudWatch log group for log delivery Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="firehose" type="object">
+      Firehose log destination details Optional.
+      <Expandable title="properties">
+        <ResponseField name="delivery_stream" type="string">
+          The Firehose delivery stream for log delivery Optional.
+        </ResponseField>
+        <ResponseField name="enabled" type="bool" required>
+          Whether Firehose logging is enabled Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="s3" type="object">
+      S3 log destination details Optional.
+      <Expandable title="properties">
+        <ResponseField name="bucket" type="string">
+          The name of the S3 bucket for log delivery Optional.
+        </ResponseField>
+        <ResponseField name="enabled" type="bool" required>
+          Whether S3 logging is enabled Required.
+        </ResponseField>
+        <ResponseField name="prefix" type="string">
+          The S3 prefix for log delivery Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="s3_destination_configuration" type="object">
+  S3 destination configuration Optional.
+  <Expandable title="properties">
+    <ResponseField name="data_freshness_in_seconds" type="number">
+      Data freshness in seconds Optional.
+    </ResponseField>
+    <ResponseField name="dead_letter_queue_s3" type="object" required>
+      Dead letter queue S3 configuration of the destination Required.
+      <Expandable title="properties">
+        <ResponseField name="bucket_arn" type="string" required>
+          The ARN of the S3 bucket Required.
+        </ResponseField>
+        <ResponseField name="error_output_prefix" type="string" required>
+          The error output prefix Required.
+        </ResponseField>
+        <ResponseField name="expected_bucket_owner" type="string">
+          Optional 12-digit AWS account ID expected to own the dead-letter S3 bucket Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="service_execution_role_arn" type="string" required>
+      The Amazon Resource Name (ARN) of an IAM role used by MSK to access S3 Required.
+    </ResponseField>
+    <ResponseField name="storage" type="object" required>
+      S3 storage configuration Required.
+      <Expandable title="properties">
+        <ResponseField name="bucket_arn" type="string" required>
+          ARN of the S3 bucket Required.
+        </ResponseField>
+        <ResponseField name="compression_type" type="string" required>
+          S3 compression type Required.
+        </ResponseField>
+        <ResponseField name="expected_bucket_owner" type="string">
+          Optional 12-digit AWS account ID expected to own the S3 bucket Optional.
+        </ResponseField>
+        <ResponseField name="output_key_template" type="string">
+          Template for S3 key for output objects, used for partitioning Optional.
+        </ResponseField>
+        <ResponseField name="output_prefix" type="string">
+          Optional prefix for output objects Optional.
+        </ResponseField>
+        <ResponseField name="storage_class" type="string" required>
+          S3 storage class Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  Tags attached to the channel Optional.
+</ResponseField>
+
+<ResponseField name="topic_configuration_list" type="list(object)" required>
+  Topic configuration Required.
+  <Expandable title="properties">
+    <ResponseField name="record_converter" type="object">
+      Optional; if omitted, computed by AWS.
+      <Expandable title="properties">
+        <ResponseField name="value_converter" type="string">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="record_schema" type="object">
+      Optional; if omitted, computed by AWS.
+      <Expandable title="properties">
+        <ResponseField name="gsr_arn" type="string">
+          The ARN of the AWS Glue Schema Registry schema used to define the record format for the Kafka topic, enabling serialization and validation of messages. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="topic_arn" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="channel_arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies the channel Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="state_info" type="object">
+  Includes information about the channel state Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="code" type="string">
+      Code for channel state Optional.
+    </ResponseField>
+    <ResponseField name="message" type="string">
+      Message for channel state Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Status of a channel resource Computed by AWS after `ship`.
+</ResponseField>

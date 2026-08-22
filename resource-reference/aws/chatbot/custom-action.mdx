@@ -1,0 +1,151 @@
+---
+title: "aws_chatbot_custom_action"
+description: "`aws_chatbot_custom_action` defines a configurable button, running a CLI command, a Lambda function, or an SSM Automation runbook..."
+---
+
+`aws_chatbot_custom_action` defines a configurable button, running a CLI command, a Lambda function, or an SSM Automation runbook, that appears on an AWS event notification in Slack or Microsoft Teams, letting a channel operationalize a real incident-response or DevOps action directly from the notification rather than switching to the console.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	chatbot "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/chatbot"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own custom action"})
+
+    		ubx.Resource(chatbot.CustomAction, "ci-runner", chatbot.CustomActionConfig{
+    			ActionName:  "example-action-name",
+    			Definition:  map[string]any{"command_text": "example"},
+    			AliasName:   "example-alias-name",
+    			Attachments: []map[string]any{{"button_text": "example"}},
+    			Tags:        []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { CustomAction } from "./local-sdk/aws/sdk/typescript/aws/chatbot/custom_action.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own custom action" });
+
+      resource(CustomAction, "ci-runner", {
+        actionName: "example-action-name",
+        definition: { commandText: "example" },
+        aliasName: "example-alias-name",
+        attachments: [{ buttonText: "example" }],
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.chatbot import CustomAction, CustomActionConfig
+
+    def describe():
+        ubx.intent("payments own custom action")
+
+        ubx.resource(CustomAction, "ci-runner", CustomActionConfig(
+            action_name="example-action-name",
+            definition={"command_text": "example"},
+            alias_name="example-alias-name",
+            attachments=[{"button_text": "example"}],
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_chatbot_custom_action, with action name
+    example-action-name, definition a set value, alias name
+    example-alias-name, attachments a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="action_name" type="string" required>
+  A unique, human-readable name for the custom action, used to identify and invoke it within AWS Chatbot (e.g., in Slack or Teams slash commands). Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="alias_name" type="string">
+  Specifies the alias for the custom action, allowing users to invoke the action with a shorter or alternate name in chat. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="attachments" type="list(object)">
+  Optional.
+  <Expandable title="properties">
+    <ResponseField name="button_text" type="string">
+      The text displayed on the button within the message attachment for the AWS Chatbot custom action. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="criteria" type="list(object)">
+      The `criteria` list holds filter conditions that determine whether a given notification or command invocation should use this attachment, restricting the custom action to matching events. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="operator" type="string">
+          The operator in an attachment criteria condition for an AWS Chatbot custom action, specifying the comparison method (e.g., 'CONTAINS' or 'EQUALS') used to match message attachment key/value pairs when determining whether the action can be invoked. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value" type="string">
+          The value that AWS Chatbot compares against the event attribute specified by the sibling 'key' field using the sibling 'operator' logic, to decide whether the attachment should be included for a custom action invocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="variable_name" type="string">
+          Specifies the name of a notification message variable that this attachment criterion evaluates (together with an operator and value) to decide whether the corresponding custom action is presented for that notification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="notification_type" type="string">
+      Specifies the type of AWS notification (such as a CloudWatch alarm state change) that this attachment associates with the chatbot custom action. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="variables" type="any">
+      Defines the map of variable names to values that are substituted into the custom action's command when this attachment is used. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="definition" type="object" required>
+  Defines the custom action by providing the command text (CommandText) that the AWS Chatbot runs when the action is invoked. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="command_text" type="string" required>
+      The command text that defines the custom action's behavior, such as a shell command or script, which is executed when the action is triggered. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of key-value pairs that can be attached to the AWS Chatbot custom action to help identify, organize, and manage the resource, with each object containing a Key and Value property. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the AWS Chatbot custom action, used to identify and categorize the resource for management and cost tracking. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="custom_action_arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies the custom action in AWS Chatbot, assigned by AWS when the resource is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

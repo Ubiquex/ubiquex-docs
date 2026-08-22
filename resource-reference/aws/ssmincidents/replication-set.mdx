@@ -1,0 +1,119 @@
+---
+title: "aws_ssmincidents_replication_set"
+description: "`aws_ssmincidents_replication_set` creates the real, required Region-replication configuration that must exist before Incident Manager can be used in..."
+---
+
+`aws_ssmincidents_replication_set` creates the real, required Region-replication configuration that must exist before Incident Manager can be used in an account, replicating incident data across the chosen Regions for resilience during a regional outage.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ssmincidents "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ssmincidents"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own replication set"})
+
+    		ubx.Resource(ssmincidents.ReplicationSet, "ci-runner", ssmincidents.ReplicationSetConfig{
+    			Regions:           []map[string]any{{"region_configuration": map[string]any{"sse_kms_key_id": "example"}}},
+    			DeletionProtected: true,
+    			Tags:              []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ReplicationSet } from "./local-sdk/aws/sdk/typescript/aws/ssmincidents/replication_set.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own replication set" });
+
+      resource(ReplicationSet, "ci-runner", {
+        regions: [{ regionConfiguration: { sseKmsKeyId: "example" } }],
+        deletionProtected: true,
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ssmincidents import ReplicationSet, ReplicationSetConfig
+
+    def describe():
+        ubx.intent("payments own replication set")
+
+        ubx.resource(ReplicationSet, "ci-runner", ReplicationSetConfig(
+            regions=[{"region_configuration": {"sse_kms_key_id": "example"}}],
+            deletion_protected=True,
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ssmincidents_replication_set, with regions a set
+    value, deletion protected true, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="deletion_protected" type="bool">
+  Configures the ReplicationSet deletion protection. Optional.
+</ResponseField>
+
+<ResponseField name="regions" type="list(object)" required>
+  The regions list specifies the AWS Regions in which incident records are replicated for this replication set, with each object defining a Region name and an optional customer-managed KMS key for encryption. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="region_configuration" type="object">
+      This object defines the per-region encryption configuration for the replication set, specifying the AWS KMS key ARN used to encrypt incident data replicated to that region. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="sse_kms_key_id" type="string">
+          The ARN of the AWS KMS key used to encrypt the replication set data in this region. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="region_name" type="string">
+      The name of an AWS Region to include in the Incident Manager replication set, determining where incident data will be replicated. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags to apply to the replication set. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag assigned to the AWS SSM Incident replication set, used to identify and organize the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a key-value tag attached to the replication set, used to organize, identify, and manage the resource within AWS Systems Manager Incident Manager. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The ARN of the ReplicationSet. Computed by AWS after `ship`.
+</ResponseField>

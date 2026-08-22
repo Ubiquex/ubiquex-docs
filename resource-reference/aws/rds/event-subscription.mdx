@@ -1,0 +1,131 @@
+---
+title: "aws_rds_event_subscription"
+description: "`aws_rds_event_subscription` subscribes a real SNS topic to receive notifications about events, failovers, backups, parameter changes..."
+---
+
+`aws_rds_event_subscription` subscribes a real SNS topic to receive notifications about events, failovers, backups, parameter changes, occurring on an `aws_rds_dbinstance` or `aws_rds_dbcluster` and related RDS resources.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	rds "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/rds"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own event subscription"})
+
+    		ubx.Resource(rds.EventSubscription, "ci-runner", rds.EventSubscriptionConfig{
+    			SnsTopicArn:      "arn:aws:iam::123456789012:policy/ci",
+    			Enabled:          true,
+    			EventCategories:  []string{"example"},
+    			SourceIds:        []string{"example"},
+    			SourceType:       "example",
+    			SubscriptionName: "example-subscription-name",
+    			Tags:             []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { EventSubscription } from "./local-sdk/aws/sdk/typescript/aws/rds/event_subscription.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own event subscription" });
+
+      resource(EventSubscription, "ci-runner", {
+        snsTopicArn: "arn:aws:iam::123456789012:policy/ci",
+        enabled: true,
+        eventCategories: ["example"],
+        sourceIds: ["example"],
+        sourceType: "example",
+        subscriptionName: "example-subscription-name",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.rds import EventSubscription, EventSubscriptionConfig
+
+    def describe():
+        ubx.intent("payments own event subscription")
+
+        ubx.resource(EventSubscription, "ci-runner", EventSubscriptionConfig(
+            sns_topic_arn="arn:aws:iam::123456789012:policy/ci",
+            enabled=True,
+            event_categories=["example"],
+            source_ids=["example"],
+            source_type="example",
+            subscription_name="example-subscription-name",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_rds_event_subscription, with sns topic arn
+    arn:aws:iam::123456789012:policy/ci, enabled true, event
+    categories a set value, source ids a set value, source type
+    example, subscription name example-subscription-name, tags a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="enabled" type="bool">
+  Specifies whether to activate the subscription. If the event notification subscription isn't activated, the subscription is created but not active. Optional.
+</ResponseField>
+
+<ResponseField name="event_categories" type="list(string)">
+  A list of event categories for a particular source type (``SourceType``) that you want to subscribe to. You can see a list of the categories for a given source type in the "Amazon RDS event categories and event messages" section of the [Amazon RDS User Guide](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Events.Messages.html) or the [Amazon Aurora User Guide](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_Events.Messages.html). You can also see this list by using the ``DescribeEventCategories`` operation. Optional.
+</ResponseField>
+
+<ResponseField name="sns_topic_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the SNS topic created for event notification. SNS automatically creates the ARN when you create a topic and subscribe to it. RDS doesn't support FIFO (first in, first out) topics. For more information, see [Message ordering and deduplication (FIFO topics)](https://docs.aws.amazon.com/sns/latest/dg/sns-fifo-topics.html) in the *Amazon Simple Notification Service Developer Guide*. Required.
+</ResponseField>
+
+<ResponseField name="source_ids" type="list(string)">
+  The list of identifiers of the event sources for which events are returned. If not specified, then all sources are included in the response. An identifier must begin with a letter and must contain only ASCII letters, digits, and hyphens. It can't end with a hyphen or contain two consecutive hyphens. Constraints: + If ``SourceIds`` are supplied, ``SourceType`` must also be provided. + If the source type is a DB instance, a ``DBInstanceIdentifier`` value must be supplied. + If the source type is a DB cluster, a ``DBClusterIdentifier`` value must be supplied. + If the source type is a DB parameter group, a ``DBParameterGroupName`` value must be supplied. + If the source type is a DB security group, a ``DBSecurityGroupName`` value must be supplied. + If the source type is a DB snapshot, a ``DBSnapshotIdentifier`` value must be supplied. + If the source type is a DB cluster snapshot, a ``DBClusterSnapshotIdentifier`` value must be supplied. + If the source type is an RDS Proxy, a ``DBProxyName`` value must be supplied. Optional.
+</ResponseField>
+
+<ResponseField name="source_type" type="string">
+  The type of source that is generating the events. For example, if you want to be notified of events generated by a DB instance, you set this parameter to ``db-instance``. For RDS Proxy events, specify ``db-proxy``. If this value isn't specified, all events are returned. Valid Values:``db-instance | db-cluster | db-parameter-group | db-security-group | db-snapshot | db-cluster-snapshot | db-proxy | zero-etl | custom-engine-version | blue-green-deployment`` Optional.
+</ResponseField>
+
+<ResponseField name="subscription_name" type="string">
+  The name of the subscription. Constraints: The name must be less than 255 characters. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An optional array of key-value pairs to apply to this subscription. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the AWS RDS event subscription, used to assign custom metadata for identifying and organizing the subscription. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Specifies a tag value for a tag key attached to the RDS event subscription, used to organize and identify the subscription in AWS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>

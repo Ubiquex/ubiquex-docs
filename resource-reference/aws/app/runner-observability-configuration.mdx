@@ -1,0 +1,121 @@
+---
+title: "aws_app_runner_observability_configuration"
+description: "`aws_app_runner_observability_configuration` enables AWS X-Ray tracing for an `aws_app_runner_service`..."
+---
+
+`aws_app_runner_observability_configuration` enables AWS X-Ray tracing for an `aws_app_runner_service`, kept as its own resource so the same tracing configuration can be reused across multiple services rather than redefined on each one.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	app "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/app"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own runner observability configuration"})
+
+    		ubx.Resource(app.RunnerObservabilityConfiguration, "ci-runner", app.RunnerObservabilityConfigurationConfig{
+    			ObservabilityConfigurationName: "example-observability-configuration-name",
+    			Tags:                           []map[string]any{{"key": "example"}},
+    			TraceConfiguration:             map[string]any{"vendor": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { RunnerObservabilityConfiguration } from "./local-sdk/aws/sdk/typescript/aws/app/runner_observability_configuration.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own runner observability configuration" });
+
+      resource(RunnerObservabilityConfiguration, "ci-runner", {
+        observabilityConfigurationName: "example-observability-configuration-name",
+        tags: [{ key: "example" }],
+        traceConfiguration: { vendor: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.app import RunnerObservabilityConfiguration, RunnerObservabilityConfigurationConfig
+
+    def describe():
+        ubx.intent("payments own runner observability configuration")
+
+        ubx.resource(RunnerObservabilityConfiguration, "ci-runner", RunnerObservabilityConfigurationConfig(
+            observability_configuration_name="example-observability-configuration-name",
+            tags=[{"key": "example"}],
+            trace_configuration={"vendor": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_app_runner_observability_configuration, with
+    observability configuration name
+    example-observability-configuration-name, tags a set value, trace
+    configuration a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="observability_configuration_name" type="string">
+  A name for the observability configuration. When you use it for the first time in an AWS Region, App Runner creates revision number 1 of this name. When you use the same name in subsequent calls, App Runner creates incremental revisions of the configuration. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of metadata items that you can associate with your observability configuration resource. A tag is a key-value pair. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag key-value pair attached to the App Runner observability configuration, used to categorize and identify the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="trace_configuration" type="object">
+  Describes the configuration of the tracing feature within an AWS App Runner observability configuration. Optional.
+  <Expandable title="properties">
+    <ResponseField name="vendor" type="string" required>
+      The implementation provider chosen for tracing App Runner services. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="latest" type="bool">
+  It's set to true for the configuration with the highest Revision among all configurations that share the same Name. It's set to false otherwise. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="observability_configuration_arn" type="string">
+  The Amazon Resource Name (ARN) of this ObservabilityConfiguration Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="observability_configuration_revision" type="number">
+  The revision of this observability configuration. It's unique among all the active configurations ('Status': 'ACTIVE') that share the same ObservabilityConfigurationName. Computed by AWS after `ship`.
+</ResponseField>

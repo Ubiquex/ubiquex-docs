@@ -1,0 +1,182 @@
+---
+title: "aws_ecr_repository"
+description: "`aws_ecr_repository` creates a real, private ECR repository for storing container images, with real, configurable scanning and mutability settings."
+---
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ecr "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ecr"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own repository"})
+
+    		ubx.Resource(ecr.Repository, "ci-runner", ecr.RepositoryConfig{
+    			EmptyOnDelete:                      true,
+    			EncryptionConfiguration:            map[string]any{"encryption_type": "example"},
+    			ImageScanningConfiguration:         map[string]any{"scan_on_push": true},
+    			ImageTagMutability:                 "example",
+    			ImageTagMutabilityExclusionFilters: []map[string]any{{"image_tag_mutability_exclusion_filter_type": "example"}},
+    			LifecyclePolicy:                    map[string]any{"lifecycle_policy_text": "example"},
+    			RepositoryName:                     "example-repository-name",
+    			RepositoryPolicyText:               "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Repository } from "./local-sdk/aws/sdk/typescript/aws/ecr/repository.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own repository" });
+
+      resource(Repository, "ci-runner", {
+        emptyOnDelete: true,
+        encryptionConfiguration: { encryptionType: "example" },
+        imageScanningConfiguration: { scanOnPush: true },
+        imageTagMutability: "example",
+        imageTagMutabilityExclusionFilters: [{
+          imageTagMutabilityExclusionFilterType: "example",
+        }],
+        lifecyclePolicy: { lifecyclePolicyText: "example" },
+        repositoryName: "example-repository-name",
+        repositoryPolicyText: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ecr import Repository, RepositoryConfig
+
+    def describe():
+        ubx.intent("payments own repository")
+
+        ubx.resource(Repository, "ci-runner", RepositoryConfig(
+            empty_on_delete=True,
+            encryption_configuration={"encryption_type": "example"},
+            image_scanning_configuration={"scan_on_push": True},
+            image_tag_mutability="example",
+            image_tag_mutability_exclusion_filters=[{"image_tag_mutability_exclusion_filter_type": "example"}],
+            lifecycle_policy={"lifecycle_policy_text": "example"},
+            repository_name="example-repository-name",
+            repository_policy_text="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ecr_repository, with empty on delete true, encryption
+    configuration a set value, image scanning configuration a set
+    value, image tag mutability example, image tag mutability
+    exclusion filters a set value, lifecycle policy a set value,
+    repository name example-repository-name, repository policy text
+    example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="empty_on_delete" type="bool">
+  If true, deleting the repository force deletes the contents of the repository. Without a force delete, you can only delete empty repositories. Optional.
+</ResponseField>
+
+<ResponseField name="encryption_configuration" type="object">
+  The encryption configuration for the repository. This determines how the contents of your repository are encrypted at rest. By default, when no encryption configuration is set or the ``AES256`` encryption type is used, Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys which encrypts your data at rest using an AES256 encryption algorithm. This does not require any action on your part. For more control over the encryption of the contents of your repository, you can use server-side encryption with KMSlong key stored in KMSlong (KMS) to encrypt your images. For more information, see [Amazon ECR encryption at rest](https://docs.aws.amazon.com/AmazonECR/latest/userguide/encryption-at-rest.html) in the *Amazon Elastic Container Registry User Guide*. Optional.
+  <Expandable title="properties">
+    <ResponseField name="encryption_type" type="string" required>
+      The encryption type to use. Required.
+    </ResponseField>
+    <ResponseField name="kms_key" type="string">
+      If you use the KMS or KMS_DSSE encryption type, specify the CMK to use for encryption. The alias, key ID, or full ARN of the CMK can be specified. The key must exist in the same Region as the repository. If no key is specified, the default AWS managed CMK for Amazon ECR will be used. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="image_scanning_configuration" type="object">
+  The image scanning configuration for a repository. Optional.
+  <Expandable title="properties">
+    <ResponseField name="scan_on_push" type="bool">
+      The setting that determines whether images are scanned after being pushed to a repository. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="image_tag_mutability" type="string">
+  The tag mutability setting for the repository. If this parameter is omitted, the default setting of ``MUTABLE`` will be used which will allow image tags to be overwritten. If ``IMMUTABLE`` is specified, all image tags within the repository will be immutable which will prevent them from being overwritten. Optional.
+</ResponseField>
+
+<ResponseField name="image_tag_mutability_exclusion_filters" type="list(object)">
+  A list of filters that specify which image tags are excluded from the repository's image tag mutability setting. Optional.
+  <Expandable title="properties">
+    <ResponseField name="image_tag_mutability_exclusion_filter_type" type="string">
+      This field determines the kind of tag (ANY, TAGGED, or UNTAGGED) to which the image tag mutability exclusion filter applies, allowing certain image tags to bypass the repository's immutable tag setting. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="image_tag_mutability_exclusion_filter_value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="lifecycle_policy" type="object">
+  The ``LifecyclePolicy`` property type specifies a lifecycle policy. For information about lifecycle policy syntax, see [Lifecycle policy template](https://docs.aws.amazon.com/AmazonECR/latest/userguide/LifecyclePolicies.html) in the *Amazon ECR User Guide*. Optional.
+  <Expandable title="properties">
+    <ResponseField name="lifecycle_policy_text" type="string">
+      The JSON repository policy text to apply to the repository. Optional.
+    </ResponseField>
+    <ResponseField name="registry_id" type="string">
+      The AWS account ID associated with the registry that contains the repository. If you do not specify a registry, the default registry is assumed. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="repository_name" type="string">
+  The name to use for the repository. The repository name may be specified on its own (such as ``nginx-web-app``) or it can be prepended with a namespace to group the repository into a category (such as ``project-a/nginx-web-app``). If you don't specify a name, CFNlong generates a unique physical ID and uses that ID for the repository name. For more information, see [Name type](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html). The repository name must start with a letter and can only contain lowercase letters, numbers, hyphens, underscores, and forward slashes. If you specify a name, you cannot perform updates that require replacement of this resource. You can perform updates that require no or some interruption. If you must replace the resource, specify a new name. Optional.
+</ResponseField>
+
+<ResponseField name="repository_policy_text" type="any">
+  The JSON repository policy text to apply to the repository. For more information, see [Amazon ECR repository policies](https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-policy-examples.html) in the *Amazon Elastic Container Registry User Guide*. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a user-defined tag applied to the ECR repository, used to add metadata that can be referenced by IAM policies (e.g., ecr:ResourceTag) and for cost allocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a single tag assigned to the ECR repository, used to attach arbitrary metadata for resource identification, organization, and cost tracking. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies this ECR repository, such as arn:aws:ecr:region:account-id:repository/repository-name. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="repository_uri" type="string">
+  The URI of the Amazon ECR repository, formatted as `aws_account_id.dkr.ecr.region.amazonaws.com/repository_name`, which is used to pull and push Docker images. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

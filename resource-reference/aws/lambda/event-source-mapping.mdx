@@ -1,0 +1,374 @@
+---
+title: "aws_lambda_event_source_mapping"
+description: "`aws_lambda_event_source_mapping` creates a real subscription that polls a stream or queue, a Kinesis stream, a DynamoDB stream, an SQS queue..."
+---
+
+`aws_lambda_event_source_mapping` creates a real subscription that polls a stream or queue, a Kinesis stream, a DynamoDB stream, an SQS queue, an MSK or self-managed Kafka topic, and invokes an `aws_lambda_function` with the batched records it reads.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	lambda "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/lambda"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own event source mapping"})
+
+    		ubx.Resource(lambda.EventSourceMapping, "ci-runner", lambda.EventSourceMappingConfig{
+    			FunctionName:                        "example-function-name",
+    			AmazonManagedKafkaEventSourceConfig: map[string]any{"consumer_group_id": "example"},
+    			BatchSize:                           1,
+    			BisectBatchOnFunctionError:          true,
+    			DestinationConfig:                   map[string]any{"on_failure": map[string]any{"destination": "example"}},
+    			DocumentDbeventSourceConfig:         map[string]any{"collection_name": "example-collection-name"},
+    			Enabled:                             true,
+    			EventSourceArn:                      "arn:aws:iam::123456789012:policy/ci",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { EventSourceMapping } from "./local-sdk/aws/sdk/typescript/aws/lambda/event_source_mapping.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own event source mapping" });
+
+      resource(EventSourceMapping, "ci-runner", {
+        functionName: "example-function-name",
+        amazonManagedKafkaEventSourceConfig: { consumerGroupId: "example" },
+        batchSize: 1,
+        bisectBatchOnFunctionError: true,
+        destinationConfig: { onFailure: { destination: "example" } },
+        documentDbeventSourceConfig: { collectionName: "example-collection-name" },
+        enabled: true,
+        eventSourceArn: "arn:aws:iam::123456789012:policy/ci",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.lambda_ import EventSourceMapping, EventSourceMappingConfig
+
+    def describe():
+        ubx.intent("payments own event source mapping")
+
+        ubx.resource(EventSourceMapping, "ci-runner", EventSourceMappingConfig(
+            function_name="example-function-name",
+            amazon_managed_kafka_event_source_config={"consumer_group_id": "example"},
+            batch_size=1,
+            bisect_batch_on_function_error=True,
+            destination_config={"on_failure": {"destination": "example"}},
+            document_dbevent_source_config={"collection_name": "example-collection-name"},
+            enabled=True,
+            event_source_arn="arn:aws:iam::123456789012:policy/ci",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_lambda_event_source_mapping, with function name
+    example-function-name, amazon managed kafka event source config a
+    set value, batch size 1, bisect batch on function error true,
+    destination config a set value, document dbevent source config a
+    set value, enabled true, event source arn
+    arn:aws:iam::123456789012:policy/ci.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="amazon_managed_kafka_event_source_config" type="object">
+  Specific configuration settings for an Amazon Managed Streaming for Apache Kafka (Amazon MSK) event source. Optional.
+  <Expandable title="properties">
+    <ResponseField name="consumer_group_id" type="string">
+      The identifier for the Kafka Consumer Group to join. Optional.
+    </ResponseField>
+    <ResponseField name="schema_registry_config" type="object">
+      Specific configuration settings for a Kafka schema registry. Optional.
+      <Expandable title="properties">
+        <ResponseField name="access_configs" type="list(object)">
+          An array of access configuration objects that tell Lambda how to authenticate with your schema registry. Optional.
+          <Expandable title="properties">
+            <ResponseField name="type" type="string">
+              Specifies the authentication method (e.g., AWS_IAM or BASIC_AUTH) used to access the Glue Schema Registry when the Lambda event source mapping uses Amazon Managed Kafka. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="uri" type="string">
+              The URI of the schema registry endpoint that Lambda uses to access and resolve message schemas for the Amazon Managed Kafka (MSK) event source mapping. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="event_record_format" type="string">
+          The record format that Lambda delivers to your function after schema validation. + Choose ``JSON`` to have Lambda deliver the record to your function as a standard JSON object. + Choose ``SOURCE`` to have Lambda deliver the record to your function in its original source format. Lambda removes all schema metadata, such as the schema ID, before sending the record to your function. Optional.
+        </ResponseField>
+        <ResponseField name="schema_registry_uri" type="string">
+          The URI for your schema registry. The correct URI format depends on the type of schema registry you're using. + For GLU schema registries, use the ARN of the registry. + For Confluent schema registries, use the URL of the registry. Optional.
+        </ResponseField>
+        <ResponseField name="schema_validation_configs" type="list(object)">
+          An array of schema validation configuration objects, which tell Lambda the message attributes you want to validate and filter using your schema registry. Optional.
+          <Expandable title="properties">
+            <ResponseField name="attribute" type="string">
+              The name of the Kafka message header attribute that Lambda uses to locate the schema in the MSK Schema Registry for validating records consumed from the topic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="batch_size" type="number">
+  The maximum number of records in each batch that Lambda pulls from your stream or queue and sends to your function. Lambda passes all of the records in the batch to the function in a single call, up to the payload limit for synchronous invocation (6 MB). + *Amazon Kinesis*  --  Default 100. Max 10,000. + *Amazon DynamoDB Streams*  --  Default 100. Max 10,000. + *Amazon Simple Queue Service*  --  Default 10. For standard queues the max is 10,000. For FIFO queues the max is 10. + *Amazon Managed Streaming for Apache Kafka*  --  Default 100. Max 10,000. + *Self-managed Apache Kafka*  --  Default 100. Max 10,000. + *Amazon MQ (ActiveMQ and RabbitMQ)*  --  Default 100. Max 10,000. + *DocumentDB*  --  Default 100. Max 10,000. Optional.
+</ResponseField>
+
+<ResponseField name="bisect_batch_on_function_error" type="bool">
+  (Kinesis and DynamoDB Streams only) If the function returns an error, split the batch in two and retry. The default value is false. When using ``BisectBatchOnFunctionError``, check the ``BatchSize`` parameter in the ``OnFailure`` destination message's metadata. The ``BatchSize`` could be greater than 1 since LAM consolidates failed messages metadata when writing to the ``OnFailure`` destination. Optional.
+</ResponseField>
+
+<ResponseField name="destination_config" type="object">
+  A configuration object that specifies the destination of an event after Lambda processes it. For more information, see [Adding a destination](https://docs.aws.amazon.com/lambda/latest/dg/invocation-async-retain-records.html#invocation-async-destinations). Optional.
+  <Expandable title="properties">
+    <ResponseField name="on_failure" type="object">
+      A destination for events that failed processing. For more information, see [Adding a destination](https://docs.aws.amazon.com/lambda/latest/dg/invocation-async-retain-records.html#invocation-async-destinations). Optional.
+      <Expandable title="properties">
+        <ResponseField name="destination" type="string">
+          The Amazon Resource Name (ARN) of the destination resource. To retain records of failed invocations from [Kinesis](https://docs.aws.amazon.com/lambda/latest/dg/with-kinesis.html), [DynamoDB](https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html), [self-managed Apache Kafka](https://docs.aws.amazon.com/lambda/latest/dg/kafka-on-failure.html), or [Amazon MSK](https://docs.aws.amazon.com/lambda/latest/dg/kafka-on-failure.html), you can configure an Amazon SNS topic, Amazon SQS queue, Amazon S3 bucket, or Kafka topic as the destination. Amazon SNS destinations have a message size limit of 256 KB. If the combined size of the function request and response payload exceeds the limit, Lambda will drop the payload when sending ``OnFailure`` event to the destination. For details on this behavior, refer to [Retaining records of asynchronous invocations](https://docs.aws.amazon.com/lambda/latest/dg/invocation-async-retain-records.html). To retain records of failed invocations from [Kinesis](https://docs.aws.amazon.com/lambda/latest/dg/with-kinesis.html), [DynamoDB](https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html), [self-managed Kafka](https://docs.aws.amazon.com/lambda/latest/dg/with-kafka.html#services-smaa-onfailure-destination) or [Amazon MSK](https://docs.aws.amazon.com/lambda/latest/dg/with-msk.html#services-msk-onfailure-destination), you can configure an Amazon SNS topic, Amazon SQS queue, or Amazon S3 bucket as the destination. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="document_dbevent_source_config" type="object">
+  Specific configuration settings for a DocumentDB event source. Optional.
+  <Expandable title="properties">
+    <ResponseField name="collection_name" type="string">
+      The name of the collection to consume within the database. If you do not specify a collection, Lambda consumes all collections. Optional.
+    </ResponseField>
+    <ResponseField name="database_name" type="string">
+      The name of the database to consume within the DocumentDB cluster. Optional.
+    </ResponseField>
+    <ResponseField name="full_document" type="string">
+      Determines what DocumentDB sends to your event stream during document update operations. If set to UpdateLookup, DocumentDB sends a delta describing the changes, along with a copy of the entire document. Otherwise, DocumentDB sends only a partial document that contains the changes. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="enabled" type="bool">
+  When true, the event source mapping is active. When false, Lambda pauses polling and invocation. Default: True Optional.
+</ResponseField>
+
+<ResponseField name="event_source_arn" type="string">
+  The Amazon Resource Name (ARN) of the event source. + *Amazon Kinesis*  --  The ARN of the data stream or a stream consumer. + *Amazon DynamoDB Streams*  --  The ARN of the stream. + *Amazon Simple Queue Service*  --  The ARN of the queue. + *Amazon Managed Streaming for Apache Kafka*  --  The ARN of the cluster or the ARN of the VPC connection (for [cross-account event source mappings](https://docs.aws.amazon.com/lambda/latest/dg/with-msk.html#msk-multi-vpc)). + *Amazon MQ*  --  The ARN of the broker. + *Amazon DocumentDB*  --  The ARN of the DocumentDB change stream. Optional.
+</ResponseField>
+
+<ResponseField name="filter_criteria" type="object">
+  An object that contains the filters for an event source. Optional.
+  <Expandable title="properties">
+    <ResponseField name="filters" type="list(object)">
+      A list of filters. Optional.
+      <Expandable title="properties">
+        <ResponseField name="pattern" type="string">
+          The pattern is a JSON string in the event pattern format (for example, an EventBridge pattern or a filter pattern for self-managed sources like Kafka) that determines which events are delivered to the Lambda function from the event source mapping, with each filter in the list defining a single pattern to match against the event payload. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="function_name" type="string" required>
+  The name or ARN of the Lambda function. **Name formats** + *Function name*  --  ``MyFunction``. + *Function ARN*  --  ``arn:aws:lambda:us-west-2:123456789012:function:MyFunction``. + *Version or Alias ARN*  --  ``arn:aws:lambda:us-west-2:123456789012:function:MyFunction:PROD``. + *Partial ARN*  --  ``123456789012:function:MyFunction``. The length constraint applies only to the full ARN. If you specify only the function name, it's limited to 64 characters in length. Required.
+</ResponseField>
+
+<ResponseField name="function_response_types" type="list(string)">
+  (Kinesis, DynamoDB Streams, and SQS) A list of current response type enums applied to the event source mapping. Valid Values: ``ReportBatchItemFailures`` Optional.
+</ResponseField>
+
+<ResponseField name="kms_key_arn" type="string">
+  The ARN of the KMSlong (KMS) customer managed key that Lambda uses to encrypt your function's [filter criteria](https://docs.aws.amazon.com/lambda/latest/dg/invocation-eventfiltering.html#filtering-basics). Optional.
+</ResponseField>
+
+<ResponseField name="logging_config" type="object">
+  The function's Amazon CloudWatch Logs configuration settings. Optional.
+  <Expandable title="properties">
+    <ResponseField name="system_log_level" type="string">
+      Set this property to filter the system logs for your function that Lambda sends to CloudWatch. Lambda only sends system logs at the selected level of detail and lower, where ``DEBUG`` is the highest level and ``WARN`` is the lowest. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="maximum_batching_window_in_seconds" type="number">
+  The maximum amount of time, in seconds, that Lambda spends gathering records before invoking the function. *Default (, , event sources)*: 0 *Default (, Kafka, , event sources)*: 500 ms *Related setting:* For SQS event sources, when you set ``BatchSize`` to a value greater than 10, you must set ``MaximumBatchingWindowInSeconds`` to at least 1. Optional.
+</ResponseField>
+
+<ResponseField name="maximum_record_age_in_seconds" type="number">
+  (Kinesis, DynamoDB Streams, Amazon MSK, and self-managed Apache Kafka) Discard records older than the specified age. The default value is -1, which sets the maximum age to infinite. When the value is set to infinite, Lambda never discards old records. The minimum valid value for maximum record age is 60s. Although values less than 60 and greater than -1 fall within the parameter's absolute range, they are not allowed Optional.
+</ResponseField>
+
+<ResponseField name="maximum_retry_attempts" type="number">
+  (Kinesis, DynamoDB Streams, Amazon MSK, and self-managed Apache Kafka) Discard records after the specified number of retries. The default value is -1, which sets the maximum number of retries to infinite. When MaximumRetryAttempts is infinite, Lambda retries failed records until the record expires in the event source. Optional.
+</ResponseField>
+
+<ResponseField name="metrics_config" type="object">
+  The metrics configuration for your event source. Use this configuration object to define which metrics you want your event source mapping to produce. Optional.
+  <Expandable title="properties">
+    <ResponseField name="metrics" type="list(string)">
+      The metrics you want your event source mapping to produce, including ``EventCount``, ``ErrorCount``, ``KafkaMetrics``. + ``EventCount`` to receive metrics related to the number of events processed by your event source mapping. + ``ErrorCount`` (Amazon MSK and self-managed Apache Kafka) to receive metrics related to the number of errors in your event source mapping processing. + ``KafkaMetrics`` (Amazon MSK and self-managed Apache Kafka) to receive metrics related to the Kafka consumers from your event source mapping. For more information about these metrics, see [Event source mapping metrics](https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics-types.html#event-source-mapping-metrics). Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="parallelization_factor" type="number">
+  (Kinesis and DynamoDB Streams only) The number of batches to process concurrently from each shard. The default value is 1. Optional.
+</ResponseField>
+
+<ResponseField name="provisioned_poller_config" type="object">
+  The [provisioned mode](https://docs.aws.amazon.com/lambda/latest/dg/invocation-eventsourcemapping.html#invocation-eventsourcemapping-provisioned-mode) configuration for the event source. Use Provisioned Mode to customize the minimum and maximum number of event pollers for your event source. Optional.
+  <Expandable title="properties">
+    <ResponseField name="maximum_pollers" type="number">
+      The maximum number of event pollers this event source can scale up to. For Amazon SQS events source mappings, default is 200, and minimum value allowed is 2. For Amazon MSK and self-managed Apache Kafka event source mappings, default is 200, and minimum value allowed is 1. Optional.
+    </ResponseField>
+    <ResponseField name="minimum_pollers" type="number">
+      The minimum number of event pollers this event source can scale down to. For Amazon SQS events source mappings, default is 2, and minimum 2 required. For Amazon MSK and self-managed Apache Kafka event source mappings, default is 1. Optional.
+    </ResponseField>
+    <ResponseField name="poller_group_name" type="string">
+      (Amazon MSK and self-managed Apache Kafka) The name of the provisioned poller group. Use this option to group multiple ESMs within the event source's VPC to share Event Poller Unit (EPU) capacity. You can use this option to optimize Provisioned mode costs for your ESMs. You can group up to 100 ESMs per poller group and aggregate maximum pollers across all ESMs in a group cannot exceed 2000. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="queues" type="list(string)">
+  (Amazon MQ) The name of the Amazon MQ broker destination queue to consume. Optional.
+</ResponseField>
+
+<ResponseField name="scaling_config" type="object">
+  (Amazon SQS only) The scaling configuration for the event source. To remove the configuration, pass an empty value. Optional.
+  <Expandable title="properties">
+    <ResponseField name="maximum_concurrency" type="number">
+      The maximum number of concurrent functions that an event source can invoke. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="self_managed_event_source" type="object">
+  The self-managed Apache Kafka cluster for your event source. Optional.
+  <Expandable title="properties">
+    <ResponseField name="endpoints" type="object">
+      The list of bootstrap servers for your Kafka brokers in the following format: ``"KafkaBootstrapServers": ["abc.xyz.com:xxxx","abc2.xyz.com:xxxx"]``. Optional.
+      <Expandable title="properties">
+        <ResponseField name="kafka_bootstrap_servers" type="list(string)">
+          The list of bootstrap servers for your Kafka brokers in the following format: ``"KafkaBootstrapServers": ["abc.xyz.com:xxxx","abc2.xyz.com:xxxx"]``. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="self_managed_kafka_event_source_config" type="object">
+  Specific configuration settings for a self-managed Apache Kafka event source. Optional.
+  <Expandable title="properties">
+    <ResponseField name="consumer_group_id" type="string">
+      The identifier for the Kafka Consumer Group to join. Optional.
+    </ResponseField>
+    <ResponseField name="schema_registry_config" type="object">
+      Specific configuration settings for a Kafka schema registry. Optional.
+      <Expandable title="properties">
+        <ResponseField name="access_configs" type="list(object)">
+          An array of access configuration objects that tell Lambda how to authenticate with your schema registry. Optional.
+          <Expandable title="properties">
+            <ResponseField name="type" type="string">
+              Specifies the authentication method (e.g., BASIC_AUTH or SASL_SCRAM_256_AUTH) that Lambda uses to access the self-managed Apache Kafka schema registry in the event source mapping's access configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="uri" type="string">
+              The URI of the schema registry that AWS Lambda connects to for accessing schemas when processing messages from the self-managed Kafka event source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="event_record_format" type="string">
+          The record format that Lambda delivers to your function after schema validation. + Choose ``JSON`` to have Lambda deliver the record to your function as a standard JSON object. + Choose ``SOURCE`` to have Lambda deliver the record to your function in its original source format. Lambda removes all schema metadata, such as the schema ID, before sending the record to your function. Optional.
+        </ResponseField>
+        <ResponseField name="schema_registry_uri" type="string">
+          The URI for your schema registry. The correct URI format depends on the type of schema registry you're using. + For GLU schema registries, use the ARN of the registry. + For Confluent schema registries, use the URL of the registry. Optional.
+        </ResponseField>
+        <ResponseField name="schema_validation_configs" type="list(object)">
+          An array of schema validation configuration objects, which tell Lambda the message attributes you want to validate and filter using your schema registry. Optional.
+          <Expandable title="properties">
+            <ResponseField name="attribute" type="string">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="source_access_configurations" type="list(object)">
+  An array of the authentication protocol, VPC components, or virtual host to secure and define your event source. Optional.
+  <Expandable title="properties">
+    <ResponseField name="type" type="string">
+      Specifies the type of source access configuration used by the Lambda event source mapping when connecting to a self-managed Kafka or Amazon MQ broker, such as BASIC_AUTH, VPC_SUBNET, VPC_SECURITY_GROUP, SASL_SCRAM_512_AUTH, SASL_SCRAM_256_AUTH, CLIENT_CERTIFICATE_TLS_AUTH, or SERVER_ROOT_CA_CERTIFICATE. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="uri" type="string">
+      Specifies the URI whose meaning depends on the SourceAccessConfiguration Type, such as a Kafka bootstrap server URL, a VPC security group ID, or an Amazon MQ basic-auth secret ARN, used when the Lambda event source mapping points to a self-managed Kafka or Amazon MQ source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="starting_position" type="string">
+  The position in a stream from which to start reading. Required for Amazon Kinesis and Amazon DynamoDB. + *LATEST* - Read only new records. + *TRIM_HORIZON* - Process all available records. + *AT_TIMESTAMP* - Specify a time from which to start reading records. Optional.
+</ResponseField>
+
+<ResponseField name="starting_position_timestamp" type="number">
+  With ``StartingPosition`` set to ``AT_TIMESTAMP``, the time from which to start reading, in Unix time seconds. ``StartingPositionTimestamp`` cannot be in the future. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of tags to add to the event source mapping. You must have the ``lambda:TagResource``, ``lambda:UntagResource``, and ``lambda:ListTags`` permissions for your [principal](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_terms-and-concepts.html) to manage the CFN stack. If you don't have these permissions, there might be unexpected behavior with stack-level tags propagating to the resource during resource creation and update. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Specifies the key portion of a tag attached to the AWS Lambda event source mapping, which is used to categorize the resource for cost tracking, operational management, and access control via resource-level policies. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="topics" type="list(string)">
+  The name of the Kafka topic. Optional.
+</ResponseField>
+
+<ResponseField name="tumbling_window_in_seconds" type="number">
+  (Kinesis and DynamoDB Streams only) The duration in seconds of a processing window for DynamoDB and Kinesis Streams event sources. A value of 0 seconds indicates no tumbling window. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="event_source_mapping_arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies this Lambda event source mapping. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The unique UUID assigned by AWS to this event source mapping, used to reference it in API calls and other resources. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

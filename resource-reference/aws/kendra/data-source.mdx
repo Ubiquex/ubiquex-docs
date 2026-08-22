@@ -1,0 +1,1079 @@
+---
+title: "aws_kendra_data_source"
+description: "`aws_kendra_data_source` connects a real content repository, S3, SharePoint, Confluence, a website, to an `aws_kendra_index`..."
+---
+
+`aws_kendra_data_source` connects a real content repository, S3, SharePoint, Confluence, a website, to an `aws_kendra_index`, so Kendra can crawl and index its content rather than a caller uploading documents by hand.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	kendra "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/kendra"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own data source"})
+
+    		ubx.Resource(kendra.DataSource, "ci-runner", kendra.DataSourceConfig{
+    			IndexId:                               "example",
+    			Name:                                  "ci-runner",
+    			Type:                                  "example",
+    			CustomDocumentEnrichmentConfiguration: map[string]any{"inline_configurations": []map[string]any{{"condition": map[string]any{"condition_document_attribute_key": "example"}}}},
+    			DataSourceConfiguration:               map[string]any{"confluence_configuration": map[string]any{"secret_arn": "example"}},
+    			Description:                           "Managed by ubx.",
+    			LanguageCode:                          "example",
+    			RoleArn:                               "arn:aws:iam::123456789012:policy/ci",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { DataSource } from "./local-sdk/aws/sdk/typescript/aws/kendra/data_source.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own data source" });
+
+      resource(DataSource, "ci-runner", {
+        indexId: "example",
+        name: "ci-runner",
+        type: "example",
+        customDocumentEnrichmentConfiguration: {
+          inlineConfigurations: [{
+            condition: { conditionDocumentAttributeKey: "example" },
+          }],
+        },
+        dataSourceConfiguration: {
+          confluenceConfiguration: { secretArn: "example" },
+        },
+        description: "Managed by ubx.",
+        languageCode: "example",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.kendra import DataSource, DataSourceConfig
+
+    def describe():
+        ubx.intent("payments own data source")
+
+        ubx.resource(DataSource, "ci-runner", DataSourceConfig(
+            index_id="example",
+            name="ci-runner",
+            type="example",
+            custom_document_enrichment_configuration={"inline_configurations": [{"condition": {"condition_document_attribute_key": "example"}}]},
+            data_source_configuration={"confluence_configuration": {"secret_arn": "example"}},
+            description="Managed by ubx.",
+            language_code="example",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_kendra_data_source called "ci-runner", with index id
+    example, type example, custom document enrichment configuration a
+    set value, data source configuration a set value, description
+    Managed by ubx., language code example, role arn
+    arn:aws:iam::123456789012:policy/ci.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="custom_document_enrichment_configuration" type="object">
+  Configures custom document enrichment for the data source, allowing you to apply inline transformations or invoke Lambda-based pre- and post-extraction hooks to modify document metadata and content before indexing. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="inline_configurations" type="list(object)">
+      List of InlineCustomDocumentEnrichmentConfigurations Optional.
+      <Expandable title="properties">
+        <ResponseField name="condition" type="object">
+          Defines the document attribute condition that must evaluate to true for the inline custom document enrichment action to be applied during data source ingestion. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="condition_document_attribute_key" type="string">
+              The name (key) of the document metadata attribute whose value is evaluated in this condition for a custom document enrichment inline configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="condition_on_value" type="object">
+              Specifies the value that the document attribute (identified by condition_document_attribute_key) is compared against when evaluating the enrichment condition, allowing you to define the match criteria for the data source's custom document enrichment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="date_value" type="string">
+                  Specifies the date, as an ISO 8601 string, that is used as the value to compare against the document attribute in the enrichment condition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="long_value" type="number">
+                  The numeric value used as the expected value when evaluating a document metadata attribute as part of a condition that determines whether inline custom document enrichment actions are applied. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="string_list_value" type="list(string)">
+                  Specifies the list of string values that serves as the condition's comparison value when the condition_on_value type is set to StringList, determining whether a Kendra custom document enrichment inline configuration applies based on a match against this list. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="string_value" type="string">
+                  The string value that a document attribute is compared against in the condition, used when condition_on_value is of string type during custom document enrichment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="operator" type="string">
+              Defines the comparison operator (e.g., Equals, Contains, GreaterThan) used to evaluate the configured document attribute against a value in the condition, controlling when the inline custom document enrichment action is applied. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="document_content_deletion" type="bool">
+          When set to true, this inline configuration deletes the document content (body text) for documents that match the associated condition, making the content unsearchable. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="target" type="object">
+          Configures the document attribute to be modified by the inline enrichment rule, including the attribute key, the value to set, or whether to delete the attribute. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="target_document_attribute_key" type="string">
+              The name (key) of the document attribute that the inline custom document enrichment configuration will set, modify, or delete in the Amazon Kendra data source's index. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="target_document_attribute_value" type="object">
+              Specifies the value to assign to the target document attribute key in an inline custom document enrichment configuration, where the value object can hold a string, string list, long, or date as defined by the Kendra DocumentAttributeValue type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="date_value" type="string">
+                  The date value (in ISO 8601 format) to assign to the target document attribute when this inline custom document enrichment configuration's condition is met. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="long_value" type="number">
+                  Specifies the long integer value to set as the target document attribute when applying this inline custom document enrichment configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="string_list_value" type="list(string)">
+                  Defines a list of string values to assign to the target document attribute as part of the inline custom enrichment configuration in an AWS Kendra data source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="string_value" type="string">
+                  When the target document attribute value is a string, this holds the literal string value that will be assigned to that attribute during Kendra document enrichment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="target_document_attribute_value_deletion" type="bool">
+              When set to true, deletes the target document attribute's value during inline custom document enrichment, instead of setting or updating it. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="post_extraction_hook_configuration" type="object">
+      Specifies the AWS Lambda function, IAM role, and optional S3 bucket that Kendra invokes after extracting documents from the data source, enabling custom enrichment before indexing. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="invocation_condition" type="object">
+          A condition on document attributes that must be met for the post-extraction hook to be invoked, such as checking that a specific attribute matches a value. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="condition_document_attribute_key" type="string" required>
+              The name of the document attribute (such as a metadata field) whose value is compared with the condition's value to determine whether the post-extraction hook should be invoked. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="condition_on_value" type="object">
+              The value to compare against the document attribute (specified by condition_document_attribute_key) using the condition operator, to decide whether the post-extraction Lambda hook is invoked; it can be a string, string list, long, or date value. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="date_value" type="string">
+                  The date value used as the condition in the invocation condition, specifying the date to compare the document field against. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="long_value" type="number">
+                  Provides the numeric (Long) value that Kendra compares against a document attribute in the invocation condition for the post-extraction hook, when the condition_on_value type is Long. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="string_list_value" type="list(string)">
+                  Specifies the list of string values used as the condition value in a custom document enrichment post-extraction hook invocation condition, enabling comparisons of a document attribute against a set of strings when the condition evaluates on a string list. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="string_value" type="string">
+                  Specifies the exact string value that the document attribute (referenced in the condition's condition_on_document_attribute) must equal for the post-extraction hook invocation condition to be satisfied. Optional. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="operator" type="string" required>
+              Specifies the comparison operator (such as Equals, Contains, or Exists) used in the document attribute condition that determines whether the post-extraction hook is invoked. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="lambda_arn" type="string" required>
+          ARN of the Lambda function that AWS Kendra invokes to process documents after the extraction step in the custom document enrichment workflow. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="s3_bucket" type="string" required>
+          The name of the S3 bucket that stores the document to be processed by the post-extraction Lambda hook for custom document enrichment in this Kendra data source. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="pre_extraction_hook_configuration" type="object">
+      Specifies the AWS Lambda function and associated settings (such as the function ARN, S3 bucket, and IAM role) that Kendra invokes before extracting text from documents during a data source sync, enabling custom pre-processing for document enrichment. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="invocation_condition" type="object">
+          Specifies a condition on a document attribute (key, operator, value) that must be satisfied for the pre-extraction Lambda hook to be invoked during custom document enrichment. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="condition_document_attribute_key" type="string" required>
+              The document attribute key used by the condition to determine whether the pre-extraction hook is invoked, matching against the document's metadata attributes. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="condition_on_value" type="object">
+              The value that the document attribute is compared against when evaluating the pre-extraction hook's invocation condition, allowing the hook to trigger only when the attribute matches this value. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="date_value" type="string">
+                  The date value (in ISO 8601 format) that the invocation condition compares against when deciding whether to run the pre-extraction hook. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="long_value" type="number">
+                  Specifies the numeric long value used as the operand in the comparison condition for triggering the pre-extraction hook in the custom document enrichment configuration. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="string_list_value" type="list(string)">
+                  The list of string values to use as the condition's value when the condition requires a list, used to determine if a document's metadata field matches the invocation condition for the pre-extraction hook. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="string_value" type="string">
+                  The string value used as the condition's comparison value when evaluating the document attribute in the invocation condition for the pre-extraction hook. Optional. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="operator" type="string" required>
+              The operator (e.g., Equals, NotEquals, GreaterThan) used in the invocation condition to determine whether the pre-extraction hook is triggered for a document. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="lambda_arn" type="string" required>
+          The ARN of the AWS Lambda function that AWS Kendra invokes to process documents before text extraction, as part of the pre-extraction hook in custom document enrichment. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="s3_bucket" type="string" required>
+          The name of the S3 bucket that stores the source document to be processed by the pre-extraction Lambda hook in Kendra's custom document enrichment. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="role_arn" type="string">
+      Role ARN Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="data_source_configuration" type="object">
+  Defines the type-specific configuration for the data source, such as connection details, document extraction settings, and metadata mapping for repositories like Amazon S3, databases, or web crawlers. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="confluence_configuration" type="object">
+      Defines the connection settings and crawl scope for indexing content from a Confluence server, including authentication, URL, and which Confluence entities (spaces, blogs, attachments, etc.) to include. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="attachment_configuration" type="object">
+          Specifies whether to extract Confluence attachments and how to map attachment fields to Kendra index fields. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="attachment_field_mappings" type="list(object)">
+              Specifies mappings between Confluence attachment fields and Amazon Kendra index fields, enabling you to control how attachment metadata such as attachment title, author, and file type is indexed. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="data_source_field_name" type="string">
+                  The name of the Confluence attachment field (e.g., title, author) to map from the Confluence data source to an Amazon Kendra index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="date_field_format" type="string">
+                  The date_field_format specifies the date format (e.g., yyyy/MM/dd) that Kendra uses to parse the Confluence attachment's date field when mapping it to an index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="index_field_name" type="string">
+                  Specifies the name of the Amazon Kendra index field that the Confluence attachment field (defined in the mapping's data source field name) is mapped to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="crawl_attachments" type="bool">
+              Whether to crawl and index attachments from Confluence pages in addition to the page content. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="blog_configuration" type="object">
+          Specifies how AWS Kendra indexes Confluence blog posts, including field mappings that define which blog attributes are captured and mapped to Kendra index fields. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="blog_field_mappings" type="list(object)">
+              Maps Confluence blog fields to Amazon Kendra index fields, enabling customized indexing of blog content from Confluence. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="data_source_field_name" type="string">
+                  The name of the Confluence blog field (such as _title, _author, or _url) that this mapping associates with an Amazon Kendra index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="date_field_format" type="string">
+                  Defines the expected format of date values in the mapped Confluence blog field, so Amazon Kendra can correctly parse and index them. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="index_field_name" type="string">
+                  The name of the Amazon Kendra index field into which the value of the mapped Confluence blog field is indexed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="exclusion_patterns" type="list(string)">
+          Specifies the list of regular expression patterns that exclude matching Confluence content from being indexed by the data source. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="inclusion_patterns" type="list(string)">
+          A list of regular expression patterns that define which Confluence content items (e.g., pages, attachments) are included in the Amazon Kendra index for this data source. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="page_configuration" type="object">
+          This object defines how Confluence pages are crawled by specifying field mappings from Confluence page fields to Amazon Kendra index fields, enabling those page attributes to be searchable. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="page_field_mappings" type="list(object)">
+              Maps Confluence page fields to Amazon Kendra index fields, defining which page attributes are crawled and how they are stored in the index. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="data_source_field_name" type="string">
+                  The name of the Confluence page field (e.g., title, url, author) that is mapped to a Kendra index field in the page field mappings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="date_field_format" type="string">
+                  Specifies the format of the date string in the Confluence page field being mapped, allowing Amazon Kendra to correctly parse and index the date value into the target index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="index_field_name" type="string">
+                  The name of the Amazon Kendra index field that a Confluence page field is mapped to for indexing. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="secret_arn" type="string" required>
+          The ARN of an AWS Secrets Manager secret that stores the credentials used to authenticate with the Confluence instance for the Kendra data source. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="server_url" type="string" required>
+          The base URL of the Confluence instance that Amazon Kendra connects to for indexing documents. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="space_configuration" type="object">
+          Specifies which Confluence spaces to crawl, with options to crawl all spaces, only a specified list, or exclude a specified list from the data source. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="crawl_archived_spaces" type="bool">
+              Determines whether AWS Kendra indexes content from archived Confluence spaces when crawling the configured Confluence data source. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="crawl_personal_spaces" type="bool">
+              Specifies whether to crawl personal spaces in the Confluence environment when indexing content for Amazon Kendra. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="exclude_spaces" type="list(string)">
+              Specifies the keys of Confluence spaces that are excluded from the data source, preventing their content from being indexed. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="include_spaces" type="list(string)">
+              Specifies the list of Confluence space keys to include in the crawl, so only content from these spaces is indexed by Amazon Kendra. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="space_field_mappings" type="list(object)">
+              Defines mappings from Confluence space attributes (like SPACE_KEY, URL, DISPLAY_URL) to custom Amazon Kendra index fields, letting space metadata be included in search results. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="data_source_field_name" type="string">
+                  The name of the Confluence space field (such as 'name', 'url', or 'description') to map to an Amazon Kendra index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="date_field_format" type="string">
+                  For each Confluence space field mapping, this specifies the date format (such as 'yyyy-MM-dd') that Amazon Kendra uses to parse and index date values from Confluence spaces. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="index_field_name" type="string">
+                  Specifies the name of the target field in the Amazon Kendra index to which the Confluence space field is mapped. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="version" type="string" required>
+          The version of the Confluence instance, either CLOUD or SERVER, which determines the endpoint and authentication method used when connecting to the data source. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="vpc_configuration" type="object">
+          Specifies the VPC configuration, including subnets and security group IDs, that the Kendra Confluence data source uses to connect to a Confluence instance inside a VPC. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="security_group_ids" type="list(string)" required>
+              A list of security group IDs that the AWS Kendra Confluence data source uses in its VPC configuration to control network access to Confluence resources within the VPC. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="subnet_ids" type="list(string)" required>
+              The subnet IDs (list of strings) that specify the subnets in the Amazon Virtual Private Cloud (VPC) where the Confluence data source will run, allowing it to access resources in a private VPC. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="database_configuration" type="object">
+      Specifies the connection and indexing settings for a database data source, including the database engine type, connection credentials, VPC configuration, column mappings, and SQL query used to extract documents into Amazon Kendra. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="acl_configuration" type="object">
+          Defines the column in the database table that stores the access control lists (ACL) for documents, used to enforce user permissions in Amazon Kendra indexes. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="allowed_groups_column_name" type="string" required>
+              Specifies the column name in the database table that contains the group names allowed to access the documents indexed by this Kendra data source. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="column_configuration" type="object" required>
+          Maps columns from the database table to Kendra document fields, specifying which column holds the document ID, document data, document title, and defining additional field mappings to the index. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="change_detecting_columns" type="list(string)" required>
+              The list of column names in the database table that Amazon Kendra uses to detect when a row has been added or updated, enabling incremental indexing of the data source. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="document_data_column_name" type="string" required>
+              The name of the database column that contains the actual document content to be indexed by Amazon Kendra. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="document_id_column_name" type="string" required>
+              The name of the column in the database table that contains the unique identifier for each document, which Amazon Kendra uses as the document ID for indexing. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="document_title_column_name" type="string">
+              The name of the column in the database table that contains the document's title, which Amazon Kendra uses as the title when indexing the document. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="field_mappings" type="list(object)">
+              Maps database columns from the data source's column configuration to Amazon Kendra index fields by specifying the column name and the corresponding index field name and data type. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="data_source_field_name" type="string">
+                  The name of the database column that is mapped to the corresponding Kendra index field in this field mapping. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="date_field_format" type="string">
+                  Specifies the format of a date value in the data source column so that Kendra can parse and index it as a date field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="index_field_name" type="string">
+                  The name of the Amazon Kendra index field that the source database column is mapped to, as part of the field mapping in the database data source column configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="connection_configuration" type="object" required>
+          Defines the connection settings for the database, including the host, port, credentials, and SSL configuration, used by the Kendra data source to access the database. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="database_host" type="string" required>
+              The host name or IP address of the database server that Amazon Kendra connects to. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="database_name" type="string" required>
+              The name of the database that contains the data to be indexed by Amazon Kendra for this database data source, used in the connection configuration. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="database_port" type="number" required>
+              The TCP port number on which the database server listens for connections. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="secret_arn" type="string" required>
+              The ARN of an AWS Secrets Manager secret that contains the database credentials used by the Kendra data source to connect to the database. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="table_name" type="string" required>
+              The name of the database table that Amazon Kendra reads from as its data source when using the database connector. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="database_engine_type" type="string" required>
+          The type of database engine for the Kendra database data source, such as RDS_AURORA_MYSQL, RDS_AURORA_POSTGRESQL, RDS_MYSQL, or RDS_POSTGRESQL. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="sql_configuration" type="object">
+          Defines SQL query execution settings for the Kendra database data source, specifically using the QueryIdentifier property to indicate that extraction runs as a direct query (DIRECT_QUERY). Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="query_identifiers_enclosing_option" type="string">
+              Specifies whether SQL identifiers (e.g., table and column names) are enclosed in double quotes when querying the database, with accepted values 'DOUBLE_QUOTES' or 'NO_ENCLOSING'. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="vpc_configuration" type="object">
+          This optional object specifies the VPC subnets and security group IDs that AWS Kendra uses to connect to the database (e.g., RDS or Aurora) within your virtual private cloud. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="security_group_ids" type="list(string)" required>
+              The list of security group IDs that define the inbound and outbound rules for the VPC configuration of the database data source, allowing Amazon Kendra to connect to the database instance within the VPC. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="subnet_ids" type="list(string)" required>
+              Provides the list of VPC subnet IDs where AWS Kendra will deploy resources to connect to the database data source, enabling private access to the database within the VPC. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="google_drive_configuration" type="object">
+      Configures the connector to a Google Drive repository, specifying the AWS Secrets Manager secret for OAuth authentication and the drive path to be indexed. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="exclude_mime_types" type="list(string)">
+          Specifies a list of MIME types (e.g., application/pdf) to exclude from indexing when syncing documents from Google Drive. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="exclude_shared_drives" type="list(string)">
+          A list of Google Drive shared drive identifiers that Amazon Kendra excludes from the data source so documents in those shared drives are not indexed. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="exclude_user_accounts" type="list(string)">
+          Specifies a list of Google Drive user accounts whose files or documents should be excluded from indexing by Amazon Kendra. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="exclusion_patterns" type="list(string)">
+          A list of regular expression patterns that define which Google Drive files or folders to exclude from the indexed content. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="field_mappings" type="list(object)">
+          Configures the mapping of Google Drive source fields to Amazon Kendra index fields, allowing you to define which Google Drive attributes (such as title, author, content) are indexed and how they are stored in the corresponding index field names. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="data_source_field_name" type="string">
+              The name of the Google Drive field (e.g., a standard metadata property or custom property) to map to a corresponding Amazon Kendra index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="date_field_format" type="string">
+              Specifies the format (e.g., 'yyyy-MM-dd') of the date values in the Google Drive source field so they can be correctly parsed and mapped to the Kendra index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="index_field_name" type="string">
+              Specifies the name of the custom field in the Amazon Kendra index that the Google Drive source field maps to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="inclusion_patterns" type="list(string)">
+          Specifies regular expression patterns to include only files in Google Drive that match the patterns in the Amazon Kendra data source, with exclusion patterns taking precedence over inclusions. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="secret_arn" type="string" required>
+          The ARN of the AWS Secrets Manager secret that stores the Google Drive OAuth credentials (client ID and client secret) used to authenticate and authorize the Kendra data source to access the configured Google Drive account. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="one_drive_configuration" type="object">
+      This object defines the settings required to connect Amazon Kendra to a Microsoft OneDrive for Business account, including the tenant domain, the AWS Secrets Manager secret containing OAuth credentials, and optional inclusion/exclusion patterns to control which documents are indexed. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="disable_local_groups" type="bool">
+          When set to true, this flag disables the synchronization and use of local groups (groups defined directly in OneDrive) for document access control, so only groups from the connected directory (e.g., Microsoft 365) are considered. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="exclusion_patterns" type="list(string)">
+          A list of regular expression patterns that define which file paths or folder paths within OneDrive should be excluded from being crawled and indexed by the Kendra data source. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="field_mappings" type="list(object)">
+          Specifies the mapping of OneDrive data source fields to Amazon Kendra index fields, allowing you to customize which fields are indexed and how they are named in the index. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="data_source_field_name" type="string">
+              The name of the field in the OneDrive data source that is mapped to a field in the Amazon Kendra index. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="date_field_format" type="string">
+              Specifies the format of a date field value in the OneDrive data source when mapping it to a Kendra index field of type DATE. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="index_field_name" type="string">
+              The name of the target field in the Amazon Kendra index that the OneDrive data source field is mapped to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="inclusion_patterns" type="list(string)">
+          Specifies a list of regular expression patterns for including files and folders from OneDrive in the Amazon Kendra index. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="one_drive_users" type="object" required>
+          Defines the set of OneDrive users (by user principal or email) whose files and documents are included in the Kendra data source index. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="one_drive_user_list" type="list(string)">
+              The list of OneDrive user accounts (email addresses or user principal names) whose drive content is indexed by this Kendra data source when users are specified directly in the configuration. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="one_drive_user_s3_path" type="object">
+              The S3 bucket and object key prefix under which the documents belonging to the associated OneDrive user are stored for Kendra to index. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="bucket" type="string" required>
+                  The name of the S3 bucket that stores the OneDrive user's documents, used to map that user to the S3 content specified in the one_drive_user_s3_path. Required. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="key" type="string" required>
+                  Specifies the S3 object key prefix within the given S3 bucket where the OneDrive user's crawled documents are stored during the Kendra data source indexing process. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="secret_arn" type="string" required>
+          The Amazon Resource Name (ARN) of an AWS Secrets Manager secret that stores the application credentials (client ID and client secret) used to authenticate with Microsoft OneDrive for this Kendra data source. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="tenant_domain" type="string" required>
+          The domain of the Office 365 tenant hosting the OneDrive for Business site (e.g., `tenant.onmicrosoft.com`), which Kendra uses to connect to the data source. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="s3_configuration" type="object">
+      S3 data source configuration Optional.
+      <Expandable title="properties">
+        <ResponseField name="access_control_list_configuration" type="object">
+          Specifies the S3 object that contains the access control list (ACL) data for documents in the S3 data source, including the bucket and key path to that object. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key_path" type="string">
+              The S3 path to the access control list (ACL) file that defines user and group access permissions for the indexed documents in the S3 data source. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="bucket_name" type="string" required>
+          The name of the S3 bucket that contains the documents to be indexed by the Kendra data source. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="documents_metadata_configuration" type="object">
+          Specifies the configuration for document metadata files in the S3 data source, including the S3 prefix where AWS Kendra looks for metadata files to enrich document attributes. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="s3_prefix" type="string">
+              Sets the S3 object key prefix that Kendra uses to locate and filter the document metadata files within the S3 bucket when processing documents for the data source. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="exclusion_patterns" type="list(string)">
+          A list of regular-expression patterns for S3 file paths to exclude from being indexed by Amazon Kendra. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="inclusion_patterns" type="list(string)">
+          Regular expression patterns that define which object keys in the S3 bucket are included in the data source, with only files matching at least one pattern being indexed. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="inclusion_prefixes" type="list(string)">
+          Specifies the S3 object key prefixes that should be included in the Amazon Kendra index, filtering out objects that do not start with these prefixes. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="salesforce_configuration" type="object">
+      Defines the connection settings for a Salesforce data source, including the AWS Secrets Manager secret with OAuth credentials, standard object configurations to index, and optional knowledge article sync settings. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="chatter_feed_configuration" type="object">
+          Configures how Amazon Kendra indexes Salesforce Chatter feeds, allowing you to specify the data field to use as the document content and map additional Salesforce fields to Kendra attributes. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="document_data_field_name" type="string" required>
+              The name of the Salesforce field that contains the content of the chatter feed item to be indexed by Kendra. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="document_title_field_name" type="string">
+              The name of the field in the Salesforce Chatter feed that contains the document title, used to map that field to the document title for indexing by Amazon Kendra. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="field_mappings" type="list(object)">
+              Maps Salesforce Chatter feed source fields to Amazon Kendra index fields for the Chatter feed data source. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="data_source_field_name" type="string">
+                  The name of the Salesforce field to map to a Kendra index field for Chatter feed data, used in the field_mappings of the Salesforce chatter feed configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="date_field_format" type="string">
+                  Specifies the format of a date field from the Salesforce chatter feed when mapping it to an Amazon Kendra index field, for example 'yyyy-MM-dd'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="index_field_name" type="string">
+                  The name of the Amazon Kendra index field to which the Salesforce Chatter feed field is mapped. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="include_filter_types" type="list(string)">
+              Filters the type of Salesforce chatter feed items (such as ACTIVE or RESOLVED) that are included when indexing, so only matching items are crawled. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="crawl_attachments" type="bool">
+          Specifies whether to crawl and index attachments (files) associated with Salesforce objects in addition to the standard objects during a data source sync. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="exclude_attachment_file_patterns" type="list(string)">
+          A list of regular expression patterns that match Salesforce attachment file names to exclude from being indexed by Kendra. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="include_attachment_file_patterns" type="list(string)">
+          A list of regular expression patterns that determine which Salesforce attachment file names are included in the index; matching attachments are indexed. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="knowledge_article_configuration" type="object">
+          Configures how Salesforce knowledge articles are ingested, including which article states (e.g., DRAFT or PUBLISHED) are indexed and how article fields map to Kendra index fields. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="custom_knowledge_article_type_configurations" type="list(object)">
+              Defines the list of custom Salesforce knowledge article types to crawl, each with a name, document status field, and field mappings that map source fields to Kendra index fields. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="document_data_field_name" type="string">
+                  Specifies the name of the Salesforce field that holds the body/content for custom knowledge article types indexed by Kendra. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="document_title_field_name" type="string">
+                  Specifies the name of the field in the custom knowledge article type that maps to the document title for indexing in Amazon Kendra. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="field_mappings" type="list(object)">
+                  Specifies how fields from a custom Salesforce knowledge article type are mapped to Amazon Kendra index fields. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="data_source_field_name" type="string">
+                      The name of the field in the Salesforce custom knowledge article type that is mapped to an Amazon Kendra index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="date_field_format" type="string">
+                      Specifies the date format used to parse the value of the Salesforce field being mapped to a Kendra index field, allowing Kendra to correctly interpret dates when synchronizing custom knowledge article type data. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="index_field_name" type="string">
+                      The name of the field in the Amazon Kendra index to which a Salesforce custom knowledge article source field is mapped, as specified in a field mapping within the custom knowledge article type configuration for a Salesforce data source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="name" type="string">
+                  The name of the custom Salesforce knowledge article type in Salesforce that this configuration defines mappings and title field for. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="included_states" type="list(string)" required>
+              Specifies which Salesforce knowledge article states (e.g., DRAFT, PUBLISHED, ARCHIVED) Kendra includes when indexing articles from the connected Salesforce instance. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="standard_knowledge_article_type_configuration" type="object">
+              Specifies the indexing configuration for standard Salesforce knowledge articles, including field mappings to Kendra document attributes and the article field used as the document title. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="document_data_field_name" type="string" required>
+                  Specifies the name of the Salesforce field that contains the knowledge article's content (body) to be indexed by Amazon Kendra. Required. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="document_title_field_name" type="string">
+                  The name of the Salesforce field whose value is used as the document title when indexing standard knowledge articles in Amazon Kendra. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="field_mappings" type="list(object)">
+                  Maps Salesforce knowledge article fields to Amazon Kendra index fields, allowing specific article attributes to be indexed. Optional. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="data_source_field_name" type="string">
+                      The name of a field in the Salesforce standard knowledge article object that is mapped to a corresponding Amazon Kendra index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="date_field_format" type="string">
+                      In the field mapping for mapping a date field from Salesforce to an Amazon Kendra index field, this string specifies the format (e.g., ISO 8601) of the source date value so Kendra can parse and convert it correctly. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="index_field_name" type="string">
+                      The name of the field in the Amazon Kendra index that the specified Salesforce knowledge article field (from the source) is mapped to, used in the field mapping for the standard knowledge article type configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="secret_arn" type="string" required>
+          The ARN of the AWS Secrets Manager secret that stores the authentication credentials (e.g., username, password, or OAuth token) for connecting to Salesforce. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="server_url" type="string" required>
+          The URL of the Salesforce instance that contains the data to index. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="standard_object_attachment_configuration" type="object">
+          This object specifies how attachments to standard Salesforce objects are indexed in Amazon Kendra, including the document title field name and optional field mappings for metadata extraction. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="document_title_field_name" type="string">
+              Specifies the name of the field within the Salesforce standard object attachment that contains the document title, used by Kendra as the title for the indexed attachment. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="field_mappings" type="list(object)">
+              Defines the list of mappings that map fields from Salesforce standard object attachments (such as case or account attachments) to Amazon Kendra index fields, controlling how attachment metadata is indexed. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="data_source_field_name" type="string">
+                  The name of the field in the Salesforce standard object attachment that is mapped to an Amazon Kendra index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="date_field_format" type="string">
+                  Specifies the format (e.g., ISO 8601) used to parse date values from Salesforce standard object attachments when mapping them to Kendra index fields. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="index_field_name" type="string">
+                  Specifies the name of the Amazon Kendra index field to which the Salesforce attachment source field is mapped in the standard object attachment configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="standard_object_configurations" type="list(object)">
+          Specifies the list of standard Salesforce objects (for example, Account, Contact, or Opportunity) that Amazon Kendra crawls from your Salesforce instance, with each object optionally defining field mappings to index its data. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="document_data_field_name" type="string">
+              Specifies the Salesforce object field that contains the document content (data) to be indexed by Amazon Kendra. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="document_title_field_name" type="string">
+              Specifies the name of the Salesforce field in the standard object whose value is used as the document title for the indexed documents. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="field_mappings" type="list(object)">
+              Maps Salesforce fields to Amazon Kendra index fields for each standard object, determining which object data is indexed and how it appears in search results. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="data_source_field_name" type="string">
+                  The name of the field in the Salesforce object that maps to an Amazon Kendra index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="date_field_format" type="string">
+                  Specifies the date/time format string used to parse the Salesforce standard object field's values so that Kendra can correctly convert them into the target index field of type date. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="index_field_name" type="string">
+                  Specifies the name of the target field in the Amazon Kendra index to which the Salesforce standard object's source field is mapped. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="name" type="string">
+              The name of the Salesforce standard object (e.g., Account, Contact, Opportunity) to sync into the Amazon Kendra index. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="service_now_configuration" type="object">
+      Configuration for connecting Amazon Kendra to a ServiceNow instance, including authentication details, host URL, and options for indexing knowledge articles and service catalogs. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="authentication_type" type="string">
+          Specifies the authentication type used to connect to the ServiceNow instance, such as HTTP_BASIC or OAUTH2. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="host_url" type="string" required>
+          The base URL of the ServiceNow instance to index, such as https://yourinstance.service-now.com. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="knowledge_article_configuration" type="object">
+          Configures how Amazon Kendra indexes ServiceNow knowledge articles for the data source, including the document title field to use, the source template for article URLs, and optional attachment file pattern filters. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="crawl_attachments" type="bool">
+              Indicates whether to crawl attachments to ServiceNow knowledge articles when indexing them from the ServiceNow data source. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="document_data_field_name" type="string" required>
+              Specifies the name of the field in the ServiceNow knowledge article table (such as 'text' or 'html') that contains the article body, which Kendra uses as the document data for indexing. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="document_title_field_name" type="string">
+              The name of the ServiceNow field that contains the title of a knowledge article, which Amazon Kendra uses as the document title when indexing the article. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="exclude_attachment_file_patterns" type="list(string)">
+              Specifies file patterns (such as file extensions or regex patterns) used to exclude attachment files from being indexed when crawling ServiceNow knowledge articles. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="field_mappings" type="list(object)">
+              Specifies the mapping of ServiceNow knowledge article attributes (such as title, body, or custom fields) to Amazon Kendra index fields, allowing those attributes to be indexed and searched. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="data_source_field_name" type="string">
+                  The name of a field in the ServiceNow knowledge article data source that is mapped to a target Kendra index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="date_field_format" type="string">
+                  Specifies the format of date values in ServiceNow knowledge article fields so Amazon Kendra can correctly parse and map them to index fields. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="index_field_name" type="string">
+                  The name of the Amazon Kendra index field that receives the value from the corresponding ServiceNow knowledge article source field in this field mapping. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="filter_query" type="string">
+              Specifies a query used to filter which ServiceNow knowledge articles are ingested into the index. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="include_attachment_file_patterns" type="list(string)">
+              Specifies the file name patterns that determine which attachment files of ServiceNow knowledge articles are included for indexing. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="secret_arn" type="string" required>
+          The ARN of an AWS Secrets Manager secret that stores the credentials (user name and password) used to authenticate with the ServiceNow instance. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="service_catalog_configuration" type="object">
+          Configures the crawling and indexing behavior for ServiceNow service catalog items within the Kendra data source, including attachment processing and document field mappings. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="crawl_attachments" type="bool">
+              Determines whether Amazon Kendra crawls attachments associated with ServiceNow service catalog items. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="document_data_field_name" type="string" required>
+              The name of the ServiceNow field that holds the body or content of the service catalog item, which Kendra uses as the document text to index. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="document_title_field_name" type="string">
+              Specifies the name of the field in ServiceNow service catalog items that Amazon Kendra uses as the document title when indexing those items. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="exclude_attachment_file_patterns" type="list(string)">
+              A list of regular expression patterns used to exclude attachment file names from an indexed ServiceNow service catalog item's attachments in the Kendra data source. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="field_mappings" type="list(object)">
+              Maps ServiceNow Service Catalog source fields to Amazon Kendra index fields for the Kendra data source's ServiceNow connector, allowing customization of how catalog data is indexed. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="data_source_field_name" type="string">
+                  Specifies the name of the ServiceNow service catalog field whose value is mapped to an Amazon Kendra index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="date_field_format" type="string">
+                  The format of the date string in the ServiceNow service catalog source field, used to parse it into Kendra's index date format. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="index_field_name" type="string">
+                  The name of the field in the Amazon Kendra index that the ServiceNow service catalog field maps to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="include_attachment_file_patterns" type="list(string)">
+              A list of file name patterns that determine which attachment files in ServiceNow service catalog items are included for indexing by Amazon Kendra. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="service_now_build_version" type="string" required>
+          Specifies the ServiceNow build version (such as LONDON or OTHERS) that Amazon Kendra uses to determine the correct data extraction and indexing behavior for the connected ServiceNow instance. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="share_point_configuration" type="object">
+      SharePoint configuration Optional.
+      <Expandable title="properties">
+        <ResponseField name="crawl_attachments" type="bool">
+          When true, AWS Kendra includes file attachments associated with SharePoint items during the crawl; when false, it only indexes the SharePoint items themselves. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="disable_local_groups" type="bool">
+          When set to true, prevents AWS Kendra from indexing local SharePoint groups, which reduces the number of access control entries synchronized into the index. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="document_title_field_name" type="string">
+          The name of the SharePoint column that holds the document title, which Amazon Kendra uses to populate the title attribute for indexed documents and search results. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="exclusion_patterns" type="list(string)">
+          Defines a list of regular expression patterns that identify SharePoint document URLs or paths to exclude from being indexed by Amazon Kendra. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="field_mappings" type="list(object)">
+          Defines how SharePoint columns or metadata attributes are mapped to Amazon Kendra index fields, including the source field name and the target index field name and type for ingestion. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="data_source_field_name" type="string">
+              The name of the field in the SharePoint data source that is mapped to an Amazon Kendra index field as part of the field mapping configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="date_field_format" type="string">
+              Specifies the expected format of the date value in the SharePoint field so Amazon Kendra can correctly parse and index it when mapping a date-type field to an index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="index_field_name" type="string">
+              The name of the field in the Amazon Kendra index where the value from the mapped SharePoint data source field is stored. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="inclusion_patterns" type="list(string)">
+          Specifies regular expression patterns that define which SharePoint document URLs are included in the Amazon Kendra index, so only documents whose URL matches any of these patterns are crawled and indexed. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="secret_arn" type="string" required>
+          The Amazon Resource Name (ARN) of the AWS Secrets Manager secret that stores the SharePoint authentication credentials used by Kendra to connect to the SharePoint site. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="share_point_version" type="string" required>
+          Specifies the SharePoint deployment version (e.g., SHAREPOINT_ONLINE or SHAREPOINT_2019) that the Kendra data source connects to, determining the valid connection URL and authentication requirements. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="ssl_certificate_s3_path" type="object">
+          Specifies the S3 location (bucket and key) of the SSL certificate used to securely connect to the SharePoint server when it uses a self-signed certificate. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="bucket" type="string" required>
+              The name of the S3 bucket that contains the SSL certificate file used to establish a secure connection to the SharePoint server for this Kendra data source. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="key" type="string" required>
+              The S3 object key of the SSL certificate that Kendra uses to securely connect to the SharePoint data source. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="urls" type="list(string)" required>
+          The list of SharePoint site URLs (paths to SharePoint sites) that this Amazon Kendra data source will crawl to index documents and content. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="use_change_log" type="bool">
+          Indicates whether to use the SharePoint change log to identify documents that need updating, enabling incremental synchronization instead of a full crawl of the site. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="vpc_configuration" type="object">
+          Specifies the VPC configuration (subnets and security group IDs) that Amazon Kendra uses to connect to your SharePoint data source when the SharePoint site is inside a VPC. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="security_group_ids" type="list(string)" required>
+              Specifies the list of security group IDs that define the security groups for the VPC used to connect to your SharePoint data source. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="subnet_ids" type="list(string)" required>
+              The list of subnet IDs in the Amazon Virtual Private Cloud (VPC) that the SharePoint data source uses to communicate with the Microsoft SharePoint environment. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="template_configuration" type="object">
+      Provides a JSON template that defines the configuration for a Kendra data source when the data source type is TEMPLATE, enabling custom data source parameters to be specified with the template. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="template" type="any" required>
+          The JSON or YAML template that defines the connection, authentication, and schema configuration for a custom Kendra data source using the TEMPLATE type. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="web_crawler_configuration" type="object">
+      Defines the configuration for crawling web pages, such as seed URLs, crawl depth, and link-following behavior, for the Kendra data source when it is of type `WEBCRAWLER`. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="authentication_configuration" type="object">
+          Specifies the authentication configuration used to access websites when crawling with the web crawler, including basic authentication and custom authentication using a secret in AWS Secrets Manager. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="basic_authentication" type="list(object)">
+              Specifies the list of basic authentication credentials (host and secret ARN) that the Amazon Kendra web crawler uses to authenticate with websites requiring HTTP basic authentication. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="credentials" type="string">
+                  The ARN of an AWS Secrets Manager secret that stores the basic authentication credentials (username and password) used by the Kendra web crawler to access the specified host. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="host" type="string">
+                  The hostname of the website that requires this basic authentication, used by the Kendra web crawler to apply the associated credentials when accessing that site. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="port" type="number">
+                  The port number of the web server to authenticate with when the web crawler accesses the host for basic authentication. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="crawl_depth" type="number">
+          Specifies the maximum number of link levels from the seed URLs that the web crawler will traverse, controlling how deep into the site's hierarchy the crawler goes. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="max_content_size_per_page_in_mega_bytes" type="number">
+          Sets the maximum size in megabytes of a web page that the Kendra web crawler will process; pages larger than this limit are skipped. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="max_links_per_page" type="number">
+          Limits the number of outbound links that the Amazon Kendra web crawler follows from each webpage, preventing excessive crawling of large link-heavy pages. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="max_urls_per_minute_crawl_rate" type="number">
+          The maximum number of URLs the web crawler can crawl per minute, used to rate-limit the crawl and avoid overloading the target site. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="proxy_configuration" type="object">
+          Specifies the proxy configuration, including host, port, and optional credentials, that the web crawler uses to connect to the internet when indexing web pages. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="credentials" type="string">
+              The ARN of an AWS Secrets Manager secret that stores the proxy authentication credentials (user name and password) used to connect through the proxy. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="host" type="string" required>
+              The hostname or IP address of the proxy server that AWS Kendra's web crawler uses to access the internet and crawl the target website. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="port" type="number" required>
+              The TCP port number of the proxy server used by the web crawler when accessing the target web site. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="url_exclusion_patterns" type="list(string)">
+          A list of regular expression patterns that exclude matching URLs from being crawled by the Amazon Kendra web crawler data source. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="url_inclusion_patterns" type="list(string)">
+          Specifies the regular expression patterns that determine which URLs the web crawler includes for indexing, so only pages matching at least one inclusion pattern are crawled. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="urls" type="object" required>
+          The URLs configuration for the web crawler, specifying the seed URLs (starting points) and site maps used to discover and crawl pages. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="seed_url_configuration" type="object">
+              Defines the seed URLs that the Amazon Kendra web crawler uses as starting points, along with optional crawl depth and URL processing limits. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="seed_urls" type="list(string)" required>
+                  A list of seed URLs that the web crawler uses as starting points to crawl and index web pages. Required. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="web_crawler_mode" type="string">
+                  Specifies whether the web crawler crawls only the seed URL's host or also its subdomains, with allowed values HOST_ONLY and SUBDOMAINS. Optional. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="site_maps_configuration" type="object">
+              Defines the sitemap configuration for the web crawler, specifying a list of sitemap URLs that Amazon Kendra uses to discover web pages to index. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="site_maps" type="list(string)" required>
+                  Specifies the list of sitemap URLs that the web crawler uses to discover pages to index for the Kendra data source. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="work_docs_configuration" type="object">
+      Configuration for an Amazon WorkDocs data source, specifying the WorkDocs organization ID, whether to crawl comments and shared documents, and which files to include or exclude via patterns. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="crawl_comments" type="bool">
+          Determines whether comments from Amazon WorkDocs documents are crawled and included in the index. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="exclusion_patterns" type="list(string)">
+          A list of regular expression patterns to exclude documents or folders from being indexed by the WorkDocs data source. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="field_mappings" type="list(object)">
+          Maps WorkDocs document source fields to Amazon Kendra index fields, defining how document metadata is indexed and stored in the Kendra index. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="data_source_field_name" type="string">
+              The name of a metadata field in the WorkDocs data source that is mapped to a target Kendra index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="date_field_format" type="string">
+              Specifies the date format string that Amazon Kendra uses to interpret a date value from a WorkDocs field when mapping it to an Amazon Kendra index field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="index_field_name" type="string">
+              The name of the field in the Amazon Kendra index that the WorkDocs data source field is mapped to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="inclusion_patterns" type="list(string)">
+          A list of regular expression patterns that match WorkDocs document names to include in the Kendra index; only documents matching at least one pattern are indexed. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="organization_id" type="string" required>
+          Specifies the identifier of the AWS WorkDocs organization (directory) that contains the documents to be indexed by this Kendra data source. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="use_change_log" type="bool">
+          Specifies whether to use the WorkDocs change log to identify and update only documents that have changed since the last crawl, rather than scanning the entire repository. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Description of data source Optional.
+</ResponseField>
+
+<ResponseField name="index_id" type="string" required>
+  ID of Index Required.
+</ResponseField>
+
+<ResponseField name="language_code" type="string">
+  The code for a language. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Name of data source Required.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string">
+  Role ARN Optional.
+</ResponseField>
+
+<ResponseField name="schedule" type="string">
+  Schedule Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  List of tags Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a key-value tag attached to the Kendra data source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="type" type="string" required>
+  Data source type Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies this Kendra data source in AWS. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  ID of data source Computed by AWS after `ship`.
+</ResponseField>

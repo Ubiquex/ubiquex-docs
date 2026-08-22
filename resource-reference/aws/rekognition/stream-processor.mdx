@@ -1,0 +1,231 @@
+---
+title: "aws_rekognition_stream_processor"
+description: "`aws_rekognition_stream_processor` creates a real processor that analyzes a live Kinesis video stream in near real time..."
+---
+
+`aws_rekognition_stream_processor` creates a real processor that analyzes a live Kinesis video stream in near real time, detecting faces or labels frame by frame and publishing matches, distinct from Rekognition's own batch image and video analysis APIs.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	rekognition "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/rekognition"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own stream processor"})
+
+    		ubx.Resource(rekognition.StreamProcessor, "ci-runner", rekognition.StreamProcessorConfig{
+    			KinesisVideoStream:           map[string]any{"arn": "example"},
+    			RoleArn:                      "arn:aws:iam::123456789012:policy/ci",
+    			Name:                         "ci-runner",
+    			BoundingBoxRegionsOfInterest: []map[string]any{{"height": 1}},
+    			ConnectedHomeSettings:        map[string]any{"labels": []string{"example"}},
+    			DataSharingPreference:        map[string]any{"opt_in": true},
+    			FaceSearchSettings:           map[string]any{"collection_id": "example"},
+    			KinesisDataStream:            map[string]any{"arn": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { StreamProcessor } from "./local-sdk/aws/sdk/typescript/aws/rekognition/stream_processor.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own stream processor" });
+
+      resource(StreamProcessor, "ci-runner", {
+        kinesisVideoStream: { arn: "example" },
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        name: "ci-runner",
+        boundingBoxRegionsOfInterest: [{ height: 1 }],
+        connectedHomeSettings: { labels: ["example"] },
+        dataSharingPreference: { optIn: true },
+        faceSearchSettings: { collectionId: "example" },
+        kinesisDataStream: { arn: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.rekognition import StreamProcessor, StreamProcessorConfig
+
+    def describe():
+        ubx.intent("payments own stream processor")
+
+        ubx.resource(StreamProcessor, "ci-runner", StreamProcessorConfig(
+            kinesis_video_stream={"arn": "example"},
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            name="ci-runner",
+            bounding_box_regions_of_interest=[{"height": 1}],
+            connected_home_settings={"labels": ["example"]},
+            data_sharing_preference={"opt_in": True},
+            face_search_settings={"collection_id": "example"},
+            kinesis_data_stream={"arn": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_rekognition_stream_processor called "ci-runner", with
+    kinesis video stream a set value, role arn
+    arn:aws:iam::123456789012:policy/ci, bounding box regions of
+    interest a set value, connected home settings a set value, data
+    sharing preference a set value, face search settings a set value,
+    kinesis data stream a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="bounding_box_regions_of_interest" type="list(object)">
+  The BoundingBoxRegionsOfInterest specifies an array of bounding boxes of interest in the video frames to analyze, as part of connected home feature. If an object is partially in a region of interest, Rekognition will tag it as detected if the overlap of the object with the region-of-interest is greater than 20%. Optional.
+  <Expandable title="properties">
+    <ResponseField name="height" type="number">
+      Height of the bounding box region of interest, expressed as a ratio of the overall video frame height (between 0.0 and 1.0). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="left" type="number">
+      The normalized left (X) coordinate of the bounding box within the video frame that defines the region of interest, in the range 0 to 1. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="top" type="number">
+      The normalized Y-coordinate of the top-left corner of the bounding box that defines this region of interest in a video frame, measured as a value from 0 (top edge) to 1 (bottom edge). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="width" type="number">
+      Width of the bounding box that defines a region of interest in the video stream, specified as a normalized fraction of the overall frame width (0.0 to 1.0). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="connected_home_settings" type="object">
+  Connected home settings to use on a streaming video. Note that either ConnectedHomeSettings or FaceSearchSettings should be set. Not both Optional.
+  <Expandable title="properties">
+    <ResponseField name="labels" type="list(string)" required>
+      List of labels that need to be detected in the video stream. Current supported values are PERSON, PET, PACKAGE, ALL. Required.
+    </ResponseField>
+    <ResponseField name="min_confidence" type="number">
+      Minimum object class match confidence score that must be met to return a result for a recognized object. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="data_sharing_preference" type="object">
+  Indicates whether Rekognition is allowed to store the video stream data for model-training. Optional.
+  <Expandable title="properties">
+    <ResponseField name="opt_in" type="bool" required>
+      Flag to enable data-sharing Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="face_search_settings" type="object">
+  Face search settings to use on a streaming video. Note that either FaceSearchSettings or ConnectedHomeSettings should be set. Not both Optional.
+  <Expandable title="properties">
+    <ResponseField name="collection_id" type="string" required>
+      The ID of a collection that contains faces that you want to search for. Required.
+    </ResponseField>
+    <ResponseField name="face_match_threshold" type="number">
+      Minimum face match confidence score percentage that must be met to return a result for a recognized face. The default is 80. 0 is the lowest confidence. 100 is the highest confidence. Values between 0 and 100 are accepted. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="kinesis_data_stream" type="object">
+  The Amazon Kinesis Data Stream stream to which the Amazon Rekognition stream processor streams the analysis results, as part of face search feature. Optional.
+  <Expandable title="properties">
+    <ResponseField name="arn" type="string" required>
+      ARN of the Kinesis Data Stream stream. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="kinesis_video_stream" type="object" required>
+  The Kinesis Video Stream that streams the source video. Required.
+  <Expandable title="properties">
+    <ResponseField name="arn" type="string" required>
+      ARN of the Kinesis Video Stream that streams the source video. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="kms_key_id" type="string">
+  The KMS key that is used by Rekognition to encrypt any intermediate customer metadata and store in the customer's S3 bucket. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Name of the stream processor. It's an identifier you assign to the stream processor. You can use it to manage the stream processor. Optional.
+</ResponseField>
+
+<ResponseField name="notification_channel" type="object">
+  The ARN of the SNS notification channel where events of interests are published, as part of connected home feature. Optional.
+  <Expandable title="properties">
+    <ResponseField name="arn" type="string" required>
+      ARN of the SNS topic. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="polygon_regions_of_interest" type="list(list(object))">
+  The PolygonRegionsOfInterest specifies a set of polygon areas of interest in the video frames to analyze, as part of connected home feature. Each polygon is in turn, an ordered list of Point Optional.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  ARN of the IAM role that allows access to the stream processor, and provides Rekognition read permissions for KVS stream and write permissions to S3 bucket and SNS topic. Required.
+</ResponseField>
+
+<ResponseField name="s3_destination" type="object">
+  The S3 location in customer's account where inference output & artifacts are stored, as part of connected home feature. Optional.
+  <Expandable title="properties">
+    <ResponseField name="bucket_name" type="string" required>
+      Name of the S3 bucket. Required.
+    </ResponseField>
+    <ResponseField name="object_key_prefix" type="string">
+      The object key prefix path where the results will be stored. Default is no prefix path Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the Amazon Rekognition stream processor, used to assign metadata for identifying, organizing, and managing the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a key-value tag attached to the Rekognition stream processor, used to store arbitrary metadata such as cost-center or environment identifiers for resource management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The ARN of the stream processor Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current status of the stream processor. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status_message" type="string">
+  Detailed status message about the stream processor. Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,254 @@
+---
+title: "aws_s3_express_directory_bucket"
+description: "`aws_s3_express_directory_bucket` creates a real S3 Express One Zone bucket..."
+---
+
+`aws_s3_express_directory_bucket` creates a real S3 Express One Zone bucket, storing data in a single Availability Zone with a directory-bucket structure for consistent, single-digit-millisecond request latency, distinct from a standard, multi-AZ `aws_s3_bucket`.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	s3 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/s3"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own express directory bucket"})
+
+    		ubx.Resource(s3.ExpressDirectoryBucket, "ci-runner", s3.ExpressDirectoryBucketConfig{
+    			DataRedundancy:          "example",
+    			LocationName:            "example-location-name",
+    			BucketEncryption:        map[string]any{"server_side_encryption_configuration": []map[string]any{{"bucket_key_enabled": true}}},
+    			BucketName:              "example-bucket-name",
+    			InventoryConfigurations: []map[string]any{{"destination": map[string]any{"bucket_account_id": "example"}}},
+    			LifecycleConfiguration:  map[string]any{"rules": []map[string]any{{"abort_incomplete_multipart_upload": map[string]any{"days_after_initiation": 1}}}},
+    			MetricsConfigurations:   []map[string]any{{"access_point_arn": "example"}},
+    			Tags:                    []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ExpressDirectoryBucket } from "./local-sdk/aws/sdk/typescript/aws/s3/express_directory_bucket.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own express directory bucket" });
+
+      resource(ExpressDirectoryBucket, "ci-runner", {
+        dataRedundancy: "example",
+        locationName: "example-location-name",
+        bucketEncryption: {
+          serverSideEncryptionConfiguration: [{ bucketKeyEnabled: true }],
+        },
+        bucketName: "example-bucket-name",
+        inventoryConfigurations: [{ destination: { bucketAccountId: "example" } }],
+        lifecycleConfiguration: {
+          rules: [{ abortIncompleteMultipartUpload: { daysAfterInitiation: 1 } }],
+        },
+        metricsConfigurations: [{ accessPointArn: "example" }],
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.s3 import ExpressDirectoryBucket, ExpressDirectoryBucketConfig
+
+    def describe():
+        ubx.intent("payments own express directory bucket")
+
+        ubx.resource(ExpressDirectoryBucket, "ci-runner", ExpressDirectoryBucketConfig(
+            data_redundancy="example",
+            location_name="example-location-name",
+            bucket_encryption={"server_side_encryption_configuration": [{"bucket_key_enabled": True}]},
+            bucket_name="example-bucket-name",
+            inventory_configurations=[{"destination": {"bucket_account_id": "example"}}],
+            lifecycle_configuration={"rules": [{"abort_incomplete_multipart_upload": {"days_after_initiation": 1}}]},
+            metrics_configurations=[{"access_point_arn": "example"}],
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_s3_express_directory_bucket, with data redundancy
+    example, location name example-location-name, bucket encryption a
+    set value, bucket name example-bucket-name, inventory
+    configurations a set value, lifecycle configuration a set value,
+    metrics configurations a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="bucket_encryption" type="object">
+  Specifies default encryption for a bucket using server-side encryption with Amazon S3 managed keys (SSE-S3) or AWS KMS keys (SSE-KMS). Optional.
+  <Expandable title="properties">
+    <ResponseField name="server_side_encryption_configuration" type="list(object)" required>
+      Specifies the default server-side-encryption configuration. Required.
+      <Expandable title="properties">
+        <ResponseField name="bucket_key_enabled" type="bool">
+          Enables or disables an S3 Bucket Key for the directory bucket's default SSE-KMS encryption, reducing per-request AWS KMS costs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="server_side_encryption_by_default" type="object">
+          Defines the default server-side encryption configuration for the S3 Express Directory Bucket, choosing either SSE-S3 or SSE-KMS with an optional KMS key ID that is applied to objects written without an explicit encryption header. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="kmsmaster_key_id" type="any">
+              The AWS KMS customer master key (CMK) ID or ARN used for default server-side encryption with KMS (SSE-KMS) for the S3 Express directory bucket, effective when the SSE algorithm is set to 'aws:kms'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="ssealgorithm" type="string">
+              Specifies the default server-side encryption algorithm (such as AES256 or aws:kms) for objects stored in the S3 Express directory bucket, used when encryption is not specified at upload time. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="bucket_name" type="string">
+  Specifies a name for the bucket. The bucket name must contain only lowercase letters, numbers, and hyphens (-). A directory bucket name must be unique in the chosen Availability Zone or Local Zone. The bucket name must also follow the format 'bucket_base_name--zone_id--x-s3'. The zone_id can be the ID of an Availability Zone or a Local Zone. If you don't specify a name, AWS CloudFormation generates a unique physical ID and uses that ID for the bucket name. Optional.
+</ResponseField>
+
+<ResponseField name="data_redundancy" type="string" required>
+  Specifies the number of Availability Zone or Local Zone that's used for redundancy for the bucket. Required.
+</ResponseField>
+
+<ResponseField name="inventory_configurations" type="list(object)">
+  The inventory configuration for an Amazon S3 Express bucket. Optional.
+  <Expandable title="properties">
+    <ResponseField name="destination" type="object">
+      Defines the destination Amazon S3 bucket and optional prefix where the inventory report files resulting from this inventory configuration are delivered. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="bucket_account_id" type="string">
+          The AWS account ID that owns the destination bucket where S3 Express directory bucket inventory reports are delivered, used to verify the bucket owner during configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="bucket_arn" type="string">
+          The Amazon Resource Name (ARN) of the destination bucket where the inventory reports for this directory bucket are delivered. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="format" type="string">
+          The output format (e.g., 'CSV') of the inventory report delivered to the destination bucket. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="prefix" type="string">
+          The prefix that is prepended to the keys of the inventory report objects when they are delivered to the destination bucket. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="enabled" type="bool">
+      Indicates whether this inventory configuration is enabled, so that the S3 Express directory bucket periodically generates and exports inventory lists to the specified destination. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="id" type="string">
+      A unique identifier for the inventory configuration, used to distinguish it from other inventory configurations attached to the same directory bucket. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="included_object_versions" type="string">
+      Specifies whether the inventory report includes all object versions or only current versions, with valid values `All` or `Current`. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="optional_fields" type="list(string)">
+      Specifies the optional metadata fields (such as Size, LastModifiedDate, StorageClass, or ETag) to include in the inventory output for the S3 Express directory bucket. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="prefix" type="string">
+      Specifies the object key prefix that restricts the inventory report to include only objects whose keys start with this prefix, used to filter the set of objects listed in the directory bucket's inventory configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="schedule_frequency" type="string">
+      Specifies how often the inventory report is generated for the directory bucket, with valid values of Daily or Weekly. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="lifecycle_configuration" type="object">
+  Defines the lifecycle rules for objects in the S3 Express directory bucket, such as expiration, transition to storage classes, or deletion based on a schedule. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="rules" type="list(object)" required>
+      A lifecycle rule for individual objects in an Amazon S3 Express bucket. Required.
+      <Expandable title="properties">
+        <ResponseField name="abort_incomplete_multipart_upload" type="object">
+          Configures a lifecycle rule action that automatically aborts incomplete multipart uploads after the specified number of days since the upload was initiated. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="days_after_initiation" type="number">
+              Specifies the number of days after a multipart upload is initiated before the lifecycle rule aborts that incomplete multipart upload in the S3 Express directory bucket. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="expiration_in_days" type="number">
+          Specifies the number of days after object creation when the object expires and is automatically deleted by the lifecycle rule for the S3 Express directory bucket. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="id" type="string">
+          A unique identifier for the lifecycle rule, used to reference and distinguish it from other rules in the S3 Express directory bucket's lifecycle configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="object_size_greater_than" type="string">
+          Specifies the minimum object size in bytes for objects to be eligible for this lifecycle rule, so only objects larger than this threshold are affected. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="object_size_less_than" type="string">
+          Specifies the maximum object size in bytes; only objects smaller than this threshold will match the lifecycle rule filter. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="prefix" type="string">
+          The key prefix that filters objects in the S3 Express directory bucket so the lifecycle rule applies only to objects with keys starting with that prefix. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="status" type="string">
+          Determines whether the lifecycle rule is active, with allowed values 'Enabled' or 'Disabled'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="location_name" type="string" required>
+  Specifies the Zone ID of the Availability Zone or Local Zone where the directory bucket will be created. An example Availability Zone ID value is 'use1-az5'. Required.
+</ResponseField>
+
+<ResponseField name="metrics_configurations" type="list(object)">
+  Specifies the metrics configurations for the Amazon S3 Express bucket. Optional.
+  <Expandable title="properties">
+    <ResponseField name="access_point_arn" type="string">
+      For an S3 Express directory bucket, this access point ARN filters the metrics configuration so that metrics are reported only for requests directed to the specified S3 access point. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="id" type="string">
+      The unique identifier for this metrics configuration, which must be distinct within the directory bucket and is used to refer to the configuration when setting up CloudWatch bucket metrics. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="prefix" type="string">
+      Specifies the object key prefix that the metrics configuration applies to, so that only requests for objects with this prefix are included in the emitted metrics. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Specifies the list of key-value tags to assign to the S3 Express directory bucket, which are used for cost allocation, access control, and metadata management. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value component of a tag attached to the S3 Express directory bucket, used for cost allocation and metadata organization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the specified bucket. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="availability_zone_name" type="string">
+  Returns the code for the Availability Zone or Local Zone where the directory bucket was created. An example for the code of an Availability Zone is 'us-east-1f'. Computed by AWS after `ship`.
+</ResponseField>

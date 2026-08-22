@@ -1,0 +1,146 @@
+---
+title: "aws_lambda_version"
+description: "`aws_lambda_version` publishes a real, immutable numbered version of an `aws_lambda_function`'s current code and configuration..."
+---
+
+`aws_lambda_version` publishes a real, immutable numbered version of an `aws_lambda_function`'s current code and configuration, letting an `aws_lambda_alias` or a direct caller pin to a specific, unchanging version rather than the function's editable `$LATEST`.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	lambda "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/lambda"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own version"})
+
+    		ubx.Resource(lambda.Version, "ci-runner", lambda.VersionConfig{
+    			FunctionName:                 "example-function-name",
+    			CodeSha256:                   "example",
+    			Description:                  "Managed by ubx.",
+    			FunctionScalingConfig:        map[string]any{"max_execution_environments": 1},
+    			ProvisionedConcurrencyConfig: map[string]any{"provisioned_concurrent_executions": 1},
+    			RuntimePolicy:                map[string]any{"update_runtime_on": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Version } from "./local-sdk/aws/sdk/typescript/aws/lambda/version.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own version" });
+
+      resource(Version, "ci-runner", {
+        functionName: "example-function-name",
+        codeSha256: "example",
+        description: "Managed by ubx.",
+        functionScalingConfig: { maxExecutionEnvironments: 1 },
+        provisionedConcurrencyConfig: { provisionedConcurrentExecutions: 1 },
+        runtimePolicy: { updateRuntimeOn: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.lambda_ import Version, VersionConfig
+
+    def describe():
+        ubx.intent("payments own version")
+
+        ubx.resource(Version, "ci-runner", VersionConfig(
+            function_name="example-function-name",
+            code_sha256="example",
+            description="Managed by ubx.",
+            function_scaling_config={"max_execution_environments": 1},
+            provisioned_concurrency_config={"provisioned_concurrent_executions": 1},
+            runtime_policy={"update_runtime_on": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_lambda_version, with function name
+    example-function-name, code sha256 example, description Managed
+    by ubx., function scaling config a set value, provisioned
+    concurrency config a set value, runtime policy a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="code_sha256" type="string">
+  Only publish a version if the hash value matches the value that's specified. Use this option to avoid publishing a version if the function code has changed since you last updated it. Updates are not supported for this property. Optional.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A description for the version to override the description in the function configuration. Updates are not supported for this property. Optional.
+</ResponseField>
+
+<ResponseField name="function_name" type="string" required>
+  The name of the Lambda function. Required.
+</ResponseField>
+
+<ResponseField name="function_scaling_config" type="object">
+  Configuration that defines the scaling behavior for a Lambda Managed Instances function, including the minimum and maximum number of execution environments that can be provisioned. Optional.
+  <Expandable title="properties">
+    <ResponseField name="max_execution_environments" type="number">
+      The maximum number of execution environments that can be provisioned for the function. Optional.
+    </ResponseField>
+    <ResponseField name="min_execution_environments" type="number">
+      The minimum number of execution environments to maintain for the function. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="provisioned_concurrency_config" type="object">
+  A provisioned concurrency configuration for a function's version. Optional.
+  <Expandable title="properties">
+    <ResponseField name="provisioned_concurrent_executions" type="number" required>
+      The amount of provisioned concurrency to allocate for the version. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="runtime_policy" type="object">
+  Runtime Management Config of a function. Optional.
+  <Expandable title="properties">
+    <ResponseField name="runtime_version_arn" type="string">
+      The ARN of the runtime the function is configured to use. If the runtime update mode is manual, the ARN is returned, otherwise null is returned. Optional.
+    </ResponseField>
+    <ResponseField name="update_runtime_on" type="string" required>
+      The runtime update mode. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="function_arn" type="string">
+  The ARN of the version. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="version" type="string">
+  The version number. Computed by AWS after `ship`.
+</ResponseField>

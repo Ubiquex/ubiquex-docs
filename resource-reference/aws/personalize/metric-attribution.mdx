@@ -1,0 +1,137 @@
+---
+title: "aws_personalize_metric_attribution"
+description: "`aws_personalize_metric_attribution` configures real, ongoing export of business metrics, click-through rate, conversion..."
+---
+
+`aws_personalize_metric_attribution` configures real, ongoing export of business metrics, click-through rate, conversion, tied back to an `aws_personalize_solution`'s recommendations, so their real-world impact can be measured outside Personalize itself.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	personalize "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/personalize"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own metric attribution"})
+
+    		ubx.Resource(personalize.MetricAttribution, "ci-runner", personalize.MetricAttributionConfig{
+    			DatasetGroupArn:     "arn:aws:iam::123456789012:policy/ci",
+    			Metrics:             []map[string]any{{"event_type": "example"}},
+    			MetricsOutputConfig: map[string]any{"role_arn": "example"},
+    			Name:                "ci-runner",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MetricAttribution } from "./local-sdk/aws/sdk/typescript/aws/personalize/metric_attribution.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own metric attribution" });
+
+      resource(MetricAttribution, "ci-runner", {
+        datasetGroupArn: "arn:aws:iam::123456789012:policy/ci",
+        metrics: [{ eventType: "example" }],
+        metricsOutputConfig: { roleArn: "example" },
+        name: "ci-runner",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.personalize import MetricAttribution, MetricAttributionConfig
+
+    def describe():
+        ubx.intent("payments own metric attribution")
+
+        ubx.resource(MetricAttribution, "ci-runner", MetricAttributionConfig(
+            dataset_group_arn="arn:aws:iam::123456789012:policy/ci",
+            metrics=[{"event_type": "example"}],
+            metrics_output_config={"role_arn": "example"},
+            name="ci-runner",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_personalize_metric_attribution called "ci-runner",
+    with dataset group arn arn:aws:iam::123456789012:policy/ci,
+    metrics a set value, metrics output config a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="dataset_group_arn" type="string" required>
+  The ARN of the destination dataset group. Required.
+</ResponseField>
+
+<ResponseField name="metrics" type="list(object)" required>
+  A list of metric attributes for the metric attribution. Required.
+  <Expandable title="properties">
+    <ResponseField name="event_type" type="string">
+      The type of user event (such as Purchase or Click) that this metric attribution uses to measure how recommendation results influence that activity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="expression" type="string">
+      Defines a SQL-like expression that computes the metric from event attributes and event types, for example `SUM(IF(event_type = 'click', 1, 0))`. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="metric_name" type="string">
+      The user-defined name for this metric within the Amazon Personalize metric attribution, used to identify it in the configuration and in the output reports. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="metrics_output_config" type="object" required>
+  The output configuration details for the metric attribution. Required.
+  <Expandable title="properties">
+    <ResponseField name="role_arn" type="string" required>
+      The ARN of the IAM role for the metric attribution. Required.
+    </ResponseField>
+    <ResponseField name="s3_data_destination" type="object">
+      The configuration details of an Amazon S3 output bucket. Optional.
+      <Expandable title="properties">
+        <ResponseField name="kms_key_arn" type="string">
+          The ARN of the KMS key. Optional.
+        </ResponseField>
+        <ResponseField name="path" type="string" required>
+          The file path of the Amazon S3 bucket. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the metric attribution. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="metric_attribution_arn" type="string">
+  The ARN of the metric attribution. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The status of the metric attribution. Computed by AWS after `ship`.
+</ResponseField>

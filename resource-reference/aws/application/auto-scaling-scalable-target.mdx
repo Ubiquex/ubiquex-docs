@@ -1,0 +1,175 @@
+---
+title: "aws_application_auto_scaling_scalable_target"
+description: "`aws_application_auto_scaling_scalable_target` registers a scalable resource, a DynamoDB table, an ECS service..."
+---
+
+`aws_application_auto_scaling_scalable_target` registers a scalable resource, a DynamoDB table, an ECS service, a Lambda function's provisioned concurrency, and many others, so Application Auto Scaling can manage its capacity within a defined minimum and maximum, the general-purpose scaling engine AWS provides for services outside EC2 Auto Scaling's own reach.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	application "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/application"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own auto scaling scalable target"})
+
+    		ubx.Resource(application.AutoScalingScalableTarget, "ci-runner", application.AutoScalingScalableTargetConfig{
+    			MaxCapacity:       1,
+    			MinCapacity:       1,
+    			ResourceId:        "example",
+    			ScalableDimension: "example",
+    			ServiceNamespace:  "example",
+    			RoleArn:           "arn:aws:iam::123456789012:policy/ci",
+    			ScheduledActions:  []map[string]any{{"end_time": "example"}},
+    			SuspendedState:    map[string]any{"dynamic_scaling_in_suspended": true},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AutoScalingScalableTarget } from "./local-sdk/aws/sdk/typescript/aws/application/auto_scaling_scalable_target.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own auto scaling scalable target" });
+
+      resource(AutoScalingScalableTarget, "ci-runner", {
+        maxCapacity: 1,
+        minCapacity: 1,
+        resourceId: "example",
+        scalableDimension: "example",
+        serviceNamespace: "example",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        scheduledActions: [{ endTime: "example" }],
+        suspendedState: { dynamicScalingInSuspended: true },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.application import AutoScalingScalableTarget, AutoScalingScalableTargetConfig
+
+    def describe():
+        ubx.intent("payments own auto scaling scalable target")
+
+        ubx.resource(AutoScalingScalableTarget, "ci-runner", AutoScalingScalableTargetConfig(
+            max_capacity=1,
+            min_capacity=1,
+            resource_id="example",
+            scalable_dimension="example",
+            service_namespace="example",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            scheduled_actions=[{"end_time": "example"}],
+            suspended_state={"dynamic_scaling_in_suspended": True},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_application_auto_scaling_scalable_target, with max
+    capacity 1, min capacity 1, resource id example, scalable
+    dimension example, service namespace example, role arn
+    arn:aws:iam::123456789012:policy/ci, scheduled actions a set
+    value, suspended state a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="max_capacity" type="number" required>
+  The maximum value that you plan to scale out to. When a scaling policy is in effect, Application Auto Scaling can scale out (expand) as needed to the maximum capacity limit in response to changing demand. Required.
+</ResponseField>
+
+<ResponseField name="min_capacity" type="number" required>
+  The minimum value that you plan to scale in to. When a scaling policy is in effect, Application Auto Scaling can scale in (contract) as needed to the minimum capacity limit in response to changing demand. Required.
+</ResponseField>
+
+<ResponseField name="resource_id" type="string" required>
+  The identifier of the resource associated with the scalable target. This string consists of the resource type and unique identifier. + ECS service - The resource type is ``service`` and the unique identifier is the cluster name and service name. Example: ``service/my-cluster/my-service``. + Spot Fleet - The resource type is ``spot-fleet-request`` and the unique identifier is the Spot Fleet request ID. Example: ``spot-fleet-request/sfr-73fbd2ce-aa30-494c-8788-1cee4EXAMPLE``. + EMR cluster - The resource type is ``instancegroup`` and the unique identifier is the cluster ID and instance group ID. Example: ``instancegroup/j-2EEZNYKUA1NTV/ig-1791Y4E1L8YI0``. + AppStream 2.0 fleet - The resource type is ``fleet`` and the unique identifier is the fleet name. Example: ``fleet/sample-fleet``. + DynamoDB table - The resource type is ``table`` and the unique identifier is the table name. Example: ``table/my-table``. + DynamoDB global secondary index - The resource type is ``index`` and the unique identifier is the index name. Example: ``table/my-table/index/my-table-index``. + Aurora DB cluster - The resource type is ``cluster`` and the unique identifier is the cluster name. Example: ``cluster:my-db-cluster``. + SageMaker endpoint variant - The resource type is ``variant`` and the unique identifier is the resource ID. Example: ``endpoint/my-end-point/variant/KMeansClustering``. + Custom resources are not supported with a resource type. This parameter must specify the ``OutputValue`` from the CloudFormation template stack used to access the resources. The unique identifier is defined by the service provider. More information is available in our [GitHub repository](https://docs.aws.amazon.com/https://github.com/aws/aws-auto-scaling-custom-resource). + Amazon Comprehend document classification endpoint - The resource type and unique identifier are specified using the endpoint ARN. Example: ``arn:aws:comprehend:us-west-2:123456789012:document-classifier-endpoint/EXAMPLE``. + Amazon Comprehend entity recognizer endpoint - The resource type and unique identifier are specified using the endpoint ARN. Example: ``arn:aws:comprehend:us-west-2:123456789012:entity-recognizer-endpoint/EXAMPLE``. + Lambda provisioned concurrency - The resource type is ``function`` and the unique identifier is the function name with a function version or alias name suffix that is not ``$LATEST``. Example: ``function:my-function:prod`` or ``function:my-function:1``. + Amazon Keyspaces table - The resource type is ``table`` and the unique identifier is the table name. Example: ``keyspace/mykeyspace/table/mytable``. + Amazon MSK cluster - The resource type and unique identifier are specified using the cluster ARN. Example: ``arn:aws:kafka:us-east-1:123456789012:cluster/demo-cluster-1/6357e0b2-0e6a-4b86-a0b4-70df934c2e31-5``. + Amazon ElastiCache replication group - The resource type is ``replication-group`` and the unique identifier is the replication group name. Example: ``replication-group/mycluster``. + Amazon ElastiCache cache cluster - The resource type is ``cache-cluster`` and the unique identifier is the cache cluster name. Example: ``cache-cluster/mycluster``. + Neptune cluster - The resource type is ``cluster`` and the unique identifier is the cluster name. Example: ``cluster:mycluster``. + SageMaker serverless endpoint - The resource type is ``variant`` and the unique identifier is the resource ID. Example: ``endpoint/my-end-point/variant/KMeansClustering``. + SageMaker inference component - The resource type is ``inference-component`` and the unique identifier is the resource ID. Example: ``inference-component/my-inference-component``. + Pool of WorkSpaces - The resource type is ``workspacespool`` and the unique identifier is the pool ID. Example: ``workspacespool/wspool-123456``. Required.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string">
+  Specify the Amazon Resource Name (ARN) of an Identity and Access Management (IAM) role that allows Application Auto Scaling to modify the scalable target on your behalf. This can be either an IAM service role that Application Auto Scaling can assume to make calls to other AWS resources on your behalf, or a service-linked role for the specified service. For more information, see [How Application Auto Scaling works with IAM](https://docs.aws.amazon.com/autoscaling/application/userguide/security_iam_service-with-iam.html) in the *Application Auto Scaling User Guide*. To automatically create a service-linked role (recommended), specify the full ARN of the service-linked role in your stack template. To find the exact ARN of the service-linked role for your AWS or custom resource, see the [Service-linked roles](https://docs.aws.amazon.com/autoscaling/application/userguide/application-auto-scaling-service-linked-roles.html) topic in the *Application Auto Scaling User Guide*. Look for the ARN in the table at the bottom of the page. Optional.
+</ResponseField>
+
+<ResponseField name="scalable_dimension" type="string" required>
+  The scalable dimension associated with the scalable target. This string consists of the service namespace, resource type, and scaling property. + ``ecs:service:DesiredCount`` - The task count of an ECS service. + ``elasticmapreduce:instancegroup:InstanceCount`` - The instance count of an EMR Instance Group. + ``ec2:spot-fleet-request:TargetCapacity`` - The target capacity of a Spot Fleet. + ``appstream:fleet:DesiredCapacity`` - The capacity of an AppStream 2.0 fleet. + ``dynamodb:table:ReadCapacityUnits`` - The provisioned read capacity for a DynamoDB table. + ``dynamodb:table:WriteCapacityUnits`` - The provisioned write capacity for a DynamoDB table. + ``dynamodb:index:ReadCapacityUnits`` - The provisioned read capacity for a DynamoDB global secondary index. + ``dynamodb:index:WriteCapacityUnits`` - The provisioned write capacity for a DynamoDB global secondary index. + ``rds:cluster:ReadReplicaCount`` - The count of Aurora Replicas in an Aurora DB cluster. Available for Aurora MySQL-compatible edition and Aurora PostgreSQL-compatible edition. + ``sagemaker:variant:DesiredInstanceCount`` - The number of EC2 instances for a SageMaker model endpoint variant. + ``custom-resource:ResourceType:Property`` - The scalable dimension for a custom resource provided by your own application or service. + ``comprehend:document-classifier-endpoint:DesiredInferenceUnits`` - The number of inference units for an Amazon Comprehend document classification endpoint. + ``comprehend:entity-recognizer-endpoint:DesiredInferenceUnits`` - The number of inference units for an Amazon Comprehend entity recognizer endpoint. + ``lambda:function:ProvisionedConcurrency`` - The provisioned concurrency for a Lambda function. + ``cassandra:table:ReadCapacityUnits`` - The provisioned read capacity for an Amazon Keyspaces table. + ``cassandra:table:WriteCapacityUnits`` - The provisioned write capacity for an Amazon Keyspaces table. + ``kafka:broker-storage:VolumeSize`` - The provisioned volume size (in GiB) for brokers in an Amazon MSK cluster. + ``elasticache:cache-cluster:Nodes`` - The number of nodes for an Amazon ElastiCache cache cluster. + ``elasticache:replication-group:NodeGroups`` - The number of node groups for an Amazon ElastiCache replication group. + ``elasticache:replication-group:Replicas`` - The number of replicas per node group for an Amazon ElastiCache replication group. + ``neptune:cluster:ReadReplicaCount`` - The count of read replicas in an Amazon Neptune DB cluster. + ``sagemaker:variant:DesiredProvisionedConcurrency`` - The provisioned concurrency for a SageMaker serverless endpoint. + ``sagemaker:inference-component:DesiredCopyCount`` - The number of copies across an endpoint for a SageMaker inference component. + ``workspaces:workspacespool:DesiredUserSessions`` - The number of user sessions for the WorkSpaces in the pool. Required.
+</ResponseField>
+
+<ResponseField name="scheduled_actions" type="list(object)">
+  The scheduled actions for the scalable target. Duplicates aren't allowed. Optional.
+  <Expandable title="properties">
+    <ResponseField name="end_time" type="string">
+      The date and time (in ISO 8601 format) at which the scheduled scaling action stops being active and no longer runs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="scalable_target_action" type="object">
+      The scaling action to apply when the scheduled action is triggered, specifying the minimum and maximum capacities for the scalable target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="max_capacity" type="number">
+          Sets the maximum capacity of the scalable target when the scheduled action runs, defining the upper bound for scaling during that time period. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="min_capacity" type="number">
+          The minimum capacity value that the scalable target is adjusted to when the scheduled action executes, as part of the scaling action that overrides the target's current minimum capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="schedule" type="string">
+      The cron, rate, or at expression that determines when the scheduled scaling action is triggered for the scalable target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="scheduled_action_name" type="string">
+      The name of the scheduled action, uniquely identifying it among the scheduled actions for this scalable target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="start_time" type="string">
+      The date and time (in UTC) when the scheduled scaling action is set to start, specified in ISO 8601 format. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="timezone" type="string">
+      The time zone ID (such as 'UTC' or 'America/New_York') that the scheduled action's cron or rate expression is evaluated in. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="service_namespace" type="string" required>
+  The namespace of the AWS service that provides the resource, or a ``custom-resource``. Required.
+</ResponseField>
+
+<ResponseField name="suspended_state" type="object">
+  ``SuspendedState`` is a property of the [AWS::ApplicationAutoScaling::ScalableTarget](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-applicationautoscaling-scalabletarget.html) resource that specifies whether the scaling activities for a scalable target are in a suspended state. For more information, see [Suspending and resuming scaling](https://docs.aws.amazon.com/autoscaling/application/userguide/application-auto-scaling-suspend-resume-scaling.html) in the *Application Auto Scaling User Guide*. Optional.
+  <Expandable title="properties">
+    <ResponseField name="dynamic_scaling_in_suspended" type="bool">
+      Whether scale in by a target tracking scaling policy or a step scaling policy is suspended. Set the value to ``true`` if you don't want Application Auto Scaling to remove capacity when a scaling policy is triggered. The default is ``false``. Optional.
+    </ResponseField>
+    <ResponseField name="dynamic_scaling_out_suspended" type="bool">
+      Whether scale out by a target tracking scaling policy or a step scaling policy is suspended. Set the value to ``true`` if you don't want Application Auto Scaling to add capacity when a scaling policy is triggered. The default is ``false``. Optional.
+    </ResponseField>
+    <ResponseField name="scheduled_scaling_suspended" type="bool">
+      Whether scheduled scaling is suspended. Set the value to ``true`` if you don't want Application Auto Scaling to add or remove capacity by initiating scheduled actions. The default is ``false``. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The Amazon Resource Name (ARN) of the Application Auto Scaling scalable target, uniquely identifying it within AWS. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

@@ -1,0 +1,240 @@
+---
+title: "aws_personalize_solution"
+description: "`aws_personalize_solution` trains a real recommendation model against the data in an `aws_personalize_dataset_group`..."
+---
+
+`aws_personalize_solution` trains a real recommendation model against the data in an `aws_personalize_dataset_group`, using either a built-in Personalize recipe or AutoML, the resource that actually produces the model a deployed campaign serves recommendations from.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	personalize "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/personalize"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own solution"})
+
+    		ubx.Resource(personalize.Solution, "ci-runner", personalize.SolutionConfig{
+    			DatasetGroupArn: "arn:aws:iam::123456789012:policy/ci",
+    			Name:            "ci-runner",
+    			EventType:       "example",
+    			PerformAutoMl:   true,
+    			PerformHpo:      true,
+    			RecipeArn:       "arn:aws:iam::123456789012:policy/ci",
+    			SolutionConfig:  map[string]any{"algorithm_hyper_parameters": "example"},
+    			Tags:            []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Solution } from "./local-sdk/aws/sdk/typescript/aws/personalize/solution.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own solution" });
+
+      resource(Solution, "ci-runner", {
+        datasetGroupArn: "arn:aws:iam::123456789012:policy/ci",
+        name: "ci-runner",
+        eventType: "example",
+        performAutoMl: true,
+        performHpo: true,
+        recipeArn: "arn:aws:iam::123456789012:policy/ci",
+        solutionConfig: { algorithmHyperParameters: "example" },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.personalize import Solution, SolutionConfig
+
+    def describe():
+        ubx.intent("payments own solution")
+
+        ubx.resource(Solution, "ci-runner", SolutionConfig(
+            dataset_group_arn="arn:aws:iam::123456789012:policy/ci",
+            name="ci-runner",
+            event_type="example",
+            perform_auto_ml=True,
+            perform_hpo=True,
+            recipe_arn="arn:aws:iam::123456789012:policy/ci",
+            solution_config={"algorithm_hyper_parameters": "example"},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_personalize_solution called "ci-runner", with dataset
+    group arn arn:aws:iam::123456789012:policy/ci, event type
+    example, perform auto ml true, perform hpo true, recipe arn
+    arn:aws:iam::123456789012:policy/ci, solution config a set value,
+    tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="dataset_group_arn" type="string" required>
+  The ARN of the dataset group that provides the training data. Required.
+</ResponseField>
+
+<ResponseField name="event_type" type="string">
+  When your have multiple event types (using an EVENT_TYPE schema field), this parameter specifies which event type (for example, 'click' or 'like') is used for training the model. If you do not provide an eventType, Amazon Personalize will use all interactions for training with equal weight regardless of type. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name for the solution Required.
+</ResponseField>
+
+<ResponseField name="perform_auto_ml" type="bool">
+  Whether to perform automated machine learning (AutoML). The default is false. For this case, you must specify recipeArn. Optional.
+</ResponseField>
+
+<ResponseField name="perform_hpo" type="bool">
+  Whether to perform hyperparameter optimization (HPO) on the specified or selected recipe. The default is false. When performing AutoML, this parameter is always true and you should not set it to false. Optional.
+</ResponseField>
+
+<ResponseField name="recipe_arn" type="string">
+  The ARN of the recipe to use for model training. Only specified when performAutoML is false. Optional.
+</ResponseField>
+
+<ResponseField name="solution_config" type="object">
+  The configuration to use with the solution. When performAutoML is set to true, Amazon Personalize only evaluates the autoMLConfig section of the solution configuration. Optional.
+  <Expandable title="properties">
+    <ResponseField name="algorithm_hyper_parameters" type="any">
+      Lists the hyperparameter names and ranges. Optional.
+    </ResponseField>
+    <ResponseField name="auto_mlconfig" type="object">
+      The AutoMLConfig object containing a list of recipes to search when AutoML is performed. Optional.
+      <Expandable title="properties">
+        <ResponseField name="metric_name" type="string">
+          The metric to optimize. Optional.
+        </ResponseField>
+        <ResponseField name="recipe_list" type="list(string)">
+          The list of candidate recipes. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="event_value_threshold" type="string">
+      Only events with a value greater than or equal to this threshold are used for training a model. Optional.
+    </ResponseField>
+    <ResponseField name="feature_transformation_parameters" type="any">
+      Lists the feature transformation parameters. Optional.
+    </ResponseField>
+    <ResponseField name="hpo_config" type="object">
+      Describes the properties for hyperparameter optimization (HPO) Optional.
+      <Expandable title="properties">
+        <ResponseField name="algorithm_hyper_parameter_ranges" type="object">
+          The hyperparameters and their allowable ranges Optional.
+          <Expandable title="properties">
+            <ResponseField name="categorical_hyper_parameter_ranges" type="list(object)">
+              The categorical hyperparameters and their ranges. Optional.
+              <Expandable title="properties">
+                <ResponseField name="name" type="string">
+                  The name of the categorical hyperparameter whose values are tuned during hyperparameter optimization (HPO) for the Amazon Personalize solution. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="values" type="list(string)">
+                  Specifies the list of allowed categorical values that a categorical hyperparameter (identified by the sibling Name field) can take during hyperparameter optimization (HPO) for the Amazon Personalize solution. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="continuous_hyper_parameter_ranges" type="list(object)">
+              The continuous hyperparameters and their ranges. Optional.
+              <Expandable title="properties">
+                <ResponseField name="max_value" type="number">
+                  The maximum value for a continuous hyperparameter range used in hyperparameter optimization for the Amazon Personalize solution. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min_value" type="number">
+                  The minimum value of the range for a continuous hyperparameter that Amazon Personalize explores during hyperparameter optimization (HPO) for the solution. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="name" type="string">
+                  The name of the continuous hyperparameter to tune during hyperparameter optimization (HPO), which matches a hyperparameter defined in the recipe used by the Amazon Personalize solution. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="integer_hyper_parameter_ranges" type="list(object)">
+              The integer hyperparameters and their ranges. Optional.
+              <Expandable title="properties">
+                <ResponseField name="max_value" type="number">
+                  The maximum value allowed for the integer hyperparameter range used in hyperparameter optimization (HPO) for the Amazon Personalize solution. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min_value" type="number">
+                  The minimum value allowed for an integer-valued hyperparameter in the range being tuned by hyperparameter optimization (HPO). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="name" type="string">
+                  The name of the integer hyperparameter to tune, matching a hyperparameter name supported by the recipe used by the solution. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="hpo_objective" type="object">
+          The metric to optimize during HPO. Optional.
+          <Expandable title="properties">
+            <ResponseField name="metric_name" type="string">
+              The name of the metric Optional.
+            </ResponseField>
+            <ResponseField name="metric_regex" type="string">
+              A regular expression for finding the metric in the training job logs. Optional.
+            </ResponseField>
+            <ResponseField name="type" type="string">
+              The type of the metric. Valid values are Maximize and Minimize. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="hpo_resource_config" type="object">
+          Describes the resource configuration for hyperparameter optimization (HPO). Optional.
+          <Expandable title="properties">
+            <ResponseField name="max_number_of_training_jobs" type="string">
+              The maximum number of training jobs when you create a solution version. The maximum value for maxNumberOfTrainingJobs is 40. Optional.
+            </ResponseField>
+            <ResponseField name="max_parallel_training_jobs" type="string">
+              The maximum number of parallel training jobs when you create a solution version. The maximum value for maxParallelTrainingJobs is 10. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags used to organize, track, or control access for this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key part of a user-defined tag attached to the Amazon Personalize solution, used for organizing and identifying the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value component of a tag key-value pair attached to the Amazon Personalize solution resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="solution_arn" type="string">
+  The ARN of the solution Computed by AWS after `ship`.
+</ResponseField>

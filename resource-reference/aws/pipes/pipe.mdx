@@ -1,0 +1,915 @@
+---
+title: "aws_pipes_pipe"
+description: "`aws_pipes_pipe` creates a real EventBridge Pipes point-to-point integration, pulling events from a single source, SQS, Kinesis, DynamoDB Streams, MSK..."
+---
+
+`aws_pipes_pipe` creates a real EventBridge Pipes point-to-point integration, pulling events from a single source, SQS, Kinesis, DynamoDB Streams, MSK, self-managed Kafka, or Amazon MQ, optionally filtering, enriching, and transforming them, and delivering the result to a single target, without hand-writing the glue code an equivalent Lambda function would need.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	pipes "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/pipes"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own pipe"})
+
+    		ubx.Resource(pipes.Pipe, "ci-runner", pipes.PipeConfig{
+    			RoleArn:              "arn:aws:iam::123456789012:policy/ci",
+    			Source:               "example",
+    			Target:               "example",
+    			Name:                 "ci-runner",
+    			Description:          "Managed by ubx.",
+    			DesiredState:         "example",
+    			Enrichment:           "example",
+    			EnrichmentParameters: map[string]any{"http_parameters": map[string]any{"header_parameters": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Pipe } from "./local-sdk/aws/sdk/typescript/aws/pipes/pipe.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own pipe" });
+
+      resource(Pipe, "ci-runner", {
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        source: "example",
+        target: "example",
+        name: "ci-runner",
+        description: "Managed by ubx.",
+        desiredState: "example",
+        enrichment: "example",
+        enrichmentParameters: { httpParameters: { headerParameters: "example" } },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.pipes import Pipe, PipeConfig
+
+    def describe():
+        ubx.intent("payments own pipe")
+
+        ubx.resource(Pipe, "ci-runner", PipeConfig(
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            source="example",
+            target="example",
+            name="ci-runner",
+            description="Managed by ubx.",
+            desired_state="example",
+            enrichment="example",
+            enrichment_parameters={"http_parameters": {"header_parameters": "example"}},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_pipes_pipe called "ci-runner", with role arn
+    arn:aws:iam::123456789012:policy/ci, source example, target
+    example, description Managed by ubx., desired state example,
+    enrichment example, enrichment parameters a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  The description field is an optional user-defined text description for the AWS Pipes pipe, used to identify the pipe's purpose or distinguish it from other pipes. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="desired_state" type="string">
+  Sets the pipe to either RUNNING or STOPPED after creation or update, controlling whether it actively processes events. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="enrichment" type="string">
+  The ARN of the enrichment resource (such as an AWS Lambda function, AWS Step Functions state machine, or API destination) that EventBridge Pipes invokes to transform or enrich the event before sending it to the target. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="enrichment_parameters" type="object">
+  Specifies the configuration for the pipe's enrichment stage, including the input template that controls how the source event is transformed before being passed to the enrichment target (e.g., a Lambda function, Step Functions state machine, or API destination). Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="http_parameters" type="object">
+      Specifies the HTTP request parameters (including headers, query strings, and path parameter values) for a pipe's enrichment step when the target is an API destination. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="header_parameters" type="any">
+          Specifies the HTTP headers to include in the enrichment request, mapping each header name to its value (which may be a static string or a dynamic expression). Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="path_parameter_values" type="list(string)">
+          Specifies the list of values to substitute for each path parameter placeholder in the enrichment HTTP endpoint's URL, in the order the placeholders appear. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="query_string_parameters" type="any">
+          Specifies the key-value pairs to be included as query string parameters in the HTTP request when the pipe invokes the enrichment endpoint defined by http_parameters. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="input_template" type="string">
+      Specifies the input template, a JSON string with dynamic references, that determines the payload delivered to the enrichment target for each event. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="kms_key_identifier" type="string">
+  Specifies the ARN, ID, or alias of the AWS KMS key used to encrypt data in the EventBridge Pipe. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="log_configuration" type="object">
+  Configures the destination (such as CloudWatch Logs, Amazon Data Firehose, or Amazon S3) and the log level for the pipe's execution activity, capturing invocation and error logs. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="cloudwatch_logs_log_destination" type="object">
+      Specifies the CloudWatch Logs log destination (including the log group ARN) for this pipe, used when log_configuration is configured to send execution logs to CloudWatch Logs. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="log_group_arn" type="string">
+          The ARN of the CloudWatch Logs log group that receives the pipe's execution logs. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="firehose_log_destination" type="object">
+      Specifies the Amazon Data Firehose delivery stream (via its ARN) to which AWS Pipes delivers execution and diagnostic logs. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="delivery_stream_arn" type="string">
+          The ARN of the Amazon Data Firehose delivery stream to which the pipe's execution logs are delivered when Firehose is selected as the log destination. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="include_execution_data" type="list(string)">
+      Controls which pipe execution data fields (such as the input payload, output payload, or metadata) are included in the log records written to the configured log destination for an AWS Pipes pipe. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="level" type="string">
+      The log level for the pipe's logging configuration, such as OFF, ERROR, INFO, TRACE, or WARN, controlling the granularity of log entries emitted by the pipe. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="s3_log_destination" type="object">
+      Configures the Amazon S3 bucket, and optionally a prefix, that acts as the destination for logs emitted by the pipe when S3 is selected as the log delivery mechanism. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="bucket_name" type="string">
+          The name of the S3 bucket where AWS Pipes delivers execution logs when the pipe's log configuration uses an S3 log destination. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="bucket_owner" type="string">
+          The AWS account ID of the Amazon S3 bucket owner, used to validate ownership when the destination bucket is in a different account. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_format" type="string">
+          Controls whether the logs delivered to the S3 bucket are formatted as JSON or as plain text, based on the value of this output format field. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="prefix" type="string">
+          The object key prefix to prepend to log files delivered to the S3 bucket when logging is configured for the pipe. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the EventBridge pipe; if not provided, CloudFormation generates a unique name. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  The ARN of the IAM role that the pipe assumes to read from the source, invoke the enrichment, and deliver to the target. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="source" type="string" required>
+  The ARN of the source resource (such as a Kinesis stream, DynamoDB stream, SQS queue, or EventBridge event bus) from which the pipe reads data. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="source_parameters" type="object">
+  Defines source-specific configuration for the pipe's integration, including filtering criteria and service-specific settings (e.g., batch size or stream starting position) for sources like SQS, Kinesis, or DynamoDB. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="active_mqbroker_parameters" type="object">
+      Specifies the parameters for an Amazon MQ ActiveMQ broker used as the event source, including the queue name, batch size, and credentials for consuming messages. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="batch_size" type="number">
+          The maximum number of records to include in each batch when reading from the ActiveMQ broker source. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="credentials" type="object" required>
+          Defines the authentication credentials required to connect to the ActiveMQ broker, supporting either basic authentication with a username and password or client certificate TLS authentication. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="basic_auth" type="string">
+              Specifies the ARN of the AWS Secrets Manager secret that contains the basic authentication credentials (username and password) used to connect to the ActiveMQ broker source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="maximum_batching_window_in_seconds" type="number">
+          Specifies the maximum number of seconds that EventBridge Pipes waits when gathering events from an ActiveMQ broker source before invoking the target with a batch. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="queue_name" type="string" required>
+          Specifies the name of the ActiveMQ queue from which the pipe reads messages. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="dynamo_dbstream_parameters" type="object">
+      Specifies the DynamoDB stream source parameters, including the stream's starting position and batch size, used when the pipe's source is a DynamoDB stream. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="batch_size" type="number">
+          The maximum number of records to read from the DynamoDB stream in a single batch when using DynamoDB as a pipe source. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="dead_letter_config" type="object">
+          Specifies the ARN of an SQS queue or SNS topic where records that fail processing from the DynamoDB stream are sent, serving as a dead-letter target for the pipe source. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="arn" type="string">
+              The ARN of the Amazon SQS queue or Amazon SNS topic that receives events when AWS Pipes fails to deliver them from the DynamoDB stream source. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="maximum_batching_window_in_seconds" type="number">
+          Specifies the maximum number of seconds that AWS Pipes will wait to gather records from the DynamoDB stream before sending a batch to the target, allowing you to control the batching behavior. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum_record_age_in_seconds" type="number">
+          Sets the maximum age in seconds that a record from the DynamoDB stream source can be retained before the pipe considers it expired and discards it from processing. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum_retry_attempts" type="number">
+          Specifies the maximum number of retry attempts AWS Pipes will make to deliver an event from a DynamoDB stream source to the pipe's target before giving up. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="on_partial_batch_item_failure" type="string">
+          Determines how the pipe handles a partial batch failure from the DynamoDB stream, either by discarding the failed batch and continuing (SEND_AND_FORGET) or by sending the failed batch to a destination specified by its ARN. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="parallelization_factor" type="number">
+          Sets the maximum number of shards processed concurrently for a DynamoDB stream source, allowing you to scale the pipe's throughput by increasing parallel shard consumption. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="starting_position" type="string" required>
+          Determines the point in the DynamoDB stream from which the pipe starts reading, with valid values including LATEST, TRIM_HORIZON, and AT_TIMESTAMP. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="filter_criteria" type="object">
+      Defines the event filter patterns (a list of JSON matching patterns) that select which source events are passed through the pipe for processing. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="filters" type="list(object)">
+          Specifies the list of event patterns used to filter which source events are processed by the pipe, where each filter defines a JSON pattern that an incoming event must match. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="pattern" type="string">
+              Defines the EventBridge event pattern (as a JSON string) that determines which incoming events from the source are matched and processed, based on the source's filter criteria. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="kinesis_stream_parameters" type="object">
+      Specifies the parameters for consuming records from an Amazon Kinesis data stream as the pipe source, such as the batch size, starting position, and retry/dead-letter settings. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="batch_size" type="number">
+          The maximum number of records to read from the Kinesis stream in a single batch, which controls how many records are processed at once by the pipe. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="dead_letter_config" type="object">
+          Configuration for sending events that fail processing from the Kinesis stream to a specified Amazon SQS queue or Amazon SNS topic for dead-letter handling. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="arn" type="string">
+              The ARN of the dead-letter queue (SQS) or topic (SNS) that receives events from the Kinesis stream that cannot be processed by the pipe. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="maximum_batching_window_in_seconds" type="number">
+          Specifies the maximum number of seconds that EventBridge Pipes accumulates records from the Kinesis stream before sending the batch to the target, with a maximum allowed value of 300 seconds. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum_record_age_in_seconds" type="number">
+          Specifies the maximum age in seconds that a record from the source Kinesis stream can be before it is considered expired and skipped, so that stale data is not delivered to the pipe. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum_retry_attempts" type="number">
+          Specifies the maximum number of retry attempts AWS Pipes will make for a batch of Kinesis stream records that fail to be delivered to the target, before invoking dead-letter queue or error handling. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="on_partial_batch_item_failure" type="string">
+          The ARN of a Lambda function that AWS EventBridge Pipes invokes to handle records that fail processing from a Kinesis stream. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="parallelization_factor" type="number">
+          Specifies the number of batches to process concurrently from each shard of the Kinesis stream, allowing you to increase throughput by processing multiple batches in parallel per shard (values 1-10). Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="starting_position" type="string" required>
+          Specifies the position in the Kinesis stream from which to start reading records, with valid values including LATEST, TRIM_HORIZON, and AT_TIMESTAMP. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="starting_position_timestamp" type="string">
+          The timestamp (in milliseconds since Unix epoch) in the Kinesis stream from which to start reading records when the source's starting position is set to AT_TIMESTAMP. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="managed_streaming_kafka_parameters" type="object">
+      Specifies the parameters that configure an Amazon Managed Streaming for Apache Kafka (MSK) stream as the event source for the pipe, including the topic name, starting position, consumer group ID, and batch settings. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="batch_size" type="number">
+          The maximum number of records to include in a single batch when reading from the managed Kafka topic used as the source of the pipe. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="consumer_group_id" type="string">
+          The consumer group ID that the pipe uses to consume messages from the Amazon Managed Streaming for Apache Kafka (MSK) topic. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="credentials" type="object">
+          Specifies the Secrets Manager secret ARN(s) used for client authentication (either TLS client certificate or SASL/SCRAM) when connecting to the Amazon MSK stream source. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="client_certificate_tls_auth" type="string">
+              The ARN of an AWS Secrets Manager secret that stores the client certificate and private key used for mutual TLS authentication to the MSK cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="sasl_scram512_auth" type="string">
+              Specifies the ARN of the AWS Secrets Manager secret that contains the SASL/SCRAM-512 credentials used to authenticate to the managed Kafka stream configured as the pipe source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="maximum_batching_window_in_seconds" type="number">
+          The maximum number of seconds that AWS Pipes will wait to collect records from the managed Kafka stream before sending a batch to the target, allowing for batching of incoming messages. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="starting_position" type="string">
+          Specifies the starting position in the Kafka stream from which the pipe begins consuming records, with valid values being LATEST (default) or TRIM_HORIZON (earliest available). Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="topic_name" type="string" required>
+          The name of the Kafka topic in the Managed Streaming for Apache Kafka (MSK) cluster from which the pipe reads messages. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="rabbit_mqbroker_parameters" type="object">
+      Specifies the parameters for using an Amazon MQ for RabbitMQ broker as the pipe's event source, including the queue name, virtual host, credentials, batch size, and batching window. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="batch_size" type="number">
+          The maximum number of messages from the RabbitMQ broker that can be read in a single batch, before the batch is sent to the target. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="credentials" type="object" required>
+          This object holds the basic authentication parameters for connecting to the RabbitMQ broker, specifically the Amazon Resource Name (ARN) of a Secrets Manager secret that stores the broker username and password. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="basic_auth" type="string">
+              The ARN of the AWS Secrets Manager secret that stores the basic authentication credentials (username and password) used to access the RabbitMQ broker. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="maximum_batching_window_in_seconds" type="number">
+          The maximum amount of time in seconds that EventBridge Pipes waits to gather messages from a RabbitMQ broker into a batch before invoking the target, even if the configured batch size has not been reached. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="queue_name" type="string" required>
+          Specifies the name of the RabbitMQ queue that the pipe consumes messages from when using an Amazon MQ for RabbitMQ broker as the source. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="virtual_host" type="string">
+          The name of the RabbitMQ virtual host from which the pipe reads messages. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="self_managed_kafka_parameters" type="object">
+      Defines the parameters for using a self-managed Apache Kafka stream as the pipe's event source, including broker connection details, topic name, and authentication credentials. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="additional_bootstrap_servers" type="list(string)">
+          Specifies additional Kafka bootstrap server addresses that the pipe may use to connect to the self-managed Kafka cluster, supplementing the primary bootstrap servers for broker discovery. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="batch_size" type="number">
+          The maximum number of records to read from a self-managed Kafka topic and include in each batch sent to the pipe target. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="consumer_group_id" type="string">
+          Specifies the consumer group ID that the AWS Pipes pipe uses when consuming messages from the self-managed Apache Kafka topic, allowing you to manage offsets and consumer group coordination. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="credentials" type="object">
+          Specifies the authentication credentials (basic auth, client certificate TLS, or SASL/SCRAM) required to connect to the self-managed Apache Kafka cluster source. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="basic_auth" type="string">
+              The ARN of the AWS Secrets Manager secret that contains the username and password used for basic authentication to the self-managed Kafka cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="client_certificate_tls_auth" type="string">
+              The ARN of an AWS Secrets Manager secret that stores the client certificate and private key for mutual TLS authentication with the self-managed Apache Kafka cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="sasl_scram256_auth" type="string">
+              The ARN of the AWS Secrets Manager secret that stores the SASL SCRAM256 credentials used to authenticate against the self-managed Kafka cluster that is the source of the pipe. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="sasl_scram512_auth" type="string">
+              The ARN of the AWS Secrets Manager secret that stores the SASL/SCRAM-512 username and password used to authenticate to the self-managed Apache Kafka cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="maximum_batching_window_in_seconds" type="number">
+          The maximum number of seconds that EventBridge Pipes will wait to accumulate records from the self-managed Apache Kafka source before sending them in a single batch to the target. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="server_root_ca_certificate" type="string">
+          Optional SecretManager ARN which stores the database credentials Optional.
+        </ResponseField>
+        <ResponseField name="starting_position" type="string">
+          Specifies whether the pipe starts reading messages from the beginning (TRIM_HORIZON) or from the latest offset (LATEST) in the self-managed Kafka topic. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="topic_name" type="string" required>
+          The name of the Kafka topic from which the pipe consumes messages when using a self-managed Apache Kafka source. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="vpc" type="object">
+          The VPC configuration (subnets and security groups) that the pipe uses to connect to your self-managed Kafka brokers. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="security_group" type="list(string)">
+              List of SecurityGroupId. Optional.
+            </ResponseField>
+            <ResponseField name="subnets" type="list(string)">
+              List of SubnetId. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="sqs_queue_parameters" type="object">
+      This configures the polling behavior for an SQS queue used as the event source in AWS Pipes, allowing you to set properties such as the batch size and the maximum batching window in seconds. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="batch_size" type="number">
+          The maximum number of messages that can be polled from the SQS queue in a single batch and then passed as a batch to the pipe's target. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum_batching_window_in_seconds" type="number">
+          Specifies the maximum amount of time (in seconds) that EventBridge Pipes accumulates records from the source SQS queue before sending a batch to the target. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  Specifies the key-value metadata tags to attach to this EventBridge Pipes pipe for resource identification and management. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="target" type="string" required>
+  The Amazon Resource Name (ARN) of the target resource (for example, an SQS queue, Lambda function, or EventBridge event bus) to which the pipe delivers events. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="target_parameters" type="object">
+  Specifies the target-specific configuration for the pipe, including the input template, input transformation, dead-letter configuration, and parameters tailored to the destination service (such as Lambda, SQS, SNS). Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="batch_job_parameters" type="object">
+      Specifies the configuration for an AWS Batch job when it is the target of the pipe, including the job definition, job name, and optional array, retry, and container override settings. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="array_properties" type="object">
+          Configures the array size for the AWS Batch job target, determining how many parallel child jobs are submitted as an array job. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="size" type="number">
+              Specifies the number of child jobs to run when the pipe targets an AWS Batch job as an array job, allowing multiple parallel task executions. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="container_overrides" type="object">
+          Overrides the container properties (command, environment, memory, vCPUs, etc.) of the AWS Batch job that the pipe targets when invoking the job. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="command" type="list(string)">
+              Overrides the command executed by the container in the AWS Batch job configured as the pipe target, providing a list of strings that replace the default container command. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="environment" type="list(object)">
+              Specifies a list of environment variable overrides (each with a `Name` and `Value`) to apply to the container when the pipe's target AWS Batch job is executed. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="name" type="string">
+                  The name of the environment variable to set in the container when the AWS Batch job is run by the pipe target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="value" type="string">
+                  The value of the environment variable to set in the container override for the AWS Batch job target of the pipe. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="instance_type" type="string">
+              Specifies the instance type to use for the AWS Batch container when the pipe runs a batch job, overriding the default instance type in the job definition. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="resource_requirements" type="list(object)">
+              Defines the resource requirements (such as GPU count) to override for the AWS Batch container when the pipe sends events to the Batch job target. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="type" type="string">
+                  The type of resource the container override applies to, such as MEMORY, VCPU, or GPU, controlling how the resource requirement is interpreted. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="value" type="string">
+                  The value of the resource requirement (e.g., number of vCPUs or memory in MiB) applied as a container override for an AWS Batch job, corresponding to the type specified in the resource_requirements entry. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="depends_on" type="list(object)">
+          Defines the AWS Batch job dependencies for a Pipes target job, listing prior jobs that must complete successfully before this job can start. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="job_id" type="string">
+              The job ID of a Batch job that must complete before the job submitted by this pipe target can start, used to define job dependencies in the AWS Batch target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="type" type="string">
+              Specifies the type of dependency for the AWS Batch job (e.g., N_TO_N or SEQUENTIAL), defining how the target job's start is conditioned on other jobs in the depends_on list. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="job_definition" type="string" required>
+          The name or ARN of the AWS Batch job definition used to run the target job. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="job_name" type="string" required>
+          The name to assign to the AWS Batch job that this pipe submits when targeting AWS Batch. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="parameters" type="any">
+          A map of parameter names to values that are passed to the AWS Batch job when the pipe invokes the target, overriding or supplying the job's parameter values. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="retry_strategy" type="object">
+          Specifies the retry strategy for the AWS Batch job, including the number of attempts and the conditions under which the job retries based on exit codes. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="attempts" type="number">
+              The number of times to retry the AWS Batch job target when it fails, as part of the retry strategy. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="cloud_watch_logs_parameters" type="object">
+      Specifies the CloudWatch Logs target parameters, including the log stream name and an optional timestamp that is added to each event sent to the log stream. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="log_stream_name" type="string">
+          The name of the CloudWatch Logs log stream where the pipe writes the event data, overriding the default log stream for the target log group. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="timestamp" type="string">
+          The Unix timestamp (as a string) to use as the timestamp for the log event sent to CloudWatch Logs, overriding the event's original time. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="ecs_task_parameters" type="object">
+      Specifies the parameters for running an Amazon ECS task when the Pipe target is an ECS service, including task definition, count, launch type, network configuration, and placement settings. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="capacity_provider_strategy" type="list(object)">
+          Defines the capacity provider strategy for the ECS task launched by the pipe target, specifying capacity providers and their base and weight values for task placement. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="base" type="number">
+              The minimum number of tasks to run on the specified capacity provider as part of the ECS task placement strategy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="capacity_provider" type="string">
+              The name of the Amazon ECS capacity provider to use when running the task as part of the capacity provider strategy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="weight" type="number">
+              The relative weight of this capacity provider in the ECS task's capacity provider strategy, which AWS Pipes uses when placing the task on the target ECS service or cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="enable_ecsmanaged_tags" type="bool">
+          Specifies whether to enable Amazon ECS managed tags on the ECS task launched as the pipe's target, so that AWS automatically applies system tags to the task. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="enable_execute_command" type="bool">
+          Enables Amazon ECS Exec (execute command) for the ECS task when the pipe invokes the target. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="group" type="string">
+          Specifies the ECS task group, a customizable identifier for a set of related tasks, used for task filtering and grouping. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="launch_type" type="string">
+          Specifies the launch type (e.g., FARGATE or EC2) to use when the pipe runs the target Amazon ECS task. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="network_configuration" type="object">
+          Specifies the VPC network configuration for the ECS task target, including subnets, security groups, and whether to assign a public IP address. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="awsvpc_configuration" type="object">
+              Specifies the VPC configuration (subnets, security groups, and whether to assign a public IP) for the ECS task when its network mode is awsvpc. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="assign_public_ip" type="string">
+                  Determines whether the ECS task's elastic network interface is assigned a public IP address when using the specified VPC configuration, with values 'ENABLED' or 'DISABLED'. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="security_groups" type="list(string)">
+                  A list of security group IDs to attach to the ECS task's elastic network interface when the task uses awsvpc network mode as the target of the pipe. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="subnets" type="list(string)" required>
+                  The IDs of the subnets in which the ECS task will run when using the awsvpc network mode. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="overrides" type="object">
+          Specifies the ECS task and container overrides (such as command, environment variables, CPU/memory limits, task role, and ephemeral storage) applied when the pipe runs the target task. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="container_overrides" type="list(object)">
+              Defines a list of container overrides to apply to the ECS task launched by the pipe, allowing per-container changes to command, environment variables, and resource limits during the invocation. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="command" type="list(string)">
+                  In the ECS task overrides for an AWS Pipes target, this list of strings specifies the container command to run, replacing the default command defined in the container image. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="cpu" type="number">
+                  Overrides the number of CPU units reserved for the container in the ECS task, as part of the ECS task override for the pipe target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="environment" type="list(object)">
+                  Specifies the environment variables (as name/value pairs) to set for the container when the ECS task is run, overriding the values from the container definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="name" type="string">
+                      The name of the environment variable to set in the ECS container when the pipe invokes the ECS task target, as part of the container environment overrides. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="value" type="string">
+                      Sets the value of an environment variable override for a container in the ECS task launched by the pipe target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="environment_files" type="list(object)">
+                  Specifies a list of environment files (typically from Amazon S3) that inject environment variables into the container when the ECS task is the pipe target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="type" type="string">
+                      The type of environment file to use in the ECS container override, either 's3' for an Amazon S3 object or 'ssm' for an AWS Systems Manager parameter. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="value" type="string">
+                      The ARN of the S3 object (or the SSM parameter name for the ssm type) that identifies the environment file whose variables are injected into the container as part of the ECS task override. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="memory" type="number">
+                  Specifies the hard memory limit in MiB for the container, overriding the memory value set in the task definition for this ECS task override. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="memory_reservation" type="number">
+                  The soft memory limit in MiB to reserve for the container, overriding the memoryReservation value from the container definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="name" type="string">
+                  Specifies the name of the container in the ECS task definition that this override applies to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="resource_requirements" type="list(object)">
+                  Specifies the resource requirements (such as GPU or InferenceAccelerator) to override for the container in the Amazon ECS task when the pipe target is an ECS task. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="type" type="string">
+                      The type of resource requirement (such as GPU or InferenceAccelerator) applied to the container override in the ECS task target of the AWS Pipes pipe. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="value" type="string">
+                      Specifies the numeric value for the resource, such as the number of GPUs to allocate, corresponding to the resource type in the resource requirement for the container override in the ECS task target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="cpu" type="string">
+              The number of CPU units to reserve for the ECS task, overriding the CPU value specified in the task definition. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="ephemeral_storage" type="object">
+              Specifies the ephemeral storage size override (in GiB) applied to the ECS task when this pipe triggers an ECS task, allowing adjustment of the task's ephemeral storage beyond its registered task definition. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="size_in_gi_b" type="number" required>
+                  Specifies the amount of ephemeral storage (in GiB) for the ECS task, overriding the task definition's ephemeral storage configuration when the pipe runs the task. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="execution_role_arn" type="string">
+              The ARN of the IAM execution role that Amazon ECS uses to run the task, overriding the execution role defined in the task definition when the pipe targets an ECS task. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="inference_accelerator_overrides" type="list(object)">
+              Overrides the inference accelerator devices for the ECS task launched by this pipe, allowing you to specify a custom device name and type that supersede the task definition's settings. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="device_name" type="string">
+                  Specifies the device name of the inference accelerator whose settings are overridden in the ECS task definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="device_type" type="string">
+                  The device type of the inference accelerator override to apply to the ECS task when the pipe invokes the target, such as 'eia1.medium' or 'eia2.large'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="memory" type="string">
+              Specifies the total memory (in MiB) override for the ECS task executed by this pipe, replacing the memory limit defined in the task definition when the target is invoked. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="task_role_arn" type="string">
+              Specifies the Amazon Resource Name (ARN) of the IAM role that the Amazon ECS task uses as its task role when the pipe triggers the task. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="placement_constraints" type="list(object)">
+          Specifies the placement constraints (e.g., distinctInstance or memberOf) that control how the ECS task is placed on container instances when the pipe target runs the task. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="expression" type="string">
+              The placement constraint expression (using Amazon ECS placement constraint syntax, such as a cluster query language expression like 'attribute:ecs.instance-type =~ t2.*') that applies when the placement constraint type is 'memberOf'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="type" type="string">
+              Specifies the type of ECS task placement constraint (e.g., distinctInstance or memberOf) that governs how the task is placed on container instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="placement_strategy" type="list(object)">
+          Specifies the placement strategy (e.g., spread, binpack, random) used for the ECS task targeted by the pipe, including the strategy type and optional field on which to base it. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="field" type="string">
+              Specifies the field to apply the placement strategy against (e.g., 'instanceId' or a custom attribute like 'attribute:ecs.availability-zone') when scheduling the ECS task. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="type" type="string">
+              Specifies the type of ECS task placement strategy (e.g., random, spread, or binpack) used when placing the task that the pipe invokes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="platform_version" type="string">
+          Specifies the ECS platform version on which the task runs (e.g., 'LATEST' or a specific version like '1.4.0') when the AWS Pipes target invokes an Amazon ECS task. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="propagate_tags" type="string">
+          Specifies whether tags from the ECS task definition or service are propagated to the ECS task started when the pipe invokes the target, with valid values being TASK_DEFINITION or SERVICE. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="reference_id" type="string">
+          A reference identifier you assign to the ECS task, which is passed to the RunTask API as the referenceId to ensure idempotent task creation and to aid in identifying the task in logs. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="tags" type="list(object)">
+          The tags to apply to the ECS task when the pipe invokes the ECS target. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The key of a tag to apply to the ECS task that the pipe launches as its target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The value portion of a key-value tag that is attached to the ECS task when the pipe runs the task. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="task_count" type="number">
+          The number of ECS tasks to launch for this target. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="task_definition_arn" type="string" required>
+          Specifies the ARN of the ECS task definition that EventBridge Pipes uses to run a task when the pipe's target is an Amazon ECS task. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="event_bridge_event_bus_parameters" type="object">
+      Configures the parameters used by the pipe when sending events to an Amazon EventBridge event bus target, including the event source, detail type, and optional resources. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="detail_type" type="string">
+          Specifies the DetailType value that AWS Pipes assigns to the event when it is delivered to the EventBridge event bus target, allowing the event to be categorized by its type. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="endpoint_id" type="string">
+          The ID of an EventBridge global endpoint used to route the event to an EventBridge event bus in a different AWS Region. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="resources" type="list(string)">
+          Specifies the list of ARNs that identify the resources associated with the event, which are included in the event sent to the EventBridge event bus target. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source" type="string">
+          Sets the source of the event sent to the EventBridge event bus, identifying the service or application that produced the event. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="time" type="string">
+          The timestamp to assign to the event when sending to the EventBridge event bus target; if omitted, the current time is used. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="http_parameters" type="object">
+      Specifies the HTTP parameters, including header, query string, and path parameter values, used when the Pipe targets an HTTP endpoint such as an API destination. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="header_parameters" type="any">
+          Specifies the HTTP headers to include in the request sent to the target when using an HTTP endpoint as the pipe target. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="path_parameter_values" type="list(string)">
+          The list of values that are substituted, in order, for each path parameter placeholder (such as &#123;param&#125;) in the target endpoint's URL path when the pipe invokes an HTTP target. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="query_string_parameters" type="any">
+          Specifies the query string parameters (key-value pairs) to append to the HTTP request made to the target when using an HTTP endpoint or API destination. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="input_template" type="string">
+      The template used to transform the input event before it is sent to the target, allowing you to map and extract fields from the original event using JSONPath expressions. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="kinesis_stream_parameters" type="object">
+      Specifies the parameters for a Kinesis stream target, including the partition key that determines the shard to which the event is delivered. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="partition_key" type="string" required>
+          The partition key value used by the pipe to route the record to a specific shard of the target Kinesis data stream. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="lambda_function_parameters" type="object">
+      Defines the target-specific parameters for a Lambda function target in an AWS Pipe, including the invocation type (e.g., 'Event' or 'RequestResponse') that controls how the pipe invokes the function. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="invocation_type" type="string">
+          Specifies the invocation type for the Lambda function target, either 'RequestResponse' for synchronous invocation (default) or 'Event' for asynchronous invocation. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="redshift_data_parameters" type="object">
+      Defines the configuration for invoking the Amazon Redshift Data API, including the SQL statement, database details, and credentials, when the pipe's target is an Amazon Redshift cluster or serverless workgroup. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="database" type="string" required>
+          Redshift Database Required.
+        </ResponseField>
+        <ResponseField name="db_user" type="string">
+          Database user name Optional.
+        </ResponseField>
+        <ResponseField name="secret_manager_arn" type="string">
+          Optional SecretManager ARN which stores the database credentials Optional.
+        </ResponseField>
+        <ResponseField name="sqls" type="list(string)" required>
+          A list of SQLs. Required.
+        </ResponseField>
+        <ResponseField name="statement_name" type="string">
+          A name for Redshift DataAPI statement which can be used as filter of ListStatement. Optional.
+        </ResponseField>
+        <ResponseField name="with_event" type="bool">
+          When set to true, this flag includes the original event payload in the request sent to the Redshift Data API by the pipe. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="sage_maker_pipeline_parameters" type="object">
+      Configures the parameters for invoking an Amazon SageMaker pipeline as the pipe's target, specifying the list of pipeline parameters to pass to the pipeline execution. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="pipeline_parameter_list" type="list(object)">
+          Provides a list of name/value pairs that are passed as input parameters to the SageMaker pipeline execution when this pipe targets a SageMaker pipeline. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="name" type="string">
+              The name of a SageMaker pipeline parameter to override when the pipe invokes the pipeline, matching the parameter name defined in the SageMaker pipeline. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The value for a single SageMaker pipeline parameter in the list of name-value pairs passed to the target SageMaker pipeline when the pipe executes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="sqs_queue_parameters" type="object">
+      Specifies the parameters for sending events to an SQS queue as the pipe target, including optional message group ID and message deduplication ID for FIFO queues. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="message_deduplication_id" type="string">
+          The deduplication ID used for messages sent to the SQS queue, which ensures exactly-once delivery for FIFO queues. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="message_group_id" type="string">
+          Specifies the message group ID for messages sent to an Amazon SQS FIFO queue, which groups messages to be delivered in a strict order and within a single consumer at a time. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="step_function_state_machine_parameters" type="object">
+      The target parameters for a Step Functions state machine, specifying how the pipe invokes the state machine, including the invocation type such as synchronous (REQUEST_RESPONSE) or asynchronous (FIRE_AND_FORGET) execution. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="invocation_type" type="string">
+          Specifies whether the pipe invokes the Step Functions state machine synchronously (`REQUEST_RESPONSE`) and waits for the execution to complete, or asynchronously (`FIRE_AND_FORGET`) without waiting for the result. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="timestream_parameters" type="object">
+      Specifies the Amazon Timestream target configuration, including the database and table names, time column type, and dimension mappings used to write event data from the pipe. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="dimension_mappings" type="list(object)" required>
+          Defines the list of dimension mappings that specify how source data is mapped to Timestream record dimension names and values when the pipe target writes to Timestream. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="dimension_name" type="string">
+              The name of the Timestream dimension to which the mapped value is written when the pipe sends data to Amazon Timestream. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="dimension_value" type="string">
+              Specifies the value for the Timestream dimension, which can be a literal string or a JSONPath expression (such as `$.detail.region`) that extracts a value from the event data being sent to the target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="dimension_value_type" type="string">
+              Indicates the value type (VARCHAR or BIGINT) for the mapped dimension, used to cast the incoming event value before sending it to Amazon Timestream. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="epoch_time_unit" type="string">
+          Specifies the unit of measure for the epoch timestamp value used in the Timestream target's time column, such as MILLISECONDS, SECONDS, MICROSECONDS, or NANOSECONDS. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="multi_measure_mappings" type="list(object)">
+          Defines the multi-measure mappings for the Timestream target, specifying a list of measure names and their associated attribute mappings (including attribute value, measure value, and measure value type) to write multi-measure records. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="multi_measure_attribute_mappings" type="list(object)">
+              Defines the list of mappings that specify how source data is assigned to each attribute (measure) within a multi-measure record written to Amazon Timestream. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="measure_value" type="string">
+                  Specifies the literal value or JSONPath expression used to populate the multi-measure attribute value in the Timestream record written by this pipe target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="measure_value_type" type="string">
+                  Specifies the data type of the measure attribute in the Timestream multi-measure record (e.g., DOUBLE, BIGINT, BOOLEAN, VARCHAR, TIMESTAMP) so that Timestream correctly interprets the incoming value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="multi_measure_attribute_name" type="string">
+                  In an AWS Pipes Timestream target, this defines the name of an individual multi-measure attribute, which becomes the measure name in the Timestream record when using multi-measure mappings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="multi_measure_name" type="string">
+              Specifies the name of the multi-measure record to write to Amazon Timestream when using multi-measure mappings in the pipe target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="single_measure_mappings" type="list(object)">
+          Defines a list of single-measure mappings that specify how source data maps to Timestream measure records, including the measure name, value, and value type. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="measure_name" type="string">
+              The name of the measure (column) in the Timestream table to which the source record field is mapped. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="measure_value" type="string">
+              Provides the value of a single measure in a Timestream record, which can be a literal string or a dynamic JSON path expression (such as '$.field') resolved from the event payload. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="measure_value_type" type="string">
+              Specifies the data type of the measure value for this single measure mapping, such as DOUBLE, BIGINT, VARCHAR, or BOOLEAN, which determines how the source data is interpreted when written to Amazon Timestream. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="time_field_type" type="string">
+          Specifies whether the value in the time field is interpreted as a Unix epoch timestamp (seconds since epoch) or as a formatted timestamp string when writing to Amazon Timestream. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="time_value" type="string" required>
+          Specifies the static timestamp value (as a string) used for the time column when writing the pipe's data to an Amazon Timestream target table. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="timestamp_format" type="string">
+          Specifies the format string used to parse the source event's timestamp field when TimeFieldType is set to TIMESTAMP_FORMAT, determining how AWS Pipes converts the event time into the Timestream record's timestamp. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="version_value" type="string" required>
+          Provides the value for the version attribute of each record written to the Timestream table, used to enforce record versioning and support upserts. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies this pipe, assigned by AWS and used to reference the pipe in IAM policies and other AWS services. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="creation_time" type="string">
+  The timestamp of when the pipe was created, represented as a string in ISO 8601 format. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="current_state" type="string">
+  The current lifecycle state of the pipe, such as RUNNING or STOPPED, as reported by AWS after the pipe is created or updated. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="last_modified_time" type="string">
+  The timestamp indicating when the pipe was last modified. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="state_reason" type="string">
+  The reason why the pipe is in its current state, such as an error message when the pipe is in a failed state. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

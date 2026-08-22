@@ -1,0 +1,155 @@
+---
+title: "aws_roles_anywhere_trust_anchor"
+description: "`aws_roles_anywhere_trust_anchor` establishes real trust in a certificate authority, an AWS Private CA or an external CA..."
+---
+
+`aws_roles_anywhere_trust_anchor` establishes real trust in a certificate authority, an AWS Private CA or an external CA, so that on-premises servers holding a certificate issued by it can authenticate to AWS and assume an `aws_roles_anywhere_profile`'s IAM role without long-lived access keys.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	roles "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/roles"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own anywhere trust anchor"})
+
+    		ubx.Resource(roles.AnywhereTrustAnchor, "ci-runner", roles.AnywhereTrustAnchorConfig{
+    			Name:                 "ci-runner",
+    			Source:               map[string]any{"source_data": map[string]any{"acm_pca_arn": "example"}},
+    			Enabled:              true,
+    			NotificationSettings: []map[string]any{{"channel": "example"}},
+    			Tags:                 []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AnywhereTrustAnchor } from "./local-sdk/aws/sdk/typescript/aws/roles/anywhere_trust_anchor.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own anywhere trust anchor" });
+
+      resource(AnywhereTrustAnchor, "ci-runner", {
+        name: "ci-runner",
+        source: { sourceData: { acmPcaArn: "example" } },
+        enabled: true,
+        notificationSettings: [{ channel: "example" }],
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.roles import AnywhereTrustAnchor, AnywhereTrustAnchorConfig
+
+    def describe():
+        ubx.intent("payments own anywhere trust anchor")
+
+        ubx.resource(AnywhereTrustAnchor, "ci-runner", AnywhereTrustAnchorConfig(
+            name="ci-runner",
+            source={"source_data": {"acm_pca_arn": "example"}},
+            enabled=True,
+            notification_settings=[{"channel": "example"}],
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_roles_anywhere_trust_anchor called "ci-runner", with
+    source a set value, enabled true, notification settings a set
+    value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="enabled" type="bool">
+  Indicates whether the trust anchor is enabled for use with IAM Roles Anywhere. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Specifies the name of the IAM Roles Anywhere trust anchor, which is required when creating or updating the resource. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="notification_settings" type="list(object)">
+  List of notification settings for the trust anchor, each specifying whether to enable notifications for a given event (e.g., CA certificate expiration) and the threshold in days before expiration to send alerts. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="channel" type="string">
+      Specifies the channel through which notifications are sent for this trust anchor; valid values are ALL (send to all configured channels) or SNS (send only to an Amazon SNS topic). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="enabled" type="bool">
+      A boolean that indicates whether notifications for the associated event (e.g., CA certificate expiration) are enabled for this trust anchor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="event" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="threshold" type="number">
+      The number of days before a certificate expires that triggers the notification event defined in this notification setting. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="source" type="object" required>
+  Specifies the certificate authority (CA) source for the trust anchor, either AWS Private CA (ACM PCA) or a certificate bundle, along with the corresponding source data. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="source_data" type="object" required>
+      Specifies the certificate authority data for the trust anchor, containing either the X.509 certificate contents in x509CertificateData or the ACM Private CA ARN in acmPcaArn, depending on the sourceType. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="acm_pca_arn" type="string">
+          The ARN of the AWS Certificate Manager Private Certificate Authority (ACM PCA) that serves as the source of trust for this AWS Roles Anywhere trust anchor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="x509_certificate_data" type="string">
+          The PEM-encoded X.509 certificate data used as the trust anchor for AWS Roles Anywhere to validate temporary credentials. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="source_type" type="string" required>
+      Specifies the type of trust anchor source, either AWS_ACM_PCA or CERTIFICATE_BUNDLE, which determines how the source data (ACM Private CA ARN or PEM-encoded certificate bundle) is interpreted. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of key-value tags to associate with the trust anchor, which AWS uses to organize, track, and control access to the resource. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Specifies the key of a tag assigned to the AWS IAM Roles Anywhere trust anchor, used to organize, identify, and manage the resource within AWS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value part of a key-value tag attached to the AWS Roles Anywhere trust anchor, used for metadata and resource identification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="trust_anchor_arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies the trust anchor. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="trust_anchor_id" type="string">
+  The unique identifier assigned by AWS to the trust anchor when it is created, used to reference the trust anchor in other IAM Roles Anywhere operations. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

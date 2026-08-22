@@ -1,0 +1,120 @@
+---
+title: "aws_config_connector"
+description: "`aws_config_connector` connects a real third-party cloud provider's own resources to AWS Config..."
+---
+
+`aws_config_connector` connects a real third-party cloud provider's own resources to AWS Config, extending Config's compliance evaluation and configuration history beyond AWS's own resources to a genuinely multi-cloud inventory.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	config "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/config"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own connector"})
+
+    		ubx.Resource(config.Connector, "ci-runner", config.ConnectorConfig{
+    			ConnectorConfiguration: map[string]any{"azure": map[string]any{"client_identifier": "example"}},
+    			Tags:                   []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Connector } from "./local-sdk/aws/sdk/typescript/aws/config/connector.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own connector" });
+
+      resource(Connector, "ci-runner", {
+        connectorConfiguration: { azure: { clientIdentifier: "example" } },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.config import Connector, ConnectorConfig
+
+    def describe():
+        ubx.intent("payments own connector")
+
+        ubx.resource(Connector, "ci-runner", ConnectorConfig(
+            connector_configuration={"azure": {"client_identifier": "example"}},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_config_connector, with connector configuration a set
+    value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="connector_configuration" type="object" required>
+  The configuration for the connector. Specify the third-party cloud provider configuration. Required.
+  <Expandable title="properties">
+    <ResponseField name="azure" type="object">
+      Configuration for connecting to Microsoft Azure. Optional.
+      <Expandable title="properties">
+        <ResponseField name="client_identifier" type="string" required>
+          The Azure client (application) identifier. Required.
+        </ResponseField>
+        <ResponseField name="tenant_identifier" type="string" required>
+          The Azure tenant identifier. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags for the connector. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the connector. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="created_time" type="string">
+  The time at which the connector was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the connector. AWS Config automatically assigns the name when creating the Connector. Computed by AWS after `ship`.
+</ResponseField>

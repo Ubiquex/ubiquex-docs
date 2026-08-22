@@ -1,0 +1,114 @@
+---
+title: "aws_lake_formation_resource"
+description: "`aws_lake_formation_resource` registers a real S3 location with Lake Formation..."
+---
+
+`aws_lake_formation_resource` registers a real S3 location with Lake Formation, the real prerequisite step that brings that storage location under Lake Formation's own permission model rather than leaving access to bucket policies and IAM alone.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	lake "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/lake"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own formation resource"})
+
+    		ubx.Resource(lake.FormationResource, "ci-runner", lake.FormationResourceConfig{
+    			ResourceArn:          "arn:aws:iam::123456789012:policy/ci",
+    			UseServiceLinkedRole: true,
+    			HybridAccessEnabled:  true,
+    			RoleArn:              "arn:aws:iam::123456789012:policy/ci",
+    			WithFederation:       true,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { FormationResource } from "./local-sdk/aws/sdk/typescript/aws/lake/formation_resource.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own formation resource" });
+
+      resource(FormationResource, "ci-runner", {
+        resourceArn: "arn:aws:iam::123456789012:policy/ci",
+        useServiceLinkedRole: true,
+        hybridAccessEnabled: true,
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        withFederation: true,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.lake import FormationResource, FormationResourceConfig
+
+    def describe():
+        ubx.intent("payments own formation resource")
+
+        ubx.resource(FormationResource, "ci-runner", FormationResourceConfig(
+            resource_arn="arn:aws:iam::123456789012:policy/ci",
+            use_service_linked_role=True,
+            hybrid_access_enabled=True,
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            with_federation=True,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_lake_formation_resource, with resource arn
+    arn:aws:iam::123456789012:policy/ci, use service linked role
+    true, hybrid access enabled true, role arn
+    arn:aws:iam::123456789012:policy/ci, with federation true.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="hybrid_access_enabled" type="bool">
+  When true, enables hybrid access for the registered resource, allowing it to be accessed through both Lake Formation permissions and IAM/S3 permissions. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="resource_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the S3 bucket, database, or table to be registered with AWS Lake Formation. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="role_arn" type="string">
+  The ARN of the IAM role that AWS Lake Formation assumes to access and manage the registered S3 data lake location. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="use_service_linked_role" type="bool" required>
+  Indicates whether to use the Lake Formation service-linked role when registering the S3 resource; if false, a custom IAM role must be provided in the RoleArn field. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="with_federation" type="bool">
+  When set to true, this flag registers the S3 location as a federated resource in AWS Lake Formation, enabling integration with a federated data catalog for access management. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  This field is the unique identifier of the Lake Formation resource, typically the ARN of the underlying AWS resource (such as an S3 bucket or DynamoDB table) that has been registered. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

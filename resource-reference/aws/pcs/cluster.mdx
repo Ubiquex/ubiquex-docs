@@ -1,0 +1,264 @@
+---
+title: "aws_pcs_cluster"
+description: "`aws_pcs_cluster` creates a real AWS Parallel Computing Service cluster, a managed Slurm scheduler with its controller and accounting database..."
+---
+
+`aws_pcs_cluster` creates a real AWS Parallel Computing Service cluster, a managed Slurm scheduler with its controller and accounting database, that `aws_pcs_compute_node_group`s and `aws_pcs_queue`s attach to for running HPC workloads without self-managing the scheduler.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	pcs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/pcs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own cluster"})
+
+    		ubx.Resource(pcs.Cluster, "ci-runner", pcs.ClusterConfig{
+    			Networking:         map[string]any{"network_type": "example"},
+    			Scheduler:          map[string]any{"type": "example"},
+    			Size:               "example",
+    			Name:               "ci-runner",
+    			SlurmConfiguration: map[string]any{"accounting": map[string]any{"mode": "example"}},
+    			Tags:               "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Cluster } from "./local-sdk/aws/sdk/typescript/aws/pcs/cluster.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own cluster" });
+
+      resource(Cluster, "ci-runner", {
+        networking: { networkType: "example" },
+        scheduler: { type: "example" },
+        size: "example",
+        name: "ci-runner",
+        slurmConfiguration: { accounting: { mode: "example" } },
+        tags: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.pcs import Cluster, ClusterConfig
+
+    def describe():
+        ubx.intent("payments own cluster")
+
+        ubx.resource(Cluster, "ci-runner", ClusterConfig(
+            networking={"network_type": "example"},
+            scheduler={"type": "example"},
+            size="example",
+            name="ci-runner",
+            slurm_configuration={"accounting": {"mode": "example"}},
+            tags="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_pcs_cluster called "ci-runner", with networking a set
+    value, scheduler a set value, size example, slurm configuration a
+    set value, tags example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="name" type="string">
+  The name that identifies the cluster. Optional.
+</ResponseField>
+
+<ResponseField name="networking" type="object" required>
+  The networking configuration for the cluster's control plane. Required.
+  <Expandable title="properties">
+    <ResponseField name="network_type" type="string">
+      The IP of the cluster (IPV4 or IPV6) Optional.
+    </ResponseField>
+    <ResponseField name="security_group_ids" type="list(string)">
+      The list of security group IDs associated with the Elastic Network Interface (ENI) created in subnets. Optional.
+    </ResponseField>
+    <ResponseField name="subnet_ids" type="list(string)">
+      The list of subnet IDs where AWS PCS creates an Elastic Network Interface (ENI) to enable communication between managed controllers and AWS PCS resources. The subnet must have an available IP address, cannot reside in AWS Outposts, AWS Wavelength, or an AWS Local Zone. AWS PCS currently supports only 1 subnet in this list. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="scheduler" type="object" required>
+  The cluster management and job scheduling software associated with the cluster. Required.
+  <Expandable title="properties">
+    <ResponseField name="type" type="string" required>
+      The software AWS PCS uses to manage cluster scaling and job scheduling. Required.
+    </ResponseField>
+    <ResponseField name="version" type="string" required>
+      The version of the specified scheduling software that AWS PCS uses to manage cluster scaling and job scheduling. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="size" type="string" required>
+  The size of the cluster. Required.
+</ResponseField>
+
+<ResponseField name="slurm_configuration" type="object">
+  Additional options related to the Slurm scheduler. Optional.
+  <Expandable title="properties">
+    <ResponseField name="accounting" type="object">
+      The accounting configuration includes configurable settings for Slurm accounting. Optional.
+      <Expandable title="properties">
+        <ResponseField name="default_purge_time_in_days" type="number">
+          The default value for all purge settings for `slurmdbd.conf`. For more information, see the [slurmdbd.conf documentation at SchedMD](https://slurm.schedmd.com/slurmdbd.conf.html). The default value is `-1`. A value of `-1` means there is no purge time and records persist as long as the cluster exists. Optional.
+        </ResponseField>
+        <ResponseField name="mode" type="string" required>
+          The default value is `NONE`. A value of `STANDARD` means that Slurm accounting is enabled. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="auth_key" type="object">
+      The shared Slurm key for authentication, also known as the cluster secret. Optional.
+      <Expandable title="properties">
+        <ResponseField name="secret_arn" type="string" required>
+          The Amazon Resource Name (ARN) of the the shared Slurm key. Required.
+        </ResponseField>
+        <ResponseField name="secret_version" type="string" required>
+          The version of the shared Slurm key. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="cgroup_custom_settings" type="list(object)">
+      Additional cgroup-specific configuration that directly maps to cgroup.conf settings. Optional.
+      <Expandable title="properties">
+        <ResponseField name="parameter_name" type="string">
+          The name of a parameter to add to the Slurm cgroup.conf file, where each custom setting pairs a parameter name with its value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="parameter_value" type="string">
+          The value component of a key-value pair in cgroup_custom_settings, used to override or add a custom cgroup parameter in the Slurm configuration of the PCS cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="jwt_auth" type="object">
+      JWT authentication configuration for Slurm. Optional.
+      <Expandable title="properties">
+        <ResponseField name="jwt_key" type="object">
+          JWT key configuration. Optional.
+          <Expandable title="properties">
+            <ResponseField name="secret_arn" type="string" required>
+              The Amazon Resource Name (ARN) of the JWT key secret. Required.
+            </ResponseField>
+            <ResponseField name="secret_version" type="string" required>
+              The version of the JWT key secret. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="scale_down_idle_time_in_seconds" type="number">
+      The time before an idle node is scaled down. Optional.
+    </ResponseField>
+    <ResponseField name="slurm_custom_settings" type="list(object)">
+      Additional Slurm-specific configuration that directly maps to Slurm settings. Optional.
+      <Expandable title="properties">
+        <ResponseField name="parameter_name" type="string">
+          The name of a Slurm configuration parameter (such as a slurm.conf directive) that you want to override with a custom value in the cluster's Slurm configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="parameter_value" type="string">
+          The value of a custom Slurm configuration key-value pair, applied to the Slurm scheduler configuration of the cluster to set or override a specific parameter. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="slurm_rest" type="object">
+      The SlurmRest configuration includes configurable settings for Slurm Rest. Optional.
+      <Expandable title="properties">
+        <ResponseField name="mode" type="string" required>
+          The default value is `NONE`. A value of `STANDARD` means that Slurm Rest is enabled. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="slurmdbd_custom_settings" type="list(object)">
+      Additional slurmdbd-specific configuration that directly maps to slurmdbd.conf settings. Optional.
+      <Expandable title="properties">
+        <ResponseField name="parameter_name" type="string">
+          The Slurmdbd configuration parameter name (corresponding to a slurmdbd.conf setting) that this custom setting overrides in the cluster's SlurmDBD configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="parameter_value" type="string">
+          The value of a custom SlurmDBD configuration parameter, paired with its parameter_key, that is applied to the Slurm database daemon for the AWS PCS cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  1 or more tags added to the resource. Each tag consists of a tag key and tag value. The tag value is optional and can be an empty string. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The unique Amazon Resource Name (ARN) of the cluster. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="endpoints" type="list(object)">
+  The list of endpoints available for interaction with the scheduler. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="ipv6_address" type="string">
+      The IPv6 address assigned to this cluster endpoint, enabling connectivity to the AWS PCS cluster management services over IPv6. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="port" type="string">
+      The TCP port number used to access the cluster endpoint, returned by the AWS PCS service for connecting to the cluster's scheduler or management interface. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="private_ip_address" type="string">
+      The private IP address of a Parallel Computing Service (AWS PCS) cluster endpoint, such as the Slurm scheduler (Slurmctld) or database (Slurmdbd), used for internal communication within the VPC. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="public_ip_address" type="string">
+      The public IP address of the cluster endpoint, which clients use to connect to the cluster's Slurm scheduler. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      The type of the cluster endpoint, such as Slurmctld or Slurmdbd, indicating the Slurm service the endpoint provides access to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="error_info" type="list(object)">
+  The list of errors that occurred during cluster provisioning. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="code" type="string">
+      The machine-readable error code returned by AWS PCS when a cluster creation or update operation fails. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="message" type="string">
+      The human-readable error message from an error_info entry, describing the error condition reported for this AWS PCS cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The generated unique ID of the cluster. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The provisioning status of the cluster. The provisioning status doesn't indicate the overall health of the cluster. Computed by AWS after `ship`.
+</ResponseField>

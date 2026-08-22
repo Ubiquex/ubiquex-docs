@@ -1,0 +1,185 @@
+---
+title: "aws_health_lake_fhirdatastore"
+description: "`aws_health_lake_fhirdatastore` creates a real, managed, FHIR R4-compliant datastore that AWS HealthLake stores and indexes structured health data in..."
+---
+
+`aws_health_lake_fhirdatastore` creates a real, managed, FHIR R4-compliant datastore that AWS HealthLake stores and indexes structured health data in, queryable directly through the FHIR API rather than a caller building their own FHIR server.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	health "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/health"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own lake fhirdatastore"})
+
+    		ubx.Resource(health.LakeFhirdatastore, "ci-runner", health.LakeFhirdatastoreConfig{
+    			DatastoreTypeVersion:          "example",
+    			DatastoreName:                 "example-datastore-name",
+    			IdentityProviderConfiguration: map[string]any{"authorization_strategy": "example"},
+    			PreloadDataConfig:             map[string]any{"preload_data_type": "example"},
+    			SseConfiguration:              map[string]any{"kms_encryption_config": map[string]any{"cmk_type": "example"}},
+    			Tags:                          []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { LakeFhirdatastore } from "./local-sdk/aws/sdk/typescript/aws/health/lake_fhirdatastore.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own lake fhirdatastore" });
+
+      resource(LakeFhirdatastore, "ci-runner", {
+        datastoreTypeVersion: "example",
+        datastoreName: "example-datastore-name",
+        identityProviderConfiguration: { authorizationStrategy: "example" },
+        preloadDataConfig: { preloadDataType: "example" },
+        sseConfiguration: { kmsEncryptionConfig: { cmkType: "example" } },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.health import LakeFhirdatastore, LakeFhirdatastoreConfig
+
+    def describe():
+        ubx.intent("payments own lake fhirdatastore")
+
+        ubx.resource(LakeFhirdatastore, "ci-runner", LakeFhirdatastoreConfig(
+            datastore_type_version="example",
+            datastore_name="example-datastore-name",
+            identity_provider_configuration={"authorization_strategy": "example"},
+            preload_data_config={"preload_data_type": "example"},
+            sse_configuration={"kms_encryption_config": {"cmk_type": "example"}},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_health_lake_fhirdatastore, with datastore type version
+    example, datastore name example-datastore-name, identity provider
+    configuration a set value, preload data config a set value, sse
+    configuration a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="datastore_name" type="string">
+  The user-generated name for the Data Store. Optional.
+</ResponseField>
+
+<ResponseField name="datastore_type_version" type="string" required>
+  The FHIR version. Only R4 version data is supported. Required.
+</ResponseField>
+
+<ResponseField name="identity_provider_configuration" type="object">
+  The identity provider configuration for the datastore Optional.
+  <Expandable title="properties">
+    <ResponseField name="authorization_strategy" type="string" required>
+      Type of Authorization Strategy. The two types of supported Authorization strategies are SMART_ON_FHIR_V1 and AWS_AUTH. Required.
+    </ResponseField>
+    <ResponseField name="fine_grained_authorization_enabled" type="bool">
+      Flag to indicate if fine-grained authorization will be enabled for the datastore Optional.
+    </ResponseField>
+    <ResponseField name="idp_lambda_arn" type="string">
+      The Amazon Resource Name (ARN) of the Lambda function that will be used to decode the access token created by the authorization server. Optional.
+    </ResponseField>
+    <ResponseField name="metadata" type="string">
+      The JSON metadata elements for identity provider configuration. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="preload_data_config" type="object">
+  The preloaded data configuration for the Data Store. Only data preloaded from Synthea is supported. Optional.
+  <Expandable title="properties">
+    <ResponseField name="preload_data_type" type="string" required>
+      The type of preloaded data. Only Synthea preloaded data is supported. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="sse_configuration" type="object">
+  The server-side encryption key configuration for a customer provided encryption key. Optional.
+  <Expandable title="properties">
+    <ResponseField name="kms_encryption_config" type="object" required>
+      The customer-managed-key (CMK) used when creating a Data Store. If a customer owned key is not specified, an AWS owned key will be used for encryption. Required.
+      <Expandable title="properties">
+        <ResponseField name="cmk_type" type="string" required>
+          The type of customer-managed-key (CMK) used for encryption. The two types of supported CMKs are customer owned CMKs and AWS owned CMKs. Required.
+        </ResponseField>
+        <ResponseField name="kms_key_id" type="string">
+          The KMS encryption key id/alias used to encrypt the Data Store contents at rest. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Specifies the tags (key-value pairs) to attach to the FHIR datastore, used for organizing, identifying, and managing the resource, such as for cost allocation or access control. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag assigned to the AWS HealthLake FHIR Data Store, used to organize and identify the datastore for cost allocation and resource management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag assigned to an AWS HealthLake FHIR DataStore, used to organize, categorize, and track the datastore for cost allocation and access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="created_at" type="object">
+  The time that a Data Store was created. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="nanos" type="number" required>
+      Nanoseconds. Required.
+    </ResponseField>
+    <ResponseField name="seconds" type="string" required>
+      Seconds since epoch. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="datastore_arn" type="string">
+  The Amazon Resource Name used in the creation of the Data Store. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="datastore_endpoint" type="string">
+  The AWS endpoint for the Data Store. Each Data Store will have it's own endpoint with Data Store ID in the endpoint URL. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="datastore_id" type="string">
+  The AWS-generated ID number for the Data Store. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="datastore_status" type="string">
+  The status of the Data Store. Possible statuses are 'CREATING', 'ACTIVE', 'DELETING', or 'DELETED'. Computed by AWS after `ship`.
+</ResponseField>

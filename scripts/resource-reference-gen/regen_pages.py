@@ -29,9 +29,24 @@ its own separate "azurerm" identity (sdk/go/azurerm/**), zero overlap
 with the "azure" dynamic schema_name at all -- so Azure has no such
 question to begin with.
 
+AWS is the third provider (added for the resource-reference/aws split
+and CFN-sourced regeneration): a single real [dynamic_providers.aws]
+entry (schema_source = "cloudformation") covers all ~1,705 real
+AWS::-namespaced resource types via one registry zip, unlike GCP/
+Azure's hundreds of per-family discovery-doc/OpenAPI entries -- the
+families_file for aws is expected to contain the single literal line
+"aws". No wire/local/service correction needed or applied: real,
+confirmed live (artifacts/aws/descriptions.json's own keys, e.g.
+"aws_access_analyzer_analyzer") -- CFN's own AWS::Service::Resource ->
+aws_service_resource naming has neither GCP's per-family doubling nor
+Azure's raw-wire-doubling pathology, so the raw wire IS the corrected
+wire and descriptions.json/intros.json were authored directly against
+it, no aliasing required.
+
 Usage:
   python3 regen_pages.py gcp /tmp/gcp-ir-dump /tmp/local-sdk-gcp /tmp/families_gcp.txt
   python3 regen_pages.py azure /tmp/azure-ir-dump /tmp/local-sdk-azure /tmp/families_azure.txt
+  python3 regen_pages.py aws /tmp/aws-ir-dump /tmp/local-sdk-aws /tmp/families_aws.txt
 """
 import json
 import os
@@ -50,7 +65,18 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 DOCS_ROOT = REPO_ROOT
 SCRATCH_DIR = "/tmp/regen-scratch"
 
-PROVIDER_DISPLAY = {"gcp": "Google Cloud", "azure": "Microsoft Azure"}
+PROVIDER_DISPLAY = {"gcp": "Google Cloud", "azure": "Microsoft Azure", "aws": "AWS"}
+
+# The "already baked directly into the raw IR dump, do not re-inject"
+# source tag differs per provider: GCP/Azure's artifacts use
+# "docs-vendor"; AWS's descriptions.json (Phase 5) uses "cfn" for the
+# real CloudFormation registry text, confirmed by direct comparison
+# against /tmp/aws-ir-dump/aws/schema.json -- cfn-sourced text is
+# already present verbatim in each field's own real Description, so
+# re-injecting it would be redundant (inject_description only fills
+# empty Description fields, so this is a correctness/clarity match,
+# not a behavior-critical one).
+SKIP_INJECTION_SOURCE = {"gcp": "docs-vendor", "azure": "docs-vendor", "aws": "cfn"}
 
 
 def main():
@@ -60,7 +86,8 @@ def main():
     here = os.path.dirname(os.path.abspath(__file__))
     desc_path = os.path.join(here, "..", "..", "artifacts", provider, "descriptions.json")
     desc_raw = json.load(open(desc_path))
-    desc_by_key = {k: v for k, v in desc_raw.items() if v.get("source") != "docs-vendor"}
+    skip_source = SKIP_INJECTION_SOURCE[provider]
+    desc_by_key = {k: v for k, v in desc_raw.items() if v.get("source") != skip_source}
 
     intros_path = os.path.join(here, "..", "..", "artifacts", provider, "intros.json")
     intros_raw = json.load(open(intros_path))
@@ -102,7 +129,7 @@ def main():
     # that ubx-sdk-google/-azure actually contain this family today (the
     # published-repo overlap check earlier this session found most of
     # them don't).
-    sdk_repo_id = "google" if provider == "gcp" else "azure"
+    sdk_repo_id = {"gcp": "google", "azure": "azure", "aws": "aws"}[provider]
     for family in families:
         gen_provider_docs.REAL_SDK_REPO_ID.setdefault(family, sdk_repo_id)
 
@@ -133,7 +160,7 @@ def main():
                 # the corrected key (an established Phase B rule), so
                 # injection uses the corrected wire, same as before.
                 inject_description(fields, wire, desc_by_key)
-            else:
+            elif provider == "azure":
                 wire, wire_changed = azure_corrected_wire(raw_wire)
                 local, local_changed = azure_corrected_local(rec["localName"])
                 service = azure_corrected_service(rec["service"], family)
@@ -144,6 +171,18 @@ def main():
                 # inject under raw_wire here, matching that, rather than
                 # under the newly-corrected wire (which would silently
                 # miss every changed entry).
+                inject_description(fields, raw_wire, desc_by_key)
+            else:
+                # AWS: no wire/local/service doubling exists (confirmed
+                # live against artifacts/aws/descriptions.json's own
+                # keys) -- CFN's AWS::Service::Resource -> aws_service_
+                # resource naming is the raw wire straight out of
+                # --dump-ir, with no correction function needed or
+                # applied. descriptions.json/intros.json were authored
+                # directly against this same raw wire.
+                wire = raw_wire
+                local = rec["localName"]
+                service = rec["service"]
                 inject_description(fields, raw_wire, desc_by_key)
             corrected[wire] = {"service": service, "localName": local, "ir": {"Fields": fields}}
             wire_to_raw[wire] = raw_wire

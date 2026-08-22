@@ -1,0 +1,110 @@
+---
+title: "aws_ses_multi_region_endpoint"
+description: "`aws_ses_multi_region_endpoint` creates a real SES Global Endpoint..."
+---
+
+`aws_ses_multi_region_endpoint` creates a real SES Global Endpoint, automatically splitting sending traffic active-active across a primary and secondary Region and failing over entirely to the healthy Region if one becomes degraded. SES Global Endpoints launched in December 2024, roughly a year and a half ago.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ses "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ses"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own multi region endpoint"})
+
+    		ubx.Resource(ses.MultiRegionEndpoint, "ci-runner", ses.MultiRegionEndpointConfig{
+    			Details:      map[string]any{"route_details": []map[string]any{{"region": "example"}}},
+    			EndpointName: "example-endpoint-name",
+    			Tags:         []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MultiRegionEndpoint } from "./local-sdk/aws/sdk/typescript/aws/ses/multi_region_endpoint.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own multi region endpoint" });
+
+      resource(MultiRegionEndpoint, "ci-runner", {
+        details: { routeDetails: [{ region: "example" }] },
+        endpointName: "example-endpoint-name",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ses import MultiRegionEndpoint, MultiRegionEndpointConfig
+
+    def describe():
+        ubx.intent("payments own multi region endpoint")
+
+        ubx.resource(MultiRegionEndpoint, "ci-runner", MultiRegionEndpointConfig(
+            details={"route_details": [{"region": "example"}]},
+            endpoint_name="example-endpoint-name",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ses_multi_region_endpoint, with details a set value,
+    endpoint name example-endpoint-name, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="details" type="object" required>
+  Contains details of a multi-region endpoint (global-endpoint) being created. Required.
+  <Expandable title="properties">
+    <ResponseField name="route_details" type="list(object)" required>
+      A list of route configuration details. Must contain exactly one route configuration Required.
+      <Expandable title="properties">
+        <ResponseField name="region" type="string">
+          The AWS Region targeted by this route in the multi-region endpoint's route configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="endpoint_name" type="string" required>
+  The name of the multi-region endpoint (global-endpoint). Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An Array of objects that define the tags (keys and values) to associate with the multi-region endpoint (global-endpoint). Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>

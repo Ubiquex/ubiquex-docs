@@ -1,0 +1,417 @@
+---
+title: "aws_app_mesh_virtual_gateway"
+description: "`aws_app_mesh_virtual_gateway` is the entry point for traffic coming into an `aws_app_mesh_mesh` from outside it, running the same Envoy proxy..."
+---
+
+`aws_app_mesh_virtual_gateway` is the entry point for traffic coming into an `aws_app_mesh_mesh` from outside it, running the same Envoy proxy technology as a virtual node but for ingress rather than for a specific service.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	app "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/app"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own mesh virtual gateway"})
+
+    		ubx.Resource(app.MeshVirtualGateway, "ci-runner", app.MeshVirtualGatewayConfig{
+    			MeshName:           "example-mesh-name",
+    			Spec:               map[string]any{"listeners": []map[string]any{{"connection_pool": map[string]any{"grpc": map[string]any{"max_requests": 1}}}}},
+    			MeshOwner:          "example",
+    			Tags:               []map[string]any{{"key": "example"}},
+    			VirtualGatewayName: "example-virtual-gateway-name",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MeshVirtualGateway } from "./local-sdk/aws/sdk/typescript/aws/app/mesh_virtual_gateway.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own mesh virtual gateway" });
+
+      resource(MeshVirtualGateway, "ci-runner", {
+        meshName: "example-mesh-name",
+        spec: { listeners: [{ connectionPool: { grpc: { maxRequests: 1 } } }] },
+        meshOwner: "example",
+        tags: [{ key: "example" }],
+        virtualGatewayName: "example-virtual-gateway-name",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.app import MeshVirtualGateway, MeshVirtualGatewayConfig
+
+    def describe():
+        ubx.intent("payments own mesh virtual gateway")
+
+        ubx.resource(MeshVirtualGateway, "ci-runner", MeshVirtualGatewayConfig(
+            mesh_name="example-mesh-name",
+            spec={"listeners": [{"connection_pool": {"grpc": {"max_requests": 1}}}]},
+            mesh_owner="example",
+            tags=[{"key": "example"}],
+            virtual_gateway_name="example-virtual-gateway-name",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_app_mesh_virtual_gateway, with mesh name
+    example-mesh-name, spec a set value, mesh owner example, tags a
+    set value, virtual gateway name example-virtual-gateway-name.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="mesh_name" type="string" required>
+  The name of the AWS App Mesh service mesh that this virtual gateway belongs to. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="mesh_owner" type="string">
+  The AWS account ID that owns the service mesh, required when the virtual gateway is being created in a mesh shared from another account. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="spec" type="object" required>
+  Defines the configuration for the App Mesh virtual gateway, including its listeners, backend defaults, and logging settings. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="backend_defaults" type="object">
+      Defines the default client policy (including TLS settings) that the virtual gateway applies to all outgoing traffic to its backend services. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="client_policy" type="object">
+          Specifies the client policy for all backend traffic from the virtual gateway, defining TLS settings such as validation and certificate requirements when connecting to backend services. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="tls" type="object">
+              Configures the TLS settings (such as validation context, trusted CA certificates, and TLS negotiation mode) for the default client policy that the virtual gateway uses when connecting to backend services, applying unless a more specific policy overrides it. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="certificate" type="object">
+                  Specifies the client certificate the virtual gateway presents to backend services for mutual TLS authentication under the default client policy for all backends. Optional. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="file" type="object">
+                      Specifies the client policy TLS certificate to be sourced from a file on the virtual gateway, including the paths to the certificate chain and private key. Optional. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="certificate_chain" type="string" required>
+                          The file system path to the certificate chain file used for the TLS certificate in the client policy for backend defaults in the App Mesh virtual gateway. Required. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="private_key" type="string" required>
+                          Specifies the file path to the private key used for TLS client authentication in the virtual gateway's backend default client policy. Required. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="sds" type="object">
+                      Configures the virtual gateway's backend-default client TLS certificate to be sourced dynamically through Envoy's Secret Discovery Service (SDS), where the secretName property identifies the secret containing the certificate and private key. Optional. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="secret_name" type="string" required>
+                          The name of the secret in the Secret Discovery Service (SDS) that provides the TLS certificate for the client policy applied to backend defaults of the virtual gateway. Required. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="enforce" type="bool">
+                  Indicates whether the TLS client policy is enforced for the virtual gateway's backend defaults, rejecting connections that do not comply with the policy when set to true. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="ports" type="list(number)">
+                  Specifies the destination port numbers for which the TLS client policy applies to traffic from the virtual gateway to its backends, with an empty list meaning the policy applies to all ports. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="validation" type="object" required>
+                  Specifies the TLS trust validation configuration (ACM or file-based trust chain) used by the virtual gateway to validate backend certificates in the client policy. Required. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="subject_alternative_names" type="object">
+                      Specifies the subject alternative names (SANs) required in the server certificate for TLS validation when the virtual gateway's default client policy is applied to backend connections. Optional. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="match" type="object" required>
+                          Defines the exact subject alternative names (SANs) that must be present in the certificate presented by a backend for the virtual gateway's default TLS client policy validation to succeed. Required. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="exact" type="list(string)">
+                              Specifies the exact subject alternative names that must be present in the peer certificate for the TLS validation to succeed. Optional. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="trust" type="object" required>
+                      Defines the TLS validation trust for the virtual gateway's backend defaults, specifying how the client certificate chain is trusted via ACM, a file, or SDS. Required. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="acm" type="object">
+                          Specifies the AWS Certificate Manager (ACM) Private Certificate Authority trust settings used by the virtual gateway to validate client certificates for TLS backend connections. Optional. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="certificate_authority_arns" type="list(string)" required>
+                              The Amazon Resource Names (ARNs) of the AWS Certificate Manager Private Certificate Authority certificates used to validate the client certificate for mutual TLS in the virtual gateway's backend defaults. Required. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                        <ResponseField name="file" type="object">
+                          Defines a file-based trust store for TLS certificate validation in a virtual gateway's backend defaults, specifying the path to a certificate file used as the trusted CA. Optional. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="certificate_chain" type="string" required>
+                              Path to the file containing the certificate chain for validating client certificates in the backend default client policy TLS trust file configuration. Required. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                        <ResponseField name="sds" type="object">
+                          Defines the SDS (Secret Discovery Service) trust configuration for validating the TLS peer certificate in the virtual gateway's backend default client policy, where the secret name holds the CA certificate. Optional. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="secret_name" type="string" required>
+                              The name of the secret in the Secrets Discovery Service (SDS) that contains the trusted CA certificate used to validate the client TLS certificate's trust chain for the virtual gateway's backend defaults. Required. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="listeners" type="list(object)" required>
+      Defines the listeners for the virtual gateway, specifying each listener's port mapping (port and protocol) and optionally its health check and TLS settings for incoming traffic. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="connection_pool" type="object">
+          Defines the connection pool settings for a virtual gateway listener, specifying the maximum number of connections or requests for protocols like HTTP, HTTP/2, gRPC, and TCP. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="grpc" type="object">
+              Defines the gRPC-specific connection pool settings for a virtual gateway listener, which includes the maximum number of concurrent requests allowed to the virtual gateway. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max_requests" type="number">
+                  Specifies the maximum number of concurrent in-flight gRPC requests allowed in the connection pool for a virtual gateway listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="http" type="object">
+              Specifies the HTTP connection pool settings for the virtual gateway listener, including the maximum number of active connections and pending requests. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max_connections" type="number">
+                  Sets the maximum number of outbound connections that the virtual gateway can create to a backend service for the HTTP connection pool. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="max_pending_requests" type="number">
+                  The maximum number of pending HTTP requests that can be queued in the virtual gateway's HTTP connection pool before new requests are rejected. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="http2" type="object">
+              Configuration for the HTTP/2 connection pool of the virtual gateway listener, specifying limits such as the maximum number of requests and pending requests. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max_requests" type="number">
+                  Specifies the maximum number of in-flight HTTP/2 requests that the virtual gateway allows in its connection pool for a listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="health_check" type="object">
+          Specifies the health check settings used by the virtual gateway listener to determine if the target virtual services or virtual nodes are healthy, enabling the gateway to route traffic only to healthy backends. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="healthy_threshold" type="number">
+              The number of consecutive successful health checks required before a virtual gateway listener target is considered healthy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="interval_millis" type="number">
+              The time in milliseconds between each health check attempt for the virtual gateway listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="path" type="string">
+              The URL path for an HTTP or HTTP/2 health check request sent by the virtual gateway listener to determine target health, such as '/ping'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="port" type="number">
+              The destination port on the virtual gateway listener to send health check requests to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="protocol" type="string">
+              Specifies the protocol used for the virtual gateway listener's health check, which can be grpc, http, http2, or tcp. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="timeout_millis" type="number">
+              Specifies the timeout, in milliseconds, for each health check request sent by the virtual gateway listener; if no response is received within this period, the target is considered unhealthy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="unhealthy_threshold" type="number">
+              The number of consecutive failed health checks that must occur before the virtual gateway listener is marked unhealthy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="port_mapping" type="object">
+          Specifies the network port and protocol (such as HTTP, HTTP2, or GRPC) on which the virtual gateway listener receives traffic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="port" type="number">
+              The port number on which the virtual gateway listener accepts traffic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="protocol" type="string">
+              Specifies the protocol for the virtual gateway listener's port mapping, which determines how incoming traffic is handled and can be one of grpc, http, or http2. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="tls" type="object">
+          Specifies the TLS configuration for the virtual gateway listener, including the TLS mode (e.g., STRICT, PERMISSIVE) and the certificate (from AWS Certificate Manager or a local file) used for server-side TLS termination. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="certificate" type="object">
+              Specifies the TLS certificate used by the virtual gateway listener for TLS termination, which can be an ACM certificate or a file certificate containing the certificate chain and private key. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="acm" type="object">
+                  Specifies the AWS Certificate Manager (ACM) certificate used for TLS termination on the virtual gateway listener, identified by its Amazon Resource Name (ARN). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="certificate_arn" type="string">
+                      The Amazon Resource Name (ARN) of the AWS Certificate Manager (ACM) certificate used for TLS termination on this virtual gateway listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="file" type="object">
+                  Specifies the file path to a TLS certificate and private key stored on the local file system, used to terminate TLS traffic on the virtual gateway's listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="certificate_chain" type="string">
+                      The file path to the TLS certificate chain used by the virtual gateway's listener when the certificate is sourced from a local file. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="private_key" type="string">
+                      The path to the private key file on the disk that is used by the virtual gateway's TLS certificate for listener traffic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="sds" type="object">
+                  This object configures the Secret Discovery Service (SDS) as the source for the TLS certificate on the virtual gateway listener, using a named secret from the Envoy's SDS configuration to provide the certificate and private key. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="secret_name" type="string">
+                      Specifies the name of the Envoy secret that holds the TLS certificate when the virtual gateway listener's TLS certificate is obtained via SDS (Secret Discovery Service). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="mode" type="string">
+              Specifies the TLS mode for the virtual gateway listener, either STRICT (requires TLS for all connections) or PERMISSIVE (allows both TLS and plaintext connections). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="validation" type="object">
+              Defines the TLS validation trust settings (such as ACM private certificate authority or file-based trust) used to validate client certificates for the virtual gateway listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="subject_alternative_names" type="object">
+                  Specifies the list of subject alternative names (SANs) that must be present on the peer's TLS certificate for it to be considered valid during the virtual gateway's TLS validation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="match" type="object">
+                      Specifies the exact subject alternative name (SAN) values that the peer certificate must match for TLS validation to succeed for the virtual gateway listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="exact" type="list(string)">
+                          This field specifies a list of exact Subject Alternative Names (SANs) that must match the SANs in the peer certificate for the virtual gateway's TLS validation to succeed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="trust" type="object">
+                  Specifies the TLS validation context trust for the virtual gateway listener, defining how the listener trusts client certificates via either an AWS Certificate Manager (ACM) trust or a file-based trust. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="file" type="object">
+                      Configures the file-based trust object that specifies the path to a certificate chain on the file system used for validating the TLS peer certificate. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="certificate_chain" type="string">
+                          The file path to the certificate chain file used by the virtual gateway's listener to validate client certificates for TLS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="sds" type="object">
+                      Specifies the TLS validation trust source as a secret obtained from Envoy's Secret Discovery Service (SDS), identified by the secret name for the virtual gateway's listener TLS configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="secret_name" type="string">
+                          The name of the secret stored in the secret management service that the virtual gateway uses to validate client certificates when TLS trust is configured via Secret Discovery Service (SDS). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="logging" type="object">
+      Configures access logging for the virtual gateway, specifying the destination for access logs (a file or stdout). Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="access_log" type="object">
+          Defines the destination for the virtual gateway's Envoy access logs, supporting either a local file path or a mesh-based endpoint for log delivery. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="file" type="object">
+              Specifies configuration for writing virtual gateway access logs to a file, including the file path and optional format. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="format" type="object">
+                  Specifies the format of the access log entries written to the file, either as a JSON structure or as a custom text string with placeholders, for the virtual gateway's file access logging. Optional. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="json" type="list(object)">
+                      Specifies a list of key-value objects that define the JSON format for the virtual gateway's access log file, where each object contains a key and value to determine what information is logged. Optional. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="key" type="string">
+                          Specifies the JSON key name in a key-value pair that defines the format of the virtual gateway's file access log, where the paired value provides the data to be logged. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="value" type="string">
+                          Sets the value for a key-value pair in the JSON access log format, which can be a literal string, a request header name, or a predefined expression such as `%CLIENT_IP%` or `%METHOD%`. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="text" type="string">
+                      Specifies the text format string for the virtual gateway's access log file, using Envoy access log format placeholders to define which request and response data is recorded. Optional. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="path" type="string" required>
+                  The absolute file path on the Envoy container where the virtual gateway's access logs are written. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of key-value pairs (each with Key and Value) to associate with the virtual gateway for metadata and resource management. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The tag key for a tag attached to the AWS App Mesh virtual gateway, used for identifying and organizing the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The user-defined value for a tag on the App Mesh virtual gateway, used to attach arbitrary metadata such as environment, owner, or cost center to this gateway for operational management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="virtual_gateway_name" type="string">
+  The name of the virtual gateway, which must be unique within the mesh; if omitted, AWS CloudFormation generates a unique name for the virtual gateway. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies the virtual gateway in AWS App Mesh. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The Amazon Resource Name (ARN) assigned to the virtual gateway. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="resource_owner" type="string">
+  The AWS account ID of the account that owns the virtual gateway, which is useful when the gateway is shared across AWS accounts. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="uid" type="string">
+  The universally unique identifier (UID) assigned to the virtual gateway by AWS App Mesh, distinct from the ARN and used for internal tracking. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

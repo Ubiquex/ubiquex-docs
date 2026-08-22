@@ -1,0 +1,184 @@
+---
+title: "aws_timestream_table"
+description: "`aws_timestream_table` creates a real time-series table within an `aws_timestream_database`..."
+---
+
+`aws_timestream_table` creates a real time-series table within an `aws_timestream_database`, with its own memory- and magnetic-store retention periods controlling how long recent versus historical data stays queryable.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	timestream "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/timestream"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own table"})
+
+    		ubx.Resource(timestream.Table, "ci-runner", timestream.TableConfig{
+    			DatabaseName:                 "example-database-name",
+    			MagneticStoreWriteProperties: map[string]any{"enable_magnetic_store_writes": true},
+    			RetentionProperties:          map[string]any{"magnetic_store_retention_period_in_days": "example"},
+    			Schema:                       map[string]any{"composite_partition_key": []map[string]any{{"name": "example-name"}}},
+    			TableName:                    "example-table-name",
+    			Tags:                         []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Table } from "./local-sdk/aws/sdk/typescript/aws/timestream/table.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own table" });
+
+      resource(Table, "ci-runner", {
+        databaseName: "example-database-name",
+        magneticStoreWriteProperties: { enableMagneticStoreWrites: true },
+        retentionProperties: { magneticStoreRetentionPeriodInDays: "example" },
+        schema: { compositePartitionKey: [{ name: "example-name" }] },
+        tableName: "example-table-name",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.timestream import Table, TableConfig
+
+    def describe():
+        ubx.intent("payments own table")
+
+        ubx.resource(Table, "ci-runner", TableConfig(
+            database_name="example-database-name",
+            magnetic_store_write_properties={"enable_magnetic_store_writes": True},
+            retention_properties={"magnetic_store_retention_period_in_days": "example"},
+            schema={"composite_partition_key": [{"name": "example-name"}]},
+            table_name="example-table-name",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_timestream_table, with database name
+    example-database-name, magnetic store write properties a set
+    value, retention properties a set value, schema a set value,
+    table name example-table-name, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="database_name" type="string" required>
+  The name for the database which the table to be created belongs to. Required.
+</ResponseField>
+
+<ResponseField name="magnetic_store_write_properties" type="object">
+  The properties that determine whether magnetic store writes are enabled. Optional.
+  <Expandable title="properties">
+    <ResponseField name="enable_magnetic_store_writes" type="bool" required>
+      Boolean flag indicating whether magnetic store writes are enabled. Required.
+    </ResponseField>
+    <ResponseField name="magnetic_store_rejected_data_location" type="object">
+      Location to store information about records that were asynchronously rejected during magnetic store writes. Optional.
+      <Expandable title="properties">
+        <ResponseField name="s3_configuration" type="object">
+          S3 configuration for location to store rejections from magnetic store writes Optional.
+          <Expandable title="properties">
+            <ResponseField name="bucket_name" type="string" required>
+              The bucket name used to store the data. Required.
+            </ResponseField>
+            <ResponseField name="encryption_option" type="string" required>
+              Either SSE_KMS or SSE_S3. Required.
+            </ResponseField>
+            <ResponseField name="kms_key_id" type="string">
+              Must be provided if SSE_KMS is specified as the encryption option Optional.
+            </ResponseField>
+            <ResponseField name="object_key_prefix" type="string">
+              String used to prefix all data in the bucket. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="retention_properties" type="object">
+  The retention duration of the memory store and the magnetic store. Optional.
+  <Expandable title="properties">
+    <ResponseField name="magnetic_store_retention_period_in_days" type="string">
+      The duration for which data must be stored in the magnetic store. Optional.
+    </ResponseField>
+    <ResponseField name="memory_store_retention_period_in_hours" type="string">
+      The duration for which data must be stored in the memory store. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="schema" type="object">
+  A Schema specifies the expected data model of the table. Optional.
+  <Expandable title="properties">
+    <ResponseField name="composite_partition_key" type="list(object)">
+      A list of partition keys defining the attributes used to partition the table data. The order of the list determines the partition hierarchy. The name and type of each partition key as well as the partition key order cannot be changed after the table is created. However, the enforcement level of each partition key can be changed. Optional.
+      <Expandable title="properties">
+        <ResponseField name="enforcement_in_record" type="string">
+          Specifies whether this partition key must be present in every record, with allowed values 'REQUIRED' or 'OPTIONAL'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Specifies the name of the dimension attribute used as the composite partition key for an AWS Timestream table when the partition key type is DIMENSION. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          Specifies the type of the composite partition key, either DIMENSION for a dimension column or MEASURE for the measure name, controlling how Timestream partitions the table's data. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="table_name" type="string">
+  The name for the table. If you don't specify a name, AWS CloudFormation generates a unique physical ID and uses that ID for the table name. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key portion of a tag applied to the Timestream table, used to define the tag's name for identifying and organizing the table in AWS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value component of a tag attached to the Timestream table, allowing you to assign an arbitrary string to help categorize, identify, or manage the resource (e.g., for cost allocation). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) uniquely identifying this Timestream table. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The table name exposed as a read-only attribute. Computed by AWS after `ship`.
+</ResponseField>

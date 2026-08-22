@@ -1,0 +1,146 @@
+---
+title: "aws_eks_fargate_profile"
+description: "`aws_eks_fargate_profile` matches real pods in an `aws_eks_cluster`, by namespace and label selector..."
+---
+
+`aws_eks_fargate_profile` matches real pods in an `aws_eks_cluster`, by namespace and label selector, to run on Fargate rather than an `aws_eks_nodegroup`'s own EC2 worker nodes, no node to provision or patch for the pods it covers.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	eks "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/eks"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own fargate profile"})
+
+    		ubx.Resource(eks.FargateProfile, "ci-runner", eks.FargateProfileConfig{
+    			ClusterName:         "example-cluster-name",
+    			PodExecutionRoleArn: "arn:aws:iam::123456789012:policy/ci",
+    			Selectors:           []map[string]any{{"labels": []map[string]any{{"key": "example"}}}},
+    			FargateProfileName:  "example-fargate-profile-name",
+    			Subnets:             []string{"example"},
+    			Tags:                []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { FargateProfile } from "./local-sdk/aws/sdk/typescript/aws/eks/fargate_profile.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own fargate profile" });
+
+      resource(FargateProfile, "ci-runner", {
+        clusterName: "example-cluster-name",
+        podExecutionRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        selectors: [{ labels: [{ key: "example" }] }],
+        fargateProfileName: "example-fargate-profile-name",
+        subnets: ["example"],
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.eks import FargateProfile, FargateProfileConfig
+
+    def describe():
+        ubx.intent("payments own fargate profile")
+
+        ubx.resource(FargateProfile, "ci-runner", FargateProfileConfig(
+            cluster_name="example-cluster-name",
+            pod_execution_role_arn="arn:aws:iam::123456789012:policy/ci",
+            selectors=[{"labels": [{"key": "example"}]}],
+            fargate_profile_name="example-fargate-profile-name",
+            subnets=["example"],
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_eks_fargate_profile, with cluster name
+    example-cluster-name, pod execution role arn
+    arn:aws:iam::123456789012:policy/ci, selectors a set value,
+    fargate profile name example-fargate-profile-name, subnets a set
+    value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="cluster_name" type="string" required>
+  Name of the Cluster Required.
+</ResponseField>
+
+<ResponseField name="fargate_profile_name" type="string">
+  Name of FargateProfile Optional.
+</ResponseField>
+
+<ResponseField name="pod_execution_role_arn" type="string" required>
+  The IAM policy arn for pods Required.
+</ResponseField>
+
+<ResponseField name="selectors" type="list(object)" required>
+  Specifies the Kubernetes namespaces and label selectors that determine which pods are scheduled to run on Fargate using this profile. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="labels" type="list(object)">
+      Specifies Kubernetes labels (key-value pairs) that the selector uses to match pods in the specified namespace for scheduling on Fargate. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          The key of a Kubernetes label pair used in the selector to match pods that will be scheduled on the Fargate profile. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value" type="string">
+          The value of a Kubernetes label, paired with its key in the selector’s labels map, that a pod must have to be eligible for scheduling on this Fargate profile. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="namespace" type="string">
+      The Kubernetes namespace that this selector matches; only pods running in this namespace are eligible to be scheduled onto Fargate. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="subnets" type="list(string)">
+  Specifies the list of subnet IDs where Amazon EKS launches Fargate pods for this profile; if omitted, the subnets selected for the EKS cluster are used. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the EKS Fargate profile, used to organize and identify the profile for purposes such as cost allocation, access control, and resource filtering within AWS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a key-value tag assigned to the EKS Fargate profile, used for cost allocation, organization, and identification of the profile. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the Fargate profile. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

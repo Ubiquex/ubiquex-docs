@@ -1,0 +1,145 @@
+---
+title: "aws_certificate_manager_acme_endpoint"
+description: "`aws_certificate_manager_acme_endpoint` creates a real, ACMEv2-compatible endpoint in AWS Certificate Manager..."
+---
+
+`aws_certificate_manager_acme_endpoint` creates a real, ACMEv2-compatible endpoint in AWS Certificate Manager, letting any standard ACME client automate public TLS certificate issuance and renewal against ACM rather than only through ACM's own API or console. ACM's ACME support was announced in July 2026, roughly a month ago, AWS's response to industry-wide moves toward shorter certificate lifetimes.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	certificate "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/certificate"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own manager acme endpoint"})
+
+    		ubx.Resource(certificate.ManagerAcmeEndpoint, "ci-runner", certificate.ManagerAcmeEndpointConfig{
+    			AuthorizationBehavior: "example",
+    			CertificateAuthority:  map[string]any{"public_certificate_authority": map[string]any{"allowed_key_algorithms": []string{"example"}}},
+    			CertificateTags:       []map[string]any{{"key": "example"}},
+    			Contact:               "example",
+    			Tags:                  []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ManagerAcmeEndpoint } from "./local-sdk/aws/sdk/typescript/aws/certificate/manager_acme_endpoint.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own manager acme endpoint" });
+
+      resource(ManagerAcmeEndpoint, "ci-runner", {
+        authorizationBehavior: "example",
+        certificateAuthority: {
+          publicCertificateAuthority: { allowedKeyAlgorithms: ["example"] },
+        },
+        certificateTags: [{ key: "example" }],
+        contact: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.certificate import ManagerAcmeEndpoint, ManagerAcmeEndpointConfig
+
+    def describe():
+        ubx.intent("payments own manager acme endpoint")
+
+        ubx.resource(ManagerAcmeEndpoint, "ci-runner", ManagerAcmeEndpointConfig(
+            authorization_behavior="example",
+            certificate_authority={"public_certificate_authority": {"allowed_key_algorithms": ["example"]}},
+            certificate_tags=[{"key": "example"}],
+            contact="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_certificate_manager_acme_endpoint, with authorization
+    behavior example, certificate authority a set value, certificate
+    tags a set value, contact example, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="authorization_behavior" type="string" required>
+  The authorization behavior for the ACME endpoint. Required.
+</ResponseField>
+
+<ResponseField name="certificate_authority" type="object" required>
+  The certificate authority configuration for the ACME endpoint. Required.
+  <Expandable title="properties">
+    <ResponseField name="public_certificate_authority" type="object" required>
+      Configuration for the public certificate authority. Required.
+      <Expandable title="properties">
+        <ResponseField name="allowed_key_algorithms" type="list(string)">
+          The allowed key algorithms for certificates issued via this endpoint. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="certificate_tags" type="list(object)">
+  Tags applied to certificates issued via this endpoint. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="contact" type="string">
+  Whether contact information is required for the ACME endpoint. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Tags associated with the ACME endpoint. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="acme_endpoint_arn" type="string">
+  The Amazon Resource Name (ARN) of the ACME endpoint. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="endpoint_url" type="string">
+  The ACME directory URL for the endpoint. Computed by AWS after `ship`.
+</ResponseField>

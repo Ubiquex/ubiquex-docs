@@ -1,0 +1,159 @@
+---
+title: "aws_iam_user"
+description: "`aws_iam_user` creates a real, individual IAM identity, distinct from an `aws_iam_role`..."
+---
+
+`aws_iam_user` creates a real, individual IAM identity, distinct from an `aws_iam_role`, meant for a long-lived person or application that needs its own durable credentials rather than assuming temporary ones.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	iam "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/iam"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own user"})
+
+    		ubx.Resource(iam.User, "ci-runner", iam.UserConfig{
+    			Groups:              []string{"example"},
+    			LoginProfile:        map[string]any{"password": "example"},
+    			ManagedPolicyArns:   []string{"example"},
+    			Path:                "/ci/",
+    			PermissionsBoundary: "arn:aws:iam::123456789012:policy/ci",
+    			Policies:            []map[string]any{{"policy_document": "example"}},
+    			Tags:                []map[string]any{{"key": "example"}},
+    			UserName:            "example-user-name",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { User } from "./local-sdk/aws/sdk/typescript/aws/iam/user.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own user" });
+
+      resource(User, "ci-runner", {
+        groups: ["example"],
+        loginProfile: { password: "example" },
+        managedPolicyArns: ["example"],
+        path: "/ci/",
+        permissionsBoundary: "arn:aws:iam::123456789012:policy/ci",
+        policies: [{ policyDocument: "example" }],
+        tags: [{ key: "example" }],
+        userName: "example-user-name",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.iam import User, UserConfig
+
+    def describe():
+        ubx.intent("payments own user")
+
+        ubx.resource(User, "ci-runner", UserConfig(
+            groups=["example"],
+            login_profile={"password": "example"},
+            managed_policy_arns=["example"],
+            path="/ci/",
+            permissions_boundary="arn:aws:iam::123456789012:policy/ci",
+            policies=[{"policy_document": "example"}],
+            tags=[{"key": "example"}],
+            user_name="example-user-name",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_iam_user, with groups a set value, login profile a set
+    value, managed policy arns a set value, path /ci/, permissions
+    boundary arn:aws:iam::123456789012:policy/ci, policies a set
+    value, tags a set value, user name example-user-name.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="groups" type="list(string)">
+  A list of group names to which you want to add the user. Optional.
+</ResponseField>
+
+<ResponseField name="login_profile" type="object">
+  Creates a password for the specified user, giving the user the ability to access AWS services through the console. For more information about managing passwords, see [Managing Passwords](https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingLogins.html) in the *User Guide*. Optional.
+  <Expandable title="properties">
+    <ResponseField name="password" type="string" required>
+      The user's password. Required.
+    </ResponseField>
+    <ResponseField name="password_reset_required" type="bool">
+      Specifies whether the user is required to set a new password on next sign-in. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="managed_policy_arns" type="list(string)">
+  A list of Amazon Resource Names (ARNs) of the IAM managed policies that you want to attach to the user. For more information about ARNs, see [Amazon Resource Names (ARNs) and Service Namespaces](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) in the *General Reference*. Optional.
+</ResponseField>
+
+<ResponseField name="path" type="string">
+  The path for the user name. For more information about paths, see [IAM identifiers](https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html) in the *IAM User Guide*. This parameter is optional. If it is not included, it defaults to a slash (/). This parameter allows (through its [regex pattern](https://docs.aws.amazon.com/http://wikipedia.org/wiki/regex)) a string of characters consisting of either a forward slash (/) by itself or a string that must begin and end with forward slashes. In addition, it can contain any ASCII character from the ! (``\u0021``) through the DEL character (``\u007F``), including most punctuation characters, digits, and upper and lowercased letters. Optional.
+</ResponseField>
+
+<ResponseField name="permissions_boundary" type="string">
+  The ARN of the managed policy that is used to set the permissions boundary for the user. A permissions boundary policy defines the maximum permissions that identity-based policies can grant to an entity, but does not grant permissions. Permissions boundaries do not define the maximum permissions that a resource-based policy can grant to an entity. To learn more, see [Permissions boundaries for IAM entities](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html) in the *IAM User Guide*. For more information about policy types, see [Policy types](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types) in the *IAM User Guide*. Optional.
+</ResponseField>
+
+<ResponseField name="policies" type="list(object)">
+  Adds or updates an inline policy document that is embedded in the specified IAM user. To view AWS::IAM::User snippets, see [Declaring an User Resource](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/quickref-iam.html#scenario-iam-user). The name of each policy for a role, user, or group must be unique. If you don't choose unique names, updates to the IAM identity will fail. For information about limits on the number of inline policies that you can embed in a user, see [Limitations on Entities](https://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html) in the *User Guide*. Optional.
+  <Expandable title="properties">
+    <ResponseField name="policy_document" type="any">
+      The JSON-encoded IAM policy document that defines the permissions for this inline policy attached to the IAM user. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="policy_name" type="string">
+      The name of an inline policy attached to the IAM user, uniquely identifying the policy within the user's set of inline policies. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of tags that you want to attach to the new user. Each tag consists of a key name and an associated value. For more information about tagging, see [Tagging IAM resources](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html) in the *IAM User Guide*. If any one of the tags is invalid or if you exceed the allowed maximum number of tags, then the entire request fails and the resource is not created. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to an IAM user, which can be used in IAM policies to enforce tag-based access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a key-value tag attached to the IAM user, used for metadata management such as cost allocation or attribute-based access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="user_name" type="string">
+  The name of the user to create. Do not include the path in this value. This parameter allows (per its [regex pattern](https://docs.aws.amazon.com/http://wikipedia.org/wiki/regex)) a string of characters consisting of upper and lowercase alphanumeric characters with no spaces. You can also include any of the following characters: _+=,.@-. The user name must be unique within the account. User names are not distinguished by case. For example, you cannot create users named both "John" and "john". If you don't specify a name, CFN generates a unique physical ID and uses that ID for the user name. If you specify a name, you must specify the ``CAPABILITY_NAMED_IAM`` value to acknowledge your template's capabilities. For more information, see [Acknowledging Resources in Templates](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html#using-iam-capabilities). Naming an IAM resource can cause an unrecoverable error if you reuse the same template in multiple Regions. To prevent this, we recommend using ``Fn::Join`` and ``AWS::Region`` to create a Region-specific name, as in the following example: ``&#123;"Fn::Join": ["", [&#123;"Ref": "AWS::Region"&#125;, &#123;"Ref": "MyResourceName"&#125;]]&#125;``. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The ARN is a unique identifier for the IAM user in the format arn:aws:iam::account-id:user/username, used for referencing the user in IAM policies. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

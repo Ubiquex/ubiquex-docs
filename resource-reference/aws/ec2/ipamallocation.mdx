@@ -1,0 +1,105 @@
+---
+title: "aws_ec2_ipamallocation"
+description: "`aws_ec2_ipamallocation` is a real, specific CIDR reservation carved out of an `aws_ec2_ipampool`..."
+---
+
+`aws_ec2_ipamallocation` is a real, specific CIDR reservation carved out of an `aws_ec2_ipampool`, tracked so IPAM knows that range is spoken for even before a real resource like a VPC is actually created to use it.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ec2 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ec2"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own ipamallocation"})
+
+    		ubx.Resource(ec2.Ipamallocation, "ci-runner", ec2.IpamallocationConfig{
+    			IpamPoolId:    "example",
+    			Cidr:          "example",
+    			Description:   "Managed by ubx.",
+    			NetmaskLength: 1,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Ipamallocation } from "./local-sdk/aws/sdk/typescript/aws/ec2/ipamallocation.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own ipamallocation" });
+
+      resource(Ipamallocation, "ci-runner", {
+        ipamPoolId: "example",
+        cidr: "example",
+        description: "Managed by ubx.",
+        netmaskLength: 1,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ec2 import Ipamallocation, IpamallocationConfig
+
+    def describe():
+        ubx.intent("payments own ipamallocation")
+
+        ubx.resource(Ipamallocation, "ci-runner", IpamallocationConfig(
+            ipam_pool_id="example",
+            cidr="example",
+            description="Managed by ubx.",
+            netmask_length=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ec2_ipamallocation, with ipam pool id example, cidr
+    example, description Managed by ubx., netmask length 1.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="cidr" type="string">
+  Represents an IPAM custom allocation of a single IPv4 or IPv6 CIDR Optional.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A user-defined free-form text description that annotates the IPAM allocation, typically used to record the purpose, owner, or other identifying information for the allocated CIDR block. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="ipam_pool_id" type="string" required>
+  Id of the IPAM Pool. Required.
+</ResponseField>
+
+<ResponseField name="netmask_length" type="number">
+  The desired netmask length of the allocation. If set, IPAM will choose a block of free space with this size and return the CIDR representing it. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="ipam_pool_allocation_id" type="string">
+  Id of the allocation. Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,124 @@
+---
+title: "aws_wafregional_rate_based_rule"
+description: "`aws_wafregional_rate_based_rule` defines a real rule under AWS WAF Classic Regional that automatically tracks request rate per source IP and blocks..."
+---
+
+`aws_wafregional_rate_based_rule` defines a real rule under AWS WAF Classic Regional that automatically tracks request rate per source IP and blocks addresses that exceed a configured threshold, distinct from `aws_wafregional_rule`'s own static, condition-based matching. Support for AWS WAF Classic ended September 30, 2025, roughly eleven months in the past; AWS's current offering, AWS WAFv2, has its own built-in rate-based rule statement type.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	wafregional "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/wafregional"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own rate based rule"})
+
+    		ubx.Resource(wafregional.RateBasedRule, "ci-runner", wafregional.RateBasedRuleConfig{
+    			MetricName:      "example-metric-name",
+    			Name:            "ci-runner",
+    			RateKey:         "example",
+    			RateLimit:       1,
+    			MatchPredicates: []map[string]any{{"data_id": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { RateBasedRule } from "./local-sdk/aws/sdk/typescript/aws/wafregional/rate_based_rule.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own rate based rule" });
+
+      resource(RateBasedRule, "ci-runner", {
+        metricName: "example-metric-name",
+        name: "ci-runner",
+        rateKey: "example",
+        rateLimit: 1,
+        matchPredicates: [{ dataId: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.wafregional import RateBasedRule, RateBasedRuleConfig
+
+    def describe():
+        ubx.intent("payments own rate based rule")
+
+        ubx.resource(RateBasedRule, "ci-runner", RateBasedRuleConfig(
+            metric_name="example-metric-name",
+            name="ci-runner",
+            rate_key="example",
+            rate_limit=1,
+            match_predicates=[{"data_id": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_wafregional_rate_based_rule called "ci-runner", with
+    metric name example-metric-name, rate key example, rate limit 1,
+    match predicates a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="match_predicates" type="list(object)">
+  Specifies the list of predicates (such as IP match, byte match, SQL injection, or XSS match conditions) that determine which requests are counted toward the rate limit for blocking in this rate-based rule. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="data_id" type="string">
+      The ID of the AWS WAF Regional entity (such as a ByteMatchSet, IPSet, SqlInjectionMatchSet, or XssMatchSet) that this rate-based rule predicate uses to inspect web requests. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="negated" type="bool">
+      Whether the predicate's match condition is inverted, so that a True value causes the rate-based rule to match requests that do NOT satisfy the predicate's criteria (e.g., requests not from the specified IP set), while False matches requests that do satisfy them. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      The type of the match predicate (e.g., IPMatch, ByteMatch, SqlInjectionMatch), which indicates the kind of pattern to match; for a rate-based rule this is typically IPMatch because the rule matches based on IP addresses. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="metric_name" type="string" required>
+  The CloudWatch metric name for the rule, which must be unique within the web ACL and is used to monitor the rate-based rule's traffic in CloudWatch. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The friendly name assigned to the AWS WAF Regional rate-based rule, required to identify the rule in the console and API. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="rate_key" type="string" required>
+  Specifies the field (always 'IP' for this resource type) that AWS WAF uses to determine the source of web requests for rate limiting, controlling how requests are counted against the rule's rate threshold. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="rate_limit" type="number" required>
+  The maximum number of requests from a single IP address in a 5-minute period that triggers the rate-based rule's action, which for AWS WAF Regional is fixed at 2000. Required. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The unique identifier assigned by AWS WAF Regional to the rate-based rule, used to reference the rule in other resources. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

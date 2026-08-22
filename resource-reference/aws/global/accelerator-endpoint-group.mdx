@@ -1,0 +1,166 @@
+---
+title: "aws_global_accelerator_endpoint_group"
+description: "`aws_global_accelerator_endpoint_group` is the real, specific set of endpoints, ALBs, NLBs, EC2 instances, Elastic IPs..."
+---
+
+`aws_global_accelerator_endpoint_group` is the real, specific set of endpoints, ALBs, NLBs, EC2 instances, Elastic IPs, in one AWS Region that an `aws_global_accelerator_listener` routes matching traffic to, with health checks determining which endpoints actually receive it.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	global "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/global"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own accelerator endpoint group"})
+
+    		ubx.Resource(global.AcceleratorEndpointGroup, "ci-runner", global.AcceleratorEndpointGroupConfig{
+    			EndpointGroupRegion:        "example",
+    			ListenerArn:                "arn:aws:iam::123456789012:policy/ci",
+    			EndpointConfigurations:     []map[string]any{{"attachment_arn": "example"}},
+    			HealthCheckIntervalSeconds: 7200,
+    			HealthCheckPath:            "example",
+    			HealthCheckPort:            1,
+    			HealthCheckProtocol:        "example",
+    			PortOverrides:              []map[string]any{{"endpoint_port": 1}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AcceleratorEndpointGroup } from "./local-sdk/aws/sdk/typescript/aws/global/accelerator_endpoint_group.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own accelerator endpoint group" });
+
+      resource(AcceleratorEndpointGroup, "ci-runner", {
+        endpointGroupRegion: "example",
+        listenerArn: "arn:aws:iam::123456789012:policy/ci",
+        endpointConfigurations: [{ attachmentArn: "example" }],
+        healthCheckIntervalSeconds: 7200,
+        healthCheckPath: "example",
+        healthCheckPort: 1,
+        healthCheckProtocol: "example",
+        portOverrides: [{ endpointPort: 1 }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.global_ import AcceleratorEndpointGroup, AcceleratorEndpointGroupConfig
+
+    def describe():
+        ubx.intent("payments own accelerator endpoint group")
+
+        ubx.resource(AcceleratorEndpointGroup, "ci-runner", AcceleratorEndpointGroupConfig(
+            endpoint_group_region="example",
+            listener_arn="arn:aws:iam::123456789012:policy/ci",
+            endpoint_configurations=[{"attachment_arn": "example"}],
+            health_check_interval_seconds=7200,
+            health_check_path="example",
+            health_check_port=1,
+            health_check_protocol="example",
+            port_overrides=[{"endpoint_port": 1}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_global_accelerator_endpoint_group, with endpoint group
+    region example, listener arn arn:aws:iam::123456789012:policy/ci,
+    endpoint configurations a set value, health check interval
+    seconds 7200, health check path example, health check port 1,
+    health check protocol example, port overrides a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="endpoint_configurations" type="list(object)">
+  The list of endpoint objects. Optional.
+  <Expandable title="properties">
+    <ResponseField name="attachment_arn" type="string">
+      The ARN of the AWS resource (such as an Application Load Balancer, Network Load Balancer, or EC2 instance) that is attached as an endpoint in this endpoint group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="client_ippreservation_enabled" type="bool">
+      Indicates whether client IP address preservation is enabled for this endpoint, which keeps the original client IP address in the packet headers forwarded by Global Accelerator to the endpoint. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="endpoint_id" type="string">
+      The ARN of the endpoint resource (such as an Application Load Balancer, Network Load Balancer, EC2 instance, or Elastic IP address) that Global Accelerator routes traffic to for this endpoint configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="weight" type="number">
+      The weight assigned to the endpoint, controlling the proportion of traffic routed to it relative to other endpoints in the group (values 0-255, higher means more traffic). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="endpoint_group_region" type="string" required>
+  The name of the AWS Region where the endpoint group is located Required.
+</ResponseField>
+
+<ResponseField name="health_check_interval_seconds" type="number">
+  The time in seconds between each health check for an endpoint. Must be a value of 10 or 30 Optional.
+</ResponseField>
+
+<ResponseField name="health_check_path" type="string">
+  The URI path that AWS Global Accelerator uses to perform health checks against endpoints in the endpoint group, such as '/health' or '/'. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="health_check_port" type="number">
+  The port that AWS Global Accelerator uses to check the health of endpoints in this endpoint group. Optional.
+</ResponseField>
+
+<ResponseField name="health_check_protocol" type="string">
+  The protocol that AWS Global Accelerator uses to check the health of endpoints in this endpoint group. Optional.
+</ResponseField>
+
+<ResponseField name="listener_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the listener Required.
+</ResponseField>
+
+<ResponseField name="port_overrides" type="list(object)">
+  A list of port overrides that map a listener port to a different endpoint port for the endpoint group, allowing traffic to be redirected to a custom port on the endpoint. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="endpoint_port" type="number">
+      The actual port on the endpoint that receives traffic when this port override is applied, replacing the listener port for the mapped endpoint. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="listener_port" type="number">
+      Specifies the original port on the accelerator listener that this port override maps to the endpoint port, redirecting traffic received on that listener port to the endpoint's configured port. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="threshold_count" type="number">
+  The number of consecutive health checks required to set the state of the endpoint to unhealthy. Optional.
+</ResponseField>
+
+<ResponseField name="traffic_dial_percentage" type="number">
+  The percentage of traffic to sent to an AWS Region Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="endpoint_group_arn" type="string">
+  The Amazon Resource Name (ARN) of the endpoint group Computed by AWS after `ship`.
+</ResponseField>

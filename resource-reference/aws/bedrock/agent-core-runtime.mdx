@@ -1,0 +1,459 @@
+---
+title: "aws_bedrock_agent_core_runtime"
+description: "`aws_bedrock_agent_core_runtime` is the secure, serverless environment AgentCore hosts an agent or tool in..."
+---
+
+`aws_bedrock_agent_core_runtime` is the secure, serverless environment AgentCore hosts an agent or tool in, packaging the caller's code into a container image, pushing it to ECR, and deploying it, without the caller managing any of that infrastructure directly.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	bedrock "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/bedrock"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own agent core runtime"})
+
+    		ubx.Resource(bedrock.AgentCoreRuntime, "ci-runner", bedrock.AgentCoreRuntimeConfig{
+    			AgentRuntimeArtifact:          map[string]any{"code_configuration": map[string]any{"code": map[string]any{"s3": map[string]any{"bucket": "example"}}}},
+    			AgentRuntimeName:              "example-agent-runtime-name",
+    			RoleArn:                       "arn:aws:iam::123456789012:policy/ci",
+    			AuthorizerConfiguration:       map[string]any{"custom_jwtauthorizer": map[string]any{"discovery_url": "example"}},
+    			CapacityProviderConfiguration: map[string]any{"capacity_provider_arn": "example"},
+    			Description:                   "Managed by ubx.",
+    			EnvironmentVariables:          "example",
+    			FilesystemConfigurations:      []map[string]any{{"capacity_provider_volume": map[string]any{"mount_path": "example"}}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AgentCoreRuntime } from "./local-sdk/aws/sdk/typescript/aws/bedrock/agent_core_runtime.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own agent core runtime" });
+
+      resource(AgentCoreRuntime, "ci-runner", {
+        agentRuntimeArtifact: {
+          codeConfiguration: { code: { s3: { bucket: "example" } } },
+        },
+        agentRuntimeName: "example-agent-runtime-name",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        authorizerConfiguration: {
+          customJwtauthorizer: { discoveryUrl: "example" },
+        },
+        capacityProviderConfiguration: { capacityProviderArn: "example" },
+        description: "Managed by ubx.",
+        environmentVariables: "example",
+        filesystemConfigurations: [{
+          capacityProviderVolume: { mountPath: "example" },
+        }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.bedrock import AgentCoreRuntime, AgentCoreRuntimeConfig
+
+    def describe():
+        ubx.intent("payments own agent core runtime")
+
+        ubx.resource(AgentCoreRuntime, "ci-runner", AgentCoreRuntimeConfig(
+            agent_runtime_artifact={"code_configuration": {"code": {"s3": {"bucket": "example"}}}},
+            agent_runtime_name="example-agent-runtime-name",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            authorizer_configuration={"custom_jwtauthorizer": {"discovery_url": "example"}},
+            capacity_provider_configuration={"capacity_provider_arn": "example"},
+            description="Managed by ubx.",
+            environment_variables="example",
+            filesystem_configurations=[{"capacity_provider_volume": {"mount_path": "example"}}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_bedrock_agent_core_runtime, with agent runtime
+    artifact a set value, agent runtime name
+    example-agent-runtime-name, role arn
+    arn:aws:iam::123456789012:policy/ci, authorizer configuration a
+    set value, capacity provider configuration a set value,
+    description Managed by ubx., environment variables example,
+    filesystem configurations a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="agent_runtime_artifact" type="object" required>
+  Required.
+  <Expandable title="properties">
+    <ResponseField name="code_configuration" type="object">
+      Representation of a code configuration Optional.
+      <Expandable title="properties">
+        <ResponseField name="code" type="object" required>
+          Object represents source code from zip file Required.
+          <Expandable title="properties">
+            <ResponseField name="s3" type="object">
+              S3 Location Configuration Optional.
+              <Expandable title="properties">
+                <ResponseField name="bucket" type="string" required>
+                  S3 bucket name Required.
+                </ResponseField>
+                <ResponseField name="prefix" type="string" required>
+                  S3 object key prefix Required.
+                </ResponseField>
+                <ResponseField name="version_id" type="string">
+                  S3 object version ID Optional.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="entry_point" type="list(string)" required>
+          List of entry points Required.
+        </ResponseField>
+        <ResponseField name="runtime" type="string" required>
+          Managed runtime types Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="container_configuration" type="object">
+      Configures the container image and runtime parameters used to execute the agent's code artifact within the Bedrock Agent Core Runtime. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="container_uri" type="string" required>
+          The ECR URI of the container Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="agent_runtime_name" type="string" required>
+  Required.
+</ResponseField>
+
+<ResponseField name="authorizer_configuration" type="object">
+  Configuration for the authorizer Optional.
+  <Expandable title="properties">
+    <ResponseField name="custom_jwtauthorizer" type="object">
+      Configuration for custom JWT authorizer Optional.
+      <Expandable title="properties">
+        <ResponseField name="allowed_audience" type="list(string)">
+          List of allowed audiences Optional.
+        </ResponseField>
+        <ResponseField name="allowed_clients" type="list(string)">
+          List of allowed clients Optional.
+        </ResponseField>
+        <ResponseField name="allowed_scopes" type="list(string)">
+          List of allowed scopes Optional.
+        </ResponseField>
+        <ResponseField name="allowed_workload_configuration" type="object">
+          Allow-list of upstream workloads permitted to reach this resource via the workload identity chain. When set, the data plane enforces that the introspected workload chain's caller matches one of the configured hosting environments or workload identities; absent means no chain enforcement. Optional.
+          <Expandable title="properties">
+            <ResponseField name="hosting_environments" type="list(object)">
+              List of allow-listed hosting environments Optional.
+              <Expandable title="properties">
+                <ResponseField name="arn" type="string">
+                  The ARN that uniquely identifies a hosting environment permitted to handle requests for the allowed workload configuration of the custom JWT authorizer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="workload_identities" type="list(string)">
+              List of allow-listed workload identity names Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="custom_claims" type="list(object)">
+          List of required custom claims Optional.
+          <Expandable title="properties">
+            <ResponseField name="authorizing_claim_match_value" type="object">
+              The expected value against which the specified custom JWT claim is compared to determine if the request is authorized. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="claim_match_operator" type="string">
+                  Specifies the comparison operator (e.g., EQUALS, CONTAINS) used to evaluate the JWT custom claim's actual value against the expected match value in the Bedrock agent core runtime custom JWT authorizer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="claim_match_value" type="object">
+                  Defines the comparison type (e.g., EQUALS, CONTAINS) and the value that a custom JWT claim must match for the authorizer to authorize the request. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="match_value_string" type="string">
+                      Specifies the string value that the custom JWT claim must match for the authorizer to authorize the request. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="match_value_string_list" type="list(string)">
+                      Defines a set of allowed values for a custom JWT authorizer claim; the token's corresponding claim must match one of the strings in this list to be authorized. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="inbound_token_claim_name" type="string">
+              The name of the claim in the incoming JWT token that should be extracted and passed as a custom claim to the agent's runtime context. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="inbound_token_claim_value_type" type="string">
+              Defines the data type to which the value of the JWT claim in the incoming token is cast before it is delivered to the custom authorizer Lambda function (supported values include STRING, NUMBER, and BOOLEAN). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="discovery_url" type="string" required>
+          OpenID Connect discovery URL Required.
+        </ResponseField>
+        <ResponseField name="private_endpoint" type="object">
+          Private endpoint configuration. Exactly one of SelfManagedLatticeResource or ManagedVpcResource must be specified. Optional.
+          <Expandable title="properties">
+            <ResponseField name="managed_vpc_resource" type="object">
+              Optional; if omitted, computed by AWS.
+              <Expandable title="properties">
+                <ResponseField name="endpoint_ip_address_type" type="string">
+                  Specifies whether the managed VPC endpoint for the custom JWT authorizer's private endpoint uses IPv4, IPv6, or dual-stack IP addressing. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="routing_domain" type="string">
+                  The routing domain is the DNS domain name used to route requests to the private endpoint's managed VPC resource, which hosts the custom JWT authorizer for the Bedrock agent core runtime. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="security_group_ids" type="list(string)">
+                  The list of security group IDs to attach to the managed VPC resource used as the private endpoint for the custom JWT authorizer configuration, controlling which network traffic can reach the endpoint. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="subnet_ids" type="list(string)">
+                  The subnet IDs in the managed VPC where AWS deploys the VPC endpoint for the private endpoint configuration of the custom JWT authorizer in the Bedrock Agent Core Runtime. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="tags" type="any">
+                  Optional; if omitted, computed by AWS.
+                </ResponseField>
+                <ResponseField name="vpc_identifier" type="string">
+                  The ID of the VPC in which AWS creates the managed VPC resource (e.g., an elastic network interface) to privately connect the Bedrock agent runtime to the custom JWT authorizer's private endpoint. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="self_managed_lattice_resource" type="object">
+              Optional; if omitted, computed by AWS.
+              <Expandable title="properties">
+                <ResponseField name="resource_configuration_identifier" type="string">
+                  The identifier (ARN) of the Amazon VPC Lattice resource configuration that serves as the private endpoint for the custom JWT authorizer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="private_endpoint_overrides" type="list(object)">
+          List of private endpoint overrides Optional.
+          <Expandable title="properties">
+            <ResponseField name="domain" type="string">
+              Overrides the domain name of the private endpoint that the custom JWT authorizer uses to validate tokens, allowing the authorizer to reach a different service endpoint than the default. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="private_endpoint" type="object">
+              This object specifies the private endpoint host and path used to override the default public endpoint for the custom JWT authorizer, enabling the agent to reach the authorizer within a private network. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="managed_vpc_resource" type="object">
+                  Defines the AWS-managed VPC resource that serves as the private endpoint for the custom JWT authorizer's private endpoint override in the Bedrock agent core runtime. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="endpoint_ip_address_type" type="string">
+                      This field specifies the IP address type (IPv4, IPv6, or dual-stack) for the managed VPC private endpoint used to reach the custom JWT authorizer in the Bedrock agent core runtime, overriding the default endpoint IP configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="routing_domain" type="string">
+                      Specifies the custom DNS domain name used to route traffic to the private endpoint of the JWT authorizer within the managed VPC. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="security_group_ids" type="list(string)">
+                      Specifies the list of security group IDs to attach to the private endpoint inside the managed VPC for the custom JWT authorizer's private endpoint overrides. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="subnet_ids" type="list(string)">
+                      This field specifies the subnet IDs within the managed VPC where the private endpoint for the custom JWT authorizer is deployed, enabling private network access to that authorizer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="tags" type="any">
+                      A map of key-value tags to apply to the managed VPC resource that backs the private endpoint override for the custom JWT authorizer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="vpc_identifier" type="string">
+                      Optional; if omitted, computed by AWS.
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="self_managed_lattice_resource" type="object">
+                  Defines the self-managed AWS VPC Lattice resource that the private endpoint override points to for the custom JWT authorizer, enabling traffic to be routed to a customer-controlled lattice endpoint. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="resource_configuration_identifier" type="string">
+                      Specifies the identifier (such as the ARN or name) of the Amazon VPC Lattice resource configuration that the self-managed lattice resource for this custom JWT authorizer's private endpoint override uses, allowing the Bedrock agent core runtime to route requests to the authorizer through the configured private endpoint. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="capacity_provider_configuration" type="object">
+  Configuration for a capacity provider Optional.
+  <Expandable title="properties">
+    <ResponseField name="capacity_provider_arn" type="string" required>
+      ARN of the capacity provider Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Optional.
+</ResponseField>
+
+<ResponseField name="environment_variables" type="any">
+  Environment variable attributes Optional.
+</ResponseField>
+
+<ResponseField name="filesystem_configurations" type="list(object)">
+  List of filesystem configurations Optional.
+  <Expandable title="properties">
+    <ResponseField name="capacity_provider_volume" type="object">
+      Optional; if omitted, computed by AWS.
+      <Expandable title="properties">
+        <ResponseField name="mount_path" type="string">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+        <ResponseField name="volume_name" type="string">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="efs_access_point" type="object">
+      Specifies the Amazon EFS access point that the Bedrock Agent Core Runtime uses when reading from or writing to the configured EFS filesystem. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="access_point_arn" type="string">
+          The Amazon Resource Name (ARN) of the EFS access point that the Bedrock agent core runtime uses to mount the associated EFS filesystem, enabling the agent to access files through that access point. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="mount_path" type="string">
+          The directory path in the agent's runtime environment where the EFS file system is mounted when the agent uses the specified access point. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="s3_files_access_point" type="object">
+      This object specifies the S3 access point configuration for the agent's file system, providing the access point ARN and the S3 path or prefix that the agent will use to access files in S3. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="access_point_arn" type="string">
+          The Amazon Resource Name (ARN) of the S3 access point that grants the Bedrock agent access to the associated S3 file system. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="mount_path" type="string">
+          The mount path (e.g., /mnt/data) where the S3 access point is mounted inside the agent's runtime filesystem, enabling the agent to access S3 objects as local files under that path. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="session_storage" type="object">
+      Defines the session storage configuration for the agent's file system, specifying the Amazon S3 bucket and optional AWS KMS key used to persist session data and state. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="mount_path" type="string">
+          Specifies the file system mount path within the Bedrock agent runtime environment where the session storage volume is mounted, enabling the agent to persist and access session data across invocations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="lifecycle_configuration" type="object">
+  Configuration for managing the lifecycle of runtime sessions and resources Optional.
+  <Expandable title="properties">
+    <ResponseField name="idle_runtime_session_timeout" type="number">
+      Timeout in seconds for idle runtime sessions Optional.
+    </ResponseField>
+    <ResponseField name="max_lifetime" type="number">
+      Maximum lifetime in seconds for runtime sessions Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="network_configuration" type="object">
+  Provides the VPC configuration (security group IDs and subnet IDs) used by the agent's core runtime to access resources within a private network. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="network_mode" type="string" required>
+      Network mode configuration type Required.
+    </ResponseField>
+    <ResponseField name="network_mode_config" type="object">
+      Network mode configuration for VPC Optional.
+      <Expandable title="properties">
+        <ResponseField name="security_groups" type="list(string)" required>
+          Security groups for VPC Required.
+        </ResponseField>
+        <ResponseField name="subnets" type="list(string)" required>
+          Subnets for VPC Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="protocol_configuration" type="string">
+  Optional.
+</ResponseField>
+
+<ResponseField name="request_header_configuration" type="object">
+  Configuration for HTTP request headers Optional.
+  <Expandable title="properties">
+    <ResponseField name="request_header_allowlist" type="list(string)">
+      List of allowed HTTP headers for agent runtime requests Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the IAM service role that the Bedrock agent core runtime assumes to access AWS services and resources on behalf of the agent. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  A map of tag keys and values Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="agent_runtime_arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies this Bedrock agent core runtime resource. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="agent_runtime_id" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="agent_runtime_version" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  The creation timestamp of this Bedrock agent core runtime, returned as a read-only string. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="failure_reason" type="string">
+  The reason for failure if the agent is in a failed state. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="last_updated_at" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="workload_identity_details" type="object">
+  Configuration for workload identity Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="workload_identity_arn" type="string" required>
+      ARN of the workload identity Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>

@@ -1,0 +1,137 @@
+---
+title: "aws_config_configuration_aggregator"
+description: "`aws_config_configuration_aggregator` pulls real AWS Config configuration and compliance data from multiple accounts and Regions into one, centralized..."
+---
+
+`aws_config_configuration_aggregator` pulls real AWS Config configuration and compliance data from multiple accounts and Regions into one, centralized account and Region, so a caller gets one unified inventory and compliance view instead of checking each account and Region separately.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	config "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/config"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own configuration aggregator"})
+
+    		ubx.Resource(config.ConfigurationAggregator, "ci-runner", config.ConfigurationAggregatorConfig{
+    			AccountAggregationSources:     []map[string]any{{"account_ids": []string{"example"}}},
+    			ConfigurationAggregatorName:   "example-configuration-aggregator-name",
+    			OrganizationAggregationSource: map[string]any{"role_arn": "example"},
+    			Tags:                          []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ConfigurationAggregator } from "./local-sdk/aws/sdk/typescript/aws/config/configuration_aggregator.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own configuration aggregator" });
+
+      resource(ConfigurationAggregator, "ci-runner", {
+        accountAggregationSources: [{ accountIds: ["example"] }],
+        configurationAggregatorName: "example-configuration-aggregator-name",
+        organizationAggregationSource: { roleArn: "example" },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.config import ConfigurationAggregator, ConfigurationAggregatorConfig
+
+    def describe():
+        ubx.intent("payments own configuration aggregator")
+
+        ubx.resource(ConfigurationAggregator, "ci-runner", ConfigurationAggregatorConfig(
+            account_aggregation_sources=[{"account_ids": ["example"]}],
+            configuration_aggregator_name="example-configuration-aggregator-name",
+            organization_aggregation_source={"role_arn": "example"},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_config_configuration_aggregator, with account
+    aggregation sources a set value, configuration aggregator name
+    example-configuration-aggregator-name, organization aggregation
+    source a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="account_aggregation_sources" type="list(object)">
+  Specifies the list of AWS accounts from which to aggregate AWS Config configuration data, optionally restricting the regions that are aggregated for each account. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="account_ids" type="list(string)">
+      Specifies the AWS account IDs from which AWS Config will aggregate configuration data into the configuration aggregator. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="all_aws_regions" type="bool">
+      Determines whether this account aggregation source includes all AWS regions (true) or only the specific regions listed in the 'regions' property (false). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="aws_regions" type="list(string)">
+      The list of AWS regions from which AWS Config aggregates data for the specified source accounts. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="configuration_aggregator_name" type="string">
+  The name of the aggregator. Optional.
+</ResponseField>
+
+<ResponseField name="organization_aggregation_source" type="object">
+  Specifies the AWS organization (by IAM role ARN and list of regions, with an option to enable all regions) that acts as the source of configuration data for this AWS Config configuration aggregator. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="all_aws_regions" type="bool">
+      Indicates whether to aggregate Config data from all AWS regions in the organization (true) or only from the regions specified in the AwsRegions list (false). Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="aws_regions" type="list(string)">
+      Specifies the list of specific AWS regions from which the organization aggregator collects configuration data; if omitted, all regions are included (as long as the parent's allAwsRegions setting is true). Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="role_arn" type="string" required>
+      The ARN of the IAM role that AWS Config assumes to access organization data for the organization aggregation source. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags for the configuration aggregator. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The user-defined key of a tag applied to the AWS Config configuration aggregator, used to identify and organize the aggregator resource within your AWS environment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a key-value tag assigned to the AWS Config configuration aggregator. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="configuration_aggregator_arn" type="string">
+  The Amazon Resource Name (ARN) of the aggregator. Computed by AWS after `ship`.
+</ResponseField>

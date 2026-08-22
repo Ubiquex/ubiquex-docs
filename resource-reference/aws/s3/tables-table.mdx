@@ -1,0 +1,298 @@
+---
+title: "aws_s3_tables_table"
+description: "`aws_s3_tables_table` creates a real Apache Iceberg table within an `aws_s3_tables_table_bucket`, with S3 Tables handling the table's own compaction..."
+---
+
+`aws_s3_tables_table` creates a real Apache Iceberg table within an `aws_s3_tables_table_bucket`, with S3 Tables handling the table's own compaction, snapshot management, and file optimization automatically in the background.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	s3 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/s3"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own tables table"})
+
+    		ubx.Resource(s3.TablesTable, "ci-runner", s3.TablesTableConfig{
+    			Namespace:                 "example",
+    			OpenTableFormat:           "example",
+    			TableBucketArn:            "arn:aws:iam::123456789012:policy/ci",
+    			TableName:                 "example-table-name",
+    			Compaction:                map[string]any{"status": "example"},
+    			IcebergMetadata:           map[string]any{"iceberg_partition_spec": map[string]any{"fields": []map[string]any{{"name": "example-name"}}}},
+    			SnapshotManagement:        map[string]any{"max_snapshot_age_hours": 1},
+    			StorageClassConfiguration: map[string]any{"storage_class": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { TablesTable } from "./local-sdk/aws/sdk/typescript/aws/s3/tables_table.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own tables table" });
+
+      resource(TablesTable, "ci-runner", {
+        namespace: "example",
+        openTableFormat: "example",
+        tableBucketArn: "arn:aws:iam::123456789012:policy/ci",
+        tableName: "example-table-name",
+        compaction: { status: "example" },
+        icebergMetadata: {
+          icebergPartitionSpec: { fields: [{ name: "example-name" }] },
+        },
+        snapshotManagement: { maxSnapshotAgeHours: 1 },
+        storageClassConfiguration: { storageClass: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.s3 import TablesTable, TablesTableConfig
+
+    def describe():
+        ubx.intent("payments own tables table")
+
+        ubx.resource(TablesTable, "ci-runner", TablesTableConfig(
+            namespace="example",
+            open_table_format="example",
+            table_bucket_arn="arn:aws:iam::123456789012:policy/ci",
+            table_name="example-table-name",
+            compaction={"status": "example"},
+            iceberg_metadata={"iceberg_partition_spec": {"fields": [{"name": "example-name"}]}},
+            snapshot_management={"max_snapshot_age_hours": 1},
+            storage_class_configuration={"storage_class": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_s3_tables_table, with namespace example, open table
+    format example, table bucket arn
+    arn:aws:iam::123456789012:policy/ci, table name
+    example-table-name, compaction a set value, iceberg metadata a
+    set value, snapshot management a set value, storage class
+    configuration a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="compaction" type="object">
+  Settings governing the Compaction maintenance action. Contains details about the compaction settings for an Iceberg table. Optional.
+  <Expandable title="properties">
+    <ResponseField name="status" type="string">
+      Indicates whether the Compaction maintenance action is enabled. Optional.
+    </ResponseField>
+    <ResponseField name="target_file_size_mb" type="number">
+      The target file size for the table in MB. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="iceberg_metadata" type="object">
+  Contains details about the metadata for an Iceberg table. Specify either IcebergSchema (for simple flat schemas with primitive types only) or IcebergSchemaV2 (for schemas with nested types like struct, list, map), but not both. Optional.
+  <Expandable title="properties">
+    <ResponseField name="iceberg_partition_spec" type="object">
+      Partition specification for an Iceberg table Optional.
+      <Expandable title="properties">
+        <ResponseField name="fields" type="list(object)" required>
+          List of partition fields for an Iceberg table Required.
+          <Expandable title="properties">
+            <ResponseField name="field_id" type="number">
+              The unique numeric identifier for this partition field within the Iceberg partition spec, used to reference the field in table metadata and query operations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="name" type="string">
+              The name of the partition field, which corresponds to a column name in the Iceberg table's schema and defines the source column used for partitioning in the partition spec. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="source_id" type="number">
+              The numeric ID of the source column in the table schema that this partition field derives from, as defined in the Iceberg partition spec. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="transform" type="string">
+              Specifies the partition transform applied to the source column (e.g., identity, bucket[N], truncate[N], year, month, day, hour, or void) when defining this field in the Iceberg partition spec. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="spec_id" type="number">
+          The partition spec ID (defaults to 0 if not specified) Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="iceberg_schema" type="object">
+      Contains details about the schema for an Iceberg table Optional.
+      <Expandable title="properties">
+        <ResponseField name="schema_field_list" type="list(object)" required>
+          Contains details about the schema for an Iceberg table Required.
+          <Expandable title="properties">
+            <ResponseField name="id" type="number">
+              The numeric identifier that uniquely distinguishes this schema field from other fields in the table's Iceberg schema. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="name" type="string">
+              Specifies the column name for this entry in the Iceberg schema field list, which defines the columns of the S3 Tables table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="required" type="bool">
+              Specifies whether this field in the table's Iceberg schema is required, meaning that every record must include a non-null value for the field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="type" type="string">
+              Defines the Iceberg data type for a field in the table schema, such as string, int, long, double, boolean, timestamp, or other supported Iceberg types. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="iceberg_schema_v2" type="object">
+      Contains details about the schema version 2 (V2) for an Iceberg table that supports Apache Iceberg Nested Types (struct, list, map). Primitive types are also supported. Optional.
+      <Expandable title="properties">
+        <ResponseField name="identifier_field_ids" type="list(number)">
+          A list of field IDs that are used as the identifier fields for the table. Identifier fields uniquely identify a row in the table. Optional.
+        </ResponseField>
+        <ResponseField name="schema_id" type="number">
+          An optional unique identifier for the schema Optional.
+        </ResponseField>
+        <ResponseField name="schema_v2_field_list" type="list(object)" required>
+          List of schema fields that support nested types Required.
+          <Expandable title="properties">
+            <ResponseField name="doc" type="string">
+              The doc property provides a documentation string that describes the purpose or meaning of the schema field within the Iceberg table's schema v2 definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="id" type="number">
+              The unique numeric ID assigned to this field within the Iceberg schema v2 definition, used internally to reference the field in table metadata and data files. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="name" type="string">
+              The name of a column (field) within the Iceberg schema version 2 for the S3 Tables table, which identifies the field in the list of fields for that schema. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="required" type="bool">
+              Indicates whether this column is required (non-nullable) in the Iceberg table schema, meaning it must contain a value in every row. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="type" type="any">
+              Specifies the Iceberg data type for this column in the table schema, defining how values are stored and interpreted (e.g., boolean, int, long, float, double, decimal, date, time, timestamp, string, uuid, fixed, binary, or nested struct/list/map types). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="schema_v2_field_type" type="string" required>
+          The type of the top-level schema, which is always 'struct' Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="iceberg_sort_order" type="object">
+      Sort order specification for an Iceberg table Optional.
+      <Expandable title="properties">
+        <ResponseField name="fields" type="list(object)" required>
+          List of sort fields for an Iceberg table Required.
+          <Expandable title="properties">
+            <ResponseField name="direction" type="string">
+              Specifies the sort direction (ASC or DESC) for a field in the Iceberg sort order, determining whether rows are ordered ascending or descending by this field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="null_order" type="string">
+              Specifies whether null values are positioned first or last when sorting records by this field in the table's Iceberg sort order. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="source_id" type="number">
+              The source_id field specifies the unique numeric identifier of the column in the Iceberg table's schema that this sort field refers to, defining which column is used for sorting in the table's sort order. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="transform" type="string">
+              The transform function applied to the column for sorting in the Iceberg sort order, such as identity, bucket[N], truncate[N], or time-based transforms like year, month, day, or hour. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="order_id" type="number">
+          The sort order ID (defaults to 1 if not specified, 0 is reserved for unsorted) Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="table_properties" type="any">
+      Iceberg table properties (e.g., format-version, write.parquet.compression-codec) Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="namespace" type="string" required>
+  The namespace that the table belongs to. Required.
+</ResponseField>
+
+<ResponseField name="open_table_format" type="string" required>
+  Format of the table. Required.
+</ResponseField>
+
+<ResponseField name="snapshot_management" type="object">
+  Contains details about the snapshot management settings for an Iceberg table. A snapshot is expired when it exceeds MinSnapshotsToKeep and MaxSnapshotAgeHours. Optional.
+  <Expandable title="properties">
+    <ResponseField name="max_snapshot_age_hours" type="number">
+      The maximum age of a snapshot before it can be expired. Optional.
+    </ResponseField>
+    <ResponseField name="min_snapshots_to_keep" type="number">
+      The minimum number of snapshots to keep. Optional.
+    </ResponseField>
+    <ResponseField name="status" type="string">
+      Indicates whether the SnapshotManagement maintenance action is enabled. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="storage_class_configuration" type="object">
+  Specifies storage class settings for the table Optional.
+  <Expandable title="properties">
+    <ResponseField name="storage_class" type="string">
+      The storage class for the table Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="table_bucket_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the specified table bucket. Required.
+</ResponseField>
+
+<ResponseField name="table_name" type="string" required>
+  The name for the table. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  User tags (key-value pairs) to associate with the table. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="without_metadata" type="string">
+  Indicates that you don't want to specify a schema for the table. This property is mutually exclusive to 'IcebergMetadata', and its only possible value is 'Yes'. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="table_arn" type="string">
+  The Amazon Resource Name (ARN) of the specified table. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="version_token" type="string">
+  The version token of the table Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="warehouse_location" type="string">
+  The warehouse location of the table. Computed by AWS after `ship`.
+</ResponseField>

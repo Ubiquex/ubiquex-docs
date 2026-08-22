@@ -1,0 +1,120 @@
+---
+title: "aws_open_search_data_source"
+description: "`aws_open_search_data_source` connects a real external data source, most commonly Amazon S3, to an `aws_open_search_service_domain`..."
+---
+
+`aws_open_search_data_source` connects a real external data source, most commonly Amazon S3, to an `aws_open_search_service_domain`, so OpenSearch can query that data directly without first ingesting a full copy of it.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	open "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/open"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own search data source"})
+
+    		ubx.Resource(open.SearchDataSource, "ci-runner", open.SearchDataSourceConfig{
+    			DataSourceType: map[string]any{"s3_glue_data_catalog": map[string]any{"role_arn": "example"}},
+    			DomainName:     "example-domain-name",
+    			Name:           "ci-runner",
+    			Description:    "Managed by ubx.",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { SearchDataSource } from "./local-sdk/aws/sdk/typescript/aws/open/search_data_source.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own search data source" });
+
+      resource(SearchDataSource, "ci-runner", {
+        dataSourceType: { s3GlueDataCatalog: { roleArn: "example" } },
+        domainName: "example-domain-name",
+        name: "ci-runner",
+        description: "Managed by ubx.",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.open import SearchDataSource, SearchDataSourceConfig
+
+    def describe():
+        ubx.intent("payments own search data source")
+
+        ubx.resource(SearchDataSource, "ci-runner", SearchDataSourceConfig(
+            data_source_type={"s3_glue_data_catalog": {"role_arn": "example"}},
+            domain_name="example-domain-name",
+            name="ci-runner",
+            description="Managed by ubx.",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_open_search_data_source called "ci-runner", with data
+    source type a set value, domain name example-domain-name,
+    description Managed by ubx..
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="data_source_type" type="object" required>
+  The type of data source. Required.
+  <Expandable title="properties">
+    <ResponseField name="s3_glue_data_catalog" type="object">
+      Configuration for an S3 Glue Data Catalog data source. Optional.
+      <Expandable title="properties">
+        <ResponseField name="role_arn" type="string" required>
+          The ARN of the IAM role that grants OpenSearch Service permission to access the Glue Data Catalog. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A description of the data source. Optional.
+</ResponseField>
+
+<ResponseField name="domain_name" type="string" required>
+  The name of the OpenSearch Service domain. Required.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the data source. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the data source. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The status of the data source. Computed by AWS after `ship`.
+</ResponseField>

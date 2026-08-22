@@ -1,0 +1,415 @@
+---
+title: "aws_events_rule"
+description: "`aws_events_rule` matches real events flowing through an `aws_events_event_bus` against a defined pattern, or fires on a schedule..."
+---
+
+`aws_events_rule` matches real events flowing through an `aws_events_event_bus` against a defined pattern, or fires on a schedule, and routes matching events to one or more real targets, a Lambda function, an SQS queue, a Step Functions state machine.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	events "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/events"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own rule"})
+
+    		ubx.Resource(events.Rule, "ci-runner", events.RuleConfig{
+    			Name:               "ci-runner",
+    			Description:        "Managed by ubx.",
+    			EventBusName:       "example-event-bus-name",
+    			EventPattern:       "example",
+    			RoleArn:            "arn:aws:iam::123456789012:policy/ci",
+    			ScheduleExpression: "example",
+    			State:              "example",
+    			Tags:               []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Rule } from "./local-sdk/aws/sdk/typescript/aws/events/rule.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own rule" });
+
+      resource(Rule, "ci-runner", {
+        name: "ci-runner",
+        description: "Managed by ubx.",
+        eventBusName: "example-event-bus-name",
+        eventPattern: "example",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        scheduleExpression: "example",
+        state: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.events import Rule, RuleConfig
+
+    def describe():
+        ubx.intent("payments own rule")
+
+        ubx.resource(Rule, "ci-runner", RuleConfig(
+            name="ci-runner",
+            description="Managed by ubx.",
+            event_bus_name="example-event-bus-name",
+            event_pattern="example",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            schedule_expression="example",
+            state="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_events_rule called "ci-runner", with description
+    Managed by ubx., event bus name example-event-bus-name, event
+    pattern example, role arn arn:aws:iam::123456789012:policy/ci,
+    schedule expression example, state example, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  The description of the rule. Optional.
+</ResponseField>
+
+<ResponseField name="event_bus_name" type="string">
+  The name or ARN of the event bus associated with the rule. If you omit this, the default event bus is used. Optional.
+</ResponseField>
+
+<ResponseField name="event_pattern" type="string">
+  The event pattern of the rule. For more information, see Events and Event Patterns in the Amazon EventBridge User Guide. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the rule. Optional.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string">
+  The Amazon Resource Name (ARN) of the role that is used for target invocation. Optional.
+</ResponseField>
+
+<ResponseField name="schedule_expression" type="string">
+  The scheduling expression. For example, "cron(0 20 * * ? *)", "rate(5 minutes)". For more information, see Creating an Amazon EventBridge rule that runs on a schedule. Optional.
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  The state of the rule. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Any tags assigned to the event rule. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The user-defined key of a tag attached to the EventBridge rule, used to categorize and manage the rule within AWS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a tag (key-value pair) attached to the EventBridge rule, used to organize, identify, and control access to the rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="targets" type="list(object)">
+  Adds the specified targets to the specified rule, or updates the targets if they are already associated with the rule. Targets are the resources that are invoked when a rule is triggered. Optional.
+  <Expandable title="properties">
+    <ResponseField name="app_sync_parameters" type="object">
+      For an EventBridge target that invokes an AWS AppSync GraphQL API, this object specifies AppSync-specific parameters such as the GraphQL operation (mutation) to execute with the event payload. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="graph_qloperation" type="string">
+          The GraphQL query or mutation (e.g., mutation &#123; ... &#125;) to execute against the AppSync API when this target is triggered by the event rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="arn" type="string">
+      The ARN of the target resource (such as a Lambda function, SNS topic, or other AWS service) that the rule invokes or sends events to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="batch_parameters" type="object">
+      Specifies the parameters for an AWS Batch job that the event rule invokes as a target, including job definition, job name, array properties, and retry strategy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="array_properties" type="object">
+          This object, nested within an EventBridge rule target's Batch parameters, defines the array size of the AWS Batch job, specifying how many child jobs the array job should launch. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="size" type="number">
+              The number of child jobs to run when the Batch job is submitted as an array job, controlling how many parallel attempts are launched. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="job_definition" type="string">
+          The name or ARN of the AWS Batch job definition to run when the event rule matches an event and targets this Batch job. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="job_name" type="string">
+          The name of the AWS Batch job to run when this target is invoked by the event rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="retry_strategy" type="object">
+          Defines the retry strategy for the Batch job target, including the number of attempts to retry the job submission. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="attempts" type="number">
+              Determines the number of times a failed AWS Batch job is retried (total attempts including the original), where each retry moves the job to RUNNABLE status and a value of 1 (the default) means no retries. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="dead_letter_config" type="object">
+      Configures a dead-letter queue (specified by its SQS queue ARN) to which EventBridge sends events that fail delivery to this target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="arn" type="string">
+          The ARN of the SQS queue to which EventBridge routes events that fail to be delivered to the target, as part of the target's dead-letter configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="ecs_parameters" type="object">
+      Specifies the ECS task definition and related settings used when the event target invokes an Amazon ECS task. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="capacity_provider_strategy" type="list(object)">
+          Defines the capacity provider strategy used for ECS tasks launched by this EventBridge rule target, including a list of capacity providers with their weights and base values. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="base" type="number">
+              The base value designates how many tasks, at minimum, to run on the specified capacity provider within the capacity provider strategy for the ECS task launched by this EventBridge rule target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="capacity_provider" type="string">
+              The name of the capacity provider (e.g., FARGATE or a custom capacity provider) used by the ECS task target's capacity provider strategy to determine the infrastructure on which the task runs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="weight" type="number">
+              The relative weight of the capacity provider, used to determine the proportion of tasks that are scheduled on it when multiple capacity providers are specified in the ECS task's capacity provider strategy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="enable_ecsmanaged_tags" type="bool">
+          Indicates whether to enable Amazon ECS managed tags on the task launched by the EventBridge target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="enable_execute_command" type="bool">
+          Enables ECS Exec for the task's containers, allowing you to run interactive commands inside them. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="group" type="string">
+          The ECS task group to assign to the tasks launched by this EventBridge target, which overrides the group in the task definition and can be used for task grouping and filtering. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="launch_type" type="string">
+          The launch type (EC2 or FARGATE) that specifies how the ECS task is launched when the event rule triggers the target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="network_configuration" type="object">
+          Configures the VPC subnets and security groups used by the ECS task or service that the EventBridge rule target runs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="aws_vpc_configuration" type="object">
+              Defines the VPC subnets, security groups, and public IP assignment for the ECS task or service used as the event target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="assign_public_ip" type="string">
+                  Indicates whether the ECS task's elastic network interface should be assigned a public IP address (ENABLED) or not (DISABLED) when the task runs with the awsvpc network mode. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="security_groups" type="list(string)">
+                  Specifies the security group IDs to attach to the ECS task's elastic network interface when this EventBridge rule target launches an ECS task, under the VPC configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="subnets" type="list(string)">
+                  The IDs of the subnets in which the ECS task will run when the EventBridge rule triggers it. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="placement_constraints" type="list(object)">
+          Specifies the placement constraints for the ECS task invoked by the EventBridge rule, controlling which container instances or availability zones the task may be placed on. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="expression" type="string">
+              The placement constraint expression to apply to the ECS task launched by this rule, supporting attribute-based queries like `attribute:ecs.instance-type =~ t2.*` or `distinctInstance`. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="type" type="string">
+              Specifies the type of ECS placement constraint to apply to the task, with valid values `distinctInstance` or `memberOf`. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="placement_strategies" type="list(object)">
+          Specifies the placement strategy for ECS tasks started by this EventBridge target, controlling how tasks are distributed across container instances in the cluster (e.g., spread, binpack, or random). Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="field" type="string">
+              The field to apply the ECS placement strategy against, such as 'attribute:ecs.availability-zone' or 'instanceId', typically used with the 'spread' placement strategy type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="type" type="string">
+              For an EventBridge rule target that runs an ECS task, this specifies the type of placement strategy (random, spread, or binpack) used to determine how tasks are placed across container instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="platform_version" type="string">
+          The platform version on which the ECS task runs, such as 'LATEST' or a specific version like '1.4.0'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="propagate_tags" type="string">
+          Specifies whether to propagate the tags from the task definition to the Amazon ECS task; valid values are `TASK_DEFINITION` or `NONE`. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="reference_id" type="string">
+          Specifies the optional reference ID string that identifies the ECS task started by this EventBridge rule target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="tag_list" type="list(object)">
+          Specifies a list of tags to apply to the ECS task that is launched by the EventBridge rule target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The key of a tag to apply to the ECS task when the event rule triggers the ECS target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              In an ECS target for an EventBridge rule, this field specifies the value of one tag applied to the ECS task launched by that target, pairing with the corresponding key in the tag_list entry. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="task_count" type="number">
+          Specifies the number of tasks to create when running the ECS task defined in the task definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="task_definition_arn" type="string">
+          The ARN of the ECS task definition that EventBridge invokes to start the ECS task when the rule fires for this target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="http_parameters" type="object">
+      Specifies the HTTP parameters (headers, path, and query string) to use when the target is an API destination or webhook. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="header_parameters" type="any">
+          Specifies the HTTP headers to include in the request when the event rule target invokes an API destination or HTTP endpoint. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="path_parameter_values" type="list(string)">
+          Specifies the list of concrete values to substitute for each path parameter placeholder (e.g., &#123;id&#125;) in the HTTP request URL when the rule invokes an API destination target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="query_string_parameters" type="any">
+          A map of key-value pairs that are appended to the query string of the HTTP request sent to the target when the rule is invoked, allowing you to pass custom query parameters to an API destination or other HTTP target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="id" type="string">
+      The Id property of a target provides a unique, user-defined name for that target within the rule, and it is required. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="input" type="string">
+      Specifies the literal text or JSON payload delivered to the target, overriding the original event that triggered the rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="input_path" type="string">
+      A JSONPath string that selects a portion of the original event to pass as the input to this target, overriding the full event payload. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="input_transformer" type="object">
+      Defines a custom transformation of the incoming event using a set of JSON path mappings and an input template, so the payload delivered to the target is reshaped from the original event. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="input_paths_map" type="any">
+          A map of user-defined variable names to JSONPath expressions that extract values from the source event, which are then referenced as variables in the input transformer's template. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="input_template" type="string">
+          Defines the template string that specifies how the event input is transformed before being sent to the target, using JSON paths enclosed in angular brackets (e.g., &lt;$.source&gt;) for dynamic values. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="kinesis_parameters" type="object">
+      Defines the parameters for a Kinesis stream target, most notably the partition key that determines which shard the event is delivered to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="partition_key_path" type="string">
+          A JSON path expression within the event payload that EventBridge uses to extract the partition key for the Kinesis record, required when the target is a Kinesis stream. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="redshift_data_parameters" type="object">
+      Specifies the parameters for executing an Amazon Redshift Data API statement as the EventBridge rule target, including the database, SQL command, and optional database user or secret manager credentials. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="database" type="string">
+          The name of the Amazon Redshift database that the SQL statement is run against when the CloudWatch Events rule triggers the Redshift Data API target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="db_user" type="string">
+          The name of the database user that Amazon Redshift Data API uses to access the cluster when executing the SQL statement for this EventBridge target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="secret_manager_arn" type="string">
+          The ARN of the AWS Secrets Manager secret that stores the Redshift cluster credentials used by the Redshift Data API to execute the target's SQL statement. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="sql" type="string">
+          Specifies the SQL statement text that Amazon EventBridge passes to the Amazon Redshift Data API for execution when the rule triggers this target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="sqls" type="list(string)">
+          A list of SQL statements to be executed against the Amazon Redshift cluster when the event rule triggers the Redshift Data API target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="statement_name" type="string">
+          The name of the Redshift Data API prepared statement to execute when the event rule triggers the target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="with_event" type="bool">
+          Whether to pass the original event as an `:event` parameter to the Redshift Data API statement executed by this EventBridge target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="retry_policy" type="object">
+      Configures the retry policy for the target, specifying the maximum number of retry attempts and the maximum event age for a failed event invocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="maximum_event_age_in_seconds" type="number">
+          The maximum time in seconds (1-86400) that EventBridge retains an event for a target after a failed invocation, after which the event is discarded and no further retries are made. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum_retry_attempts" type="number">
+          The maximum number of times EventBridge retries invoking the target after a failed invocation, as part of the rule's retry policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="role_arn" type="string">
+      The ARN of the IAM role that EventBridge assumes to invoke the target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="run_command_parameters" type="object">
+      Specifies the parameters for an AWS Systems Manager Run Command that is invoked when the rule's target is an EC2 instance via SSM Run Command. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="run_command_targets" type="list(object)">
+          Specifies the AWS Systems Manager Run Command target instances by defining a key (such as an EC2 tag key or resource group) and a list of values used to select which instances the command runs against. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The EC2 tag key used by Systems Manager Run Command to select which instances the command targets. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="values" type="list(string)">
+              The list of string values for a RunCommand target, which, together with its key, define the set of EC2 instances (e.g., by tag or resource group) that receive the Systems Manager Run Command invoked by this EventBridge rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="sage_maker_pipeline_parameters" type="object">
+      An object that holds the runtime parameters for a SageMaker Pipeline target, including a list of pipeline parameter name-value pairs to pass to the pipeline execution. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="pipeline_parameter_list" type="list(object)">
+          The list of SageMaker pipeline input parameters (name-value pairs) that are passed to the pipeline execution when EventBridge invokes the SageMaker pipeline target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="name" type="string">
+              The name of a SageMaker pipeline parameter to pass as input when the EventBridge rule target invokes the pipeline. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The value of a SageMaker pipeline parameter (Name/Value pair) supplied to a SageMaker pipeline when the EventBridge rule triggers the pipeline execution. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="sqs_parameters" type="object">
+      Configuration for an SQS queue target, containing FIFO-specific settings such as the message group ID and message deduplication ID. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="message_group_id" type="string">
+          Specifies the message group ID for messages sent to a FIFO SQS queue as an EventBridge rule target, which groups messages so that they are processed in order and are not interleaved with messages from other groups. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The ARN of the rule, such as arn:aws:events:us-east-2:123456789012:rule/example. Computed by AWS after `ship`.
+</ResponseField>

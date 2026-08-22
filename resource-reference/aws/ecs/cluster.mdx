@@ -1,0 +1,205 @@
+---
+title: "aws_ecs_cluster"
+description: "`aws_ecs_cluster` is the real, logical grouping of tasks and services, backed by EC2 instances, Fargate, or both..."
+---
+
+`aws_ecs_cluster` is the real, logical grouping of tasks and services, backed by EC2 instances, Fargate, or both, that every `aws_ecs_service` and `aws_ecs_task_definition` run gets scheduled into.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ecs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ecs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own cluster"})
+
+    		ubx.Resource(ecs.Cluster, "ci-runner", ecs.ClusterConfig{
+    			CapacityProviders:               []string{"example"},
+    			ClusterName:                     "example-cluster-name",
+    			ClusterSettings:                 []map[string]any{{"name": "example-name"}},
+    			Configuration:                   map[string]any{"execute_command_configuration": map[string]any{"kms_key_id": "example"}},
+    			DefaultCapacityProviderStrategy: []map[string]any{{"base": 1}},
+    			ServiceConnectDefaults:          map[string]any{"namespace": "example"},
+    			Tags:                            []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Cluster } from "./local-sdk/aws/sdk/typescript/aws/ecs/cluster.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own cluster" });
+
+      resource(Cluster, "ci-runner", {
+        capacityProviders: ["example"],
+        clusterName: "example-cluster-name",
+        clusterSettings: [{ name: "example-name" }],
+        configuration: { executeCommandConfiguration: { kmsKeyId: "example" } },
+        defaultCapacityProviderStrategy: [{ base: 1 }],
+        serviceConnectDefaults: { namespace: "example" },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ecs import Cluster, ClusterConfig
+
+    def describe():
+        ubx.intent("payments own cluster")
+
+        ubx.resource(Cluster, "ci-runner", ClusterConfig(
+            capacity_providers=["example"],
+            cluster_name="example-cluster-name",
+            cluster_settings=[{"name": "example-name"}],
+            configuration={"execute_command_configuration": {"kms_key_id": "example"}},
+            default_capacity_provider_strategy=[{"base": 1}],
+            service_connect_defaults={"namespace": "example"},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ecs_cluster, with capacity providers a set value,
+    cluster name example-cluster-name, cluster settings a set value,
+    configuration a set value, default capacity provider strategy a
+    set value, service connect defaults a set value, tags a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="capacity_providers" type="list(string)">
+  The short name of one or more capacity providers to associate with the cluster. A capacity provider must be associated with a cluster before it can be included as part of the default capacity provider strategy of the cluster or used in a capacity provider strategy when calling the [CreateService](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_CreateService.html) or [RunTask](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RunTask.html) actions. If specifying a capacity provider that uses an Auto Scaling group, the capacity provider must be created but not associated with another cluster. New Auto Scaling group capacity providers can be created with the [CreateCapacityProvider](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_CreateCapacityProvider.html) API operation. To use a FARGATElong capacity provider, specify either the ``FARGATE`` or ``FARGATE_SPOT`` capacity providers. The FARGATElong capacity providers are available to all accounts and only need to be associated with a cluster to be used. The [PutCapacityProvider](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_PutCapacityProvider.html) API operation is used to update the list of available capacity providers for a cluster after the cluster is created. Optional.
+</ResponseField>
+
+<ResponseField name="cluster_name" type="string">
+  A user-generated string that you use to identify your cluster. If you don't specify a name, CFNlong generates a unique physical ID for the name. Optional.
+</ResponseField>
+
+<ResponseField name="cluster_settings" type="list(object)">
+  The settings to use when creating a cluster. This parameter is used to turn on CloudWatch Container Insights with enhanced observability or CloudWatch Container Insights for a cluster. Container Insights with enhanced observability provides all the Container Insights metrics, plus additional task and container metrics. This version supports enhanced observability for Amazon ECS clusters using the Amazon EC2 and Fargate launch types. After you configure Container Insights with enhanced observability on Amazon ECS, Container Insights auto-collects detailed infrastructure telemetry from the cluster level down to the container level in your environment and displays these critical performance data in curated dashboards removing the heavy lifting in observability set-up. For more information, see [Monitor Amazon ECS containers using Container Insights with enhanced observability](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cloudwatch-container-insights.html) in the *Amazon Elastic Container Service Developer Guide*. Optional.
+  <Expandable title="properties">
+    <ResponseField name="name" type="string">
+      The name of the cluster setting, which identifies the specific setting (such as 'containerInsights') that the corresponding value applies to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value for the ECS cluster setting, such as 'enabled' or 'disabled' for the common 'containerInsights' setting. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="configuration" type="object">
+  The execute command and managed storage configuration for the cluster. Optional.
+  <Expandable title="properties">
+    <ResponseField name="execute_command_configuration" type="object">
+      The details of the execute command configuration. Optional.
+      <Expandable title="properties">
+        <ResponseField name="kms_key_id" type="string">
+          Specify an KMSlong key ID to encrypt the data between the local client and the container. Optional.
+        </ResponseField>
+        <ResponseField name="log_configuration" type="object">
+          The log configuration for the results of the execute command actions. The logs can be sent to CloudWatch Logs or an Amazon S3 bucket. Optional.
+          <Expandable title="properties">
+            <ResponseField name="cloud_watch_encryption_enabled" type="bool">
+              Determines whether to use encryption on the CloudWatch logs. If not specified, encryption will be off. Optional.
+            </ResponseField>
+            <ResponseField name="cloud_watch_log_group_name" type="string">
+              The name of the CloudWatch log group to send logs to. The CloudWatch log group must already be created. Optional.
+            </ResponseField>
+            <ResponseField name="s3_bucket_name" type="string">
+              The name of the S3 bucket to send logs to. The S3 bucket must already be created. Optional.
+            </ResponseField>
+            <ResponseField name="s3_encryption_enabled" type="bool">
+              Determines whether to use encryption on the S3 logs. If not specified, encryption is not used. Optional.
+            </ResponseField>
+            <ResponseField name="s3_key_prefix" type="string">
+              An optional folder in the S3 bucket to place logs in. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="logging" type="string">
+          The log setting to use for redirecting logs for your execute command results. The following log settings are available. + ``NONE``: The execute command session is not logged. + ``DEFAULT``: The ``awslogs`` configuration in the task definition is used. If no logging parameter is specified, it defaults to this value. If no ``awslogs`` log driver is configured in the task definition, the output won't be logged. + ``OVERRIDE``: Specify the logging details as a part of ``logConfiguration``. If the ``OVERRIDE`` logging option is specified, the ``logConfiguration`` is required. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="managed_storage_configuration" type="object">
+      The managed storage configuration for the cluster. Optional.
+      <Expandable title="properties">
+        <ResponseField name="fargate_ephemeral_storage_kms_key_id" type="string">
+          Specify the KMSlong key ID for Fargate ephemeral storage. When you specify a ``fargateEphemeralStorageKmsKeyId``, AWS Fargate uses the key to encrypt data at rest in ephemeral storage. For more information about Fargate ephemeral storage encryption, see [Customer managed keys for Fargate ephemeral storage for Amazon ECS](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-storage-encryption.html) in the *Amazon Elastic Container Service Developer Guide*. The key must be a single Region key. Optional.
+        </ResponseField>
+        <ResponseField name="kms_key_id" type="string">
+          Specify a KMSlong key ID to encrypt Amazon ECS managed storage. When you specify a ``kmsKeyId``, Amazon ECS uses the key to encrypt data volumes managed by Amazon ECS that are attached to tasks in the cluster. The following data volumes are managed by Amazon ECS: Amazon EBS. For more information about encryption of Amazon EBS volumes attached to Amazon ECS tasks, see [Encrypt data stored in Amazon EBS volumes for Amazon ECS](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ebs-kms-encryption.html) in the *Amazon Elastic Container Service Developer Guide*. The key must be a single Region key. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="default_capacity_provider_strategy" type="list(object)">
+  The default capacity provider strategy for the cluster. When services or tasks are run in the cluster with no launch type or capacity provider strategy specified, the default capacity provider strategy is used. Optional.
+  <Expandable title="properties">
+    <ResponseField name="base" type="number">
+      Base specifies the minimum number of tasks that run on this capacity provider within the cluster's capacity provider strategy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="capacity_provider" type="string">
+      Specifies the name of the capacity provider (such as FARGATE, FARGATE_SPOT, or a custom Auto Scaling group-based provider) to include in the default capacity provider strategy that Amazon ECS applies when running tasks without an explicit strategy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="weight" type="number">
+      Weight is the relative proportion of tasks that should be placed on this capacity provider, used for spreading tasks across providers in the cluster's default capacity provider strategy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="service_connect_defaults" type="object">
+  Use this parameter to set a default Service Connect namespace. After you set a default Service Connect namespace, any new services with Service Connect turned on that are created in the cluster are added as client services in the namespace. This setting only applies to new services that set the ``enabled`` parameter to ``true`` in the ``ServiceConnectConfiguration``. You can set the namespace of each service individually in the ``ServiceConnectConfiguration`` to override this default parameter. Tasks that run in a namespace can use short names to connect to services in the namespace. Tasks can connect to services across all of the clusters in the namespace. Tasks connect through a managed proxy container that collects logs and metrics for increased visibility. Only the tasks that Amazon ECS services create are supported with Service Connect. For more information, see [Service Connect](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-connect.html) in the *Amazon Elastic Container Service Developer Guide*. Optional.
+  <Expandable title="properties">
+    <ResponseField name="namespace" type="string">
+      The namespace name or full Amazon Resource Name (ARN) of the CMAPlong namespace that's used when you create a service and don't specify a Service Connect configuration. The namespace name can include up to 1024 characters. The name is case-sensitive. The name can't include greater than (&gt;), less than (&lt;), double quotation marks ("), or slash (/). If you enter an existing namespace name or ARN, then that namespace will be used. Any namespace type is supported. The namespace must be in this account and this AWS Region. If you enter a new name, a CMAPlong namespace will be created. Amazon ECS creates a CMAP namespace with the "API calls" method of instance discovery only. This instance discovery method is the "HTTP" namespace type in the CLIlong. Other types of instance discovery aren't used by Service Connect. If you update the cluster with an empty string ``""`` for the namespace name, the cluster configuration for Service Connect is removed. Note that the namespace will remain in CMAP and must be deleted separately. For more information about CMAPlong, see [Working with Services](https://docs.aws.amazon.com/cloud-map/latest/dg/working-with-services.html) in the *Developer Guide*. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The metadata that you apply to the cluster to help you categorize and organize them. Each tag consists of a key and an optional value. You define both. The following basic restrictions apply to tags: + Maximum number of tags per resource - 50 + For each resource, each tag key must be unique, and each tag key can have only one value. + Maximum key length - 128 Unicode characters in UTF-8 + Maximum value length - 256 Unicode characters in UTF-8 + If your tagging schema is used across multiple services and resources, remember that other services may have restrictions on allowed characters. Generally allowed characters are: letters, numbers, and spaces representable in UTF-8, and the following characters: + - = . _ : / @. + Tag keys and values are case-sensitive. + Do not use ``aws:``, ``AWS:``, or any upper or lowercase combination of such as a prefix for either keys or values as it is reserved for AWS use. You cannot edit or delete tag keys or values with this prefix. Tags with this prefix do not count against your tags per resource limit. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of an arbitrary tag assigned to the ECS cluster, used for metadata and resource organization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies this ECS cluster. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

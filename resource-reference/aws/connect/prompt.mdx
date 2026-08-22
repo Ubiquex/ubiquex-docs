@@ -1,0 +1,121 @@
+---
+title: "aws_connect_prompt"
+description: "`aws_connect_prompt` registers a real, uploaded audio file as a named prompt an `aws_connect_contact_flow` can play back, IVR greetings, hold messages..."
+---
+
+`aws_connect_prompt` registers a real, uploaded audio file as a named prompt an `aws_connect_contact_flow` can play back, IVR greetings, hold messages, configurable and reusable rather than referencing a raw audio file inline.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	connect "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/connect"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own prompt"})
+
+    		ubx.Resource(connect.Prompt, "ci-runner", connect.PromptConfig{
+    			InstanceArn: "arn:aws:iam::123456789012:policy/ci",
+    			Name:        "ci-runner",
+    			Description: "Managed by ubx.",
+    			S3Uri:       "example",
+    			Tags:        []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Prompt } from "./local-sdk/aws/sdk/typescript/aws/connect/prompt.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own prompt" });
+
+      resource(Prompt, "ci-runner", {
+        instanceArn: "arn:aws:iam::123456789012:policy/ci",
+        name: "ci-runner",
+        description: "Managed by ubx.",
+        s3Uri: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.connect import Prompt, PromptConfig
+
+    def describe():
+        ubx.intent("payments own prompt")
+
+        ubx.resource(Prompt, "ci-runner", PromptConfig(
+            instance_arn="arn:aws:iam::123456789012:policy/ci",
+            name="ci-runner",
+            description="Managed by ubx.",
+            s3_uri="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_connect_prompt called "ci-runner", with instance arn
+    arn:aws:iam::123456789012:policy/ci, description Managed by ubx.,
+    s3 uri example, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  The description of the prompt. Optional.
+</ResponseField>
+
+<ResponseField name="instance_arn" type="string" required>
+  The identifier of the Amazon Connect instance. Required.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the prompt. Required.
+</ResponseField>
+
+<ResponseField name="s3_uri" type="string">
+  S3 URI of the customer's audio file for creating prompts resource.. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag assigned to the AWS Connect prompt, used for identifying and categorizing the prompt resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="prompt_arn" type="string">
+  The Amazon Resource Name (ARN) for the prompt. Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,178 @@
+---
+title: "aws_sso_permission_set"
+description: "`aws_sso_permission_set` defines a real, reusable collection of IAM policies, managed, inline, and a permissions boundary..."
+---
+
+`aws_sso_permission_set` defines a real, reusable collection of IAM policies, managed, inline, and a permissions boundary, that an IAM Identity Center instance provisions as an assumable IAM role in each AWS account a user or group is assigned access to.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	sso "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sso"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own permission set"})
+
+    		ubx.Resource(sso.PermissionSet, "ci-runner", sso.PermissionSetConfig{
+    			InstanceArn:                     "arn:aws:iam::123456789012:policy/ci",
+    			Name:                            "ci-runner",
+    			CustomerManagedPolicyReferences: []map[string]any{{"name": "example-name"}},
+    			Description:                     "Managed by ubx.",
+    			InlinePolicy:                    "example",
+    			ManagedPolicies:                 []string{"example"},
+    			PermissionsBoundary:             map[string]any{"customer_managed_policy_reference": map[string]any{"name": "example-name"}},
+    			RelayStateType:                  "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { PermissionSet } from "./local-sdk/aws/sdk/typescript/aws/sso/permission_set.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own permission set" });
+
+      resource(PermissionSet, "ci-runner", {
+        instanceArn: "arn:aws:iam::123456789012:policy/ci",
+        name: "ci-runner",
+        customerManagedPolicyReferences: [{ name: "example-name" }],
+        description: "Managed by ubx.",
+        inlinePolicy: "example",
+        managedPolicies: ["example"],
+        permissionsBoundary: {
+          customerManagedPolicyReference: { name: "example-name" },
+        },
+        relayStateType: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.sso import PermissionSet, PermissionSetConfig
+
+    def describe():
+        ubx.intent("payments own permission set")
+
+        ubx.resource(PermissionSet, "ci-runner", PermissionSetConfig(
+            instance_arn="arn:aws:iam::123456789012:policy/ci",
+            name="ci-runner",
+            customer_managed_policy_references=[{"name": "example-name"}],
+            description="Managed by ubx.",
+            inline_policy="example",
+            managed_policies=["example"],
+            permissions_boundary={"customer_managed_policy_reference": {"name": "example-name"}},
+            relay_state_type="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_sso_permission_set called "ci-runner", with instance
+    arn arn:aws:iam::123456789012:policy/ci, customer managed policy
+    references a set value, description Managed by ubx., inline
+    policy example, managed policies a set value, permissions
+    boundary a set value, relay state type example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="customer_managed_policy_references" type="list(object)">
+  Specifies the customer-managed IAM policies (identified by name and path) that are attached to this AWS SSO permission set. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="name" type="string">
+      The name of the customer managed policy to reference in the permission set. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="path" type="string">
+      The IAM path of the customer managed policy, which together with the policy name uniquely identifies the policy to attach to the permission set. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  The permission set description. Optional.
+</ResponseField>
+
+<ResponseField name="inline_policy" type="any">
+  The inline policy to put in permission set. Optional.
+</ResponseField>
+
+<ResponseField name="instance_arn" type="string" required>
+  The sso instance arn that the permission set is owned. Required.
+</ResponseField>
+
+<ResponseField name="managed_policies" type="list(string)">
+  The list of AWS managed policy ARNs to attach to the permission set. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name you want to assign to this permission set. Required.
+</ResponseField>
+
+<ResponseField name="permissions_boundary" type="object">
+  Specifies the permissions boundary for the permission set, which can be either a customer-managed policy reference or an AWS managed policy ARN that limits the maximum permissions of the permission set. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="customer_managed_policy_reference" type="object">
+      Provides the customer managed policy's name and optional path used to set a permissions boundary on the permission set. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="name" type="string" required>
+          The name of the customer managed IAM policy to use as the permissions boundary for this permission set. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="path" type="string">
+          The path of the customer managed IAM policy referenced by the permissions boundary, which defaults to '/' if omitted, used to limit the maximum permissions for the permission set. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="managed_policy_arn" type="string">
+      The managed policy to attach. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="relay_state_type" type="string">
+  The relay state URL that redirect links to any service in the AWS Management Console. Optional.
+</ResponseField>
+
+<ResponseField name="session_duration" type="string">
+  The length of time that a user can be signed in to an AWS account. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of key-value tags to assign to the AWS SSO permission set, which can be used for cost allocation, access control, and resource organization. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a user-defined tag attached to an AWS SSO Permission Set, which is used to categorize, identify, and manage the permission set within AWS SSO. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The tag value (the non-key component of a key-value pair) attached to the AWS SSO PermissionSet, used to label or categorize the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="permission_set_arn" type="string">
+  The permission set that the policy will be attached to Computed by AWS after `ship`.
+</ResponseField>

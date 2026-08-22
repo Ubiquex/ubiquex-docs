@@ -1,0 +1,243 @@
+---
+title: "aws_api_gateway_deployment"
+description: "`aws_api_gateway_deployment` is a real, immutable snapshot of an `aws_api_gateway_rest_api`'s resources and methods at a point in time."
+---
+
+A REST API's configuration only takes effect once deployed, and a deployment only becomes reachable once an `aws_api_gateway_stage` points to it.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	api "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/api"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own gateway deployment"})
+
+    		ubx.Resource(api.GatewayDeployment, "ci-runner", api.GatewayDeploymentConfig{
+    			RestApiId:                "example",
+    			DeploymentCanarySettings: map[string]any{"percent_traffic": 1},
+    			Description:              "Managed by ubx.",
+    			StageDescription:         map[string]any{"access_log_setting": map[string]any{"destination_arn": "example"}},
+    			StageName:                "example-stage-name",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { GatewayDeployment } from "./local-sdk/aws/sdk/typescript/aws/api/gateway_deployment.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own gateway deployment" });
+
+      resource(GatewayDeployment, "ci-runner", {
+        restApiId: "example",
+        deploymentCanarySettings: { percentTraffic: 1 },
+        description: "Managed by ubx.",
+        stageDescription: { accessLogSetting: { destinationArn: "example" } },
+        stageName: "example-stage-name",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.api import GatewayDeployment, GatewayDeploymentConfig
+
+    def describe():
+        ubx.intent("payments own gateway deployment")
+
+        ubx.resource(GatewayDeployment, "ci-runner", GatewayDeploymentConfig(
+            rest_api_id="example",
+            deployment_canary_settings={"percent_traffic": 1},
+            description="Managed by ubx.",
+            stage_description={"access_log_setting": {"destination_arn": "example"}},
+            stage_name="example-stage-name",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_api_gateway_deployment, with rest api id example,
+    deployment canary settings a set value, description Managed by
+    ubx., stage description a set value, stage name
+    example-stage-name.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="deployment_canary_settings" type="object">
+  The ``DeploymentCanarySettings`` property type specifies settings for the canary deployment. Optional.
+  <Expandable title="properties">
+    <ResponseField name="percent_traffic" type="number">
+      The percentage (0.0 to 100.0) of live traffic routed to the canary deployment, controlling gradual traffic shifting. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="stage_variable_overrides" type="any">
+      A map of stage variable names to their override values, applied to the canary stage so that the canary deployment uses different variable settings than the regular deployment. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="use_stage_cache" type="bool">
+      Determines whether the canary deployment uses the stage cache for caching responses when a canary release is enabled. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Specifies a description for this API Gateway deployment, which is often used to document the purpose or version of the deployed API. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="rest_api_id" type="string" required>
+  The identifier of the RestApi resource that this deployment belongs to. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="stage_description" type="object">
+  ``StageDescription`` is a property of the [AWS::ApiGateway::Deployment](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-deployment.html) resource that configures a deployment stage. Optional.
+  <Expandable title="properties">
+    <ResponseField name="access_log_setting" type="object">
+      The ``AccessLogSetting`` property type specifies settings for logging access in this stage. ``AccessLogSetting`` is a property of the [StageDescription](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apigateway-deployment-stagedescription.html) property type. Optional.
+      <Expandable title="properties">
+        <ResponseField name="destination_arn" type="string">
+          The ARN of the CloudWatch Logs log group to which API Gateway sends access logs for the stage described by this deployment. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="format" type="string">
+          Defines the format of the access log written to CloudWatch Logs, supporting context variables like $context.requestId and $context.identity.sourceIp. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="cache_cluster_enabled" type="bool">
+      Whether to enable a cache cluster for the API Gateway stage, allowing responses from integrations to be cached to improve performance and reduce backend load. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="cache_cluster_size" type="string">
+      The size of the stage's cache cluster. For more information, see [cacheClusterSize](https://docs.aws.amazon.com/apigateway/latest/api/API_CreateStage.html#apigw-CreateStage-request-cacheClusterSize) in the *API Gateway API Reference*. Optional.
+    </ResponseField>
+    <ResponseField name="cache_data_encrypted" type="bool">
+      Indicates whether the cached responses are encrypted. Optional.
+    </ResponseField>
+    <ResponseField name="cache_ttl_in_seconds" type="number">
+      The time-to-live (TTL) period, in seconds, that specifies how long API Gateway caches responses. Optional.
+    </ResponseField>
+    <ResponseField name="caching_enabled" type="bool">
+      Indicates whether responses are cached and returned for requests. You must enable a cache cluster on the stage to cache responses. For more information, see [Enable API Gateway Caching in a Stage to Enhance API Performance](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-caching.html) in the *API Gateway Developer Guide*. Optional.
+    </ResponseField>
+    <ResponseField name="canary_setting" type="object">
+      The ``CanarySetting`` property type specifies settings for the canary deployment in this stage. ``CanarySetting`` is a property of the [StageDescription](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apigateway-deployment-stagedescription.html) property type. Optional.
+      <Expandable title="properties">
+        <ResponseField name="percent_traffic" type="number">
+          The percentage of traffic to route to the canary stage during a canary release deployment. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="stage_variable_overrides" type="any">
+          A map of stage variable names to values that overrides the canary stage's stage variables for this deployment. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="use_stage_cache" type="bool">
+          Determines whether the canary deployment uses the stage cache, rather than bypassing it, for this deployment's canary settings. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="client_certificate_id" type="string">
+      The identifier of the client certificate that API Gateway uses to call your integration endpoints in the stage. Optional.
+    </ResponseField>
+    <ResponseField name="data_trace_enabled" type="bool">
+      Indicates whether data trace logging is enabled for methods in the stage. API Gateway pushes these logs to Amazon CloudWatch Logs. Optional.
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      A description of the purpose of the stage. Optional.
+    </ResponseField>
+    <ResponseField name="documentation_version" type="string">
+      The version identifier of the API documentation snapshot. Optional.
+    </ResponseField>
+    <ResponseField name="logging_level" type="string">
+      The logging level for this method. For valid values, see the ``loggingLevel`` property of the [MethodSetting](https://docs.aws.amazon.com/apigateway/latest/api/API_MethodSetting.html) resource in the *Amazon API Gateway API Reference*. Optional.
+    </ResponseField>
+    <ResponseField name="method_settings" type="list(object)">
+      Configures settings for all of the stage's methods. Optional.
+      <Expandable title="properties">
+        <ResponseField name="cache_data_encrypted" type="bool">
+          Whether the data stored in the API Gateway method cache is encrypted. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="cache_ttl_in_seconds" type="number">
+          Specifies the time-to-live (TTL) in seconds for the API Gateway cache for a given method, determining how long cached responses are stored before being invalidated. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="caching_enabled" type="bool">
+          Indicates whether API Gateway caches responses from the method for the associated stage. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="data_trace_enabled" type="bool">
+          Specifies whether data trace logging is enabled for this method, which affects the log entries pushed to Amazon CloudWatch Logs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="http_method" type="string">
+          The HTTP method (e.g., GET, POST) to which this method setting applies for the API Gateway stage. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="logging_level" type="string">
+          Specifies the logging level (OFF, ERROR, or INFO) for this API Gateway method, controlling the verbosity of CloudWatch Logs entries pushed from the method execution. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="metrics_enabled" type="bool">
+          Enables or disables CloudWatch metrics for the API method, allowing monitoring of latency, error rates, and call counts in the stage. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="resource_path" type="string">
+          The API resource path (e.g., /pets) for which these method-level settings (like caching, throttling, logging) apply in the API Gateway deployment stage. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="throttling_burst_limit" type="number">
+          The maximum number of requests per second that Amazon API Gateway can service for the given method before throttling is applied (the burst limit). Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="throttling_rate_limit" type="number">
+          The throttling rate limit (in requests per second) for the method, used by API Gateway to control the steady-state request rate for that method in the deployment's stage description method settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="metrics_enabled" type="bool">
+      Indicates whether Amazon CloudWatch metrics are enabled for methods in the stage. Optional.
+    </ResponseField>
+    <ResponseField name="tags" type="list(object)">
+      An array of arbitrary tags (key-value pairs) to associate with the stage. Optional.
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          The key of a tag entry in the stage description's tags map, which attaches that tag to the API Gateway stage created by this deployment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value" type="string">
+          The value of a tag (key-value pair) assigned to the API Gateway stage defined in this deployment's stage description, used for metadata and resource categorization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="throttling_burst_limit" type="number">
+      The target request burst rate limit. This allows more requests through for a period of time than the target rate limit. For more information, see [Manage API Request Throttling](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-request-throttling.html) in the *API Gateway Developer Guide*. Optional.
+    </ResponseField>
+    <ResponseField name="throttling_rate_limit" type="number">
+      The target request steady-state rate limit. For more information, see [Manage API Request Throttling](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-request-throttling.html) in the *API Gateway Developer Guide*. Optional.
+    </ResponseField>
+    <ResponseField name="tracing_enabled" type="bool">
+      Specifies whether active tracing with X-ray is enabled for this stage. For more information, see [Trace API Gateway API Execution with X-Ray](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-xray.html) in the *API Gateway Developer Guide*. Optional.
+    </ResponseField>
+    <ResponseField name="variables" type="any">
+      A map that defines the stage variables. Variable names must consist of alphanumeric characters, and the values must match the following regular expression: ``[A-Za-z0-9-._~:/?#&=,]+``. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="stage_name" type="string">
+  The name of the API Gateway stage (e.g., 'prod', 'dev') that this deployment is associated with, and when specified, the deployment updates or creates that stage's current deployment. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="deployment_id" type="string">
+  The unique identifier assigned by AWS to this API Gateway deployment, which is used to reference the deployment in other resources such as stages and usage plans. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

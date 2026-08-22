@@ -1,0 +1,619 @@
+---
+title: "aws_dynamo_db_global_table"
+description: "`aws_dynamo_db_global_table` replicates an `aws_dynamo_db_table`'s own data across multiple AWS Regions with active-active, multi-Region writes..."
+---
+
+`aws_dynamo_db_global_table` replicates an `aws_dynamo_db_table`'s own data across multiple AWS Regions with active-active, multi-Region writes, real low-latency global access and Regional failover that a single-Region table doesn't provide.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	dynamo "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/dynamo"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own db global table"})
+
+    		ubx.Resource(dynamo.DbGlobalTable, "ci-runner", dynamo.DbGlobalTableConfig{
+    			Replicas:               []map[string]any{{"contributor_insights_specification": map[string]any{"enabled": true}}},
+    			AttributeDefinitions:   []map[string]any{{"attribute_name": "example-attribute-name"}},
+    			BillingMode:            "example",
+    			GlobalSecondaryIndexes: []map[string]any{{"index_name": "example-index-name"}},
+    			GlobalTableSourceArn:   "arn:aws:iam::123456789012:policy/ci",
+    			GlobalTableWitnesses:   []map[string]any{{"region": "example"}},
+    			KeySchema:              []map[string]any{{"attribute_name": "example-attribute-name"}},
+    			LocalSecondaryIndexes:  []map[string]any{{"index_name": "example-index-name"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { DbGlobalTable } from "./local-sdk/aws/sdk/typescript/aws/dynamo/db_global_table.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own db global table" });
+
+      resource(DbGlobalTable, "ci-runner", {
+        replicas: [{ contributorInsightsSpecification: { enabled: true } }],
+        attributeDefinitions: [{ attributeName: "example-attribute-name" }],
+        billingMode: "example",
+        globalSecondaryIndexes: [{ indexName: "example-index-name" }],
+        globalTableSourceArn: "arn:aws:iam::123456789012:policy/ci",
+        globalTableWitnesses: [{ region: "example" }],
+        keySchema: [{ attributeName: "example-attribute-name" }],
+        localSecondaryIndexes: [{ indexName: "example-index-name" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.dynamo import DbGlobalTable, DbGlobalTableConfig
+
+    def describe():
+        ubx.intent("payments own db global table")
+
+        ubx.resource(DbGlobalTable, "ci-runner", DbGlobalTableConfig(
+            replicas=[{"contributor_insights_specification": {"enabled": True}}],
+            attribute_definitions=[{"attribute_name": "example-attribute-name"}],
+            billing_mode="example",
+            global_secondary_indexes=[{"index_name": "example-index-name"}],
+            global_table_source_arn="arn:aws:iam::123456789012:policy/ci",
+            global_table_witnesses=[{"region": "example"}],
+            key_schema=[{"attribute_name": "example-attribute-name"}],
+            local_secondary_indexes=[{"index_name": "example-index-name"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_dynamo_db_global_table, with replicas a set value,
+    attribute definitions a set value, billing mode example, global
+    secondary indexes a set value, global table source arn
+    arn:aws:iam::123456789012:policy/ci, global table witnesses a set
+    value, key schema a set value, local secondary indexes a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="attribute_definitions" type="list(object)">
+  Defines the name and type of each attribute used in the key schema (partition key and optional sort key) for the DynamoDB global table, where each item specifies an AttributeName and AttributeType. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="attribute_name" type="string">
+      The name of the attribute to be used in the global table's key schema or secondary indexes, matching the attribute names in the table's item definitions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="attribute_type" type="string">
+      The data type of the attribute in the DynamoDB Global Table's attribute definition, which must be one of 'S' (string), 'N' (number), or 'B' (binary). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="billing_mode" type="string">
+  Specifies how read and write throughput is billed for the global table, either PROVISIONED (with provisioned capacity) or PAY_PER_REQUEST (on-demand). Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="global_secondary_indexes" type="list(object)">
+  Specifies the global secondary indexes (GSIs) for the DynamoDB global table, defining each index's name, key schema, projection, and provisioned throughput settings that are replicated across all regional replicas. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="index_name" type="string">
+      The name of the global secondary index for the DynamoDB global table, which must be unique within the table and is used to query the indexed data. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="key_schema" type="list(object)">
+      Key schema for the global secondary index, defining the partition (HASH) and optional sort (RANGE) key attributes that determine the index's data organization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="attribute_name" type="string">
+          The name of the attribute that serves as the partition key or sort key in the global secondary index's key schema, which must match an attribute defined in the table's attribute definitions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="key_type" type="string">
+          Specifies whether the key attribute is a HASH (partition) key or RANGE (sort) key for the global secondary index's key schema in a DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="projection" type="object">
+      Specifies the set of attributes that are projected into the global secondary index, including the projection type (e.g., ALL, KEYS_ONLY, or INCLUDE) and any non-key attributes to include when the type is INCLUDE. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="non_key_attributes" type="list(string)">
+          Specifies the list of non-key attribute names to include in the global secondary index's projection, used only when the projection type is set to INCLUDE. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="projection_type" type="string">
+          Specifies the set of attributes that are projected into the global secondary index, allowing values such as KEYS_ONLY, INCLUDE, or ALL to control which table attributes are copied to the index. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="read_on_demand_throughput_settings" type="object">
+      Configures the on-demand read throughput settings for this global secondary index, setting the maximum read request units so the index scales automatically with DynamoDB on-demand capacity mode. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="max_read_request_units" type="number">
+          Sets the maximum number of read request units that the global secondary index can consume in on-demand capacity mode, capping its read throughput within the read on-demand throughput settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="read_provisioned_throughput_settings" type="object">
+      Configures the read capacity units or auto scaling settings for read throughput of the specified global secondary index in this DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="read_capacity_units" type="number">
+          For each global secondary index on the DynamoDB global table, this specifies the maximum number of strongly consistent reads consumed per second before DynamoDB returns a ThrottlingException. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="warm_throughput" type="object">
+      Specifies the warm throughput settings (read and write units per second) for the global secondary index of the DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="read_units_per_second" type="number">
+          The number of warm read units per second for the global secondary index, used to pre-provision read capacity for on-demand DynamoDB tables to prevent throttling during sudden traffic spikes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="write_units_per_second" type="number">
+          Specifies the number of warm write throughput capacity units to allocate for this global secondary index of the DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="write_on_demand_throughput_settings" type="object">
+      Specifies the maximum write request units that this global secondary index can consume when the table is set to on-demand capacity mode. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="max_write_request_units" type="number">
+          Specifies the maximum number of write request units that the global secondary index can consume per second when the DynamoDB global table is set to on-demand capacity mode. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="write_provisioned_throughput_settings" type="object">
+      Specifies the write capacity settings (either fixed write capacity units or auto-scaling configuration) for the global secondary index of the DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="write_capacity_auto_scaling_settings" type="object">
+          Configures auto scaling settings (minimum/maximum write capacity units and target utilization) for the write capacity of the global secondary index in a DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="max_capacity" type="number">
+              The maximum number of write capacity units that Application Auto Scaling can scale the global secondary index's write capacity up to under the associated scaling policy, as defined in the write capacity auto scaling settings of a DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="min_capacity" type="number">
+              The minimum number of write capacity units that the auto scaling policy can scale down to for the global secondary index. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="seed_capacity" type="number">
+              The initial number of write capacity units to allocate for the global secondary index before DynamoDB auto scaling adjusts capacity based on actual utilization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="target_tracking_scaling_policy_configuration" type="object">
+              Configuration for the target-tracking scaling policy that DynamoDB Auto Scaling uses to manage the write capacity of this global secondary index, including the target utilization percentage (TargetValue) and whether scale-in is disabled. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="disable_scale_in" type="bool">
+                  When set to true, prevents the target tracking scaling policy from scaling in (decreasing) the write capacity of the global secondary index. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="scale_in_cooldown" type="number">
+                  The scale-in cooldown period, in seconds, for the write capacity auto scaling of this global secondary index, during which DynamoDB suppresses scaling-in actions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="scale_out_cooldown" type="number">
+                  Scale-out cooldown, in seconds, for the write capacity auto scaling target tracking policy of the global secondary index, controlling how long to wait after a scale-out activity before another can start. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="target_value" type="number">
+                  Specifies the target utilization percentage (e.g., 70 for 70%) that the target tracking scaling policy for write capacity of this global secondary index will maintain, triggering scaling when actual utilization deviates. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="global_table_source_arn" type="string">
+  The ARN of an existing DynamoDB table whose data is used to populate the global table when it is created. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="global_table_witnesses" type="list(object)">
+  Configures the witness regions for the DynamoDB global table, which participate in quorum for multi-Region strong consistency without storing a full replica of the table data. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="region" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="key_schema" type="list(object)">
+  Determines the primary key for the global table by listing the attributes that form the partition key and optional sort key, each with a KeyType of HASH or RANGE. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="attribute_name" type="string">
+      Specifies the name of an attribute that is part of the primary key (partition key or sort key) of the DynamoDB global table's key schema. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="key_type" type="string">
+      Specifies whether the attribute named in this key schema element serves as the hash (partition) key or range (sort) key of the DynamoDB table's primary key. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="local_secondary_indexes" type="list(object)">
+  A list of local secondary indexes (LSIs) for the global table, each specifying an alternate sort key to enable querying by a non-key attribute within a partition. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="index_name" type="string">
+      The unique name of the local secondary index, which is required to define the index and is used to reference it in DynamoDB queries and operations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="key_schema" type="list(object)">
+      Defines the partition key and optional sort key for the local secondary index, using AttributeName and KeyType pairs that must reference attributes declared in the parent table's AttributeDefinitions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="attribute_name" type="string">
+          Specifies the name of a key attribute in the key schema of a local secondary index, which must match an attribute defined in the global table's attribute definitions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="key_type" type="string">
+          Specifies whether the key is a partition key (HASH) or a sort key (RANGE) in the key schema of a local secondary index for the DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="projection" type="object">
+      Specifies which table attributes are copied into the local secondary index, defined by a ProjectionType (ALL, KEYS_ONLY, or INCLUDE) and optional NonKeyAttributes for the INCLUDE type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="non_key_attributes" type="list(string)">
+          Specifies the non-key attribute names to include in the projection of the local secondary index when ProjectionType is set to INCLUDE. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="projection_type" type="string">
+          Determines which attributes are projected into the local secondary index, valid values are KEYS_ONLY, INCLUDE, or ALL, controlling whether only the key attributes, a specified set of non-key attributes, or all attributes are copied into the index. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="multi_region_consistency" type="string">
+  Specifies the multi-region consistency mode for the DynamoDB global table, with allowed values of 'EVENTUAL' or 'STRONG', controlling whether strongly consistent reads are available across all replica regions. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="read_on_demand_throughput_settings" type="object">
+  Specifies the read on-demand throughput settings for a replica in the global table, including the maximum read request units allowed when the table uses on-demand capacity mode. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="max_read_request_units" type="number">
+      Sets the maximum read capacity, in read request units, that the global DynamoDB table can scale up to when using on-demand capacity mode. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="read_provisioned_throughput_settings" type="object">
+  Specifies the read capacity provisioning settings for a replica of the DynamoDB global table, including a fixed read capacity unit count or auto-scaling configuration. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="read_capacity_units" type="number">
+      Sets the maximum number of strongly consistent read operations per second consumed per replica for a DynamoDB global table, used to configure the provisioned capacity for the replica's read throughput. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="replicas" type="list(object)" required>
+  Defines the AWS Regions in which replicas of the DynamoDB global table are created, along with per-replica settings such as point-in-time recovery and contributor insights. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="contributor_insights_specification" type="object">
+      Specifies the Contributor Insights configuration for this replica, including whether Contributor Insights is enabled on the replica table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="enabled" type="bool">
+          Specifies whether CloudWatch Contributor Insights is enabled for this replica of the DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="mode" type="string">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="deletion_protection_enabled" type="bool">
+      When true, deletion protection is enabled for this replica table in the DynamoDB global table, preventing the replica from being successfully deleted via a DeleteTable operation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="global_secondary_indexes" type="list(object)">
+      Specifies the global secondary indexes to be configured on a specific replica of the DynamoDB global table, allowing per-replica provisioning overrides (such as read/write capacity) for those indexes in that region. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="contributor_insights_specification" type="object">
+          Configures whether CloudWatch Contributor Insights is enabled for a specific global secondary index on a replica table of a DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="enabled" type="bool">
+              Determines whether CloudWatch Contributor Insights is enabled for the global secondary index on this replica of the DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="mode" type="string">
+              This field sets the CloudWatch Contributor Insights mode for the specified global secondary index within a replica of the DynamoDB global table, with allowed values ENABLED and DISABLED. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="index_name" type="string">
+          The name of the global secondary index in the replica's configuration that the GSI override settings apply to, matching an index defined on the DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="read_on_demand_throughput_settings" type="object">
+          Specifies the on-demand (pay-per-request) read throughput settings for the global secondary index replica, including the maximum read request units that can be consumed per second. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="max_read_request_units" type="number">
+              Specifies the maximum number of read request units for the global secondary index in a replica of a DynamoDB global table when it uses on-demand capacity mode. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="read_provisioned_throughput_settings" type="object">
+          Specifies the read capacity settings for a global secondary index in a specific replica of a DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="read_capacity_auto_scaling_settings" type="object">
+              Configures the application auto-scaling settings for the read capacity of the global secondary index in the replica, including minimum and maximum read capacity and the target tracking scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max_capacity" type="number">
+                  The maximum number of read capacity units that auto scaling can scale the global secondary index to for this replica in a DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min_capacity" type="number">
+                  The minimum number of read capacity units that Application Auto Scaling can scale down to for this global secondary index replica's read capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="seed_capacity" type="number">
+                  Seed capacity for the global secondary index's read auto scaling in this replica, representing the initial read capacity units DynamoDB provisions before scaling adjusts. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="target_tracking_scaling_policy_configuration" type="object">
+                  This object configures the target tracking scaling policy for Application Auto Scaling on the read capacity of a global secondary index in a DynamoDB global table replica, specifying the target utilization value that triggers scaling adjustments. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="disable_scale_in" type="bool">
+                      When set to true, prevents the DynamoDB read capacity auto scaling target tracking policy from scaling in (reducing) the provisioned read capacity for the global secondary index, while still allowing scale-out to increase capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="scale_in_cooldown" type="number">
+                      The scale-in cooldown period (in seconds) that DynamoDB waits after a scale-in activity before it can trigger another scale-in for read capacity of a global secondary index replica. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="scale_out_cooldown" type="number">
+                      The amount of time, in seconds, after a scale-out activity completes before another scale-out activity can start for the global secondary index read capacity of this replica. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="target_value" type="number">
+                      The target utilization percentage for the read capacity auto scaling policy, representing the desired ratio of consumed read capacity to provisioned read capacity for the global secondary index in the replica's read capacity autoscaling configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="read_capacity_units" type="number">
+              The number of read capacity units to provision for the global secondary index in the specified replica, controlling the read throughput for that index in that region. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="global_table_settings_replication_mode" type="string">
+      Sets the replication mode for the global table, within a replica's global table settings, to either STANDARD (no cross-region replication) or REMOTE (cross-region global table). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="kinesis_stream_specification" type="object">
+      Specifies the Kinesis Data Streams configuration for a replica of the DynamoDB global table, controlling whether a stream is enabled and optionally referencing an existing stream ARN. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="approximate_creation_date_time_precision" type="string">
+          Specifies the precision of the ApproximateCreationDateTime value in the Kinesis stream for a replica, either MILLISECOND or MICROSECOND. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="stream_arn" type="string">
+          Specifies the ARN of the Amazon Kinesis Data Stream that receives item-level updates for this replica in the DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="point_in_time_recovery_specification" type="object">
+      Configuration for point-in-time recovery (PITR) settings on a specific replica of the DynamoDB global table, containing a boolean flag that enables or disables PITR for that replica. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="point_in_time_recovery_enabled" type="bool">
+          Enables or disables point-in-time recovery for the corresponding replica of the DynamoDB global table, allowing the replica to be restored to any point in time within the backup window. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="recovery_period_in_days" type="number">
+          Specifies the number of days for which point-in-time recovery data is retained for the given replica of the DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="read_on_demand_throughput_settings" type="object">
+      Configures the read on-demand throughput settings for a replica in a DynamoDB global table, including the maximum read request units for on-demand capacity mode. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="max_read_request_units" type="number">
+          Specifies the maximum number of read request units that a replica of the DynamoDB global table can consume on-demand, setting an upper bound on its read throughput. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="read_provisioned_throughput_settings" type="object">
+      Defines the provisioned read capacity settings for a specific replica of the DynamoDB global table, including either a fixed read capacity unit count or auto scaling read settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="read_capacity_auto_scaling_settings" type="object">
+          Specifies the read capacity auto scaling settings for a replica, including the minimum and maximum provisioned capacity, optional seed capacity, and the target tracking scaling policy configuration that DynamoDB uses to adjust read capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="max_capacity" type="number">
+              The maximum provisioned read capacity units that the auto scaling policy is allowed to scale up to for this replica. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="min_capacity" type="number">
+              The minimum number of read capacity units that DynamoDB auto scaling can scale down to for the replica's read capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="seed_capacity" type="number">
+              Specifies the initial read capacity units for the replica that are provisioned before auto scaling begins, serving as the starting point for the auto scaling group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="target_tracking_scaling_policy_configuration" type="object">
+              Specifies the target tracking scaling policy configuration for read capacity auto scaling on a DynamoDB Global Table replica, controlling target utilization, scale-in/scale-out cooldowns, and whether scale-in is disabled. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="disable_scale_in" type="bool">
+                  DisableScaleIn determines whether the target tracking scaling policy for read capacity auto scaling on this replica is prevented from scaling in (reducing provisioned read capacity). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="scale_in_cooldown" type="number">
+                  The number of seconds for the scale-in cooldown period, during which App Auto Scaling suppresses additional scale-in activities for the read capacity of this replica after a scale-in activity completes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="scale_out_cooldown" type="number">
+                  The amount of time, in seconds, to wait after a scale-out activity before another scale-out activity can occur, controlling how quickly read capacity increases for this replica. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="target_value" type="number">
+                  The target utilization percentage for the read capacity auto scaling policy on this global table replica, representing the desired fraction of provisioned read capacity to consume. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="read_capacity_units" type="number">
+          Specifies the maximum number of strongly consistent reads per second for the replica table in a DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="region" type="string">
+      The AWS Region in which a replica of the DynamoDB global table is created. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="replica_stream_specification" type="object">
+      Configures DynamoDB Streams for a specific replica in the global table, including whether streaming is enabled and the stream view type (e.g., NEW_IMAGE, OLD_IMAGE) that determines which data changes are written. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="resource_policy" type="object">
+          Specifies a resource-based policy that controls access to the DynamoDB stream associated with the replica, enabling cross-account stream sharing and read access. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="policy_document" type="any">
+              Specifies the JSON policy document that defines the resource-based permissions for the DynamoDB stream attached to this replica, controlling cross-account or cross-region access to the stream data. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="tags" type="list(object)">
+          Optional; if omitted, computed by AWS.
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The key of a tag to be applied to the stream specification of a replica in a DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="resource_policy" type="object">
+      Defines the IAM resource-based policy (JSON) applied to the DynamoDB replica table in the corresponding region, allowing replica-specific access control separate from the global table's default policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="policy_document" type="any">
+          The IAM policy document (in JSON format) that defines the resource-based permissions policy for the replica table, allowing you to grant cross-account or cross-service access to that specific replica in the DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="ssespecification" type="object">
+      Configures the server-side encryption (SSE) for a specific replica of a DynamoDB global table, allowing you to specify an AWS KMS key (via KMSMasterKeyId) for encrypting data in that replica. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="kmsmaster_key_id" type="any">
+          The KMS key ID or ARN used for server-side encryption in the SSE specification of a specific replica of the DynamoDB global table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="table_class" type="string">
+      Specifies the table class for a replica, either STANDARD or STANDARD_INFREQUENT_ACCESS, which determines the storage and throughput cost tier for that regional table copy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="tags" type="list(object)">
+      Specifies the list of tags to associate with each replica table in the DynamoDB global table, allowing you to apply different tags per replica region. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+        <ResponseField name="value" type="string">
+          The value of a tag attached to a specific replica (Region) of the global DynamoDB table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="ssespecification" type="object">
+  Specifies the server-side encryption (SSE) configuration for the DynamoDB global table, including whether encryption is enabled and the encryption key type (such as AWS owned or customer-managed KMS) to use. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="sseenabled" type="bool" required>
+      Specifies whether server-side encryption (SSE) is enabled for the DynamoDB global table, with true enabling encryption using AWS Key Management Service (KMS). Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="ssetype" type="string">
+      Specifies the server-side encryption type for the global table, either AES256 (DynamoDB-managed key) or KMS (AWS KMS customer-managed key). Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="stream_specification" type="object">
+  The stream specification object configures Amazon DynamoDB Streams for the global table, including the stream enabling flag and stream view type that determines which item changes (keys only, new image, old image, or both) are written to the stream. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="stream_view_type" type="string" required>
+      Specifies which item changes (keys only, new image, old image, or both) are captured in the DynamoDB stream for the global table. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="table_name" type="string">
+  The name to assign to the DynamoDB global table; if omitted, CloudFormation generates a unique name. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="time_to_live_specification" type="object">
+  Configures Time to Live (TTL) settings for the global table, including whether TTL is enabled and the attribute name that stores the expiration timestamp. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="attribute_name" type="string">
+      Specifies the name of the item attribute that stores the expiration timestamp, enabling DynamoDB to automatically delete expired items from the global table. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="enabled" type="bool" required>
+      Whether time-to-live (TTL) is enabled for the global table, allowing DynamoDB to automatically delete items after a specified expiry timestamp. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="warm_throughput" type="object">
+  Specifies the warm throughput (pre-allocated read/write capacity units per second) for the global table to sustain high traffic without throttling. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="read_units_per_second" type="number">
+      Sets the number of warm read capacity units per second for the DynamoDB global table. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="write_units_per_second" type="number">
+      Specifies the number of write capacity units per second to provision for warm throughput on the DynamoDB global table. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="write_on_demand_throughput_settings" type="object">
+  Specifies the optional on-demand write capacity cap (MaxWriteRequestUnits) for the DynamoDB global table, applying this write throughput limit uniformly across all replicas. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="max_write_request_units" type="number">
+      Sets the maximum number of write request units for on-demand capacity mode of a replica in a DynamoDB global table. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="write_provisioned_throughput_settings" type="object">
+  Configures the write capacity (provisioned throughput) for the AWS::DynamoDB::GlobalTable, specifying either a fixed number of write capacity units or auto-scaling settings for each replica in the global table. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="write_capacity_auto_scaling_settings" type="object">
+      Defines the application auto scaling settings for write capacity on each replica of the DynamoDB global table, including scaling limits and target utilization. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="max_capacity" type="number" required>
+          Specifies the maximum number of write capacity units that the write auto scaling policy can scale the global table's write throughput up to. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="min_capacity" type="number" required>
+          The minimum number of write capacity units that DynamoDB can scale down to for a replica's write capacity auto scaling in a global table. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="seed_capacity" type="number">
+          The initial number of write capacity units to provision for a new replica table in a DynamoDB global table, applied only when the replica is created before auto scaling adjusts it. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="target_tracking_scaling_policy_configuration" type="object" required>
+          Configuration for the target tracking policy that DynamoDB uses to automatically adjust write capacity, including the target utilization percentage and whether scale-in is disabled. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="disable_scale_in" type="bool">
+              Indicates whether scale-in by the target tracking policy is disabled for the write capacity auto scaling of this replica in the DynamoDB global table. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="scale_in_cooldown" type="number">
+              The amount of time, in seconds, after a scale-in activity completes before another scale-in activity can begin for the DynamoDB write capacity auto scaling target tracking policy. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="scale_out_cooldown" type="number">
+              The amount of time, in seconds, to wait after a scale-out activity completes before another scale-out activity can begin, allowing DynamoDB write capacity to stabilize for the global table. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="target_value" type="number" required>
+              The target utilization percentage (0-100) for the write capacity auto scaling target tracking policy on the DynamoDB global table. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies the DynamoDB global table, assigned by AWS upon creation. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="stream_arn" type="string">
+  The Amazon Resource Name (ARN) of the DynamoDB stream for the global table, automatically generated when stream specification is configured. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="table_id" type="string">
+  The read-only DynamoDB table ID that uniquely identifies this global table, assigned by AWS when the table is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

@@ -1,0 +1,187 @@
+---
+title: "aws_s3_files_file_system"
+description: "`aws_s3_files_file_system` creates a real, POSIX-compliant file system scoped to an S3 bucket or prefix, built on Amazon EFS technology..."
+---
+
+`aws_s3_files_file_system` creates a real, POSIX-compliant file system scoped to an S3 bucket or prefix, built on Amazon EFS technology, so that bucket's data can be mounted and accessed with full file-system semantics from EC2, ECS, EKS, or Lambda without the data ever leaving S3. Amazon S3 Files reached general availability on April 7, 2026, roughly four months ago, so behavior here is verified live rather than assumed from general knowledge.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	s3 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/s3"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own files file system"})
+
+    		ubx.Resource(s3.FilesFileSystem, "ci-runner", s3.FilesFileSystemConfig{
+    			Bucket:              "example",
+    			RoleArn:             "arn:aws:iam::123456789012:policy/ci",
+    			AcceptBucketWarning: true,
+    			ClientToken:         "example",
+    			KmsKeyId:            "example",
+    			Prefix:              "example",
+    			Tags:                []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { FilesFileSystem } from "./local-sdk/aws/sdk/typescript/aws/s3/files_file_system.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own files file system" });
+
+      resource(FilesFileSystem, "ci-runner", {
+        bucket: "example",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        acceptBucketWarning: true,
+        clientToken: "example",
+        kmsKeyId: "example",
+        prefix: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.s3 import FilesFileSystem, FilesFileSystemConfig
+
+    def describe():
+        ubx.intent("payments own files file system")
+
+        ubx.resource(FilesFileSystem, "ci-runner", FilesFileSystemConfig(
+            bucket="example",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            accept_bucket_warning=True,
+            client_token="example",
+            kms_key_id="example",
+            prefix="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_s3_files_file_system, with bucket example, role arn
+    arn:aws:iam::123456789012:policy/ci, accept bucket warning true,
+    client token example, kms key id example, prefix example, tags a
+    set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="accept_bucket_warning" type="bool">
+  Optional.
+</ResponseField>
+
+<ResponseField name="bucket" type="string" required>
+  The name of the S3 bucket that stores the underlying file data for this file system. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="client_token" type="string">
+  Optional.
+</ResponseField>
+
+<ResponseField name="kms_key_id" type="string">
+  Optional.
+</ResponseField>
+
+<ResponseField name="prefix" type="string">
+  Optional.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="creation_time" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="file_system_arn" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="file_system_id" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="owner_id" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status_message" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="synchronization_configuration" type="object">
+  Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="expiration_data_rules" type="list(object)" required>
+      Required.
+      <Expandable title="properties">
+        <ResponseField name="days_after_last_access" type="number">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="import_data_rules" type="list(object)" required>
+      Required.
+      <Expandable title="properties">
+        <ResponseField name="prefix" type="string">
+          Specifies the S3 object key prefix that filters which objects are imported from the source S3 bucket to the file system according to this import rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="size_less_than" type="number">
+          Specifies the maximum file size in bytes for files to be included in the synchronization import, so that only files smaller than this value are imported. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="trigger" type="string">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="latest_version_number" type="number">
+      Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>

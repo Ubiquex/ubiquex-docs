@@ -1,0 +1,125 @@
+---
+title: "aws_greengrass_device_definition"
+description: "`aws_greengrass_device_definition` registers real, local IoT devices..."
+---
+
+`aws_greengrass_device_definition` registers real, local IoT devices, connected to an `aws_greengrass_group`'s core rather than directly to AWS IoT Core, that can communicate with the core and each other even when internet connectivity is lost. Part of Greengrass V1's maintenance-only lifecycle since June 2023.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	greengrass "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/greengrass"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own device definition"})
+
+    		ubx.Resource(greengrass.DeviceDefinition, "ci-runner", greengrass.DeviceDefinitionConfig{
+    			Name:           "ci-runner",
+    			InitialVersion: map[string]any{"devices": []map[string]any{{"certificate_arn": "example"}}},
+    			Tags:           "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { DeviceDefinition } from "./local-sdk/aws/sdk/typescript/aws/greengrass/device_definition.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own device definition" });
+
+      resource(DeviceDefinition, "ci-runner", {
+        name: "ci-runner",
+        initialVersion: { devices: [{ certificateArn: "example" }] },
+        tags: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.greengrass import DeviceDefinition, DeviceDefinitionConfig
+
+    def describe():
+        ubx.intent("payments own device definition")
+
+        ubx.resource(DeviceDefinition, "ci-runner", DeviceDefinitionConfig(
+            name="ci-runner",
+            initial_version={"devices": [{"certificate_arn": "example"}]},
+            tags="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_greengrass_device_definition called "ci-runner", with
+    initial version a set value, tags example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="initial_version" type="object">
+  Specifies the initial version of the device definition, containing a list of devices (each with an ID, certificate ARN, and optional sync shadow setting) that is created when the device definition is first created. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="devices" type="list(object)" required>
+      A list of devices (each with a device ID, Thing ARN, Certificate ARN, and optional SyncShadow flag) that comprise the initial version of the AWS Greengrass device definition. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="certificate_arn" type="string">
+          The ARN of the AWS IoT certificate that identifies and authenticates the Greengrass device within the device definition version. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="id" type="string">
+          The user-defined identifier that uniquely identifies each device within the Greengrass device definition version. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="sync_shadow" type="bool">
+          Indicates whether the device's shadow is synchronized with AWS IoT for this device in the Greengrass device definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="thing_arn" type="string">
+          The Amazon Resource Name (ARN) of the AWS IoT thing representing the Greengrass device to include in the initial version of this device definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Specifies a user-friendly name for the AWS IoT Greengrass device definition, required to identify the definition in the console and API. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  Tags are user-defined key-value pairs that can be attached to the AWS IoT Greengrass device definition resource for organizing, identifying, and managing it within AWS. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies this AWS Greengrass device definition, used to reference it in IAM policies and other AWS services. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The service-assigned unique identifier for this AWS IoT Greengrass device definition, used to reference the definition in other resources. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="latest_version_arn" type="string">
+  The Amazon Resource Name (ARN) of the latest version of this AWS IoT Greengrass device definition. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

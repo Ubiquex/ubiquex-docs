@@ -1,0 +1,156 @@
+---
+title: "aws_ssmcontacts_contact"
+description: "`aws_ssmcontacts_contact` creates a real, on-call contact, an individual or an escalation plan, in Incident Manager Contacts..."
+---
+
+`aws_ssmcontacts_contact` creates a real, on-call contact, an individual or an escalation plan, in Incident Manager Contacts, that an `aws_ssmincidents_response_plan` engages when an incident is declared.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ssmcontacts "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ssmcontacts"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own contact"})
+
+    		ubx.Resource(ssmcontacts.Contact, "ci-runner", ssmcontacts.ContactConfig{
+    			Alias:       "example",
+    			DisplayName: "example-display-name",
+    			Type:        "example",
+    			Plan:        []map[string]any{{"duration_in_minutes": 1}},
+    			Tags:        []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Contact } from "./local-sdk/aws/sdk/typescript/aws/ssmcontacts/contact.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own contact" });
+
+      resource(Contact, "ci-runner", {
+        alias: "example",
+        displayName: "example-display-name",
+        type: "example",
+        plan: [{ durationInMinutes: 1 }],
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ssmcontacts import Contact, ContactConfig
+
+    def describe():
+        ubx.intent("payments own contact")
+
+        ubx.resource(Contact, "ci-runner", ContactConfig(
+            alias="example",
+            display_name="example-display-name",
+            type="example",
+            plan=[{"duration_in_minutes": 1}],
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ssmcontacts_contact, with alias example, display name
+    example-display-name, type example, plan a set value, tags a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="alias" type="string" required>
+  Alias of the contact. String value with 20 to 256 characters. Only alphabetical, numeric characters, dash, or underscore allowed. Required.
+</ResponseField>
+
+<ResponseField name="display_name" type="string" required>
+  Name of the contact. String value with 3 to 256 characters. Only alphabetical, space, numeric characters, dash, or underscore allowed. Required.
+</ResponseField>
+
+<ResponseField name="plan" type="list(object)">
+  The stages that an escalation plan or engagement plan engages contacts and contact methods in. Optional.
+  <Expandable title="properties">
+    <ResponseField name="duration_in_minutes" type="number">
+      The number of minutes to wait for the contact to acknowledge an alert before moving to the next stage of the contact's engagement plan. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="rotation_ids" type="list(string)">
+      The list of Amazon Resource Names (ARNs) of the rotations to include in the contact's plan, defining the rotation schedules used for on-call coverage. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="targets" type="list(object)">
+      Specifies the list of targets to engage during a stage of the contact's plan, where each target can be a contact channel (e.g., email, SMS, voice) or another contact, defined using ChannelTargetInfo or ContactTargetInfo. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="channel_target_info" type="object">
+          Identifies the contact channel that Incident Manager engages for a given plan target, along with the optional retry interval before escalation within that stage of the contact's engagement plan. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="channel_id" type="string">
+              Specifies the Amazon Resource Name (ARN) of the contact channel (such as an email, SMS, or voice channel) that is contacted when this plan target is triggered during an incident. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="retry_interval_in_minutes" type="number">
+              The number of minutes to wait before retrying the contact channel if the previous attempt to reach it fails. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="contact_target_info" type="object">
+          Specifies the target contact for an engagement plan stage, including the contact's ARN and whether it is an essential target that must acknowledge an incident before escalation proceeds. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="contact_id" type="string">
+              The Amazon Resource Name (ARN) of the contact that Incident Manager engages when the engagement plan reaches this target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="is_essential" type="bool">
+              Determines whether this contact is an essential target in the engagement plan, meaning that if this contact does not acknowledge an engagement, the engagement is considered failed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Specifies a list of key-value tag objects to associate with the contact for resource identification and cost tracking. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag assigned to the SSM Contacts contact, used for categorizing and managing the contact resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="type" type="string" required>
+  Contact type, which specify type of contact. Currently supported values: “PERSONAL”, “SHARED”, “OTHER“. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the contact. Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,156 @@
+---
+title: "aws_backup_restore_testing_selection"
+description: "`aws_backup_restore_testing_selection` picks which real recovery points and target resources an `aws_backup_restore_testing_plan` actually restores..."
+---
+
+`aws_backup_restore_testing_selection` picks which real recovery points and target resources an `aws_backup_restore_testing_plan` actually restores during a test run, the selection a restore testing plan has no scope without.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	backup "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/backup"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own restore testing selection"})
+
+    		ubx.Resource(backup.RestoreTestingSelection, "ci-runner", backup.RestoreTestingSelectionConfig{
+    			IamRoleArn:                  "arn:aws:iam::123456789012:policy/ci",
+    			ProtectedResourceType:       "example",
+    			RestoreTestingPlanName:      "example-restore-testing-plan-name",
+    			RestoreTestingSelectionName: "example-restore-testing-selection-name",
+    			ProtectedResourceArns:       []string{"example"},
+    			ProtectedResourceConditions: map[string]any{"string_equals": []map[string]any{{"key": "example"}}},
+    			RestoreMetadataOverrides:    "example",
+    			ValidationWindowHours:       1,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { RestoreTestingSelection } from "./local-sdk/aws/sdk/typescript/aws/backup/restore_testing_selection.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own restore testing selection" });
+
+      resource(RestoreTestingSelection, "ci-runner", {
+        iamRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        protectedResourceType: "example",
+        restoreTestingPlanName: "example-restore-testing-plan-name",
+        restoreTestingSelectionName: "example-restore-testing-selection-name",
+        protectedResourceArns: ["example"],
+        protectedResourceConditions: { stringEquals: [{ key: "example" }] },
+        restoreMetadataOverrides: "example",
+        validationWindowHours: 1,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.backup import RestoreTestingSelection, RestoreTestingSelectionConfig
+
+    def describe():
+        ubx.intent("payments own restore testing selection")
+
+        ubx.resource(RestoreTestingSelection, "ci-runner", RestoreTestingSelectionConfig(
+            iam_role_arn="arn:aws:iam::123456789012:policy/ci",
+            protected_resource_type="example",
+            restore_testing_plan_name="example-restore-testing-plan-name",
+            restore_testing_selection_name="example-restore-testing-selection-name",
+            protected_resource_arns=["example"],
+            protected_resource_conditions={"string_equals": [{"key": "example"}]},
+            restore_metadata_overrides="example",
+            validation_window_hours=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_backup_restore_testing_selection, with iam role arn
+    arn:aws:iam::123456789012:policy/ci, protected resource type
+    example, restore testing plan name
+    example-restore-testing-plan-name, restore testing selection name
+    example-restore-testing-selection-name, protected resource arns a
+    set value, protected resource conditions a set value, restore
+    metadata overrides example, validation window hours 1.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="iam_role_arn" type="string" required>
+  The ARN of the IAM role that AWS Backup assumes to perform restore testing for the resources included in this restore testing selection. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="protected_resource_arns" type="list(string)">
+  The ARNs of the protected resources to include in the restore testing selection. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="protected_resource_conditions" type="object">
+  Defines the key-value conditions (StringEquals and StringNotEquals) on protected resource attributes, such as tags, to filter which resources are included in the restore testing selection. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="string_equals" type="list(object)">
+      Specifies key-value pairs for tag-based filtering, where a protected resource must have a tag whose key and value exactly match a pair in this list to be included in the restore testing selection. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          Specifies the AWS resource tag key (e.g., Environment) that the string_equals condition requires to be present with a matching value on a protected resource for the restore testing selection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value" type="string">
+          The value that a protected resource's attribute or tag (identified by the corresponding key in the enclosing StringEquals key-value pair) must equal for the resource to match this restore testing selection condition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="string_not_equals" type="list(object)">
+      A list of conditions where each specifies a resource attribute (such as a tag key) and a value, and the condition is satisfied when the resource's attribute value does not equal that value, thereby excluding matching protected resources from the restore testing selection. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          The tag key used in a StringNotEquals condition to match protected resources whose value for that key is not equal to the specified value in the restore testing selection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value" type="string">
+          For a string_not_equals condition on a protected resource tag, this value is the tag value to compare against; a protected resource is excluded from the restore testing selection if its tag value for the specified key equals this value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="protected_resource_type" type="string" required>
+  Specifies the AWS resource type (e.g., 'EBS', 'S3', or '*') that determines which protected resources are included in the restore testing selection. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="restore_metadata_overrides" type="any">
+  A map of restore metadata overrides used to customize the restore job parameters for a restore testing selection. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="restore_testing_plan_name" type="string" required>
+  The name of the AWS Backup restore testing plan that this selection is associated with. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="restore_testing_selection_name" type="string" required>
+  The name of the restore testing selection, which must be unique among all restore testing selections in the same restore testing plan. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="validation_window_hours" type="number">
+  The number of hours in the validation window, starting from the beginning of the restore test, within which the restore test must complete successfully or it is considered failed. Optional. **(AI-inferred)**
+</ResponseField>

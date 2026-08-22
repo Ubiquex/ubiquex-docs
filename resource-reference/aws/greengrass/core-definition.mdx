@@ -1,0 +1,125 @@
+---
+title: "aws_greengrass_core_definition"
+description: "`aws_greengrass_core_definition` registers the real primary device, running the actual AWS IoT Greengrass V1 core software..."
+---
+
+`aws_greengrass_core_definition` registers the real primary device, running the actual AWS IoT Greengrass V1 core software, that hosts an `aws_greengrass_group`'s local compute and connects it to AWS IoT Core. Part of Greengrass V1's maintenance-only lifecycle since June 2023, ahead of its October 2026 end of support.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	greengrass "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/greengrass"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own core definition"})
+
+    		ubx.Resource(greengrass.CoreDefinition, "ci-runner", greengrass.CoreDefinitionConfig{
+    			Name:           "ci-runner",
+    			InitialVersion: map[string]any{"cores": []map[string]any{{"certificate_arn": "example"}}},
+    			Tags:           "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { CoreDefinition } from "./local-sdk/aws/sdk/typescript/aws/greengrass/core_definition.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own core definition" });
+
+      resource(CoreDefinition, "ci-runner", {
+        name: "ci-runner",
+        initialVersion: { cores: [{ certificateArn: "example" }] },
+        tags: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.greengrass import CoreDefinition, CoreDefinitionConfig
+
+    def describe():
+        ubx.intent("payments own core definition")
+
+        ubx.resource(CoreDefinition, "ci-runner", CoreDefinitionConfig(
+            name="ci-runner",
+            initial_version={"cores": [{"certificate_arn": "example"}]},
+            tags="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_greengrass_core_definition called "ci-runner", with
+    initial version a set value, tags example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="initial_version" type="object">
+  Defines the initial version of the core definition by specifying a list of Greengrass core devices, each identified by its AWS IoT thing ARN and associated certificate ARN, that are used when the definition is first created. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="cores" type="list(object)" required>
+      Specifies the list of core devices (each with a thing ARN and certificate ARN) that make up the initial version of this AWS Greengrass core definition. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="certificate_arn" type="string">
+          The ARN of the AWS IoT certificate that authenticates the core device in the Greengrass group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="id" type="string">
+          The user-defined identifier for this core within the Greengrass core definition version, used to reference the core in the group configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="sync_shadow" type="bool">
+          Indicates whether the Greengrass core device's shadow sync is enabled with the AWS IoT cloud, allowing the local shadow to be synchronized with the cloud-shadow service. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="thing_arn" type="string">
+          The ARN of the AWS IoT thing that this Greengrass core represents. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the AWS IoT Greengrass core definition, a required user-defined identifier used to distinguish this resource. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  Attaches key-value metadata tags to the AWS Greengrass core definition, useful for organizing and identifying the resource. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the AWS Greengrass core definition, uniquely identifying it across AWS. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The unique AWS-assigned identifier of the Greengrass core definition resource. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="latest_version_arn" type="string">
+  The Amazon Resource Name (ARN) of the most recent version of the Greengrass core definition, automatically updated whenever the definition is revised. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

@@ -1,0 +1,199 @@
+---
+title: "aws_logs_scheduled_query"
+description: "`aws_logs_scheduled_query` runs a real `aws_logs_query_definition`-style Logs Insights query on a recurring schedule and delivers its results..."
+---
+
+`aws_logs_scheduled_query` runs a real `aws_logs_query_definition`-style Logs Insights query on a recurring schedule and delivers its results automatically to a configured destination, such as an S3 bucket or an EventBridge event bus.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	logs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/logs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own scheduled query"})
+
+    		ubx.Resource(logs.ScheduledQuery, "ci-runner", logs.ScheduledQueryConfig{
+    			ExecutionRoleArn:         "arn:aws:iam::123456789012:policy/ci",
+    			Name:                     "ci-runner",
+    			QueryLanguage:            "example",
+    			QueryString:              "example",
+    			ScheduleExpression:       "example",
+    			Description:              "Managed by ubx.",
+    			DestinationConfiguration: map[string]any{"s3_configuration": map[string]any{"destination_identifier": "example"}},
+    			LogGroupIdentifiers:      []string{"example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ScheduledQuery } from "./local-sdk/aws/sdk/typescript/aws/logs/scheduled_query.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own scheduled query" });
+
+      resource(ScheduledQuery, "ci-runner", {
+        executionRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        name: "ci-runner",
+        queryLanguage: "example",
+        queryString: "example",
+        scheduleExpression: "example",
+        description: "Managed by ubx.",
+        destinationConfiguration: {
+          s3Configuration: { destinationIdentifier: "example" },
+        },
+        logGroupIdentifiers: ["example"],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.logs import ScheduledQuery, ScheduledQueryConfig
+
+    def describe():
+        ubx.intent("payments own scheduled query")
+
+        ubx.resource(ScheduledQuery, "ci-runner", ScheduledQueryConfig(
+            execution_role_arn="arn:aws:iam::123456789012:policy/ci",
+            name="ci-runner",
+            query_language="example",
+            query_string="example",
+            schedule_expression="example",
+            description="Managed by ubx.",
+            destination_configuration={"s3_configuration": {"destination_identifier": "example"}},
+            log_group_identifiers=["example"],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_logs_scheduled_query called "ci-runner", with
+    execution role arn arn:aws:iam::123456789012:policy/ci, query
+    language example, query string example, schedule expression
+    example, description Managed by ubx., destination configuration a
+    set value, log group identifiers a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  An optional, user-defined text string that describes the purpose or details of the scheduled query, stored as metadata on the query definition in CloudWatch Logs Insights. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="destination_configuration" type="object">
+  Specifies the destination configuration for delivering the results of the scheduled query, including the S3 bucket where the query results are written. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="s3_configuration" type="object">
+      Defines the target S3 bucket (and optional prefix) where the results of the scheduled query will be delivered when the destination type is S3. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="destination_identifier" type="string" required>
+          The destination name that CloudWatch Logs uses to construct the S3 path prefix for the scheduled query's result files, enabling distinct storage locations within the specified bucket. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="role_arn" type="string" required>
+          The ARN of the IAM role that allows CloudWatch Logs to write the scheduled query's results to the specified S3 bucket. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="execution_role_arn" type="string" required>
+  The ARN of the IAM role that CloudWatch Logs assumes to execute the scheduled query on your behalf. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="log_group_identifiers" type="list(string)">
+  Specifies the list of log group names or ARNs that the scheduled query will run against. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Required.
+</ResponseField>
+
+<ResponseField name="query_language" type="string" required>
+  The query language used to parse and execute the scheduled query string, where `CWLI` denotes CloudWatch Logs Insights and `PPL` denotes OpenSearch Piped Processing Language. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="query_string" type="string" required>
+  The CloudWatch Logs Insights query string that the scheduled query executes against the specified log groups to generate its results. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="schedule_end_time" type="number">
+  The optional Unix timestamp (in milliseconds) that defines when the scheduled query's recurrence should end, after which the query will no longer be automatically executed. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="schedule_expression" type="string" required>
+  The rate or cron expression that defines how often the CloudWatch Logs scheduled query runs, e.g., 'rate(5 minutes)' or a cron expression. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="schedule_start_time" type="number">
+  The epoch time (in milliseconds) when the scheduled query's recurring execution schedule starts. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="start_time_offset" type="number">
+  The number of seconds before a scheduled query execution that determines the start of the time window from which logs are queried, enabling retrieval of logs from a recent period relative to each run. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Specifies whether the scheduled query is enabled or disabled (valid values are ENABLED and DISABLED), allowing you to pause or resume automatic execution of the query on its defined schedule. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      For the AWS::Logs::ScheduledQuery resource, this field is the key of a user-defined tag attached to the scheduled query, which can be used for cost allocation and access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value component of a key-value tag attached to the CloudWatch Logs scheduled query, used for organizing, identifying, and tracking costs of the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="timezone" type="string">
+  The IANA timezone (such as 'UTC' or 'America/New_York') used to evaluate the schedule's cron expression for the scheduled query; if omitted, UTC is assumed. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="creation_time" type="number">
+  The creation_time attribute is a read-only number representing the Unix epoch timestamp, in seconds, at which the scheduled query was created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="last_execution_status" type="string">
+  Contains the status of the most recent execution of the scheduled query (such as RUNNING, COMPLETE, or FAILED), as a computed read-only value maintained by CloudWatch Logs. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="last_triggered_time" type="number">
+  The Unix timestamp of the most recent automatic execution of the scheduled query by CloudWatch Logs. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="last_updated_time" type="number">
+  The timestamp, in Unix time milliseconds, when the scheduled query was last updated. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="scheduled_query_arn" type="string">
+  The Amazon Resource Name (ARN) of the scheduled query, assigned by AWS when the query is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

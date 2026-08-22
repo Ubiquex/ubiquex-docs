@@ -1,0 +1,161 @@
+---
+title: "aws_memory_db_multi_region_cluster"
+description: "`aws_memory_db_multi_region_cluster` creates a real active-active MemoryDB deployment spanning multiple AWS Regions..."
+---
+
+`aws_memory_db_multi_region_cluster` creates a real active-active MemoryDB deployment spanning multiple AWS Regions, asynchronously replicating writes between member clusters, typically within about a second, so an application can read and write locally in whichever Region is closest to it. This is a genuinely recent capability: MemoryDB Multi-Region reached general availability in March 2026.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	memory "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/memory"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own db multi region cluster"})
+
+    		ubx.Resource(memory.DbMultiRegionCluster, "ci-runner", memory.DbMultiRegionClusterConfig{
+    			NodeType:                      "example",
+    			Description:                   "Managed by ubx.",
+    			Engine:                        "example",
+    			EngineVersion:                 "example",
+    			MultiRegionClusterNameSuffix:  "example",
+    			MultiRegionParameterGroupName: "example-multi-region-parameter-group-name",
+    			NumShards:                     1,
+    			Tags:                          []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { DbMultiRegionCluster } from "./local-sdk/aws/sdk/typescript/aws/memory/db_multi_region_cluster.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own db multi region cluster" });
+
+      resource(DbMultiRegionCluster, "ci-runner", {
+        nodeType: "example",
+        description: "Managed by ubx.",
+        engine: "example",
+        engineVersion: "example",
+        multiRegionClusterNameSuffix: "example",
+        multiRegionParameterGroupName: "example-multi-region-parameter-group-name",
+        numShards: 1,
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.memory import DbMultiRegionCluster, DbMultiRegionClusterConfig
+
+    def describe():
+        ubx.intent("payments own db multi region cluster")
+
+        ubx.resource(DbMultiRegionCluster, "ci-runner", DbMultiRegionClusterConfig(
+            node_type="example",
+            description="Managed by ubx.",
+            engine="example",
+            engine_version="example",
+            multi_region_cluster_name_suffix="example",
+            multi_region_parameter_group_name="example-multi-region-parameter-group-name",
+            num_shards=1,
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_memory_db_multi_region_cluster, with node type
+    example, description Managed by ubx., engine example, engine
+    version example, multi region cluster name suffix example, multi
+    region parameter group name
+    example-multi-region-parameter-group-name, num shards 1, tags a
+    set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  Description of the multi region cluster. Optional.
+</ResponseField>
+
+<ResponseField name="engine" type="string">
+  The engine type used by the multi region cluster. Optional.
+</ResponseField>
+
+<ResponseField name="engine_version" type="string">
+  The Redis engine version used by the multi region cluster. Optional.
+</ResponseField>
+
+<ResponseField name="multi_region_cluster_name_suffix" type="string">
+  The name of the Multi Region cluster. This value must be unique as it also serves as the multi region cluster identifier. Optional.
+</ResponseField>
+
+<ResponseField name="multi_region_parameter_group_name" type="string">
+  The name of the parameter group associated with the multi region cluster. Optional.
+</ResponseField>
+
+<ResponseField name="node_type" type="string" required>
+  The compute and memory capacity of the nodes in the multi region cluster. Required.
+</ResponseField>
+
+<ResponseField name="num_shards" type="number">
+  The number of shards the multi region cluster will contain. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this multi region cluster. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag attached to the MemoryDB Multi-Region Cluster, used for labeling and cost allocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tlsenabled" type="bool">
+  A flag that enables in-transit encryption when set to true. You cannot modify the value of TransitEncryptionEnabled after the cluster is created. To enable in-transit encryption on a cluster you must set TransitEncryptionEnabled to true when you create a cluster. Optional.
+</ResponseField>
+
+<ResponseField name="update_strategy" type="string">
+  An enum string value that determines the update strategy for scaling. Possible values are 'COORDINATED' and 'UNCOORDINATED'. Default is 'COORDINATED'. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the multi region cluster. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="multi_region_cluster_name" type="string">
+  The name of the Global Datastore, it is generated by MemoryDB adding a prefix to MultiRegionClusterNameSuffix. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The status of the multi region cluster. For example, Available, Updating, Creating. Computed by AWS after `ship`.
+</ResponseField>

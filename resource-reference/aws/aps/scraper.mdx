@@ -1,0 +1,235 @@
+---
+title: "aws_aps_scraper"
+description: "`aws_aps_scraper` is a fully managed collector that scrapes Prometheus metrics from an Amazon EKS cluster and writes them into an `aws_aps_workspace`..."
+---
+
+`aws_aps_scraper` is a fully managed collector that scrapes Prometheus metrics from an Amazon EKS cluster and writes them into an `aws_aps_workspace`, removing the need to run and scale a self-managed Prometheus server just to collect metrics.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	aps "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/aps"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own scraper"})
+
+    		ubx.Resource(aps.Scraper, "ci-runner", aps.ScraperConfig{
+    			Destination:                 map[string]any{"amp_configuration": map[string]any{"workspace_arn": "example"}},
+    			ScrapeConfiguration:         map[string]any{"configuration_blob": "example"},
+    			Source:                      map[string]any{"eks_configuration": map[string]any{"cluster_arn": "example"}},
+    			Alias:                       "example",
+    			RoleConfiguration:           map[string]any{"source_role_arn": "example"},
+    			ScraperLoggingConfiguration: map[string]any{"logging_destination": map[string]any{"cloud_watch_logs": map[string]any{"log_group_arn": "example"}}},
+    			Tags:                        []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Scraper } from "./local-sdk/aws/sdk/typescript/aws/aps/scraper.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own scraper" });
+
+      resource(Scraper, "ci-runner", {
+        destination: { ampConfiguration: { workspaceArn: "example" } },
+        scrapeConfiguration: { configurationBlob: "example" },
+        source: { eksConfiguration: { clusterArn: "example" } },
+        alias: "example",
+        roleConfiguration: { sourceRoleArn: "example" },
+        scraperLoggingConfiguration: {
+          loggingDestination: { cloudWatchLogs: { logGroupArn: "example" } },
+        },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.aps import Scraper, ScraperConfig
+
+    def describe():
+        ubx.intent("payments own scraper")
+
+        ubx.resource(Scraper, "ci-runner", ScraperConfig(
+            destination={"amp_configuration": {"workspace_arn": "example"}},
+            scrape_configuration={"configuration_blob": "example"},
+            source={"eks_configuration": {"cluster_arn": "example"}},
+            alias="example",
+            role_configuration={"source_role_arn": "example"},
+            scraper_logging_configuration={"logging_destination": {"cloud_watch_logs": {"log_group_arn": "example"}}},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_aps_scraper, with destination a set value, scrape
+    configuration a set value, source a set value, alias example,
+    role configuration a set value, scraper logging configuration a
+    set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="alias" type="string">
+  Scraper alias. Optional.
+</ResponseField>
+
+<ResponseField name="destination" type="object" required>
+  Scraper metrics destination Required.
+  <Expandable title="properties">
+    <ResponseField name="amp_configuration" type="object">
+      Configuration for Amazon Managed Prometheus metrics destination Optional.
+      <Expandable title="properties">
+        <ResponseField name="workspace_arn" type="string" required>
+          ARN of an Amazon Managed Prometheus workspace Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="cloud_watch_configuration" type="object">
+      Configuration for CloudWatch metrics destination Optional.
+      <Expandable title="properties">
+        <ResponseField name="dataset_arn" type="string" required>
+          ARN of a CloudWatch dataset Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="role_configuration" type="object">
+  Role configuration Optional.
+  <Expandable title="properties">
+    <ResponseField name="source_role_arn" type="string">
+      IAM Role in source account Optional.
+    </ResponseField>
+    <ResponseField name="target_role_arn" type="string">
+      IAM Role in the target account Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="scrape_configuration" type="object" required>
+  Scraper configuration Required.
+  <Expandable title="properties">
+    <ResponseField name="configuration_blob" type="string">
+      Prometheus compatible scrape configuration in base64 encoded blob format Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="scraper_logging_configuration" type="object">
+  Configuration for scraper logging Optional.
+  <Expandable title="properties">
+    <ResponseField name="logging_destination" type="object" required>
+      Destination for scraper logging Required.
+      <Expandable title="properties">
+        <ResponseField name="cloud_watch_logs" type="object">
+          Represents a cloudwatch logs destination for scraper logging Optional.
+          <Expandable title="properties">
+            <ResponseField name="log_group_arn" type="string">
+              ARN of the CloudWatch log group Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="scraper_components" type="list(object)" required>
+      Specifies the list of scraper components (such as target allocation or scrape loop) for which logs are enabled and forwarded to the configured log destination for the Amazon Managed Prometheus scraper. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="config" type="object">
+          Optional; if omitted, computed by AWS.
+          <Expandable title="properties">
+            <ResponseField name="options" type="any">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          The type of scraper component (APISERVER, SCRAPER, or TARGET) for which logging is enabled in the scraper logging configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="source" type="object" required>
+  Scraper metrics source Required.
+  <Expandable title="properties">
+    <ResponseField name="eks_configuration" type="object">
+      Configuration for EKS metrics source Optional.
+      <Expandable title="properties">
+        <ResponseField name="cluster_arn" type="string" required>
+          ARN of an EKS cluster Required.
+        </ResponseField>
+        <ResponseField name="security_group_ids" type="list(string)">
+          List of security group IDs Optional.
+        </ResponseField>
+        <ResponseField name="subnet_ids" type="list(string)" required>
+          List of subnet IDs Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="vpc_configuration" type="object">
+      Configuration for VPC metrics source Optional.
+      <Expandable title="properties">
+        <ResponseField name="security_group_ids" type="list(string)" required>
+          List of security group IDs Required.
+        </ResponseField>
+        <ResponseField name="subnet_ids" type="list(string)" required>
+          List of subnet IDs Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a key-value tag that can be assigned to an Amazon Managed Service for Prometheus scraper for organizational and identification purposes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  Scraper ARN. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string">
+  IAM role ARN for the scraper. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="scraper_id" type="string">
+  Required to identify a specific scraper. Computed by AWS after `ship`.
+</ResponseField>

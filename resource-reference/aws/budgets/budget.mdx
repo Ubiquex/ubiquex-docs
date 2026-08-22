@@ -1,0 +1,293 @@
+---
+title: "aws_budgets_budget"
+description: "`aws_budgets_budget` tracks real AWS cost, usage, Reserved Instance utilization/coverage..."
+---
+
+`aws_budgets_budget` tracks real AWS cost, usage, Reserved Instance utilization/coverage, or Savings Plans utilization/coverage against a defined threshold, fixed or growing, and can notify by email or SNS when actual or forecasted spend crosses it.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	budgets "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/budgets"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own budget"})
+
+    		ubx.Resource(budgets.Budget, "ci-runner", budgets.BudgetConfig{
+    			Budget:                       map[string]any{"budget_type": "example"},
+    			NotificationsWithSubscribers: []map[string]any{{"notification": map[string]any{"comparison_operator": "example"}}},
+    			ResourceTags:                 []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Budget } from "./local-sdk/aws/sdk/typescript/aws/budgets/budget.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own budget" });
+
+      resource(Budget, "ci-runner", {
+        budget: { budgetType: "example" },
+        notificationsWithSubscribers: [{
+          notification: { comparisonOperator: "example" },
+        }],
+        resourceTags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.budgets import Budget, BudgetConfig
+
+    def describe():
+        ubx.intent("payments own budget")
+
+        ubx.resource(Budget, "ci-runner", BudgetConfig(
+            budget={"budget_type": "example"},
+            notifications_with_subscribers=[{"notification": {"comparison_operator": "example"}}],
+            resource_tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_budgets_budget, with budget a set value, notifications
+    with subscribers a set value, resource tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="budget" type="object" required>
+  The budget object defines the essential budget configuration, including the budget name, type (COST or USAGE), amount limit, time unit, and optional cost filters and cost types. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="auto_adjust_data" type="object">
+      Configuration for automatic budget limit adjustment, where AWS adjusts the budget's limit based on historical usage or a forecast, including the autoAdjustType (HISTORICAL or FORECAST) and the corresponding adjustment period options. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="auto_adjust_type" type="string" required>
+          Indicates whether the budget's automatic adjustment is based on a forecast of future spend (FORECAST) or on historical spending patterns (HISTORICAL). Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="historical_options" type="object">
+          Specifies the number of historical budget periods (months) of past spending that AWS Budgets uses to calculate the automatically adjusted budget amount. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="budget_adjustment_period" type="number" required>
+              Specifies the number of months of historical spending data that AWS Budgets uses to automatically calculate the adjusted budget amount. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="billing_view_arn" type="string">
+      Specifies the ARN of an AWS Billing view that the budget is scoped to, allowing the budget to track costs only for the accounts and usage associated with that billing view. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="budget_limit" type="object">
+      Specifies the cost or usage threshold for the budget, defined by an amount and unit (for example, '100.0' and 'USD'). Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="amount" type="number" required>
+          The numerical amount of the budget limit, representing the maximum cost or usage allowed by the budget. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="unit" type="string" required>
+          The three-letter currency code (e.g., USD) that defines the monetary unit for the budget limit amount and must match the currency of the AWS account. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="budget_name" type="string">
+      The name of the budget, which acts as a unique identifier within the AWS account for the specified budget type; if omitted, CloudFormation generates a unique name (e.g., the logical ID). Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="budget_type" type="string" required>
+      Specifies the type of budget, such as COST, USAGE, RI_UTILIZATION, RI_COVERAGE, SAVINGS_PLANS_UTILIZATION, or SAVINGS_PLANS_COVERAGE, which determines the metric and dimensions used to track your AWS spend or usage. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="cost_filters" type="any">
+      A map of cost filter dimension names (such as Service, LinkedAccount, Region, or TagKeyValue) to lists of values that restricts the budget to matching AWS costs, analogous to the CostFilters property in the AWS Budgets API. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="cost_types" type="object">
+      Specifies the CostTypes object that controls which AWS cost types (such as taxes, subscriptions, recurring charges, support, discounts, credits, and upfront fees) are included or excluded when calculating the budget's actual and forecasted costs. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="include_credit" type="bool">
+          Specifies whether credits (such as promotional AWS credits) are included when calculating the costs covered by this budget. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="include_discount" type="bool">
+          Determines whether discounts are included in the cost amounts tracked by this budget. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="include_other_subscription" type="bool">
+          Controls whether the budget includes other non-recurring subscription costs, such as one-time fees for services like Amazon QuickSight. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="include_recurring" type="bool">
+          Whether the budget includes recurring costs (such as monthly subscription or recurring service fees) when calculating actual spend against the budget. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="include_refund" type="bool">
+          Indicates whether the budget includes refunds when calculating costs. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="include_subscription" type="bool">
+          Specifies whether the budget includes subscription costs (such as AWS Support) when determining actual and forecasted spend. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="include_support" type="bool">
+          Determines whether AWS Support charges (such as subscription fees for AWS Support plans) are included when calculating the costs tracked by this budget. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="include_tax" type="bool">
+          Specifies whether the budget includes taxes associated with your usage. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="include_upfront" type="bool">
+          Specifies whether to include upfront fees, such as the one-time payment for Reserved Instances, in the budget's cost calculations. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="use_amortized" type="bool">
+          In AWS Budgets, this boolean flag in the budget's cost types controls whether the budget includes amortized costs, which spread upfront reservation or savings plan charges over the term of the commitment. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="use_blended" type="bool">
+          A boolean flag that indicates whether the budget includes blended costs, which are calculated by mixing the effective rates of on-demand and reserved-instance usage. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="filter_expression" type="object">
+      Specifies a logical expression of key-value filters (such as service, tag, or account) and an operator (AND or OR) that determines which cost and usage data is included in the budget. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="and" type="list(any)">
+          Specifies a list of filter expressions that must all be satisfied (logical AND) for a cost or usage item to be counted in the budget, enabling combined dimension-based filtering (e.g., service and region together). Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="cost_categories" type="object">
+          Maps cost category names to lists of values within the budget's filter expression; only actual costs that match at least one of the listed values for each configured cost category are counted toward the budget. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The name of the AWS Cost Category to use as a filter key for this budget. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="match_options" type="list(string)">
+              Specifies the matching options (such as EQUALS, STARTS_WITH) that apply to the cost category values in the budget's filter expression. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="values" type="list(string)">
+              Defines the specific values of the chosen cost category that the budget filter matches, restricting the budget to only include costs associated with those cost category values. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="dimensions" type="object">
+          Defines the AWS cost dimensions (like SERVICE or REGION) and their allowed values that this budget's filter expression uses to match and track specific cost and usage. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              Specifies the dimension name (e.g., SERVICE, REGION, or AZ) that the budget's filter expression uses to filter cost or usage data. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="match_options" type="list(string)">
+              Specifies a list of match options (such as EQUALS or STARTS_WITH) that determine how the dimension values in the filter are matched against actual budget costs. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="values" type="list(string)">
+              The list of specific values for the dimension in the budget's filter expression, such as service names (e.g., AmazonS3) when the dimension is SERVICE. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="not" type="any">
+          The `not` field holds a nested filter expression that is logically negated, so the budget applies only to costs that do not match the nested criteria. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="or" type="list(any)">
+          A list of filter sub-expressions that are combined using OR logic, so that a cost is included in the budget if it matches any of the listed sub-expressions. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="tags" type="object">
+          Defines the tag-based filters (tag key and list of values) that restrict the budget's cost scope to matching tagged resources in the budget filter expression. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The tag key used in the budget's filter expression to scope the budget to costs associated with that tag. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="match_options" type="list(string)">
+              Defines how the cost allocation tag key-value pairs in the budget filter expression are matched (e.g., using EQUALS, STARTS_WITH, ENDS_WITH, or CONTAINS) against the tags applied to your resources, controlling which resource usage is included in the budget. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="values" type="list(string)">
+              Specifies the list of tag values to match when the budget's filter expression filters by a tag key, limiting the budget's coverage to costs from resources tagged with any of these values. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="metrics" type="list(string)">
+      Optional.
+    </ResponseField>
+    <ResponseField name="planned_budget_limits" type="any">
+      Specifies budget limits for future cost budget periods, mapping each period's start date (YYYY-MM-DD) to a budget limit amount and unit for that period. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="time_period" type="object">
+      Specifies the start and end dates that determine the period covered by the budget. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="end" type="string">
+          The end date of the budget time period, indicating the last day the budget is active; if omitted, the budget period is open-ended. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="start" type="string">
+          The start date and time of the budget's coverage period, expressed in UTC (usually ISO 8601 format), which determines the beginning of the time window over which costs are evaluated against the budget. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="time_unit" type="string" required>
+      The time unit (DAILY, MONTHLY, QUARTERLY, or ANNUALLY) that defines the period over which the budget tracks costs or usage and resets. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="notifications_with_subscribers" type="list(object)">
+  Specifies the budget notifications and the email or SNS subscribers to receive alerts when the budget threshold is exceeded. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="notification" type="object">
+      Defines the notification configuration for a budget, including threshold value, comparison operator (e.g., GREATER_THAN), threshold type (PERCENTAGE or ABSOLUTE_VALUE), and notification type (e.g., ACTUAL or FORECASTED), which triggers an alert to the subscribed SNS topics or email addresses. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="comparison_operator" type="string">
+          Specifies the comparison operator (e.g., GREATER_THAN, LESS_THAN, EQUAL_TO) used to evaluate the budget's actual or forecasted value against the notification threshold. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="notification_type" type="string">
+          Specifies whether the budget notification is triggered by actual spending or a forecasted spend amount. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="threshold" type="number">
+          The numeric threshold value that, when compared against the actual or forecasted budget cost or usage using the notification's comparison operator, triggers the budget notification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="threshold_type" type="string">
+          Specifies whether the budget notification threshold is expressed as a percentage of the budget limit or as an absolute value (e.g., a dollar amount or usage quantity), corresponding to the PERCENTAGE or ABSOLUTE_VALUE enum values for the budget alarm. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="subscribers" type="list(object)">
+      Specifies the list of subscribers (email addresses or SNS topic ARNs) that receive the budget notification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="address" type="string">
+          The email address or SNS topic ARN that receives the budget notification for the associated subscriber type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="subscription_type" type="string">
+          The subscription channel type used by the subscriber to receive budget notifications, such as SNS or EMAIL. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="resource_tags" type="list(object)">
+  Specifies a list of resource tag key-value pairs (with Key and Value properties) that are attached to this AWS Budgets budget to help categorize and manage it for cost allocation and filtering. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a resource tag (a key-value pair) applied to the budget, used to categorize or identify the budget for cost allocation and management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag entry in the resource_tags map, used to attach metadata to the budget resource for identification and organization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The budget name, which uniquely identifies the budget within the AWS account and is used as the resource's primary identifier. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

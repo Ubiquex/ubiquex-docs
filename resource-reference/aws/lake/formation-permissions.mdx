@@ -1,0 +1,177 @@
+---
+title: "aws_lake_formation_permissions"
+description: "`aws_lake_formation_permissions` grants a real Lake Formation permission to a principal on a Data Catalog resource (a database or table) using Lake..."
+---
+
+`aws_lake_formation_permissions` grants a real Lake Formation permission to a principal on a Data Catalog resource (a database or table) using Lake Formation's original, resource-by-resource grant model, the predecessor to the newer `aws_lake_formation_principal_permissions`, which additionally supports LF-Tag-based grants at scale.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	lake "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/lake"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own formation permissions"})
+
+    		ubx.Resource(lake.FormationPermissions, "ci-runner", lake.FormationPermissionsConfig{
+    			DataLakePrincipal:          map[string]any{"data_lake_principal_identifier": "example"},
+    			Resource:                   map[string]any{"data_location_resource": map[string]any{"catalog_id": "example"}},
+    			Permissions:                []string{"example"},
+    			PermissionsWithGrantOption: []string{"example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { FormationPermissions } from "./local-sdk/aws/sdk/typescript/aws/lake/formation_permissions.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own formation permissions" });
+
+      resource(FormationPermissions, "ci-runner", {
+        dataLakePrincipal: { dataLakePrincipalIdentifier: "example" },
+        resource: { dataLocationResource: { catalogId: "example" } },
+        permissions: ["example"],
+        permissionsWithGrantOption: ["example"],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.lake import FormationPermissions, FormationPermissionsConfig
+
+    def describe():
+        ubx.intent("payments own formation permissions")
+
+        ubx.resource(FormationPermissions, "ci-runner", FormationPermissionsConfig(
+            data_lake_principal={"data_lake_principal_identifier": "example"},
+            resource={"data_location_resource": {"catalog_id": "example"}},
+            permissions=["example"],
+            permissions_with_grant_option=["example"],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_lake_formation_permissions, with data lake principal a
+    set value, resource a set value, permissions a set value,
+    permissions with grant option a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="data_lake_principal" type="object" required>
+  The AWS Lake Formation principal (such as an IAM user, role, or account) that receives the granted permissions, identified by its data lake principal identifier. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="data_lake_principal_identifier" type="string">
+      The data lake principal identifier specifies the unique AWS identity (such as an IAM role ARN, IAM user ARN, or AWS account ID) that the Lake Formation permissions are granted to. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="permissions" type="list(string)">
+  The list of Lake Formation permissions to grant on the target resource, such as SELECT, ALTER, DROP, or CREATE_TABLE, defining the actions the principal is allowed to perform. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="permissions_with_grant_option" type="list(string)">
+  The list of Lake Formation permissions (e.g., SELECT, INSERT) that are granted to the principal on the resource along with the ability to grant these same permissions to other principals. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="resource" type="object" required>
+  The resource object identifies the data lake resource (such as a catalog, database, table, or table with columns) on which the Lake Formation permissions are granted. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="data_location_resource" type="object">
+      This object specifies the Amazon S3 data location (a bucket or prefix) in the Lake Formation catalog to which the permissions are granted, identified by its resource ARN and optional catalog ID. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="catalog_id" type="string">
+          The ID of the Data Catalog where the data location is registered, defaulting to the caller's account ID if omitted. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="s3_resource" type="string">
+          The Amazon S3 resource ARN (e.g., arn:aws:s3:::bucket-name) that specifies the data location for which the Lake Formation permissions are granted, under the DataLocationResource of the AWS::LakeFormation::Permissions resource. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="database_resource" type="object">
+      Identifies the specific database in the Lake Formation catalog to which the permissions apply, using the database's name (and optionally its catalog ID). Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="catalog_id" type="string">
+          The identifier of the Data Catalog (typically the AWS account ID) where the target database resides, used to scope the permission grant to the database in that specific catalog. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The name of the Lake Formation database to which the permissions apply. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="table_resource" type="object">
+      Specifies the table (by database and table name or wildcard) in the Lake Formation catalog for which permissions are granted or revoked. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="catalog_id" type="string">
+          The identifier of the AWS Glue Data Catalog (typically the AWS account ID) that contains the table to which Lake Formation permissions are being granted. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="database_name" type="string">
+          The name of the Lake Formation database that contains the table for which permissions are being granted. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The name of the Lake Formation table, matching a table in the specified database, to which the permissions are granted. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="table_wildcard" type="any">
+          When set, this object indicates that the table resource refers to all tables in the underlying database via a wildcard, rather than a specific named table, for the Lake Formation permissions resource. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="table_with_columns_resource" type="object">
+      When set, this object identifies the target data resource for the Lake Formation permissions as a specific Data Catalog table (in a database) with a defined list of columns or a column wildcard, scoping the granted permissions to those columns. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="catalog_id" type="string">
+          The identifier of the Data Catalog (Glue catalog) in which the table is located; if omitted, defaults to the current AWS account ID. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="column_names" type="list(string)">
+          The list of column names in the specified table for which Lake Formation permissions are granted, enabling column-level access control. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="column_wildcard" type="object">
+          Specifies a column wildcard for the table, allowing permissions to apply to all columns except those listed in its excluded column names. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="excluded_column_names" type="list(string)">
+              The list of column names to exclude from the column wildcard when granting Lake Formation permissions on a table, effectively granting access to all columns except those listed. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="database_name" type="string">
+          The name of the database in the AWS Glue Data Catalog that contains the table for which Lake Formation permissions are being granted or revoked. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The name of the table within the Lake Formation table-with-columns resource that these permissions apply to. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  A computed composite identifier that uniquely represents the Lake Formation permissions grant, encoding the principal, resource, and permissions to allow Terraform to manage and import the resource. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

@@ -1,0 +1,100 @@
+---
+title: "aws_fis_target_account_configuration"
+description: "`aws_fis_target_account_configuration` registers a real member account..."
+---
+
+`aws_fis_target_account_configuration` registers a real member account, and the IAM role FIS should assume in it, as an eligible target for an `aws_fis_experiment_template` run from a different, orchestrating account.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	fis "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/fis"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own target account configuration"})
+
+    		ubx.Resource(fis.TargetAccountConfiguration, "ci-runner", fis.TargetAccountConfigurationConfig{
+    			AccountId:            "example",
+    			ExperimentTemplateId: "example",
+    			RoleArn:              "arn:aws:iam::123456789012:policy/ci",
+    			Description:          "Managed by ubx.",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { TargetAccountConfiguration } from "./local-sdk/aws/sdk/typescript/aws/fis/target_account_configuration.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own target account configuration" });
+
+      resource(TargetAccountConfiguration, "ci-runner", {
+        accountId: "example",
+        experimentTemplateId: "example",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        description: "Managed by ubx.",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.fis import TargetAccountConfiguration, TargetAccountConfigurationConfig
+
+    def describe():
+        ubx.intent("payments own target account configuration")
+
+        ubx.resource(TargetAccountConfiguration, "ci-runner", TargetAccountConfigurationConfig(
+            account_id="example",
+            experiment_template_id="example",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            description="Managed by ubx.",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_fis_target_account_configuration, with account id
+    example, experiment template id example, role arn
+    arn:aws:iam::123456789012:policy/ci, description Managed by ubx..
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="account_id" type="string" required>
+  The AWS account ID of the target account. Required.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  The description of the target account. Optional.
+</ResponseField>
+
+<ResponseField name="experiment_template_id" type="string" required>
+  The ID of the experiment template. Required.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  The Amazon Resource Name (ARN) of an IAM role for the target account. Required.
+</ResponseField>

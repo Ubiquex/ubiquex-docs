@@ -1,0 +1,319 @@
+---
+title: "aws_glue_crawler"
+description: "`aws_glue_crawler` scans a real data source, S3, a JDBC database, DynamoDB..."
+---
+
+`aws_glue_crawler` scans a real data source, S3, a JDBC database, DynamoDB, and automatically infers and populates an `aws_glue_table`'s own schema in the Glue Data Catalog, rather than a caller writing that schema by hand.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	glue "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/glue"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own crawler"})
+
+    		ubx.Resource(glue.Crawler, "ci-runner", glue.CrawlerConfig{
+    			Role:                         "example",
+    			Targets:                      map[string]any{"catalog_targets": []map[string]any{{"connection_name": "example-connection-name"}}},
+    			Name:                         "ci-runner",
+    			Classifiers:                  []string{"example"},
+    			Configuration:                "example",
+    			CrawlerSecurityConfiguration: "example",
+    			DatabaseName:                 "example-database-name",
+    			Description:                  "Managed by ubx.",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Crawler } from "./local-sdk/aws/sdk/typescript/aws/glue/crawler.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own crawler" });
+
+      resource(Crawler, "ci-runner", {
+        role: "example",
+        targets: {
+          catalogTargets: [{ connectionName: "example-connection-name" }],
+        },
+        name: "ci-runner",
+        classifiers: ["example"],
+        configuration: "example",
+        crawlerSecurityConfiguration: "example",
+        databaseName: "example-database-name",
+        description: "Managed by ubx.",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.glue import Crawler, CrawlerConfig
+
+    def describe():
+        ubx.intent("payments own crawler")
+
+        ubx.resource(Crawler, "ci-runner", CrawlerConfig(
+            role="example",
+            targets={"catalog_targets": [{"connection_name": "example-connection-name"}]},
+            name="ci-runner",
+            classifiers=["example"],
+            configuration="example",
+            crawler_security_configuration="example",
+            database_name="example-database-name",
+            description="Managed by ubx.",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_glue_crawler called "ci-runner", with role example,
+    targets a set value, classifiers a set value, configuration
+    example, crawler security configuration example, database name
+    example-database-name, description Managed by ubx..
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="classifiers" type="list(string)">
+  A list of UTF-8 strings that specify the names of custom classifiers that are associated with the crawler. Optional.
+</ResponseField>
+
+<ResponseField name="configuration" type="string">
+  Crawler configuration information. This versioned JSON string allows users to specify aspects of a crawler's behavior. Optional.
+</ResponseField>
+
+<ResponseField name="crawler_security_configuration" type="string">
+  The name of the SecurityConfiguration structure to be used by this crawler. Optional.
+</ResponseField>
+
+<ResponseField name="database_name" type="string">
+  The name of the database in which the crawler's output is stored. Optional.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A description of the crawler. Optional.
+</ResponseField>
+
+<ResponseField name="lake_formation_configuration" type="object">
+  Specifies AWS Lake Formation configuration settings for the crawler Optional.
+  <Expandable title="properties">
+    <ResponseField name="account_id" type="string">
+      Required for cross account crawls. For same account crawls as the target data, this can be left as null. Optional.
+    </ResponseField>
+    <ResponseField name="use_lake_formation_credentials" type="bool">
+      Specifies whether to use AWS Lake Formation credentials for the crawler instead of the IAM role credentials. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the crawler. Optional.
+</ResponseField>
+
+<ResponseField name="recrawl_policy" type="object">
+  When crawling an Amazon S3 data source after the first crawl is complete, specifies whether to crawl the entire dataset again or to crawl only folders that were added since the last crawler run. For more information, see Incremental Crawls in AWS Glue in the developer guide. Optional.
+  <Expandable title="properties">
+    <ResponseField name="recrawl_behavior" type="string">
+      Specifies whether to crawl the entire dataset again or to crawl only folders that were added since the last crawler run. A value of CRAWL_EVERYTHING specifies crawling the entire dataset again. A value of CRAWL_NEW_FOLDERS_ONLY specifies crawling only folders that were added since the last crawler run. A value of CRAWL_EVENT_MODE specifies crawling only the changes identified by Amazon S3 events. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="role" type="string" required>
+  The Amazon Resource Name (ARN) of an IAM role that's used to access customer resources, such as Amazon Simple Storage Service (Amazon S3) data. Required.
+</ResponseField>
+
+<ResponseField name="schedule" type="object">
+  A scheduling object using a cron statement to schedule an event. Optional.
+  <Expandable title="properties">
+    <ResponseField name="schedule_expression" type="string">
+      A cron expression used to specify the schedule. For more information, see Time-Based Schedules for Jobs and Crawlers. For example, to run something every day at 12:15 UTC, specify cron(15 12 * * ? *). Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="schema_change_policy" type="object">
+  The policy that specifies update and delete behaviors for the crawler. The policy tells the crawler what to do in the event that it detects a change in a table that already exists in the customer's database at the time of the crawl. The SchemaChangePolicy does not affect whether or how new tables and partitions are added. New tables and partitions are always created regardless of the SchemaChangePolicy on a crawler. The SchemaChangePolicy consists of two components, UpdateBehavior and DeleteBehavior. Optional.
+  <Expandable title="properties">
+    <ResponseField name="delete_behavior" type="string">
+      The deletion behavior when the crawler finds a deleted object. A value of LOG specifies that if a table or partition is found to no longer exist, do not delete it, only log that it was found to no longer exist. A value of DELETE_FROM_DATABASE specifies that if a table or partition is found to have been removed, delete it from the database. A value of DEPRECATE_IN_DATABASE specifies that if a table has been found to no longer exist, to add a property to the table that says 'DEPRECATED' and includes a timestamp with the time of deprecation. Optional.
+    </ResponseField>
+    <ResponseField name="update_behavior" type="string">
+      The update behavior when the crawler finds a changed schema. A value of LOG specifies that if a table or a partition already exists, and a change is detected, do not update it, only log that a change was detected. Add new tables and new partitions (including on existing tables). A value of UPDATE_IN_DATABASE specifies that if a table or partition already exists, and a change is detected, update it. Add new tables and partitions. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="table_prefix" type="string">
+  The prefix added to the names of tables that are created. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  The tags to use with this crawler. Optional.
+</ResponseField>
+
+<ResponseField name="targets" type="object" required>
+  Specifies data stores to crawl. Required.
+  <Expandable title="properties">
+    <ResponseField name="catalog_targets" type="list(object)">
+      Specifies AWS Glue Data Catalog targets. Optional.
+      <Expandable title="properties">
+        <ResponseField name="connection_name" type="string">
+          The name of an existing AWS Glue connection that the crawler uses to access the catalog target database when the target requires network access through a connection (for example, for a Redshift or JDBC target catalog). Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="database_name" type="string">
+          The name of the AWS Glue Data Catalog database whose tables the crawler targets when processing this catalog target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="dlq_event_queue_arn" type="string">
+          Specifies the ARN of the Amazon SQS dead-letter queue to use as a destination for events that fail to be processed from the event queue for this catalog target, enabling change tracking in the crawler. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="event_queue_arn" type="string">
+          The ARN of an Amazon SQS queue that the crawler subscribes to so it can receive data catalog event notifications for the specified catalog target tables, enabling event-driven re-crawling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="tables" type="list(string)">
+          The list of table names in the specified AWS Glue Data Catalog database that the crawler will target to update their metadata definitions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="delta_targets" type="list(object)">
+      Specifies an array of Delta data store targets. Optional.
+      <Expandable title="properties">
+        <ResponseField name="connection_name" type="string">
+          The connection_name field specifies the name of the AWS Glue connection used to access the Delta Lake table during crawling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="create_native_delta_table" type="bool">
+          Specifies whether the crawler creates a native Delta Lake table instead of a symlink table for the discovered Delta targets. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="delta_tables" type="list(string)">
+          A list of Amazon S3 paths to Delta Lake tables that the crawler will crawl. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="write_manifest" type="bool">
+          Specifies whether the crawler writes a manifest file for each Delta Lake table it crawls, enabling query engines like Amazon Athena and Presto to read the Delta table via the manifest. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="dynamo_dbtargets" type="list(object)">
+      Specifies Amazon DynamoDB targets. Optional.
+      <Expandable title="properties">
+        <ResponseField name="path" type="string">
+          Specifies the DynamoDB table name that this DynamoDB target points to, which the AWS Glue crawler scans. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="scan_all" type="bool">
+          When set to true, the Glue crawler scans all items in the DynamoDB table, whereas false limits it to a sample of approximately 1,000 items. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="scan_rate" type="number">
+          The percentage of the DynamoDB table's provisioned read throughput that the crawler will consume while scanning, controlling scan speed and impact on the source table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="hudi_targets" type="list(object)">
+      Specifies Apache Hudi data store targets. Optional.
+      <Expandable title="properties">
+        <ResponseField name="connection_name" type="string">
+          The name of the AWS Glue connection used by the crawler to access and catalog Hudi table metadata from the specified Hudi data store. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="exclusions" type="list(string)">
+          Specifies a list of glob patterns that the crawler will ignore when scanning the Hudi data store, allowing specific files or directories to be excluded from the crawl. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum_traversal_depth" type="number">
+          Specifies the maximum directory depth to traverse when crawling Hudi target paths, limiting how deep the crawler will explore the data store. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="paths" type="list(string)">
+          List of Amazon S3 paths that define the root locations of Hudi datasets to be crawled by the Glue crawler. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="iceberg_targets" type="list(object)">
+      Specifies Apache Iceberg data store targets. Optional.
+      <Expandable title="properties">
+        <ResponseField name="connection_name" type="string">
+          Name of the AWS Glue connection that the crawler uses to access the Iceberg table's metadata (such as a connection to a custom metastore or the Glue Data Catalog) during the crawl. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="exclusions" type="list(string)">
+          Specifies a list of glob patterns (e.g., '*.tmp') that the crawler excludes from the Iceberg data store when crawling, preventing certain files or folders from being included in the table metadata. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum_traversal_depth" type="number">
+          Specifies the maximum number of directory levels deep that the crawler will traverse under each Iceberg target path to discover table definitions and partition layouts. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="paths" type="list(string)">
+          Specifies the S3 paths to Iceberg tables (or directories containing Iceberg metadata) that the crawler will scan and catalog. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="jdbc_targets" type="list(object)">
+      Specifies JDBC targets. Optional.
+      <Expandable title="properties">
+        <ResponseField name="connection_name" type="string">
+          The name of the JDBC connection to use for this JDBC target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="enable_additional_metadata" type="list(string)">
+          Specifies additional metadata (currently only 'COMMENTS') to be captured from JDBC data sources during the crawl, enabling table and column comments to be stored in the Data Catalog. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="exclusions" type="list(string)">
+          List of glob-style path patterns (e.g., 'table_[0-9]*') that the crawler excludes from the JDBC target's scan, preventing specified tables or partitions from being cataloged. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="path" type="string">
+          The path of the JDBC target, identifying the database table (or tables) to crawl, typically in the form `database.table` or `schema.table` relative to the configured JDBC connection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="mongo_dbtargets" type="list(object)">
+      A list of Mongo DB targets. Optional.
+      <Expandable title="properties">
+        <ResponseField name="connection_name" type="string">
+          The name of an AWS Glue connection that stores connection details for the MongoDB data store to crawl. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="path" type="string">
+          The database and collection path (for example, database.collection) for the MongoDB target in the AWS Glue crawler. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="s3_targets" type="list(object)">
+      Specifies Amazon Simple Storage Service (Amazon S3) targets. Optional.
+      <Expandable title="properties">
+        <ResponseField name="connection_name" type="string">
+          The name of a Glue connection used to access this S3 target, enabling the crawler to reach S3 data inside an Amazon VPC via a VPC endpoint or similar network configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="dlq_event_queue_arn" type="string">
+          The ARN of the SQS dead-letter queue that receives failed events from the S3 event queue configured for this Glue crawler's S3 target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="event_queue_arn" type="string">
+          The ARN of an Amazon SQS queue that receives S3 object-created events, enabling event-based incremental crawling of the S3 target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="exclusions" type="list(string)">
+          A list of glob patterns (such as '*.log') used to exclude specific S3 objects from being crawled by this crawler. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="path" type="string">
+          The path to the Amazon S3 location (bucket or bucket/prefix) that the Glue crawler will crawl to populate the data catalog. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="sample_size" type="number">
+          Sets the number of records sampled from the S3 target by the crawler to infer the schema. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>

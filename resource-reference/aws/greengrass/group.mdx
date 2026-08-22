@@ -1,0 +1,141 @@
+---
+title: "aws_greengrass_group"
+description: "`aws_greengrass_group` is the real, top-level container in AWS IoT Greengrass V1 that a core device, its Lambda functions, subscriptions..."
+---
+
+`aws_greengrass_group` is the real, top-level container in AWS IoT Greengrass V1 that a core device, its Lambda functions, subscriptions, and other local resources all belong to, deployed together as one unit. AWS IoT Greengrass V1 entered its extended-life, maintenance-only phase on June 30, 2023 (no further feature, enhancement, or security updates) and reaches full end of support on October 7, 2026; devices already running V1 continue operating and connecting to the cloud in the meantime, and AWS recommends migrating to AWS IoT Greengrass V2 for new work.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	greengrass "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/greengrass"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own group"})
+
+    		ubx.Resource(greengrass.Group, "ci-runner", greengrass.GroupConfig{
+    			Name:           "ci-runner",
+    			InitialVersion: map[string]any{"connector_definition_version_arn": "example"},
+    			RoleArn:        "arn:aws:iam::123456789012:policy/ci",
+    			Tags:           "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Group } from "./local-sdk/aws/sdk/typescript/aws/greengrass/group.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own group" });
+
+      resource(Group, "ci-runner", {
+        name: "ci-runner",
+        initialVersion: { connectorDefinitionVersionArn: "example" },
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        tags: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.greengrass import Group, GroupConfig
+
+    def describe():
+        ubx.intent("payments own group")
+
+        ubx.resource(Group, "ci-runner", GroupConfig(
+            name="ci-runner",
+            initial_version={"connector_definition_version_arn": "example"},
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            tags="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_greengrass_group called "ci-runner", with initial
+    version a set value, role arn
+    arn:aws:iam::123456789012:policy/ci, tags example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="initial_version" type="object">
+  Specifies the initial version of the Greengrass group, which includes references to the core, devices, functions, loggers, subscriptions, and resource definitions that define the group's initial configuration. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="connector_definition_version_arn" type="string">
+      Specifies the Amazon Resource Name (ARN) of a connector definition version to associate with the group's initial version, defining which connectors are available in the group. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="core_definition_version_arn" type="string">
+      The Amazon Resource Name (ARN) of the core definition version to associate with the initial Greengrass group version. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="device_definition_version_arn" type="string">
+      The Amazon Resource Name (ARN) of the device definition version to include in the initial group version when the group is created. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="function_definition_version_arn" type="string">
+      The ARN of the function definition version that defines the Lambda functions for the Greengrass group, included in the initial group version configuration. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="logger_definition_version_arn" type="string">
+      The Amazon Resource Name (ARN) of a Greengrass logger definition version to associate with the group's initial version, enabling the group to use the specified logging configuration. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="resource_definition_version_arn" type="string">
+      This field specifies the Amazon Resource Name (ARN) of the resource definition version that defines the local resources available to the Greengrass group's initial group version, which is used when the group is first created. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="subscription_definition_version_arn" type="string">
+      The ARN of the subscription definition version to associate with the group's initial version. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the Greengrass group, which is a user-defined identifier for the group in AWS IoT Greengrass. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="role_arn" type="string">
+  The ARN of an IAM role that AWS Greengrass assumes on behalf of the group to access other AWS services (e.g., for Lambda function execution or connector interactions). Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  Tags to assign to the Greengrass group, providing key-value metadata for organizing, identifying, and managing the resource in AWS. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the Greengrass group, automatically assigned by AWS when the group is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The AWS-assigned unique identifier for the Greengrass group. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="latest_version_arn" type="string">
+  The Amazon Resource Name (ARN) of the latest version of the Greengrass group. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="role_attached_at" type="string">
+  The timestamp (in milliseconds) when the IAM role was attached to the Greengrass group. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

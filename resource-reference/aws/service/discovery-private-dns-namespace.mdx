@@ -1,0 +1,144 @@
+---
+title: "aws_service_discovery_private_dns_namespace"
+description: "`aws_service_discovery_private_dns_namespace` creates a real Cloud Map namespace backed by a private Route 53 hosted zone..."
+---
+
+`aws_service_discovery_private_dns_namespace` creates a real Cloud Map namespace backed by a private Route 53 hosted zone, resolvable only inside its associated VPCs, so `aws_service_discovery_service` names resolve to real DNS records rather than only being queryable through the API.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	service "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/service"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own discovery private dns namespace"})
+
+    		ubx.Resource(service.DiscoveryPrivateDnsNamespace, "ci-runner", service.DiscoveryPrivateDnsNamespaceConfig{
+    			Name:        "ci-runner",
+    			Description: "Managed by ubx.",
+    			Properties:  map[string]any{"dns_properties": map[string]any{"soa": map[string]any{"ttl": 1}}},
+    			Tags:        []map[string]any{{"key": "example"}},
+    			Vpc:         "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { DiscoveryPrivateDnsNamespace } from "./local-sdk/aws/sdk/typescript/aws/service/discovery_private_dns_namespace.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own discovery private dns namespace" });
+
+      resource(DiscoveryPrivateDnsNamespace, "ci-runner", {
+        name: "ci-runner",
+        description: "Managed by ubx.",
+        properties: { dnsProperties: { soa: { ttl: 1 } } },
+        tags: [{ key: "example" }],
+        vpc: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.service import DiscoveryPrivateDnsNamespace, DiscoveryPrivateDnsNamespaceConfig
+
+    def describe():
+        ubx.intent("payments own discovery private dns namespace")
+
+        ubx.resource(DiscoveryPrivateDnsNamespace, "ci-runner", DiscoveryPrivateDnsNamespaceConfig(
+            name="ci-runner",
+            description="Managed by ubx.",
+            properties={"dns_properties": {"soa": {"ttl": 1}}},
+            tags=[{"key": "example"}],
+            vpc="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_service_discovery_private_dns_namespace called
+    "ci-runner", with description Managed by ubx., properties a set
+    value, tags a set value, vpc example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  A description of the namespace. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name that you want to assign to this namespace. When you create a private DNS namespace, AWS Cloud Map automatically creates an Amazon Route 53 private hosted zone that has the same name as the namespace. Required.
+</ResponseField>
+
+<ResponseField name="properties" type="object">
+  Optional.
+  <Expandable title="properties">
+    <ResponseField name="dns_properties" type="object">
+      Defines the DNS properties for the private namespace, specifically the SOA (Start of Authority) record settings that control the default DNS behavior for the namespace. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="soa" type="object">
+          Configures the start of authority (SOA) record settings for the private DNS namespace, allowing you to set the time-to-live (TTL) for the SOA record. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="ttl" type="number">
+              Specifies the time-to-live (TTL) in seconds for the SOA (Start of Authority) record of the private DNS namespace, controlling how long DNS resolvers cache the SOA information. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags for the namespace. Each tag consists of a key and an optional value, both of which you define. Tag keys can have a maximum character length of 128 characters, and tag values can have a maximum length of 256 characters. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vpc" type="string">
+  The ID of the Amazon VPC that you want to associate the namespace with. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the private namespace. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="hosted_zone_id" type="string">
+  The ID for the Route 53 hosted zone that AWS Cloud Map creates when you create a namespace. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The ID of the private namespace. Computed by AWS after `ship`.
+</ResponseField>

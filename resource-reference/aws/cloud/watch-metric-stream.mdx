@@ -1,0 +1,193 @@
+---
+title: "aws_cloud_watch_metric_stream"
+description: "`aws_cloud_watch_metric_stream` continuously streams real, near real-time CloudWatch metric updates to a destination like Kinesis Data Firehose..."
+---
+
+`aws_cloud_watch_metric_stream` continuously streams real, near real-time CloudWatch metric updates to a destination like Kinesis Data Firehose, an ongoing feed for a third-party observability tool rather than that tool polling the CloudWatch API on an interval.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	cloud "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/cloud"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own watch metric stream"})
+
+    		ubx.Resource(cloud.WatchMetricStream, "ci-runner", cloud.WatchMetricStreamConfig{
+    			Name:                         "ci-runner",
+    			ExcludeFilters:               []map[string]any{{"metric_names": []string{"example"}}},
+    			FirehoseArn:                  "arn:aws:iam::123456789012:policy/ci",
+    			IncludeFilters:               []map[string]any{{"metric_names": []string{"example"}}},
+    			IncludeLinkedAccountsMetrics: true,
+    			OutputFormat:                 "example",
+    			RoleArn:                      "arn:aws:iam::123456789012:policy/ci",
+    			StatisticsConfigurations:     []map[string]any{{"additional_statistics": []string{"example"}}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { WatchMetricStream } from "./local-sdk/aws/sdk/typescript/aws/cloud/watch_metric_stream.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own watch metric stream" });
+
+      resource(WatchMetricStream, "ci-runner", {
+        name: "ci-runner",
+        excludeFilters: [{ metricNames: ["example"] }],
+        firehoseArn: "arn:aws:iam::123456789012:policy/ci",
+        includeFilters: [{ metricNames: ["example"] }],
+        includeLinkedAccountsMetrics: true,
+        outputFormat: "example",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        statisticsConfigurations: [{ additionalStatistics: ["example"] }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.cloud import WatchMetricStream, WatchMetricStreamConfig
+
+    def describe():
+        ubx.intent("payments own watch metric stream")
+
+        ubx.resource(WatchMetricStream, "ci-runner", WatchMetricStreamConfig(
+            name="ci-runner",
+            exclude_filters=[{"metric_names": ["example"]}],
+            firehose_arn="arn:aws:iam::123456789012:policy/ci",
+            include_filters=[{"metric_names": ["example"]}],
+            include_linked_accounts_metrics=True,
+            output_format="example",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            statistics_configurations=[{"additional_statistics": ["example"]}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_cloud_watch_metric_stream called "ci-runner", with
+    exclude filters a set value, firehose arn
+    arn:aws:iam::123456789012:policy/ci, include filters a set value,
+    include linked accounts metrics true, output format example, role
+    arn arn:aws:iam::123456789012:policy/ci, statistics
+    configurations a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="exclude_filters" type="list(object)">
+  Define which metrics will be not streamed. Metrics matched by multiple instances of MetricStreamFilter are joined with an OR operation by default. If both IncludeFilters and ExcludeFilters are omitted, all metrics in the account will be streamed. IncludeFilters and ExcludeFilters are mutually exclusive. Default to null. Optional.
+  <Expandable title="properties">
+    <ResponseField name="metric_names" type="list(string)">
+      The list of metric names within the specified namespace to exclude from the metric stream. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="namespace" type="string">
+      Defines the CloudWatch namespace (e.g., AWS/EC2) whose metrics are excluded from the metric stream when matched by this exclusion filter. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="firehose_arn" type="string">
+  The ARN of the Kinesis Firehose where to stream the data. Optional.
+</ResponseField>
+
+<ResponseField name="include_filters" type="list(object)">
+  Define which metrics will be streamed. Metrics matched by multiple instances of MetricStreamFilter are joined with an OR operation by default. If both IncludeFilters and ExcludeFilters are omitted, all metrics in the account will be streamed. IncludeFilters and ExcludeFilters are mutually exclusive. Default to null. Optional.
+  <Expandable title="properties">
+    <ResponseField name="metric_names" type="list(string)">
+      The names of the metrics in the specified namespace to include in the metric stream; if omitted, all metrics in the namespace are included. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="namespace" type="string">
+      The namespace of the AWS service whose metrics must match this filter for them to be included in the metric stream (e.g., AWS/EC2). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="include_linked_accounts_metrics" type="bool">
+  If you are creating a metric stream in a monitoring account, specify true to include metrics from source accounts that are linked to this monitoring account, in the metric stream. The default is false. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Name of the metric stream. Optional.
+</ResponseField>
+
+<ResponseField name="output_format" type="string">
+  The output format of the data streamed to the Kinesis Firehose. Optional.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string">
+  The ARN of the role that provides access to the Kinesis Firehose. Optional.
+</ResponseField>
+
+<ResponseField name="statistics_configurations" type="list(object)">
+  By default, a metric stream always sends the MAX, MIN, SUM, and SAMPLECOUNT statistics for each metric that is streamed. You can use this parameter to have the metric stream also send additional statistics in the stream. This array can have up to 100 members. Optional.
+  <Expandable title="properties">
+    <ResponseField name="additional_statistics" type="list(string)">
+      Specifies additional statistics (such as percentiles like p99) to include in the metric stream for metrics that match the namespace and metric name of this statistics configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="include_metrics" type="list(object)">
+      Specifies the list of metrics (namespace and metric name) to which the corresponding statistics configuration's allowed statistics apply, controlling which metric streams include the configured statistics. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="metric_name" type="string">
+          The name of the CloudWatch metric for which the specified additional statistics are included in the metric stream. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="namespace" type="string">
+          The name of the AWS service or custom application namespace (e.g., AWS/EC2, AWS/Lambda) whose metrics are included in this statistics configuration, filtering which metric namespaces are sent to the stream. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A set of tags to assign to the delivery stream. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the CloudWatch metric stream, used for identifying and organizing the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  Amazon Resource Name of the metric stream. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="creation_date" type="any">
+  The date of creation of the metric stream. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="last_update_date" type="any">
+  The date of the last update of the metric stream. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Displays the state of the Metric Stream. Computed by AWS after `ship`.
+</ResponseField>

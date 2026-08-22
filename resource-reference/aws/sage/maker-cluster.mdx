@@ -1,0 +1,605 @@
+---
+title: "aws_sage_maker_cluster"
+description: "`aws_sage_maker_cluster` creates a real SageMaker HyperPod cluster, a persistent..."
+---
+
+`aws_sage_maker_cluster` creates a real SageMaker HyperPod cluster, a persistent, purpose-built pool of accelerated compute instances with built-in resiliency (automatic faulty-node detection and job resumption) for large-scale distributed model training, distinct from the on-demand compute behind a `aws_sage_maker_processing_job` or `aws_sage_maker_pipeline` step.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	sage "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sage"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own maker cluster"})
+
+    		ubx.Resource(sage.MakerCluster, "ci-runner", sage.MakerClusterConfig{
+    			AutoScaling:                    map[string]any{"mode": "example"},
+    			ClusterName:                    "example-cluster-name",
+    			ClusterRole:                    "example",
+    			NodeProvisioningMode:           "example",
+    			NodeRecovery:                   "example",
+    			Orchestrator:                   map[string]any{"eks": map[string]any{"cluster_arn": "example"}},
+    			RestrictedInstanceGroupsConfig: map[string]any{"shared_environment_config": map[string]any{"fsx_lustre_deletion_policy": "example"}},
+    			Tags:                           []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MakerCluster } from "./local-sdk/aws/sdk/typescript/aws/sage/maker_cluster.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own maker cluster" });
+
+      resource(MakerCluster, "ci-runner", {
+        autoScaling: { mode: "example" },
+        clusterName: "example-cluster-name",
+        clusterRole: "example",
+        nodeProvisioningMode: "example",
+        nodeRecovery: "example",
+        orchestrator: { eks: { clusterArn: "example" } },
+        restrictedInstanceGroupsConfig: {
+          sharedEnvironmentConfig: { fsxLustreDeletionPolicy: "example" },
+        },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.sage import MakerCluster, MakerClusterConfig
+
+    def describe():
+        ubx.intent("payments own maker cluster")
+
+        ubx.resource(MakerCluster, "ci-runner", MakerClusterConfig(
+            auto_scaling={"mode": "example"},
+            cluster_name="example-cluster-name",
+            cluster_role="example",
+            node_provisioning_mode="example",
+            node_recovery="example",
+            orchestrator={"eks": {"cluster_arn": "example"}},
+            restricted_instance_groups_config={"shared_environment_config": {"fsx_lustre_deletion_policy": "example"}},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_sage_maker_cluster, with auto scaling a set value,
+    cluster name example-cluster-name, cluster role example, node
+    provisioning mode example, node recovery example, orchestrator a
+    set value, restricted instance groups config a set value, tags a
+    set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="auto_scaling" type="object">
+  Configuration for cluster auto-scaling Optional.
+  <Expandable title="properties">
+    <ResponseField name="auto_scaler_type" type="string">
+      The type of auto-scaler to use Optional.
+    </ResponseField>
+    <ResponseField name="mode" type="string" required>
+      The auto-scaling mode for the cluster Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="cluster_name" type="string">
+  The name of the HyperPod Cluster. Optional.
+</ResponseField>
+
+<ResponseField name="cluster_role" type="string">
+  The cluster role for the autoscaler to assume. Optional.
+</ResponseField>
+
+<ResponseField name="node_provisioning_mode" type="string">
+  Determines the scaling strategy for the SageMaker HyperPod cluster. When set to 'Continuous', enables continuous scaling which dynamically manages node provisioning. If the parameter is omitted, uses the standard scaling approach in previous release. Optional.
+</ResponseField>
+
+<ResponseField name="node_recovery" type="string">
+  If node auto-recovery is set to true, faulty nodes will be replaced or rebooted when a failure is detected. If set to false, nodes will be labelled when a fault is detected. Optional.
+</ResponseField>
+
+<ResponseField name="orchestrator" type="object">
+  Specifies parameter(s) specific to the orchestrator, e.g. specify the EKS cluster or Slurm configuration. Optional.
+  <Expandable title="properties">
+    <ResponseField name="eks" type="object">
+      The Amazon EKS configuration that specifies the EKS cluster to use as the orchestrator for this SageMaker HyperPod cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="cluster_arn" type="string">
+          The Amazon Resource Name (ARN) of the Amazon EKS cluster that SageMaker HyperPod uses as the orchestrator for the SageMaker cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="slurm" type="object">
+      The `slurm` property, when set inside `orchestrator`, configures the SageMaker HyperPod cluster to use SLURM as its workload orchestration engine, specifying SLURM cluster settings and SLURM node group definitions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="slurm_config_strategy" type="string">
+          Specifies whether SageMaker automatically generates the Slurm configuration files (Auto) or uses pre-existing configuration files you supply (NoAuto) for the Slurm orchestrator on the SageMaker HyperPod cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="restricted_instance_groups_config" type="object">
+  The cluster-level configuration for restricted instance groups, including shared environment settings for inter-RIG communication and FSx Lustre sharing. Optional.
+  <Expandable title="properties">
+    <ResponseField name="shared_environment_config" type="object" required>
+      The shared environment configuration for restricted instance groups that use cluster-level shared FSx Lustre storage. Required.
+      <Expandable title="properties">
+        <ResponseField name="fsx_lustre_config" type="object">
+          Configuration settings for an Amazon FSx for Lustre file system to be used with the cluster. Optional.
+          <Expandable title="properties">
+            <ResponseField name="per_unit_storage_throughput" type="number" required>
+              The throughput capacity of the FSx for Lustre file system, measured in MB/s per TiB of storage. Required.
+            </ResponseField>
+            <ResponseField name="size_in_gi_b" type="number" required>
+              The storage capacity of the FSx for Lustre file system, specified in gibibytes (GiB). Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="fsx_lustre_deletion_policy" type="string" required>
+          The deletion policy for the shared FSx Lustre file system. Keep retains the FSx when RIGs are deleted. DeleteIfNotUsed deletes the FSx when no RIGs reference it. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Custom tags for managing the SageMaker HyperPod cluster as an AWS resource. You can add tags to your cluster in the same way you add them in other AWS services that support tagging. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the SageMaker HyperPod cluster, used for organizing, identifying, and managing the cluster's resources and costs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a key-value tag attached to the AWS SageMaker cluster, used to associate custom metadata with the cluster for organization and cost tracking. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tiered_storage_config" type="object">
+  Configuration for tiered storage in the SageMaker HyperPod cluster. Optional.
+  <Expandable title="properties">
+    <ResponseField name="instance_memory_allocation_percentage" type="number">
+      The percentage of instance memory to allocate for tiered storage. Optional.
+    </ResponseField>
+    <ResponseField name="mode" type="string" required>
+      The mode of tiered storage. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vpc_config" type="object">
+  Specifies an Amazon Virtual Private Cloud (VPC) that your SageMaker jobs, hosted models, and compute resources have access to. You can control access to and from your resources by configuring a VPC. Optional.
+  <Expandable title="properties">
+    <ResponseField name="security_group_ids" type="list(string)" required>
+      The VPC security group IDs, in the form sg-xxxxxxxx. Specify the security groups for the VPC that is specified in the Subnets field. Required.
+    </ResponseField>
+    <ResponseField name="subnets" type="list(string)" required>
+      The ID of the subnets in the VPC to which you want to connect your training job or model. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="cluster_arn" type="string">
+  The Amazon Resource Name (ARN) of the HyperPod Cluster. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="cluster_status" type="string">
+  The status of the HyperPod Cluster. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="creation_time" type="string">
+  The time at which the HyperPod cluster was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="failure_message" type="string">
+  The failure message of the HyperPod Cluster. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="instance_groups" type="list(object)">
+  The instance groups of the SageMaker HyperPod cluster. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="auto_patch_config" type="object">
+      Specifies the automatic patching configuration for this instance group in the SageMaker HyperPod cluster, including the patch strategy (e.g., 'Auto' or 'None') and the list of instance groups that should be patched. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="deployment_config" type="object">
+          Defines the deployment strategy for automatic patching of instances in this instance group, including the rolling update policy (e.g., maximum batch size and wait interval) and optional auto-rollback configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="auto_rollback_configuration" type="list(object)">
+              Specifies the list of CloudWatch alarms that, if triggered during an automatic patch deployment on a SageMaker HyperPod cluster instance group, cause the deployment to automatically roll back. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="alarm_name" type="string">
+                  The name of an Amazon CloudWatch alarm that triggers an automatic rollback of the SageMaker cluster instance group's patch deployment when the alarm enters the ALARM state. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="rolling_update_policy" type="object">
+              Optional; if omitted, computed by AWS.
+              <Expandable title="properties">
+                <ResponseField name="maximum_batch_size" type="object">
+                  Specifies the maximum number or percentage of nodes in a SageMaker HyperPod instance group that can be patched at the same time during a rolling deployment, defined as an object with value and unit fields. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="type" type="string">
+                      Specifies whether the maximum number of instances updated per batch during a rolling update is set as a fixed count or as a percentage of the instance group's total instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="value" type="number">
+                      The numeric value of the maximum batch size (used with the accompanying type, e.g., COUNT or PERCENT) that limits how many instances in the SageMaker HyperPod cluster's instance group are updated at a time during a rolling deployment when auto-patch is enabled. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="rollback_maximum_batch_size" type="object">
+                  Specifies the maximum number of instances that can be rolled back simultaneously when a rolling update deployment fails for this SageMaker Cluster instance group's auto-patch configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="type" type="string">
+                      Specifies whether the rollback maximum batch size is expressed as a fixed number of instances (INSTANCE_COUNT) or as a percentage of the instance group's capacity (CAPACITY_PERCENT). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="value" type="number">
+                      The numeric value of the rollback maximum batch size, specifying the maximum number of instances (or percentage, based on the sibling Type field) that can be rolled back at once during a rolling update of the SageMaker HyperPod cluster's auto-patch deployment when a failure occurs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="wait_interval_in_seconds" type="number">
+              Specifies the wait interval, in seconds, between each batch of instances when SageMaker automatically deploys patches to a HyperPod cluster instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="patch_schedule" type="object">
+          Defines the cron expression-based maintenance window during which automatic software patches are applied to the instances in the SageMaker cluster instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="next_patch_date" type="string">
+              Specifies the next date (in YYYY-MM-DD format) on which the SageMaker HyperPod cluster instance group will be automatically patched, used when the patch schedule is set to a specific date rather than immediately or on a recurring cron schedule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="patching_strategy" type="string">
+          Defines the automatic patching strategy for an instance group in an AWS SageMaker HyperPod cluster, where 'PreserveAll' keeps all nodes available during patching and 'SkipAll' disables automatic patching for the group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="capacity_requirements" type="object">
+      Defines the minimum and maximum number of instances for the SageMaker HyperPod instance group, allowing the cluster to automatically scale the instance count between these bounds based on the workload. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="on_demand" type="any">
+          Specifies the number of On-Demand instances to allocate to this instance group within the SageMaker HyperPod cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="spot" type="any">
+          Indicates whether the instance group's capacity requirement uses Amazon EC2 Spot Instances, trading potential cost savings for interruption risk. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="current_count" type="number">
+      This field represents the actual number of instances currently running in the given instance group of the SageMaker HyperPod cluster, as reported by AWS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="execution_role" type="string">
+      The IAM role that SageMaker assumes to access AWS services and resources on behalf of the instances within this instance group of the SageMaker HyperPod cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="image_id" type="string">
+      Specifies the Amazon ECR image ID used to launch the instances in this SageMaker HyperPod cluster instance group, enabling a custom container environment for cluster workloads. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="instance_count" type="number">
+      The number of instances of the specified instance type to provision in the SageMaker HyperPod cluster instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="instance_group_name" type="string">
+      Specifies the unique name of an instance group within the SageMaker HyperPod cluster, used to identify the group when configuring instance types and counts. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="instance_requirements" type="object">
+      Specifies the minimum and maximum computing requirements (such as vCPUs and memory) that instances in a SageMaker HyperPod instance group must meet, enabling AWS to automatically choose an appropriate instance type for the cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="instance_types" type="list(string)">
+          Specifies the list of acceptable EC2 instance types (e.g., ml.c5.large, ml.m5.xlarge) for the SageMaker cluster instance group, from which the service selects one when provisioning instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="instance_storage_configs" type="list(object)">
+      Specifies the Elastic Block Store (EBS) volume configuration, such as volume size in GB, attached to each instance within the SageMaker HyperPod cluster instance group for local instance storage. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="ebs_volume_config" type="object">
+          Specifies the Amazon EBS volume configuration for instance storage in a SageMaker cluster instance group, including the volume size in gigabytes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="root_volume" type="bool">
+              Determines whether the configured EBS volume serves as the root volume for the instances in the SageMaker HyperPod cluster instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="volume_kms_key_id" type="string">
+              Specifies the AWS KMS key ID or ARN used to encrypt the EBS volumes that back the instance storage for the instance group, enabling customer-managed encryption instead of the AWS default. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="volume_size_in_gb" type="number">
+              Specifies the size in gigabytes of the EBS volume to attach to the instances in this instance group of the SageMaker cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="fsx_lustre_config" type="object">
+          Defines the Amazon FSx for Lustre file system configuration (such as file system ID and mount path) used by the SageMaker HyperPod cluster instances in this instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="dns_name" type="string">
+              The DNS name of the FSx for Lustre file system that is used as instance storage for the SageMaker cluster instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="mount_name" type="string">
+              The mount name of the FSx for Lustre file system to be attached to the instance group's storage configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="mount_path" type="string">
+              Specifies the filesystem path where the FSx for Lustre file system is mounted on the SageMaker HyperPod cluster instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="fsx_open_zfs_config" type="object">
+          Configures an Amazon FSx for OpenZFS file system to be attached to the instances in this SageMaker HyperPod instance group, specifying the file system ID and mount path. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="dns_name" type="string">
+              The DNS name of the FSx for OpenZFS file system that SageMaker uses to mount storage to the instances in this instance group of the cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="mount_path" type="string">
+              Specifies the mount path for the FSx for OpenZFS file system attached to the SageMaker HyperPod instance group's instance storage configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="instance_type" type="string">
+      Sets the SageMaker instance type (example: ml.m5.large) used for this instance group within the SageMaker cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="kubernetes_config" type="object">
+      Defines Kubernetes labels and taints applied to the nodes in this SageMaker HyperPod instance group, controlling workload scheduling and node taint restrictions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="labels" type="any">
+          Defines key-value labels attached to the Kubernetes nodes in this SageMaker HyperPod cluster instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="taints" type="list(object)">
+          Configures Kubernetes taints for the nodes in this SageMaker cluster instance group, which control pod scheduling by requiring pods to have matching tolerations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="effect" type="string">
+              Specifies the scheduling effect (NoSchedule, PreferNoSchedule, or NoExecute) of a Kubernetes taint applied to the instance group in an Amazon SageMaker HyperPod cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="key" type="string">
+              The key of a Kubernetes taint applied to nodes in this instance group, used to control which pods can be scheduled onto them. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The value portion of a Kubernetes taint applied to nodes of the SageMaker HyperPod instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="life_cycle_config" type="object">
+      Defines the lifecycle configuration for the instances in this group, including the S3 URI of the script and the container entrypoint that runs on startup. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="on_create" type="string">
+          The S3 URI of the on-create lifecycle script that SageMaker HyperPod runs when an instance in this cluster instance group is first launched, as part of the instance group's lifecycle configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="on_init_complete" type="string">
+          In an AWS SageMaker HyperPod cluster instance group's lifecycle configuration, the on_init_complete script runs on each node after the node has finished its initialization process, allowing cluster-level post-bootstrap customization via a script specified as an S3 URI. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source_s3_uri" type="string">
+          The Amazon S3 URI of the lifecycle configuration script that SageMaker downloads and runs on instances in this cluster's instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="min_instance_count" type="number">
+      Specifies the minimum number of instances for an instance group in this SageMaker HyperPod cluster, serving as the lower bound for auto-scaling the group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="network_interface" type="object">
+      Configures the network interface for an instance group in a SageMaker HyperPod cluster, specifying the subnet ID and whether the interface is RDMA (for EFA) or standard ENI. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="interface_type" type="string">
+          Specifies the network interface type for each instance group in the SageMaker HyperPod cluster, where setting it to 'efa' enables Elastic Fabric Adapter (EFA) for high-speed, low-latency inter-node communication, while other values use standard Ethernet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="on_start_deep_health_checks" type="list(string)">
+      Specifies the deep health checks to run on instances in this instance group when the SageMaker HyperPod cluster starts, with allowed values such as InstanceStatus, InstanceConnectivity, and InstanceStorage. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="override_vpc_config" type="object">
+      Specifies a VPC configuration that overrides the cluster-level VPC settings for this instance group, including the security group IDs and subnet IDs used by the instances in this group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="security_group_ids" type="list(string)">
+          Specifies the security group IDs used by the instance group when its override VPC configuration is applied, replacing the cluster-level VPC security groups for that instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="subnets" type="list(string)">
+          Specifies the list of subnet IDs that override the default VPC configuration for each instance group in the SageMaker cluster, allowing the instance group to launch in different subnets than the cluster's main VPC settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="scheduled_update_config" type="object">
+      Specifies the schedule for the rolling update of this instance group, including a cron expression and start time to control when updates are applied. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="deployment_config" type="object">
+          Specifies the deployment configuration for the scheduled update of the SageMaker cluster instance group, controlling how instances are rolled out (e.g., via a rolling update policy with batch size and concurrency parameters). Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="auto_rollback_configuration" type="list(object)">
+              A list of auto-rollback configurations for a scheduled deployment to an instance group of an AWS SageMaker HyperPod cluster, specifying CloudWatch alarms that trigger automatic rollback of the update when they are in an alarm state. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="alarm_name" type="string">
+                  The name of the CloudWatch alarm that, when it enters the ALARM state during a scheduled update deployment, triggers an automatic rollback of the update for the instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="rolling_update_policy" type="object">
+              Specifies the rolling update policy for the instance group, defining the maximum batch size and maximum capacity to control how scheduled cluster updates are applied while preserving availability. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="maximum_batch_size" type="object">
+                  Defines the maximum batch size, as either a fixed count or a percentage (represented by an AWS CapacitySize object), of SageMaker Cluster instances that are updated in a single batch during a rolling update of the instance group's scheduled update configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="type" type="string">
+                      Specifies whether the maximum number of instances updated in a single rolling batch is defined as a fixed count (COUNT) or as a percentage (PERCENTAGE) of the total instances in the cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="value" type="number">
+                      The numeric value of the maximum batch size (in instance count or percentage, as defined by the sibling 'type' field) that is allowed to be updated in a single batch during a rolling update of the SageMaker cluster instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="rollback_maximum_batch_size" type="object">
+                  Specifies the maximum batch size, as a CapacitySize object, for rolling back a failed update of a SageMaker HyperPod cluster instance group, limiting how many instances are reverted per rollback batch. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="type" type="string">
+                      Specifies whether the rollback maximum batch size is expressed as a count or a percentage, with allowed values 'COUNT' or 'PERCENTAGE'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="value" type="number">
+                      The numeric value (count or percentage) that specifies the maximum number of nodes that can be rolled back simultaneously when a rolling update fails on a SageMaker HyperPod cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="wait_interval_in_seconds" type="number">
+              Determines how long the SageMaker HyperPod cluster waits between each batch of instances during a scheduled rolling update of the instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="schedule_expression" type="string">
+          Specifies the cron expression that defines when updates are automatically applied to this instance group in an AWS SageMaker HyperPod cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="slurm_config" type="object">
+      Defines the Slurm workload manager configuration for this instance group, including the Slurm queue name that associates the group's nodes with a specific Slurm partition in an AWS SageMaker HyperPod cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="node_type" type="string">
+          The Slurm node type for this instance group ('controller' or 'worker'), which designates the group as either the Slurm controller for the cluster or a compute worker node. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="partition_names" type="list(string)">
+          Specifies the list of Slurm partition names that this instance group is assigned to, allowing SageMaker HyperPod to schedule workloads across the defined partitions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="threads_per_core" type="number">
+      Specifies the number of CPU threads per core for instances in the SageMaker HyperPod cluster instance group, enabling or disabling simultaneous multithreading (SMT) via a value of 1 or 2. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="training_plan_arn" type="string">
+      The ARN of the SageMaker Training Plan that reserves capacity for the instances in this instance group of the HyperPod cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="restricted_instance_groups" type="list(object)">
+  The restricted instance groups of the SageMaker HyperPod cluster. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="current_count" type="number">
+      The current number of running instances in the SageMaker HyperPod restricted instance group, which is reserved for internal cluster operations rather than user workloads. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="environment_config" type="object">
+      Optional; if omitted, computed by AWS.
+      <Expandable title="properties">
+        <ResponseField name="fsx_lustre_config" type="object">
+          Optional; if omitted, computed by AWS.
+          <Expandable title="properties">
+            <ResponseField name="per_unit_storage_throughput" type="number">
+              Specifies the per-unit storage throughput (in MB/s per TiB) for the FSx for Lustre file system provisioned for the SageMaker cluster's restricted instance groups via this environment configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="size_in_gi_b" type="number">
+              Specifies the size in GiB of the FSx Lustre file system configured for the environment of a restricted instance group in the SageMaker cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="execution_role" type="string">
+      The Amazon Resource Name (ARN) of the IAM role that SageMaker assumes to provide permissions for instances in this restricted instance group to access AWS services and resources. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="instance_count" type="number">
+      The number of instances to include in this restricted instance group of the SageMaker cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="instance_group_name" type="string">
+      The name of an instance group designated as restricted in the SageMaker HyperPod cluster, meaning that instances in this group have limited or no internet access for security and compliance purposes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="instance_storage_configs" type="list(object)">
+      Defines the list of instance storage configurations (e.g., Amazon EBS volume settings) attached to instances within the restricted instance groups of the SageMaker HyperPod cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="ebs_volume_config" type="object">
+          Configures the EBS volume for the instance storage of the restricted instance group, specifying the volume size in gigabytes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="root_volume" type="bool">
+              This boolean flag indicates whether this EBS volume configuration should be treated as the root volume for the instance group, rather than as an additional storage volume. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="volume_kms_key_id" type="string">
+              The AWS KMS key ID used to encrypt the EBS volume attached to instances in a SageMaker HyperPod cluster instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="volume_size_in_gb" type="number">
+              Specifies the size, in gigabytes, of the EBS volume to attach to each instance in a SageMaker HyperPod cluster instance group's storage configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="fsx_lustre_config" type="object">
+          Specifies the configuration for an Amazon FSx for Lustre file system that is mounted as shared storage for the SageMaker HyperPod cluster instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="dns_name" type="string">
+              The DNS name of the Amazon FSx for Lustre file system that is mounted as instance storage for the restricted instance group in the SageMaker cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="mount_name" type="string">
+              The mount name (subdirectory) of the FSx for Lustre file system used by SageMaker HyperPod cluster instances to mount the shared file system. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="mount_path" type="string">
+              The absolute path on the instance where the FSx Lustre file system is mounted, making its storage available to the instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="fsx_open_zfs_config" type="object">
+          Defines the Amazon FSx for OpenZFS file system configuration, specifying the file system ID and mount path, used to attach an OpenZFS file system to instances in this SageMaker HyperPod cluster instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="dns_name" type="string">
+              The fully qualified domain name (DNS name) of the Amazon FSx for OpenZFS file system configured as instance storage for the restricted instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="mount_path" type="string">
+              Specifies the local mount path on the instance where the FSx for OpenZFS file system is mounted for shared storage access. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="instance_type" type="string">
+      Specifies the ML compute instance type (e.g., ml.g5.xlarge) for each instance in this restricted instance group of the SageMaker HyperPod cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="on_start_deep_health_checks" type="list(string)">
+      Specifies the list of deep health check types (such as InstanceStress, InstanceConnectivity, and InstanceStorage) that SageMaker runs on nodes in this restricted instance group when they start, to detect hardware issues before workload deployment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="override_vpc_config" type="object">
+      Optional; if omitted, computed by AWS.
+      <Expandable title="properties">
+        <ResponseField name="security_group_ids" type="list(string)">
+          The list of security group IDs for the override VPC configuration applied to restricted instance groups in the SageMaker cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="subnets" type="list(string)">
+          The list of VPC subnet IDs that override the VPC configuration for a restricted instance group in an AWS SageMaker HyperPod cluster, determining where instances in that group are placed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="threads_per_core" type="number">
+      Specifies the number of threads per CPU core for the instances in this SageMaker HyperPod cluster instance group, allowing control of CPU hyper-threading (e.g., 1 to disable or 2 to enable). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="training_plan_arn" type="string">
+      Specifies the Amazon Resource Name (ARN) of the SageMaker training plan that provides reserved capacity for this restricted instance group in the SageMaker HyperPod cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>

@@ -1,0 +1,165 @@
+---
+title: "aws_billing_conductor_billing_group"
+description: "`aws_billing_conductor_billing_group` is a set of accounts (or AWS Organizations..."
+---
+
+`aws_billing_conductor_billing_group` is a set of accounts (or AWS Organizations, for billing-transfer customers) sharing one primary account and one pricing plan in AWS Billing Conductor, the unit a custom, pro forma version of AWS billing data is actually generated and charged back against.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	billing "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/billing"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own conductor billing group"})
+
+    		ubx.Resource(billing.ConductorBillingGroup, "ci-runner", billing.ConductorBillingGroupConfig{
+    			AccountGrouping:       map[string]any{"auto_associate": true},
+    			ComputationPreference: map[string]any{"pricing_plan_arn": "example"},
+    			Name:                  "ci-runner",
+    			Description:           "Managed by ubx.",
+    			PrimaryAccountId:      "example",
+    			Tags:                  []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ConductorBillingGroup } from "./local-sdk/aws/sdk/typescript/aws/billing/conductor_billing_group.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own conductor billing group" });
+
+      resource(ConductorBillingGroup, "ci-runner", {
+        accountGrouping: { autoAssociate: true },
+        computationPreference: { pricingPlanArn: "example" },
+        name: "ci-runner",
+        description: "Managed by ubx.",
+        primaryAccountId: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.billing import ConductorBillingGroup, ConductorBillingGroupConfig
+
+    def describe():
+        ubx.intent("payments own conductor billing group")
+
+        ubx.resource(ConductorBillingGroup, "ci-runner", ConductorBillingGroupConfig(
+            account_grouping={"auto_associate": True},
+            computation_preference={"pricing_plan_arn": "example"},
+            name="ci-runner",
+            description="Managed by ubx.",
+            primary_account_id="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_billing_conductor_billing_group called "ci-runner",
+    with account grouping a set value, computation preference a set
+    value, description Managed by ubx., primary account id example,
+    tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="account_grouping" type="object" required>
+  Specifies the linked accounts (by their account IDs) that are grouped together in this AWS Billing Conductor billing group for consolidated billing and custom pricing. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="auto_associate" type="bool">
+      When enabled, accounts in the organization that are not already associated with another billing group are automatically added to this billing group. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="linked_account_ids" type="list(string)">
+      Identifies the AWS accounts that are members of this billing group by their linked account IDs, determining which accounts are billed together under the group's pricing rules. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="responsibility_transfer_arn" type="string">
+      Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="computation_preference" type="object" required>
+  Specifies the cost computation preference for the billing group, referencing the pricing rule ARN that determines how the group's billed amounts are calculated. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="pricing_plan_arn" type="string" required>
+      ARN of the attached pricing plan Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  An optional string that supplies a human-readable explanation of the billing group's purpose or contents, limited to 1024 characters. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The user-defined name of the billing group, which must be unique within the AWS account and is used to identify the billing group in the Billing Conductor console and APIs. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="primary_account_id" type="string">
+  This account will act as a virtual payer account of the billing group Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of tag objects that define key-value pairs to attach to the billing group, enabling you to categorize and manage billing groups within AWS Billing Conductor. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a user-defined tag assigned to an AWS Billing Conductor billing group, used to organize and identify the group for cost tracking and management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  Billing Group ARN Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="creation_time" type="number">
+  Creation timestamp in UNIX epoch time format Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="last_modified_time" type="number">
+  Latest modified timestamp in UNIX epoch time format Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="size" type="number">
+  Number of accounts in the billing group Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  This read-only field indicates the current lifecycle status of the billing group, such as ACTIVE, in the AWS Billing Conductor service. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="status_reason" type="string">
+  The reason for the current status of the billing group, providing contextual details when the group is not fully active (e.g., why it failed or is in a transient state). Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

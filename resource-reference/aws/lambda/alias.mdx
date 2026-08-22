@@ -1,0 +1,141 @@
+---
+title: "aws_lambda_alias"
+description: "`aws_lambda_alias` creates a real named, mutable pointer to a specific published version of an `aws_lambda_function`..."
+---
+
+`aws_lambda_alias` creates a real named, mutable pointer to a specific published version of an `aws_lambda_function`, so callers can be redirected to a new version, or gradually shifted to one with weighted traffic, without changing the ARN they invoke.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	lambda "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/lambda"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own alias"})
+
+    		ubx.Resource(lambda.Alias, "ci-runner", lambda.AliasConfig{
+    			FunctionName:                 "example-function-name",
+    			FunctionVersion:              "example",
+    			Name:                         "ci-runner",
+    			Description:                  "Managed by ubx.",
+    			ProvisionedConcurrencyConfig: map[string]any{"provisioned_concurrent_executions": 1},
+    			RoutingConfig:                map[string]any{"additional_version_weights": []map[string]any{{"function_version": "example"}}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Alias } from "./local-sdk/aws/sdk/typescript/aws/lambda/alias.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own alias" });
+
+      resource(Alias, "ci-runner", {
+        functionName: "example-function-name",
+        functionVersion: "example",
+        name: "ci-runner",
+        description: "Managed by ubx.",
+        provisionedConcurrencyConfig: { provisionedConcurrentExecutions: 1 },
+        routingConfig: {
+          additionalVersionWeights: [{ functionVersion: "example" }],
+        },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.lambda_ import Alias, AliasConfig
+
+    def describe():
+        ubx.intent("payments own alias")
+
+        ubx.resource(Alias, "ci-runner", AliasConfig(
+            function_name="example-function-name",
+            function_version="example",
+            name="ci-runner",
+            description="Managed by ubx.",
+            provisioned_concurrency_config={"provisioned_concurrent_executions": 1},
+            routing_config={"additional_version_weights": [{"function_version": "example"}]},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_lambda_alias called "ci-runner", with function name
+    example-function-name, function version example, description
+    Managed by ubx., provisioned concurrency config a set value,
+    routing config a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  A description of the alias. Optional.
+</ResponseField>
+
+<ResponseField name="function_name" type="string" required>
+  The name of the Lambda function. Required.
+</ResponseField>
+
+<ResponseField name="function_version" type="string" required>
+  The function version that the alias invokes. Required.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the alias. Required.
+</ResponseField>
+
+<ResponseField name="provisioned_concurrency_config" type="object">
+  A provisioned concurrency configuration for a function's alias. Optional.
+  <Expandable title="properties">
+    <ResponseField name="provisioned_concurrent_executions" type="number" required>
+      The amount of provisioned concurrency to allocate for the alias. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="routing_config" type="object">
+  The traffic-shifting configuration of a Lambda function alias. Optional.
+  <Expandable title="properties">
+    <ResponseField name="additional_version_weights" type="list(object)">
+      The second version, and the percentage of traffic that's routed to it. Optional.
+      <Expandable title="properties">
+        <ResponseField name="function_version" type="string">
+          The Lambda function version (e.g., '1' or '$LATEST') that receives a portion of the alias's traffic when weight is assigned, serving as the map key in the additional version weights routing configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="function_weight" type="number">
+          Specifies the traffic weight (a number between 0 and 1) that this Lambda function version receives when the alias uses routing configuration to shift traffic between two versions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="alias_arn" type="string">
+  Lambda Alias ARN generated by the service. Computed by AWS after `ship`.
+</ResponseField>

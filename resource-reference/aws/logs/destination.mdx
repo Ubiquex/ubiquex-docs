@@ -1,0 +1,123 @@
+---
+title: "aws_logs_destination"
+description: "`aws_logs_destination` creates a real cross-account subscription destination, most commonly a Kinesis stream..."
+---
+
+`aws_logs_destination` creates a real cross-account subscription destination, most commonly a Kinesis stream, that another account's log group subscription filter can stream matching log events to. This is the older CloudWatch Logs subscription mechanism, distinct from the newer delivery-source/delivery-destination framework used by `aws_logs_delivery`.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	logs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/logs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own destination"})
+
+    		ubx.Resource(logs.Destination, "ci-runner", logs.DestinationConfig{
+    			DestinationName:   "example-destination-name",
+    			RoleArn:           "arn:aws:iam::123456789012:policy/ci",
+    			TargetArn:         "arn:aws:iam::123456789012:policy/ci",
+    			DestinationPolicy: "example",
+    			Tags:              []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Destination } from "./local-sdk/aws/sdk/typescript/aws/logs/destination.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own destination" });
+
+      resource(Destination, "ci-runner", {
+        destinationName: "example-destination-name",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        targetArn: "arn:aws:iam::123456789012:policy/ci",
+        destinationPolicy: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.logs import Destination, DestinationConfig
+
+    def describe():
+        ubx.intent("payments own destination")
+
+        ubx.resource(Destination, "ci-runner", DestinationConfig(
+            destination_name="example-destination-name",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            target_arn="arn:aws:iam::123456789012:policy/ci",
+            destination_policy="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_logs_destination, with destination name
+    example-destination-name, role arn
+    arn:aws:iam::123456789012:policy/ci, target arn
+    arn:aws:iam::123456789012:policy/ci, destination policy example,
+    tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="destination_name" type="string" required>
+  The name of the destination resource Required.
+</ResponseField>
+
+<ResponseField name="destination_policy" type="string">
+  An IAM policy document that governs which AWS accounts can create subscription filters against this destination. Optional.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  The ARN of an IAM role that permits CloudWatch Logs to send data to the specified AWS resource Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key (name) of a tag to associate with the CloudWatch Logs destination, used to identify and organize the destination resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag key-value pair attached to the CloudWatch Logs destination resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="target_arn" type="string" required>
+  The ARN of the physical target where the log events are delivered (for example, a Kinesis stream) Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies this CloudWatch Logs destination, returned after creation and used to reference the destination in other AWS resources. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

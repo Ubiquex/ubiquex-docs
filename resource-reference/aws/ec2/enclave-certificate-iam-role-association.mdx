@@ -1,0 +1,100 @@
+---
+title: "aws_ec2_enclave_certificate_iam_role_association"
+description: "`aws_ec2_enclave_certificate_iam_role_association` associates a real ACM certificate with an IAM role..."
+---
+
+`aws_ec2_enclave_certificate_iam_role_association` associates a real ACM certificate with an IAM role, granting an EC2 instance running an AWS Nitro Enclave permission to retrieve that certificate's private key material inside the enclave at launch.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ec2 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ec2"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own enclave certificate iam role association"})
+
+    		ubx.Resource(ec2.EnclaveCertificateIamRoleAssociation, "ci-runner", ec2.EnclaveCertificateIamRoleAssociationConfig{
+    			CertificateArn: "arn:aws:iam::123456789012:policy/ci",
+    			RoleArn:        "arn:aws:iam::123456789012:policy/ci",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { EnclaveCertificateIamRoleAssociation } from "./local-sdk/aws/sdk/typescript/aws/ec2/enclave_certificate_iam_role_association.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own enclave certificate iam role association" });
+
+      resource(EnclaveCertificateIamRoleAssociation, "ci-runner", {
+        certificateArn: "arn:aws:iam::123456789012:policy/ci",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ec2 import EnclaveCertificateIamRoleAssociation, EnclaveCertificateIamRoleAssociationConfig
+
+    def describe():
+        ubx.intent("payments own enclave certificate iam role association")
+
+        ubx.resource(EnclaveCertificateIamRoleAssociation, "ci-runner", EnclaveCertificateIamRoleAssociationConfig(
+            certificate_arn="arn:aws:iam::123456789012:policy/ci",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ec2_enclave_certificate_iam_role_association, with
+    certificate arn arn:aws:iam::123456789012:policy/ci, role arn
+    arn:aws:iam::123456789012:policy/ci.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="certificate_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the ACM certificate with which to associate the IAM role. Required.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the IAM role to associate with the ACM certificate. You can associate up to 16 IAM roles with an ACM certificate. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="certificate_s3_bucket_name" type="string">
+  The name of the Amazon S3 bucket to which the certificate was uploaded. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="certificate_s3_object_key" type="string">
+  The Amazon S3 object key where the certificate, certificate chain, and encrypted private key bundle are stored. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="encryption_kms_key_id" type="string">
+  The ID of the AWS KMS CMK used to encrypt the private key of the certificate. Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,497 @@
+---
+title: "aws_application_auto_scaling_scaling_policy"
+description: "`aws_application_auto_scaling_scaling_policy` defines how an `aws_application_auto_scaling_scalable_target` actually scales..."
+---
+
+`aws_application_auto_scaling_scaling_policy` defines how an `aws_application_auto_scaling_scalable_target` actually scales, target tracking against a CloudWatch metric, step scaling, scheduled scaling, or predictive scaling, the real logic a registered target has none of until a policy is attached.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	application "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/application"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own auto scaling scaling policy"})
+
+    		ubx.Resource(application.AutoScalingScalingPolicy, "ci-runner", application.AutoScalingScalingPolicyConfig{
+    			PolicyName:                           "example-policy-name",
+    			PolicyType:                           "example",
+    			PredictiveScalingPolicyConfiguration: map[string]any{"metric_specifications": []map[string]any{{"customized_capacity_metric_specification": map[string]any{"metric_data_queries": []map[string]any{{"expression": "example"}}}}}},
+    			ResourceId:                           "example",
+    			ScalableDimension:                    "example",
+    			ScalingTargetId:                      "example",
+    			ServiceNamespace:                     "example",
+    			StepScalingPolicyConfiguration:       map[string]any{"adjustment_type": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AutoScalingScalingPolicy } from "./local-sdk/aws/sdk/typescript/aws/application/auto_scaling_scaling_policy.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own auto scaling scaling policy" });
+
+      resource(AutoScalingScalingPolicy, "ci-runner", {
+        policyName: "example-policy-name",
+        policyType: "example",
+        predictiveScalingPolicyConfiguration: {
+          metricSpecifications: [{
+            customizedCapacityMetricSpecification: {
+              metricDataQueries: [{ expression: "example" }],
+            },
+          }],
+        },
+        resourceId: "example",
+        scalableDimension: "example",
+        scalingTargetId: "example",
+        serviceNamespace: "example",
+        stepScalingPolicyConfiguration: { adjustmentType: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.application import AutoScalingScalingPolicy, AutoScalingScalingPolicyConfig
+
+    def describe():
+        ubx.intent("payments own auto scaling scaling policy")
+
+        ubx.resource(AutoScalingScalingPolicy, "ci-runner", AutoScalingScalingPolicyConfig(
+            policy_name="example-policy-name",
+            policy_type="example",
+            predictive_scaling_policy_configuration={"metric_specifications": [{"customized_capacity_metric_specification": {"metric_data_queries": [{"expression": "example"}]}}]},
+            resource_id="example",
+            scalable_dimension="example",
+            scaling_target_id="example",
+            service_namespace="example",
+            step_scaling_policy_configuration={"adjustment_type": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_application_auto_scaling_scaling_policy, with policy
+    name example-policy-name, policy type example, predictive scaling
+    policy configuration a set value, resource id example, scalable
+    dimension example, scaling target id example, service namespace
+    example, step scaling policy configuration a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="policy_name" type="string" required>
+  The name of the scaling policy. Updates to the name of a target tracking scaling policy are not supported, unless you also update the metric used for scaling. To change only a target tracking scaling policy's name, first delete the policy by removing the existing ``AWS::ApplicationAutoScaling::ScalingPolicy`` resource from the template and updating the stack. Then, recreate the resource with the same settings and a different name. Required.
+</ResponseField>
+
+<ResponseField name="policy_type" type="string" required>
+  The scaling policy type. The following policy types are supported: ``TargetTrackingScaling`` -- Not supported for Amazon EMR ``StepScaling`` -- Not supported for DynamoDB, Amazon Comprehend, Lambda, Amazon Keyspaces, Amazon MSK, Amazon ElastiCache, or Neptune. ``PredictiveScaling`` -- Only supported for Amazon ECS Required.
+</ResponseField>
+
+<ResponseField name="predictive_scaling_policy_configuration" type="object">
+  Represents a predictive scaling policy configuration. Predictive scaling is supported on Amazon ECS services. Optional.
+  <Expandable title="properties">
+    <ResponseField name="max_capacity_breach_behavior" type="string">
+      Defines the behavior that should be applied if the forecast capacity approaches or exceeds the maximum capacity. Defaults to ``HonorMaxCapacity`` if not specified. Optional.
+    </ResponseField>
+    <ResponseField name="max_capacity_buffer" type="number">
+      The size of the capacity buffer to use when the forecast capacity is close to or exceeds the maximum capacity. The value is specified as a percentage relative to the forecast capacity. For example, if the buffer is 10, this means a 10 percent buffer, such that if the forecast capacity is 50, and the maximum capacity is 40, then the effective maximum capacity is 55. Required if the ``MaxCapacityBreachBehavior`` property is set to ``IncreaseMaxCapacity``, and cannot be used otherwise. Optional.
+    </ResponseField>
+    <ResponseField name="metric_specifications" type="list(object)" required>
+      This structure includes the metrics and target utilization to use for predictive scaling. This is an array, but we currently only support a single metric specification. That is, you can specify a target value and a single metric pair, or a target value and one scaling metric and one load metric. Required.
+      <Expandable title="properties">
+        <ResponseField name="customized_capacity_metric_specification" type="object">
+          Specifies a custom CloudWatch metric that represents the capacity of the scaling target (e.g., an Auto Scaling group), including the metric name, namespace, and statistic, which Application Auto Scaling uses for predictive scaling forecasting. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="metric_data_queries" type="list(object)">
+              Specifies the metric data queries that define the customized capacity metric(s) used to calculate the target capacity for predictive scaling, where each query can reference a CloudWatch metric or be a math expression based on other queries. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="expression" type="string">
+                  The math expression used in the metric data query for the customized capacity metric specification, enabling calculated metrics such as aggregation of raw metrics for predictive scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="id" type="string">
+                  A short name that uniquely identifies this metric data query within the customized capacity metric specification, used to reference the returned data in metric expressions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="label" type="string">
+                  A human-readable label for the metric data query that identifies the metric or expression used in the customized capacity metric specification for predictive scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="metric_stat" type="object">
+                  Specifies the CloudWatch metric statistic to use in the metric data query, providing the metric's namespace, name, dimensions, and the statistic (e.g., Sum) that predictive scaling uses to compute capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="metric" type="object">
+                      Identifies the CloudWatch metric (by its namespace, metric name, and dimensions) that this metric stat uses as the source data for the customized capacity metric specification in predictive scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="dimensions" type="list(object)">
+                          The list of CloudWatch metric dimensions (each a name-value pair) that uniquely identify the metric used as the customized capacity metric in the predictive scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="name" type="string">
+                              The name of the CloudWatch metric dimension (e.g., 'AutoScalingGroupName') used as a key to identify a specific attribute of the customized capacity metric for predictive scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                            <ResponseField name="value" type="string">
+                              The value part of a name/value pair that defines a CloudWatch metric dimension for the customized capacity metric used in predictive scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                        <ResponseField name="metric_name" type="string">
+                          The name of the CloudWatch metric used as the source for the metric statistic in this metric data query within the custom capacity metric specification of the predictive scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="namespace" type="string">
+                          The namespace of the CloudWatch metric (e.g., AWS/EC2, AWS/ApplicationELB) that identifies the AWS service emitting the metric used in the customized capacity metric specification for predictive scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="stat" type="string">
+                      The CloudWatch statistic (e.g., Sum, Average, Minimum, Maximum, SampleCount, or a percentile like p99) for the metric used in this customized capacity metric specification of the predictive scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="unit" type="string">
+                      The unit of measurement for the metric statistic (e.g., 'Count', 'Percent', 'Bytes') in the customized capacity metric specification for the predictive scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="return_data" type="bool">
+                  Indicates whether the result of this metric data query is returned and used as the customized capacity metric in the predictive scaling policy's metric specification, typically set to true for the query that provides the actual capacity value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="customized_load_metric_specification" type="object">
+          The custom load metric specification for the predictive scaling policy, defining the metric name, namespace, dimensions, and statistic used to represent the resource's load. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="metric_data_queries" type="list(object)">
+              Specifies the metric data queries that define the customized load metric for predictive scaling, allowing you to combine multiple CloudWatch metrics and expressions to represent the target load. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="expression" type="string">
+                  In the customized load metric specification for a predictive scaling policy, this expression defines the mathematical formula (using CloudWatch metrics, math functions, and other queries) that produces the custom load metric value Application Auto Scaling uses for forecast calculations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="id" type="string">
+                  The unique identifier for a metric data query, used to reference this query within math expressions or to aggregate results in the customized load metric specification for predictive scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="label" type="string">
+                  The label field provides a human-readable name or description for a metric data query within a customized load metric specification used by a predictive scaling policy, helping to identify the query in alarms and dashboards. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="metric_stat" type="object">
+                  Defines the CloudWatch metric statistics (metric, period, stat, and unit) used for this metric data query in the customized load metric specification of the predictive scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="metric" type="object">
+                      Specifies the CloudWatch metric referenced by the metric data query in the customized load metric specification, identifying the load metric via its namespace, metric name, and dimensions for use in predictive scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="dimensions" type="list(object)">
+                          Dimensions specify the CloudWatch metric dimensions (name/value pairs) that identify the specific metric data to use as the customized load metric for predictive scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="name" type="string">
+                              The name of a CloudWatch metric dimension key-value pair that identifies the scope of the customized load metric used in the predictive scaling policy, such as AutoScalingGroupName. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                            <ResponseField name="value" type="string">
+                              Specifies the value for a CloudWatch metric dimension (key-value pair) that identifies the customized load metric used in the predictive scaling policy configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                        <ResponseField name="metric_name" type="string">
+                          The name of the CloudWatch metric to use in the metric statistic for the customized load metric specification of the predictive scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="namespace" type="string">
+                          Specifies the CloudWatch namespace for the metric used in the custom load metric specification, which identifies the service or application that emitted the metric (e.g., AWS/EC2 or a custom namespace). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="stat" type="string">
+                      The CloudWatch statistic (e.g., Sum, Average, SampleCount) applied to the metric in this metric data query when evaluating the customized load metric for predictive scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="unit" type="string">
+                      The unit of measurement for the customized load metric statistic (e.g., 'Count', 'Percent', 'Bytes'), used by the predictive scaling policy to interpret the metric's value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="return_data" type="bool">
+                  Indicates whether the metric data query results are returned and used as part of the customized load metric specification for the predictive scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="customized_scaling_metric_specification" type="object">
+          Defines the custom CloudWatch metric specification that this predictive scaling metric specification uses for forecasting, including metric name, namespace, dimensions, and statistic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="metric_data_queries" type="list(object)">
+              The list of metric data queries that define the customized metric specification for the predictive scaling policy, where each query specifies a metric expression or metric stat used to calculate the target metric. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="expression" type="string">
+                  The CloudWatch metrics math expression that defines the value of this metric data query, allowing multi-metric calculations via logical ids (e.g., m1, m2) for the customized scaling metric specification in a predictive scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="id" type="string">
+                  A unique, required identifier for this metric data query that allows other queries in the same customized scaling metric specification to reference its result via math expressions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="label" type="string">
+                  A human-readable label for this metric data query, used to reference its result in other queries or math expressions within the same metric specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="metric_stat" type="object">
+                  Defines the CloudWatch metric statistic to use for this metric data query, specifying the metric name, namespace, dimensions, and the statistic to return for predictive scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="metric" type="object">
+                      Defines the CloudWatch metric (namespace, metric name, and dimensions) used by the metric stat within this metric data query, part of the customized scaling metric specification for a predictive scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="dimensions" type="list(object)">
+                          Defines the list of CloudWatch metric dimensions (key-value pairs) used to identify the specific metric for a customized scaling metric in the predictive scaling policy's metric data query. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="name" type="string">
+                              The name of a CloudWatch metric dimension that, together with its value, identifies the custom metric used in the predictive scaling policy's metric specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                            <ResponseField name="value" type="string">
+                              The value of the dimension, paired with the dimension name, that uniquely identifies a CloudWatch metric for the customized scaling metric specification in an Application Auto Scaling predictive scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                        <ResponseField name="metric_name" type="string">
+                          The name of the CloudWatch metric that the customized predictive scaling metric specification uses as its data source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="namespace" type="string">
+                          The CloudWatch namespace (e.g., AWS/EC2) of the metric referenced by the metric_stat in this metric data query within the customized scaling metric specification for the predictive scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="stat" type="string">
+                      The statistic (e.g., Average, Sum, SampleCount, Maximum, Minimum) applied to the CloudWatch metric values for this metric data query, used to aggregate data for the predictive scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="unit" type="string">
+                      The unit of measure for the CloudWatch metric (such as Count, Percent, or Bytes) used in the metric stat for the customized scaling metric specification in the predictive scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="return_data" type="bool">
+                  Indicates whether to return the data from this metric data query, where true designates the metric as the resulting scaling metric and false is used for intermediate expression queries in the customized scaling metric specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="predefined_load_metric_specification" type="object">
+          PredefinedLoadMetricSpecification specifies a predefined metric (e.g., ALBRequestCountPerTarget) to be used as the load metric for the predictive scaling policy, optionally identifying the specific resource with a ResourceLabel. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="predefined_metric_type" type="string">
+              The predefined load metric type for predictive scaling, such as ASGCPUUtilization or ALBRequestCountPerTarget, which determines the load metric used to compute the capacity forecast. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="resource_label" type="string">
+              The resource label that identifies the specific AWS resource (such as an Application Load Balancer or target group) to associate with the predefined load metric for predictive scaling, required for metrics like ALBRequestCountPerTarget. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="predefined_metric_pair_specification" type="object">
+          Defines a predefined metric pair to be used for predictive scaling, specifying the predefined metric type and, for metrics that require it, the resource label. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="predefined_metric_type" type="string">
+              The predefined metric type that identifies the pair of Auto Scaling metrics used for predictive scaling, such as ASGCPUUtilization or ASGNetworkIn. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="resource_label" type="string">
+              Identifies the target resource (such as a DynamoDB table name or Auto Scaling group name) whose CloudWatch metrics are used for the predefined metric pair in predictive scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="predefined_scaling_metric_specification" type="object">
+          Defines the predefined CloudWatch metric (e.g., ASG CPU utilization or request count per target) that the predictive scaling policy uses as the basis for load forecasts, with an optional resource label to identify the specific resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="predefined_metric_type" type="string">
+              Identifies the predefined scaling metric type (e.g., ASGCPUUtilization or ASGInboundBytes) that the predictive scaling policy uses to forecast capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="resource_label" type="string">
+              The resource label (e.g., the load balancer and target group identifiers) used to disambiguate the resource to which the predefined CloudWatch metric applies, such as for the ALBRequestCount metric in a predictive scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="target_value" type="number">
+          The target value for the scaling metric defined in this specification, which the predictive scaling policy uses to determine the required capacity and adjust the resource's scale. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="mode" type="string">
+      The predictive scaling mode. Defaults to ``ForecastOnly`` if not specified. Optional.
+    </ResponseField>
+    <ResponseField name="scheduling_buffer_time" type="number">
+      The amount of time, in seconds, that the start time can be advanced. The value must be less than the forecast interval duration of 3600 seconds (60 minutes). Defaults to 300 seconds if not specified. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="resource_id" type="string">
+  The identifier of the resource associated with the scaling policy. This string consists of the resource type and unique identifier. + ECS service - The resource type is ``service`` and the unique identifier is the cluster name and service name. Example: ``service/my-cluster/my-service``. + Spot Fleet - The resource type is ``spot-fleet-request`` and the unique identifier is the Spot Fleet request ID. Example: ``spot-fleet-request/sfr-73fbd2ce-aa30-494c-8788-1cee4EXAMPLE``. + EMR cluster - The resource type is ``instancegroup`` and the unique identifier is the cluster ID and instance group ID. Example: ``instancegroup/j-2EEZNYKUA1NTV/ig-1791Y4E1L8YI0``. + AppStream 2.0 fleet - The resource type is ``fleet`` and the unique identifier is the fleet name. Example: ``fleet/sample-fleet``. + DynamoDB table - The resource type is ``table`` and the unique identifier is the table name. Example: ``table/my-table``. + DynamoDB global secondary index - The resource type is ``index`` and the unique identifier is the index name. Example: ``table/my-table/index/my-table-index``. + Aurora DB cluster - The resource type is ``cluster`` and the unique identifier is the cluster name. Example: ``cluster:my-db-cluster``. + SageMaker endpoint variant - The resource type is ``variant`` and the unique identifier is the resource ID. Example: ``endpoint/my-end-point/variant/KMeansClustering``. + Custom resources are not supported with a resource type. This parameter must specify the ``OutputValue`` from the CloudFormation template stack used to access the resources. The unique identifier is defined by the service provider. More information is available in our [GitHub repository](https://docs.aws.amazon.com/https://github.com/aws/aws-auto-scaling-custom-resource). + Amazon Comprehend document classification endpoint - The resource type and unique identifier are specified using the endpoint ARN. Example: ``arn:aws:comprehend:us-west-2:123456789012:document-classifier-endpoint/EXAMPLE``. + Amazon Comprehend entity recognizer endpoint - The resource type and unique identifier are specified using the endpoint ARN. Example: ``arn:aws:comprehend:us-west-2:123456789012:entity-recognizer-endpoint/EXAMPLE``. + Lambda provisioned concurrency - The resource type is ``function`` and the unique identifier is the function name with a function version or alias name suffix that is not ``$LATEST``. Example: ``function:my-function:prod`` or ``function:my-function:1``. + Amazon Keyspaces table - The resource type is ``table`` and the unique identifier is the table name. Example: ``keyspace/mykeyspace/table/mytable``. + Amazon MSK cluster - The resource type and unique identifier are specified using the cluster ARN. Example: ``arn:aws:kafka:us-east-1:123456789012:cluster/demo-cluster-1/6357e0b2-0e6a-4b86-a0b4-70df934c2e31-5``. + Amazon ElastiCache replication group - The resource type is ``replication-group`` and the unique identifier is the replication group name. Example: ``replication-group/mycluster``. + Amazon ElastiCache cache cluster - The resource type is ``cache-cluster`` and the unique identifier is the cache cluster name. Example: ``cache-cluster/mycluster``. + Neptune cluster - The resource type is ``cluster`` and the unique identifier is the cluster name. Example: ``cluster:mycluster``. + SageMaker serverless endpoint - The resource type is ``variant`` and the unique identifier is the resource ID. Example: ``endpoint/my-end-point/variant/KMeansClustering``. + SageMaker inference component - The resource type is ``inference-component`` and the unique identifier is the resource ID. Example: ``inference-component/my-inference-component``. + Pool of WorkSpaces - The resource type is ``workspacespool`` and the unique identifier is the pool ID. Example: ``workspacespool/wspool-123456``. Optional.
+</ResponseField>
+
+<ResponseField name="scalable_dimension" type="string">
+  The scalable dimension. This string consists of the service namespace, resource type, and scaling property. + ``ecs:service:DesiredCount`` - The task count of an ECS service. + ``elasticmapreduce:instancegroup:InstanceCount`` - The instance count of an EMR Instance Group. + ``ec2:spot-fleet-request:TargetCapacity`` - The target capacity of a Spot Fleet. + ``appstream:fleet:DesiredCapacity`` - The capacity of an AppStream 2.0 fleet. + ``dynamodb:table:ReadCapacityUnits`` - The provisioned read capacity for a DynamoDB table. + ``dynamodb:table:WriteCapacityUnits`` - The provisioned write capacity for a DynamoDB table. + ``dynamodb:index:ReadCapacityUnits`` - The provisioned read capacity for a DynamoDB global secondary index. + ``dynamodb:index:WriteCapacityUnits`` - The provisioned write capacity for a DynamoDB global secondary index. + ``rds:cluster:ReadReplicaCount`` - The count of Aurora Replicas in an Aurora DB cluster. Available for Aurora MySQL-compatible edition and Aurora PostgreSQL-compatible edition. + ``sagemaker:variant:DesiredInstanceCount`` - The number of EC2 instances for a SageMaker model endpoint variant. + ``custom-resource:ResourceType:Property`` - The scalable dimension for a custom resource provided by your own application or service. + ``comprehend:document-classifier-endpoint:DesiredInferenceUnits`` - The number of inference units for an Amazon Comprehend document classification endpoint. + ``comprehend:entity-recognizer-endpoint:DesiredInferenceUnits`` - The number of inference units for an Amazon Comprehend entity recognizer endpoint. + ``lambda:function:ProvisionedConcurrency`` - The provisioned concurrency for a Lambda function. + ``cassandra:table:ReadCapacityUnits`` - The provisioned read capacity for an Amazon Keyspaces table. + ``cassandra:table:WriteCapacityUnits`` - The provisioned write capacity for an Amazon Keyspaces table. + ``kafka:broker-storage:VolumeSize`` - The provisioned volume size (in GiB) for brokers in an Amazon MSK cluster. + ``elasticache:cache-cluster:Nodes`` - The number of nodes for an Amazon ElastiCache cache cluster. + ``elasticache:replication-group:NodeGroups`` - The number of node groups for an Amazon ElastiCache replication group. + ``elasticache:replication-group:Replicas`` - The number of replicas per node group for an Amazon ElastiCache replication group. + ``neptune:cluster:ReadReplicaCount`` - The count of read replicas in an Amazon Neptune DB cluster. + ``sagemaker:variant:DesiredProvisionedConcurrency`` - The provisioned concurrency for a SageMaker serverless endpoint. + ``sagemaker:inference-component:DesiredCopyCount`` - The number of copies across an endpoint for a SageMaker inference component. + ``workspaces:workspacespool:DesiredUserSessions`` - The number of user sessions for the WorkSpaces in the pool. Optional.
+</ResponseField>
+
+<ResponseField name="scaling_target_id" type="string">
+  The CloudFormation-generated ID of an Application Auto Scaling scalable target. For more information about the ID, see the Return Value section of the ``AWS::ApplicationAutoScaling::ScalableTarget`` resource. You must specify either the ``ScalingTargetId`` property, or the ``ResourceId``, ``ScalableDimension``, and ``ServiceNamespace`` properties, but not both. Optional.
+</ResponseField>
+
+<ResponseField name="service_namespace" type="string">
+  The namespace of the AWS service that provides the resource, or a ``custom-resource``. Optional.
+</ResponseField>
+
+<ResponseField name="step_scaling_policy_configuration" type="object">
+  ``StepScalingPolicyConfiguration`` is a property of the [AWS::ApplicationAutoScaling::ScalingPolicy](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-applicationautoscaling-scalingpolicy.html) resource that specifies a step scaling policy configuration for Application Auto Scaling. For more information, see [Step scaling policies](https://docs.aws.amazon.com/autoscaling/application/userguide/application-auto-scaling-step-scaling-policies.html) in the *Application Auto Scaling User Guide*. Optional.
+  <Expandable title="properties">
+    <ResponseField name="adjustment_type" type="string">
+      Specifies whether the ``ScalingAdjustment`` value in the ``StepAdjustment`` property is an absolute number or a percentage of the current capacity. Optional.
+    </ResponseField>
+    <ResponseField name="cooldown" type="number">
+      The amount of time, in seconds, to wait for a previous scaling activity to take effect. If not specified, the default value is 300. For more information, see [Cooldown period](https://docs.aws.amazon.com/autoscaling/application/userguide/step-scaling-policy-overview.html#step-scaling-cooldown) in the *Application Auto Scaling User Guide*. Optional.
+    </ResponseField>
+    <ResponseField name="metric_aggregation_type" type="string">
+      The aggregation type for the CloudWatch metrics. Valid values are ``Minimum``, ``Maximum``, and ``Average``. If the aggregation type is null, the value is treated as ``Average``. Optional.
+    </ResponseField>
+    <ResponseField name="min_adjustment_magnitude" type="number">
+      The minimum value to scale by when the adjustment type is ``PercentChangeInCapacity``. For example, suppose that you create a step scaling policy to scale out an Amazon ECS service by 25 percent and you specify a ``MinAdjustmentMagnitude`` of 2. If the service has 4 tasks and the scaling policy is performed, 25 percent of 4 is 1. However, because you specified a ``MinAdjustmentMagnitude`` of 2, Application Auto Scaling scales out the service by 2 tasks. Optional.
+    </ResponseField>
+    <ResponseField name="step_adjustments" type="list(object)">
+      A set of adjustments that enable you to scale based on the size of the alarm breach. At least one step adjustment is required if you are adding a new step scaling policy configuration. Optional.
+      <Expandable title="properties">
+        <ResponseField name="metric_interval_lower_bound" type="number">
+          Defines the exclusive lower bound of the metric value range that triggers this step adjustment, where the range is evaluated relative to the alarm threshold and the associated scaling adjustment is applied only when the CloudWatch metric value falls within that interval. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="metric_interval_upper_bound" type="number">
+          Specifies the upper bound (exclusive) of the metric value range that triggers this step adjustment, used in step scaling policies to map metric values to scaling adjustments. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="scaling_adjustment" type="number">
+          The amount, in capacity units, by which to scale (positive to add capacity, negative to remove capacity) when the corresponding step adjustment's metric breach threshold is met. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="target_tracking_scaling_policy_configuration" type="object">
+  ``TargetTrackingScalingPolicyConfiguration`` is a property of the [AWS::ApplicationAutoScaling::ScalingPolicy](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-applicationautoscaling-scalingpolicy.html) resource that specifies a target tracking scaling policy configuration for Application Auto Scaling. Use a target tracking scaling policy to adjust the capacity of the specified scalable target in response to actual workloads, so that resource utilization remains at or near the target utilization value. For more information, see [Target tracking scaling policies](https://docs.aws.amazon.com/autoscaling/application/userguide/application-auto-scaling-target-tracking.html) in the *Application Auto Scaling User Guide*. Optional.
+  <Expandable title="properties">
+    <ResponseField name="customized_metric_specification" type="object">
+      Contains customized metric specification information for a target tracking scaling policy for Application Auto Scaling. For information about the available metrics for a service, see [services that publish CloudWatch metrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/aws-services-cloudwatch-metrics.html) in the *Amazon CloudWatch User Guide*. To create your customized metric specification: + Add values for each required parameter from CloudWatch. You can use an existing metric, or a new metric that you create. To use your own metric, you must first publish the metric to CloudWatch. For more information, see [Publish custom metrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/publishingMetrics.html) in the *Amazon CloudWatch User Guide*. + Choose a metric that changes proportionally with capacity. The value of the metric should increase or decrease in inverse proportion to the number of capacity units. That is, the value of the metric should decrease when capacity increases, and increase when capacity decreases. For an example of how creating new metrics can be useful, see [Scaling based on Amazon SQS](https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-using-sqs-queue.html) in the *Amazon EC2 Auto Scaling User Guide*. This topic mentions Auto Scaling groups, but the same scenario for Amazon SQS can apply to the target tracking scaling policies that you create for a Spot Fleet by using Application Auto Scaling. For more information about the CloudWatch terminology below, see [Amazon CloudWatch concepts](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_concepts.html). ``CustomizedMetricSpecification`` is a property of the [AWS::ApplicationAutoScaling::ScalingPolicy TargetTrackingScalingPolicyConfiguration](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-applicationautoscaling-scalingpolicy-targettrackingscalingpolicyconfiguration.html) property type. Optional.
+      <Expandable title="properties">
+        <ResponseField name="dimensions" type="list(object)">
+          The dimensions of the metric. Conditional: If you published your metric with dimensions, you must specify the same dimensions in your scaling policy. Optional.
+          <Expandable title="properties">
+            <ResponseField name="name" type="string">
+              The name of a metric dimension (e.g., LoadBalancerName or InstanceId) in a customized metric specification for a target tracking scaling policy, used to identify the metric's associated dimension when the metric is published with custom dimensions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              Specifies the value of the dimension for the custom metric used in the target tracking scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="metric_name" type="string">
+          The name of the metric. To get the exact metric name, namespace, and dimensions, inspect the [Metric](https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_Metric.html) object that's returned by a call to [ListMetrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_ListMetrics.html). Optional.
+        </ResponseField>
+        <ResponseField name="metrics" type="list(object)">
+          The metrics to include in the target tracking scaling policy, as a metric data query. This can include both raw metric and metric math expressions. Optional.
+          <Expandable title="properties">
+            <ResponseField name="expression" type="string">
+              Defines the mathematical expression for a metric math query in the customized metric specification, enabling calculated metrics by referencing other metrics in the same query list. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="id" type="string">
+              The Id is a short, unique name for this metric data query within the customized metric specification, used to reference it in the query's Expression or MetricStat. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="label" type="string">
+              A user-defined human-readable label for this metric data query, used to identify the query within the target tracking scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="metric_stat" type="object">
+              Defines the metric and statistic (e.g., Average, Sum) for a single metric data query within the customized metric specification of a target tracking scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="metric" type="object">
+                  Defines the CloudWatch metric referenced by the metric stat, specifying its namespace, metric name, and dimensions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="dimensions" type="list(object)">
+                      Defines the list of dimensions (name-value pairs) for the CloudWatch metric used in the customized metric specification of the target tracking scaling policy, which together with the metric name and namespace uniquely identify the metric and its scope (e.g., the resource being scaled). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="name" type="string">
+                          The name of a CloudWatch metric dimension for the customized metric used in the target tracking scaling policy, identifying a particular characteristic such as an instance ID or queue name. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="value" type="string">
+                          The value of a CloudWatch metric dimension in the customized metric specification of an Application Auto Scaling target tracking policy, which is a string that identifies the specific resource or aspect being measured (e.g., a queue URL, instance ID, or environment name). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="metric_name" type="string">
+                      The name of the CloudWatch metric used in the custom metric specification for the target tracking scaling policy, identifying the specific metric to track for scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="namespace" type="string">
+                      The namespace of the CloudWatch metric referenced by the metric stat in the customized metric specification for this target tracking scaling policy, identifying the service or custom application that publishes the metric. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="stat" type="string">
+                  The statistic to apply to the CloudWatch metric in the metric math expression (e.g., 'Sum', 'Average', 'Minimum', 'Maximum', 'SampleCount'). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="unit" type="string">
+                  The unit of measure (such as Count, Bytes, Percent, or Seconds) for the CloudWatch metric used in the metric stat of a target tracking scaling policy's customized metric specification, which Application Auto Scaling validates against the metric stream and uses to interpret the target value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="return_data" type="bool">
+              Indicates whether the metric data from this query is returned as the utilization metric for the target tracking policy; set to `true` for the primary metric the policy scales on and `false` for any helper metrics used only in metric math expressions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="namespace" type="string">
+          The namespace of the metric. Optional.
+        </ResponseField>
+        <ResponseField name="statistic" type="string">
+          The statistic of the metric. Optional.
+        </ResponseField>
+        <ResponseField name="unit" type="string">
+          The unit of the metric. For a complete list of the units that CloudWatch supports, see the [MetricDatum](https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_MetricDatum.html) data type in the *Amazon CloudWatch API Reference*. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="disable_scale_in" type="bool">
+      Indicates whether scale in by the target tracking scaling policy is disabled. If the value is ``true``, scale in is disabled and the target tracking scaling policy won't remove capacity from the scalable target. Otherwise, scale in is enabled and the target tracking scaling policy can remove capacity from the scalable target. The default value is ``false``. Optional.
+    </ResponseField>
+    <ResponseField name="predefined_metric_specification" type="object">
+      Contains predefined metric specification information for a target tracking scaling policy for Application Auto Scaling. ``PredefinedMetricSpecification`` is a property of the [AWS::ApplicationAutoScaling::ScalingPolicy TargetTrackingScalingPolicyConfiguration](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-applicationautoscaling-scalingpolicy-targettrackingscalingpolicyconfiguration.html) property type. Optional.
+      <Expandable title="properties">
+        <ResponseField name="predefined_metric_type" type="string" required>
+          The metric type. The ``ALBRequestCountPerTarget`` metric type applies only to Spot fleet requests and ECS services. Required.
+        </ResponseField>
+        <ResponseField name="resource_label" type="string">
+          Identifies the resource associated with the metric type. You can't specify a resource label unless the metric type is ``ALBRequestCountPerTarget`` and there is a target group attached to the Spot Fleet or ECS service. You create the resource label by appending the final portion of the load balancer ARN and the final portion of the target group ARN into a single value, separated by a forward slash (/). The format of the resource label is: ``app/my-alb/778d41231b141a0f/targetgroup/my-alb-target-group/943f017f100becff``. Where: + app/&lt;load-balancer-name&gt;/&lt;load-balancer-id&gt; is the final portion of the load balancer ARN + targetgroup/&lt;target-group-name&gt;/&lt;target-group-id&gt; is the final portion of the target group ARN. To find the ARN for an Application Load Balancer, use the [DescribeLoadBalancers](https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_DescribeLoadBalancers.html) API operation. To find the ARN for the target group, use the [DescribeTargetGroups](https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_DescribeTargetGroups.html) API operation. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="scale_in_cooldown" type="number">
+      The amount of time, in seconds, after a scale-in activity completes before another scale-in activity can start. For more information and for default values, see [Define cooldown periods](https://docs.aws.amazon.com/autoscaling/application/userguide/target-tracking-scaling-policy-overview.html#target-tracking-cooldown) in the *Application Auto Scaling User Guide*. Optional.
+    </ResponseField>
+    <ResponseField name="scale_out_cooldown" type="number">
+      The amount of time, in seconds, to wait for a previous scale-out activity to take effect. For more information and for default values, see [Define cooldown periods](https://docs.aws.amazon.com/autoscaling/application/userguide/target-tracking-scaling-policy-overview.html#target-tracking-cooldown) in the *Application Auto Scaling User Guide*. Optional.
+    </ResponseField>
+    <ResponseField name="target_value" type="number" required>
+      The target value for the metric. Although this property accepts numbers of type Double, it won't accept values that are either too small or too large. Values must be in the range of -2^360 to 2^360. The value must be a valid number based on the choice of metric. For example, if the metric is CPU utilization, then the target value is a percent value that represents how much of the CPU can be used before scaling out. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies the Auto Scaling scaling policy. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

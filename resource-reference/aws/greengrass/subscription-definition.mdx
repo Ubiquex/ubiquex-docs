@@ -1,0 +1,125 @@
+---
+title: "aws_greengrass_subscription_definition"
+description: "`aws_greengrass_subscription_definition` defines real, local MQTT-style publish/subscribe routes between an `aws_greengrass_group`'s core, its devices..."
+---
+
+`aws_greengrass_subscription_definition` defines real, local MQTT-style publish/subscribe routes between an `aws_greengrass_group`'s core, its devices, its Lambda functions, and the cloud, the actual message-routing rules the group runs on. Part of Greengrass V1's maintenance-only lifecycle since June 2023.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	greengrass "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/greengrass"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own subscription definition"})
+
+    		ubx.Resource(greengrass.SubscriptionDefinition, "ci-runner", greengrass.SubscriptionDefinitionConfig{
+    			Name:           "ci-runner",
+    			InitialVersion: map[string]any{"subscriptions": []map[string]any{{"id": "example"}}},
+    			Tags:           "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { SubscriptionDefinition } from "./local-sdk/aws/sdk/typescript/aws/greengrass/subscription_definition.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own subscription definition" });
+
+      resource(SubscriptionDefinition, "ci-runner", {
+        name: "ci-runner",
+        initialVersion: { subscriptions: [{ id: "example" }] },
+        tags: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.greengrass import SubscriptionDefinition, SubscriptionDefinitionConfig
+
+    def describe():
+        ubx.intent("payments own subscription definition")
+
+        ubx.resource(SubscriptionDefinition, "ci-runner", SubscriptionDefinitionConfig(
+            name="ci-runner",
+            initial_version={"subscriptions": [{"id": "example"}]},
+            tags="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_greengrass_subscription_definition called "ci-runner",
+    with initial version a set value, tags example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="initial_version" type="object">
+  The initial subscription definition version, which contains a list of subscription objects (each specifying a source, target, and subject) that define how MQTT messages are routed between devices, functions, and connectors in the Greengrass group. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="subscriptions" type="list(object)" required>
+      Defines the list of subscriptions to include in the initial version of the Greengrass subscription definition, where each subscription specifies a source, target, and topic. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="id" type="string">
+          A user-defined alphanumeric identifier for the subscription, used to uniquely reference it within the Greengrass subscription definition version. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source" type="string">
+          The ARN of the device, Lambda function, or connector that publishes messages to the MQTT topic in this Greengrass subscription. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="subject" type="string">
+          Specifies the MQTT topic filter (subject) for a Greengrass subscription, which defines the topic, normally with wildcards, that messages are routed on from the source to the target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="target" type="string">
+          The ARN of the target destination (a Greengrass core, device, or Lambda function) that receives messages published to the subscription's subject topic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The required name for this AWS IoT Greengrass subscription definition, serving as a human-readable identifier used in the console and API. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  A map of key-value pairs that tag the Greengrass subscription definition, used for identifying and organizing the resource. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) uniquely assigned to this Greengrass subscription definition, which is used to reference the definition in IAM policies and other AWS services. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The unique identifier assigned by AWS IoT Greengrass to this subscription definition. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="latest_version_arn" type="string">
+  The Amazon Resource Name (ARN) of the latest version of the AWS Greengrass subscription definition, which is computed and returned after the resource is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

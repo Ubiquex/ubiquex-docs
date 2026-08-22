@@ -1,0 +1,473 @@
+---
+title: "aws_athena_work_group"
+description: "`aws_athena_work_group` isolates a set of Athena users, teams, or applications, with its own query history, data usage limits, and encryption settings..."
+---
+
+`aws_athena_work_group` isolates a set of Athena users, teams, or applications, with its own query history, data usage limits, and encryption settings, so cost and access can be tracked and controlled per workgroup rather than pooled across every Athena user in the account.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	athena "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/athena"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own work group"})
+
+    		ubx.Resource(athena.WorkGroup, "ci-runner", athena.WorkGroupConfig{
+    			Name:                  "ci-runner",
+    			Description:           "Managed by ubx.",
+    			RecursiveDeleteOption: true,
+    			State:                 "example",
+    			Tags:                  []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { WorkGroup } from "./local-sdk/aws/sdk/typescript/aws/athena/work_group.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own work group" });
+
+      resource(WorkGroup, "ci-runner", {
+        name: "ci-runner",
+        description: "Managed by ubx.",
+        recursiveDeleteOption: true,
+        state: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.athena import WorkGroup, WorkGroupConfig
+
+    def describe():
+        ubx.intent("payments own work group")
+
+        ubx.resource(WorkGroup, "ci-runner", WorkGroupConfig(
+            name="ci-runner",
+            description="Managed by ubx.",
+            recursive_delete_option=True,
+            state="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_athena_work_group called "ci-runner", with description
+    Managed by ubx., recursive delete option true, state example,
+    tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  The workgroup description. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The workGroup name. Required.
+</ResponseField>
+
+<ResponseField name="recursive_delete_option" type="bool">
+  The option to delete the workgroup and its contents even if the workgroup contains any named queries. Optional.
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  The state of the workgroup: ENABLED or DISABLED. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Specifies the tags to attach to the Athena work group, which can be used for cost tracking, resource organization, and IAM-based access control. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag assigned to the Athena work group, used to categorize and manage the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The user-defined value string paired with a tag key on the Athena work group, used for organizing, cost allocation, and tag-based access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="creation_time" type="string">
+  The date and time the workgroup was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="work_group_configuration" type="object">
+  The computed work group configuration object that defines the query execution settings for this Athena work group, including the result location, encryption, and CloudWatch metrics publishing behavior. Computed by AWS after `ship`. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="additional_configuration" type="string">
+      Additional Configuration that are passed to Athena Spark Calculations running in this workgroup Optional.
+    </ResponseField>
+    <ResponseField name="bytes_scanned_cutoff_per_query" type="number">
+      The upper data usage limit (cutoff) for the amount of bytes a single query in a workgroup is allowed to scan. Optional.
+    </ResponseField>
+    <ResponseField name="customer_content_encryption_configuration" type="object">
+      Indicates the KMS key for encrypting notebook content. Optional.
+      <Expandable title="properties">
+        <ResponseField name="kms_key" type="string" required>
+          For SSE-KMS and CSE-KMS, this is the KMS key ARN or ID. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="enforce_work_group_configuration" type="bool">
+      If set to "true", the settings for the workgroup override client-side settings. If set to "false", client-side settings are used Optional.
+    </ResponseField>
+    <ResponseField name="engine_configuration" type="object">
+      The engine configuration for running queries. Optional.
+      <Expandable title="properties">
+        <ResponseField name="additional_configs" type="any">
+          Contains additional notebook engine MAP&lt;string, string&gt; parameter mappings in the form of key-value pairs. To specify an Athena notebook that the Jupyter server will download and serve, specify a value for the StartSessionRequest$NotebookVersion field, and then add a key named NotebookId to AdditionalConfigs that has the value of the Athena notebook ID. Optional.
+        </ResponseField>
+        <ResponseField name="classifications" type="list(object)">
+          The configuration classifications that can be specified for the engine. Optional.
+          <Expandable title="properties">
+            <ResponseField name="name" type="string">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+            <ResponseField name="properties" type="any">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="coordinator_dpu_size" type="number">
+          The number of DPUs to use for the coordinator. A coordinator is a special executor that orchestrates processing work and manages other executors in a notebook session. The default is 1. Optional.
+        </ResponseField>
+        <ResponseField name="default_executor_dpu_size" type="number">
+          The default number of DPUs to use for executors. An executor is the smallest unit of compute that a notebook session can request from Athena. The default is 1. Optional.
+        </ResponseField>
+        <ResponseField name="max_concurrent_dpus" type="number">
+          The maximum number of DPUs that can run concurrently. Optional.
+        </ResponseField>
+        <ResponseField name="spark_properties" type="any">
+          Specifies custom jar files and Spark properties for use cases like cluster encryption, table formats, and general Spark tuning. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="engine_version" type="object">
+      The Athena engine version for running queries. Optional.
+      <Expandable title="properties">
+        <ResponseField name="effective_engine_version" type="string">
+          Read only. The engine version on which the query runs. If the user requests a valid engine version other than Auto, the effective engine version is the same as the engine version that the user requested. If the user requests Auto, the effective engine version is chosen by Athena. When a request to update the engine version is made by a CreateWorkGroup or UpdateWorkGroup operation, the EffectiveEngineVersion field is ignored. Optional.
+        </ResponseField>
+        <ResponseField name="selected_engine_version" type="string">
+          The engine version requested by the user. Possible values are determined by the output of ListEngineVersions, including Auto. The default is Auto. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="execution_role" type="string">
+      The ARN of the execution role used to access user resources for Spark sessions and Identity Center enabled workgroups. This property applies only to Spark enabled workgroups and Identity Center enabled workgroups. Optional.
+    </ResponseField>
+    <ResponseField name="managed_query_results_configuration" type="object">
+      The configuration for the managed query results and encryption option. ResultConfiguration and ManagedQueryResultsConfiguration cannot be set at the same time Optional.
+      <Expandable title="properties">
+        <ResponseField name="enabled" type="bool">
+          Determines whether this workgroup uses Athena's managed query results bucket to automatically store query results. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="encryption_configuration" type="object">
+          Indicates the encryption configuration for Athena Managed Storage. If not setting this field, Managed Storage will encrypt the query results with Athena's encryption key Optional.
+          <Expandable title="properties">
+            <ResponseField name="kms_key" type="string">
+              For SSE-KMS and CSE-KMS, this is the KMS key ARN or ID. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="monitoring_configuration" type="object">
+      Contains the configuration settings for managed log persistence, delivering logs to Amazon S3 buckets, Amazon CloudWatch log groups etc. Optional.
+      <Expandable title="properties">
+        <ResponseField name="cloud_watch_logging_configuration" type="object">
+          Configuration settings for delivering logs to Amazon CloudWatch log groups. Optional.
+          <Expandable title="properties">
+            <ResponseField name="enabled" type="bool">
+              Enables CloudWatch logging. Optional.
+            </ResponseField>
+            <ResponseField name="log_group" type="string">
+              The name of the log group in Amazon CloudWatch Logs where you want to publish your logs. Optional.
+            </ResponseField>
+            <ResponseField name="log_stream_name_prefix" type="string">
+              Prefix for the CloudWatch log stream name. Optional.
+            </ResponseField>
+            <ResponseField name="log_types" type="any">
+              The types of logs that you want to publish to CloudWatch. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="managed_logging_configuration" type="object">
+          Configuration settings for managed log persistence. Optional.
+          <Expandable title="properties">
+            <ResponseField name="enabled" type="bool">
+              Enables managed log persistence. Optional.
+            </ResponseField>
+            <ResponseField name="kms_key" type="string">
+              The KMS key ARN to encrypt the logs stored in managed log persistence. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="s3_logging_configuration" type="object">
+          Configuration settings for delivering logs to Amazon S3 buckets. Optional.
+          <Expandable title="properties">
+            <ResponseField name="enabled" type="bool">
+              Enables S3 log delivery. Optional.
+            </ResponseField>
+            <ResponseField name="kms_key" type="string">
+              The KMS key ARN to encrypt the logs published to the given Amazon S3 destination. Optional.
+            </ResponseField>
+            <ResponseField name="log_location" type="string">
+              The Amazon S3 destination URI for log publishing. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="publish_cloud_watch_metrics_enabled" type="bool">
+      Indicates that the Amazon CloudWatch metrics are enabled for the workgroup. Optional.
+    </ResponseField>
+    <ResponseField name="requester_pays_enabled" type="bool">
+      If set to true, allows members assigned to a workgroup to reference Amazon S3 Requester Pays buckets in queries. If set to false, workgroup members cannot query data from Requester Pays buckets, and queries that retrieve data from Requester Pays buckets cause an error. Optional.
+    </ResponseField>
+    <ResponseField name="result_configuration" type="object">
+      The location in Amazon S3 where query results are stored and the encryption option, if any, used for query results. These are known as "client-side settings". If workgroup settings override client-side settings, then the query uses the workgroup settings. Optional.
+      <Expandable title="properties">
+        <ResponseField name="acl_configuration" type="object">
+          Indicates that an Amazon S3 canned ACL should be set to control ownership of stored query results Optional.
+          <Expandable title="properties">
+            <ResponseField name="s3_acl_option" type="string" required>
+              The Amazon S3 canned ACL that Athena should specify when storing query results. Currently the only supported canned ACL is BUCKET_OWNER_FULL_CONTROL Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="encryption_configuration" type="object">
+          If query results are encrypted in Amazon S3, indicates the encryption option used (for example, SSE-KMS or CSE-KMS) and key information. Optional.
+          <Expandable title="properties">
+            <ResponseField name="encryption_option" type="string" required>
+              Indicates whether Amazon S3 server-side encryption with Amazon S3-managed keys (SSE-S3), server-side encryption with KMS-managed keys (SSE-KMS), or client-side encryption with KMS-managed keys (CSE-KMS) is used. Required.
+            </ResponseField>
+            <ResponseField name="kms_key" type="string">
+              For SSE-KMS and CSE-KMS, this is the KMS key ARN or ID. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="expected_bucket_owner" type="string">
+          The AWS account ID of the owner of S3 bucket where query results are stored Optional.
+        </ResponseField>
+        <ResponseField name="output_location" type="string">
+          The location in Amazon S3 where your query results are stored, such as s3://path/to/query/bucket/. To run the query, you must specify the query results location using one of the ways: either for individual queries using either this setting (client-side), or in the workgroup, using WorkGroupConfiguration Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="work_group_configuration_updates" type="object">
+  The configuration information that will be updated for this workgroup, which includes the location in Amazon S3 where query results are stored, the encryption option, if any, used for query results, whether the Amazon CloudWatch Metrics are enabled for the workgroup, whether the workgroup settings override the client-side settings, and the data usage limit for the amount of bytes scanned per query, if it is specified. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="additional_configuration" type="string">
+      Additional Configuration that are passed to Athena Spark Calculations running in this workgroup Optional.
+    </ResponseField>
+    <ResponseField name="bytes_scanned_cutoff_per_query" type="number">
+      The upper data usage limit (cutoff) for the amount of bytes a single query in a workgroup is allowed to scan. Optional.
+    </ResponseField>
+    <ResponseField name="customer_content_encryption_configuration" type="object">
+      Indicates the KMS key for encrypting notebook content. Optional.
+      <Expandable title="properties">
+        <ResponseField name="kms_key" type="string" required>
+          For SSE-KMS and CSE-KMS, this is the KMS key ARN or ID. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="enforce_work_group_configuration" type="bool">
+      If set to "true", the settings for the workgroup override client-side settings. If set to "false", client-side settings are used Optional.
+    </ResponseField>
+    <ResponseField name="engine_configuration" type="object">
+      The engine configuration for running queries. Optional.
+      <Expandable title="properties">
+        <ResponseField name="additional_configs" type="any">
+          Contains additional notebook engine MAP&lt;string, string&gt; parameter mappings in the form of key-value pairs. To specify an Athena notebook that the Jupyter server will download and serve, specify a value for the StartSessionRequest$NotebookVersion field, and then add a key named NotebookId to AdditionalConfigs that has the value of the Athena notebook ID. Optional.
+        </ResponseField>
+        <ResponseField name="classifications" type="list(object)">
+          The configuration classifications that can be specified for the engine. Optional.
+          <Expandable title="properties">
+            <ResponseField name="name" type="string">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+            <ResponseField name="properties" type="any">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="coordinator_dpu_size" type="number">
+          The number of DPUs to use for the coordinator. A coordinator is a special executor that orchestrates processing work and manages other executors in a notebook session. The default is 1. Optional.
+        </ResponseField>
+        <ResponseField name="default_executor_dpu_size" type="number">
+          The default number of DPUs to use for executors. An executor is the smallest unit of compute that a notebook session can request from Athena. The default is 1. Optional.
+        </ResponseField>
+        <ResponseField name="max_concurrent_dpus" type="number">
+          The maximum number of DPUs that can run concurrently. Optional.
+        </ResponseField>
+        <ResponseField name="spark_properties" type="any">
+          Specifies custom jar files and Spark properties for use cases like cluster encryption, table formats, and general Spark tuning. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="engine_version" type="object">
+      The Athena engine version for running queries. Optional.
+      <Expandable title="properties">
+        <ResponseField name="effective_engine_version" type="string">
+          Read only. The engine version on which the query runs. If the user requests a valid engine version other than Auto, the effective engine version is the same as the engine version that the user requested. If the user requests Auto, the effective engine version is chosen by Athena. When a request to update the engine version is made by a CreateWorkGroup or UpdateWorkGroup operation, the EffectiveEngineVersion field is ignored. Optional.
+        </ResponseField>
+        <ResponseField name="selected_engine_version" type="string">
+          The engine version requested by the user. Possible values are determined by the output of ListEngineVersions, including Auto. The default is Auto. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="execution_role" type="string">
+      The ARN of the execution role used to access user resources for Spark sessions and Identity Center enabled workgroups. This property applies only to Spark enabled workgroups and Identity Center enabled workgroups. Optional.
+    </ResponseField>
+    <ResponseField name="managed_query_results_configuration" type="object">
+      The configuration for the managed query results and encryption option. ResultConfiguration and ManagedQueryResultsConfiguration cannot be set at the same time Optional.
+      <Expandable title="properties">
+        <ResponseField name="enabled" type="bool">
+          Optional.
+        </ResponseField>
+        <ResponseField name="encryption_configuration" type="object">
+          Indicates the encryption configuration for Athena Managed Storage. If not setting this field, Managed Storage will encrypt the query results with Athena's encryption key Optional.
+          <Expandable title="properties">
+            <ResponseField name="kms_key" type="string">
+              For SSE-KMS and CSE-KMS, this is the KMS key ARN or ID. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="monitoring_configuration" type="object">
+      Contains the configuration settings for managed log persistence, delivering logs to Amazon S3 buckets, Amazon CloudWatch log groups etc. Optional.
+      <Expandable title="properties">
+        <ResponseField name="cloud_watch_logging_configuration" type="object">
+          Configuration settings for delivering logs to Amazon CloudWatch log groups. Optional.
+          <Expandable title="properties">
+            <ResponseField name="enabled" type="bool">
+              Enables CloudWatch logging. Optional.
+            </ResponseField>
+            <ResponseField name="log_group" type="string">
+              The name of the log group in Amazon CloudWatch Logs where you want to publish your logs. Optional.
+            </ResponseField>
+            <ResponseField name="log_stream_name_prefix" type="string">
+              Prefix for the CloudWatch log stream name. Optional.
+            </ResponseField>
+            <ResponseField name="log_types" type="any">
+              The types of logs that you want to publish to CloudWatch. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="managed_logging_configuration" type="object">
+          Configuration settings for managed log persistence. Optional.
+          <Expandable title="properties">
+            <ResponseField name="enabled" type="bool">
+              Enables managed log persistence. Optional.
+            </ResponseField>
+            <ResponseField name="kms_key" type="string">
+              The KMS key ARN to encrypt the logs stored in managed log persistence. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="s3_logging_configuration" type="object">
+          Configuration settings for delivering logs to Amazon S3 buckets. Optional.
+          <Expandable title="properties">
+            <ResponseField name="enabled" type="bool">
+              Enables S3 log delivery. Optional.
+            </ResponseField>
+            <ResponseField name="kms_key" type="string">
+              The KMS key ARN to encrypt the logs published to the given Amazon S3 destination. Optional.
+            </ResponseField>
+            <ResponseField name="log_location" type="string">
+              The Amazon S3 destination URI for log publishing. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="publish_cloud_watch_metrics_enabled" type="bool">
+      Indicates that the Amazon CloudWatch metrics are enabled for the workgroup. Optional.
+    </ResponseField>
+    <ResponseField name="remove_bytes_scanned_cutoff_per_query" type="bool">
+      Indicates that the data usage control limit per query is removed. Optional.
+    </ResponseField>
+    <ResponseField name="remove_customer_content_encryption_configuration" type="bool">
+      Whether to remove the customer content encryption configuration from the Athena work group during an update. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="requester_pays_enabled" type="bool">
+      If set to true, allows members assigned to a workgroup to reference Amazon S3 Requester Pays buckets in queries. If set to false, workgroup members cannot query data from Requester Pays buckets, and queries that retrieve data from Requester Pays buckets cause an error. Optional.
+    </ResponseField>
+    <ResponseField name="result_configuration_updates" type="object">
+      The result configuration information about the queries in this workgroup that will be updated. Includes the updated results location and an updated option for encrypting query results. Optional.
+      <Expandable title="properties">
+        <ResponseField name="acl_configuration" type="object">
+          Indicates that an Amazon S3 canned ACL should be set to control ownership of stored query results Optional.
+          <Expandable title="properties">
+            <ResponseField name="s3_acl_option" type="string" required>
+              The Amazon S3 canned ACL that Athena should specify when storing query results. Currently the only supported canned ACL is BUCKET_OWNER_FULL_CONTROL Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="encryption_configuration" type="object">
+          If query results are encrypted in Amazon S3, indicates the encryption option used (for example, SSE-KMS or CSE-KMS) and key information. Optional.
+          <Expandable title="properties">
+            <ResponseField name="encryption_option" type="string" required>
+              Indicates whether Amazon S3 server-side encryption with Amazon S3-managed keys (SSE-S3), server-side encryption with KMS-managed keys (SSE-KMS), or client-side encryption with KMS-managed keys (CSE-KMS) is used. Required.
+            </ResponseField>
+            <ResponseField name="kms_key" type="string">
+              For SSE-KMS and CSE-KMS, this is the KMS key ARN or ID. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="expected_bucket_owner" type="string">
+          The AWS account ID of the owner of S3 bucket where query results are stored Optional.
+        </ResponseField>
+        <ResponseField name="output_location" type="string">
+          The location in Amazon S3 where your query results are stored, such as s3://path/to/query/bucket/. To run the query, you must specify the query results location using one of the ways: either for individual queries using either this setting (client-side), or in the workgroup, using WorkGroupConfiguration Optional.
+        </ResponseField>
+        <ResponseField name="remove_acl_configuration" type="bool">
+          When set to true, this removes the existing ACL (access control list) configuration from the workgroup's result settings during an update. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="remove_encryption_configuration" type="bool">
+          Indicates whether to remove the encryption configuration for the query results settings of the Athena work group. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="remove_expected_bucket_owner" type="bool">
+          Whether to remove the expected bucket owner setting from the Athena work group's result configuration for query results, so that the bucket owner check is no longer enforced. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="remove_output_location" type="bool">
+          This boolean flag, when set to true, removes the previously configured S3 output location for query results in the Athena work group as part of a result configuration update. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>

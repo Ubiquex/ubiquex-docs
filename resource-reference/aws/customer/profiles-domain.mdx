@@ -1,0 +1,303 @@
+---
+title: "aws_customer_profiles_domain"
+description: "`aws_customer_profiles_domain` is where Amazon Connect Customer Profiles' real, unified customer data actually lives..."
+---
+
+`aws_customer_profiles_domain` is where Amazon Connect Customer Profiles' real, unified customer data actually lives, the top-level container every `aws_customer_profiles_object_type`, integration, and profile inside one Customer Profiles deployment belongs to.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	customer "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/customer"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own profiles domain"})
+
+    		ubx.Resource(customer.ProfilesDomain, "ci-runner", customer.ProfilesDomainConfig{
+    			DefaultExpirationDays: 1,
+    			DomainName:            "example-domain-name",
+    			DeadLetterQueueUrl:    "example",
+    			DefaultEncryptionKey:  "example",
+    			Matching:              map[string]any{"enabled": true},
+    			Tags:                  []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ProfilesDomain } from "./local-sdk/aws/sdk/typescript/aws/customer/profiles_domain.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own profiles domain" });
+
+      resource(ProfilesDomain, "ci-runner", {
+        defaultExpirationDays: 1,
+        domainName: "example-domain-name",
+        deadLetterQueueUrl: "example",
+        defaultEncryptionKey: "example",
+        matching: { enabled: true },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.customer import ProfilesDomain, ProfilesDomainConfig
+
+    def describe():
+        ubx.intent("payments own profiles domain")
+
+        ubx.resource(ProfilesDomain, "ci-runner", ProfilesDomainConfig(
+            default_expiration_days=1,
+            domain_name="example-domain-name",
+            dead_letter_queue_url="example",
+            default_encryption_key="example",
+            matching={"enabled": True},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_customer_profiles_domain, with default expiration days
+    1, domain name example-domain-name, dead letter queue url
+    example, default encryption key example, matching a set value,
+    tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="dead_letter_queue_url" type="string">
+  The URL of the SQS dead letter queue Optional.
+</ResponseField>
+
+<ResponseField name="default_encryption_key" type="string">
+  The default encryption key Optional.
+</ResponseField>
+
+<ResponseField name="default_expiration_days" type="number" required>
+  The default number of days until the data within the domain expires. Required.
+</ResponseField>
+
+<ResponseField name="domain_name" type="string" required>
+  The unique name of the domain. Required.
+</ResponseField>
+
+<ResponseField name="matching" type="object">
+  The process of matching duplicate profiles. If Matching = true, Amazon Connect Customer Profiles starts a weekly batch process called Identity Resolution Job. If you do not specify a date and time for Identity Resolution Job to run, by default it runs every Saturday at 12AM UTC to detect duplicate profiles in your domains. After the Identity Resolution Job completes, use the GetMatches API to return and review the results. Or, if you have configured ExportingConfig in the MatchingRequest, you can download the results from S3. Optional.
+  <Expandable title="properties">
+    <ResponseField name="auto_merging" type="object">
+      Configuration information about the auto-merging process. Optional.
+      <Expandable title="properties">
+        <ResponseField name="conflict_resolution" type="object">
+          How the auto-merging process should resolve conflicts between different profiles. For example, if Profile A and Profile B have the same FirstName and LastName (and that is the matching criteria), which EmailAddress should be used? Optional.
+          <Expandable title="properties">
+            <ResponseField name="conflict_resolving_model" type="string" required>
+              How the auto-merging process should resolve conflicts between different profiles. Required.
+            </ResponseField>
+            <ResponseField name="source_name" type="string">
+              The ObjectType name that is used to resolve profile merging conflicts when choosing SOURCE as the ConflictResolvingModel. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="consolidation" type="object">
+          A list of matching attributes that represent matching criteria. If two profiles meet at least one of the requirements in the matching attributes list, they will be merged. Optional.
+          <Expandable title="properties">
+            <ResponseField name="matching_attributes_list" type="list(list(string))" required>
+              A list of matching criteria. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="enabled" type="bool" required>
+          The flag that enables the auto-merging of duplicate profiles. Required.
+        </ResponseField>
+        <ResponseField name="min_allowed_confidence_score_for_merging" type="number">
+          A number between 0 and 1 that represents the minimum confidence score required for profiles within a matching group to be merged during the auto-merge process. A higher score means higher similarity required to merge profiles. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="enabled" type="bool" required>
+      The flag that enables the matching process of duplicate profiles. Required.
+    </ResponseField>
+    <ResponseField name="exporting_config" type="object">
+      Configuration information for exporting Identity Resolution results, for example, to an S3 bucket. Optional.
+      <Expandable title="properties">
+        <ResponseField name="s3_exporting" type="object">
+          The S3 location where Identity Resolution Jobs write result files. Optional.
+          <Expandable title="properties">
+            <ResponseField name="s3_bucket_name" type="string" required>
+              The name of the S3 bucket where Identity Resolution Jobs write result files. Required.
+            </ResponseField>
+            <ResponseField name="s3_key_name" type="string">
+              The S3 key name of the location where Identity Resolution Jobs write result files. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="job_schedule" type="object">
+      The day and time when do you want to start the Identity Resolution Job every week. Optional.
+      <Expandable title="properties">
+        <ResponseField name="day_of_the_week" type="string" required>
+          The day when the Identity Resolution Job should run every week. Required.
+        </ResponseField>
+        <ResponseField name="time" type="string" required>
+          The time when the Identity Resolution Job should run every week. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags (keys and values) associated with the domain Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a user-defined tag that can be attached to the Amazon Connect Customer Profiles domain. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag attached to the Amazon Connect Customer Profiles domain, used to assign arbitrary metadata for resource organization and cost allocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="created_at" type="string">
+  The time of this integration got created Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="data_store" type="object">
+  Configuration and status of the data store for the domain. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="enabled" type="bool">
+      Whether the data store is enabled. Optional.
+    </ResponseField>
+    <ResponseField name="readiness" type="object">
+      Progress information for data store setup. Optional.
+      <Expandable title="properties">
+        <ResponseField name="message" type="string">
+          A message describing the current progress. Optional.
+        </ResponseField>
+        <ResponseField name="progress_percentage" type="number">
+          The percentage of progress completed. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="last_updated_at" type="string">
+  The time of this integration got last updated at Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="rule_based_matching" type="object">
+  The process of matching duplicate profiles using the Rule-Based matching. If RuleBasedMatching = true, Amazon Connect Customer Profiles will start to match and merge your profiles according to your configuration in the RuleBasedMatchingRequest. You can use the ListRuleBasedMatches and GetSimilarProfiles API to return and review the results. Also, if you have configured ExportingConfig in the RuleBasedMatchingRequest, you can download the results from S3. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="attribute_types_selector" type="object">
+      Configures information about the AttributeTypesSelector where the rule-based identity resolution uses to match profiles. Optional.
+      <Expandable title="properties">
+        <ResponseField name="address" type="list(string)">
+          The Address type. You can choose from Address, BusinessAddress, MaillingAddress, and ShippingAddress. You only can use the Address type in the MatchingRule. For example, if you want to match profile based on BusinessAddress.City or MaillingAddress.City, you need to choose the BusinessAddress and the MaillingAddress to represent the Address type and specify the Address.City on the matching rule. Optional.
+        </ResponseField>
+        <ResponseField name="attribute_matching_model" type="string" required>
+          Configures the AttributeMatchingModel, you can either choose ONE_TO_ONE or MANY_TO_MANY. Required.
+        </ResponseField>
+        <ResponseField name="email_address" type="list(string)">
+          The Email type. You can choose from EmailAddress, BusinessEmailAddress and PersonalEmailAddress. You only can use the EmailAddress type in the MatchingRule. For example, if you want to match profile based on PersonalEmailAddress or BusinessEmailAddress, you need to choose the PersonalEmailAddress and the BusinessEmailAddress to represent the EmailAddress type and only specify the EmailAddress on the matching rule. Optional.
+        </ResponseField>
+        <ResponseField name="phone_number" type="list(string)">
+          The PhoneNumber type. You can choose from PhoneNumber, HomePhoneNumber, and MobilePhoneNumber. You only can use the PhoneNumber type in the MatchingRule. For example, if you want to match a profile based on Phone or HomePhone, you need to choose the Phone and the HomePhone to represent the PhoneNumber type and only specify the PhoneNumber on the matching rule. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="conflict_resolution" type="object">
+      How the auto-merging process should resolve conflicts between different profiles. For example, if Profile A and Profile B have the same FirstName and LastName (and that is the matching criteria), which EmailAddress should be used? Optional.
+      <Expandable title="properties">
+        <ResponseField name="conflict_resolving_model" type="string" required>
+          How the auto-merging process should resolve conflicts between different profiles. Required.
+        </ResponseField>
+        <ResponseField name="source_name" type="string">
+          The ObjectType name that is used to resolve profile merging conflicts when choosing SOURCE as the ConflictResolvingModel. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="enabled" type="bool" required>
+      The flag that enables the rule-based matching process of duplicate profiles. Required.
+    </ResponseField>
+    <ResponseField name="exporting_config" type="object">
+      Configuration information for exporting Identity Resolution results, for example, to an S3 bucket. Optional.
+      <Expandable title="properties">
+        <ResponseField name="s3_exporting" type="object">
+          The S3 location where Identity Resolution Jobs write result files. Optional.
+          <Expandable title="properties">
+            <ResponseField name="s3_bucket_name" type="string" required>
+              The name of the S3 bucket where Identity Resolution Jobs write result files. Required.
+            </ResponseField>
+            <ResponseField name="s3_key_name" type="string">
+              The S3 key name of the location where Identity Resolution Jobs write result files. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="matching_rules" type="list(object)">
+      Configures how the rule-based matching process should match profiles. You can have up to 15 MatchingRule in the MatchingRules. Optional.
+      <Expandable title="properties">
+        <ResponseField name="rule" type="list(string)">
+          Defines a single matching rule by listing the profile attribute names (e.g., '_account.Phone') that must have identical values across profiles for them to be considered a match. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="max_allowed_rule_level_for_matching" type="number">
+      Indicates the maximum allowed rule level for matching. Optional.
+    </ResponseField>
+    <ResponseField name="max_allowed_rule_level_for_merging" type="number">
+      Indicates the maximum allowed rule level for merging. Optional.
+    </ResponseField>
+    <ResponseField name="status" type="string">
+      The current status of the rule-based matching configuration for the Customer Profiles domain, with values ACTIVE (enabled and running), IN_PROGRESS (being enabled or updated), or DISABLED (turned off). Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="stats" type="object">
+  Usage-specific statistics about the domain. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="metering_profile_count" type="number">
+      The number of profiles that you are currently paying for in the domain. If you have more than 100 objects associated with a single profile, that profile counts as two profiles. If you have more than 200 objects, that profile counts as three, and so on. Optional.
+    </ResponseField>
+    <ResponseField name="object_count" type="number">
+      The total number of objects in domain. Optional.
+    </ResponseField>
+    <ResponseField name="profile_count" type="number">
+      The total number of profiles currently in the domain. Optional.
+    </ResponseField>
+    <ResponseField name="total_size" type="number">
+      The total size, in bytes, of all objects in the domain. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>

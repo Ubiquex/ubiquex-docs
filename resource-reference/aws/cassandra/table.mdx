@@ -1,0 +1,369 @@
+---
+title: "aws_cassandra_table"
+description: "`aws_cassandra_table` creates a real table inside an `aws_cassandra_keyspace`..."
+---
+
+`aws_cassandra_table` creates a real table inside an `aws_cassandra_keyspace`, using the same CQL data model and application code an existing Cassandra workload already uses, with Amazon Keyspaces scaling its throughput and storage automatically rather than the caller provisioning nodes.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	cassandra "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/cassandra"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own table"})
+
+    		ubx.Resource(cassandra.Table, "ci-runner", cassandra.TableConfig{
+    			KeyspaceName:                "example-keyspace-name",
+    			PartitionKeyColumns:         []map[string]any{{"column_name": "example-column-name"}},
+    			AutoScalingSpecifications:   map[string]any{"read_capacity_auto_scaling": map[string]any{"auto_scaling_disabled": true}},
+    			BillingMode:                 map[string]any{"mode": "example"},
+    			CdcSpecification:            map[string]any{"status": "example"},
+    			ClientSideTimestampsEnabled: true,
+    			ClusteringKeyColumns:        []map[string]any{{"column": map[string]any{"column_name": "example-column-name"}}},
+    			DefaultTimeToLive:           1,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Table } from "./local-sdk/aws/sdk/typescript/aws/cassandra/table.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own table" });
+
+      resource(Table, "ci-runner", {
+        keyspaceName: "example-keyspace-name",
+        partitionKeyColumns: [{ columnName: "example-column-name" }],
+        autoScalingSpecifications: {
+          readCapacityAutoScaling: { autoScalingDisabled: true },
+        },
+        billingMode: { mode: "example" },
+        cdcSpecification: { status: "example" },
+        clientSideTimestampsEnabled: true,
+        clusteringKeyColumns: [{ column: { columnName: "example-column-name" } }],
+        defaultTimeToLive: 1,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.cassandra import Table, TableConfig
+
+    def describe():
+        ubx.intent("payments own table")
+
+        ubx.resource(Table, "ci-runner", TableConfig(
+            keyspace_name="example-keyspace-name",
+            partition_key_columns=[{"column_name": "example-column-name"}],
+            auto_scaling_specifications={"read_capacity_auto_scaling": {"auto_scaling_disabled": True}},
+            billing_mode={"mode": "example"},
+            cdc_specification={"status": "example"},
+            client_side_timestamps_enabled=True,
+            clustering_key_columns=[{"column": {"column_name": "example-column-name"}}],
+            default_time_to_live=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_cassandra_table, with keyspace name
+    example-keyspace-name, partition key columns a set value, auto
+    scaling specifications a set value, billing mode a set value, cdc
+    specification a set value, client side timestamps enabled true,
+    clustering key columns a set value, default time to live 1.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="auto_scaling_specifications" type="object">
+  Represents the read and write settings used for AutoScaling. Optional.
+  <Expandable title="properties">
+    <ResponseField name="read_capacity_auto_scaling" type="object">
+      Represents configuration for auto scaling. Optional.
+      <Expandable title="properties">
+        <ResponseField name="auto_scaling_disabled" type="bool">
+          When true, disables auto scaling for the table's read capacity, reverting to the fixed read capacity units configured on the table. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum_units" type="number">
+          The maximum number of read capacity units (RCUs) that the table's read capacity can scale up to when auto scaling is enabled. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="minimum_units" type="number">
+          Sets the minimum number of read capacity units for the table's read capacity auto scaling policy in Amazon Keyspaces. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="scaling_policy" type="object">
+          Represents scaling policy. Optional.
+          <Expandable title="properties">
+            <ResponseField name="target_tracking_scaling_policy_configuration" type="object">
+              Represents configuration for target tracking scaling policy. Optional.
+              <Expandable title="properties">
+                <ResponseField name="disable_scale_in" type="bool">
+                  When true, prevents the target tracking scaling policy from reducing (scaling in) the table's read capacity. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="scale_in_cooldown" type="number">
+                  The amount of time in seconds after a scale-in activity completes before another scale-in can begin for the read capacity of the Cassandra table's auto scaling target tracking policy. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="scale_out_cooldown" type="number">
+                  The amount of time, in seconds, after a scale-out (increase) activity completes before another scale-out activity can start, used in the target tracking scaling policy for read capacity auto scaling of an Amazon Keyspaces (Cassandra) table. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="target_value" type="number" required>
+                  The target value, expressed as a percentage, for read capacity utilization that the auto scaling policy maintains. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="write_capacity_auto_scaling" type="object">
+      Represents configuration for auto scaling. Optional.
+      <Expandable title="properties">
+        <ResponseField name="auto_scaling_disabled" type="bool">
+          Disables automatic scaling of write capacity for the Amazon Keyspaces table, preventing CloudFormation from adjusting provisioned write capacity based on traffic. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum_units" type="number">
+          The maximum number of write capacity units that the AWS Keyspaces table can scale up to when auto scaling is enabled for write capacity. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="minimum_units" type="number">
+          Specifies the minimum number of write capacity units that the table can scale down to when write capacity auto scaling is enabled. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="scaling_policy" type="object">
+          Represents scaling policy. Optional.
+          <Expandable title="properties">
+            <ResponseField name="target_tracking_scaling_policy_configuration" type="object">
+              Represents configuration for target tracking scaling policy. Optional.
+              <Expandable title="properties">
+                <ResponseField name="disable_scale_in" type="bool">
+                  Specifies whether scale-in (reducing write capacity) is disabled for this target tracking scaling policy, so the policy can scale out but not automatically scale in. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="scale_in_cooldown" type="number">
+                  The cooldown period in seconds after a scale-in activity completes before the write capacity auto scaling policy can trigger another scale-in operation for the Cassandra table. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="scale_out_cooldown" type="number">
+                  The number of seconds to wait after a scale-out activity completes before another scale-out activity can start for write capacity auto scaling on the Cassandra table. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="target_value" type="number" required>
+                  The target utilization percentage (e.g., 50 for 50%) that the Amazon Keyspaces write capacity target tracking scaling policy aims to maintain for auto scaling. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="billing_mode" type="object">
+  Specifies the billing mode for the Cassandra table, choosing between on-demand and provisioned capacity, and when provisioned, includes the read/write capacity settings. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="mode" type="string" required>
+      Capacity mode for the specified table Required.
+    </ResponseField>
+    <ResponseField name="provisioned_throughput" type="object">
+      Throughput for the specified table, which consists of values for ReadCapacityUnits and WriteCapacityUnits Optional.
+      <Expandable title="properties">
+        <ResponseField name="read_capacity_units" type="number" required>
+          The number of read capacity units to provision for the Cassandra table when billing mode is set to provisioned. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="write_capacity_units" type="number" required>
+          Specifies the number of write capacity units (writes per second) that this Cassandra table can sustain when using provisioned billing mode. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="cdc_specification" type="object">
+  Represents the CDC configuration for the table Optional.
+  <Expandable title="properties">
+    <ResponseField name="status" type="string" required>
+      Indicates whether CDC is enabled or disabled for the table Required.
+    </ResponseField>
+    <ResponseField name="tags" type="list(object)">
+      An array of key-value pairs to apply to the CDC stream resource Optional.
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+        <ResponseField name="value" type="string">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="view_type" type="string">
+      Specifies what data should be captured in the change data stream Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="client_side_timestamps_enabled" type="bool">
+  Indicates whether client side timestamps are enabled (true) or disabled (false) on the table. False by default, once it is enabled it cannot be disabled again. Optional.
+</ResponseField>
+
+<ResponseField name="clustering_key_columns" type="list(object)">
+  Clustering key columns of the table Optional.
+  <Expandable title="properties">
+    <ResponseField name="column" type="object">
+      Specifies the name and type of a single column that is used as the clustering key, determining the sort order of rows within a partition in the Cassandra table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="column_name" type="string">
+          The name of the clustering key column that defines the sort order of rows within each partition of the Cassandra table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="column_type" type="string">
+          The Cassandra data type of the clustering key column (e.g., 'text', 'int', 'uuid'). Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="order_by" type="string">
+      Specifies the sort order (ASC or DESC) for this clustering key column, determining how rows are stored and queried in the Cassandra table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="default_time_to_live" type="number">
+  Default TTL (Time To Live) in seconds, where zero is disabled. If the value is greater than zero, TTL is enabled for the entire table and an expiration timestamp is added to each column. Optional.
+</ResponseField>
+
+<ResponseField name="encryption_specification" type="object">
+  Represents the settings used to enable server-side encryption Optional.
+  <Expandable title="properties">
+    <ResponseField name="encryption_type" type="string" required>
+      Server-side encryption type Required.
+    </ResponseField>
+    <ResponseField name="kms_key_identifier" type="string">
+      The AWS KMS customer master key (CMK) that should be used for the AWS KMS encryption. To specify a CMK, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="keyspace_name" type="string" required>
+  Name for Cassandra keyspace Required.
+</ResponseField>
+
+<ResponseField name="partition_key_columns" type="list(object)" required>
+  Partition key columns of the table Required.
+  <Expandable title="properties">
+    <ResponseField name="column_name" type="string">
+      The name of a column that is part of the table's partition key, determining how rows are distributed across partitions in the Cassandra table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="column_type" type="string">
+      The Cassandra data type (e.g., TEXT, INT, UUID, TIMESTAMP) assigned to this partition key column in the AWS::Cassandra::Table resource, matching the supported column types for Cassandra tables. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="point_in_time_recovery_enabled" type="bool">
+  Indicates whether point in time recovery is enabled (true) or disabled (false) on the table Optional.
+</ResponseField>
+
+<ResponseField name="regular_columns" type="list(object)">
+  Non-key columns of the table Optional.
+  <Expandable title="properties">
+    <ResponseField name="column_name" type="string">
+      The name of a regular (non-partition-key and non-clustering) column in the Cassandra table, defining the column's identifier in the table schema. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="column_type" type="string">
+      The Cassandra data type for the regular column, such as text, int, or timestamp, as defined in the regular_columns list of the table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="replica_specifications" type="list(object)">
+  Defines the AWS Regions and optional provisioned read/write capacity settings for each replica in a multi-Region Amazon Keyspaces table. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="read_capacity_auto_scaling" type="object">
+      Configures the auto scaling settings for read capacity of an Amazon Keyspaces (for Apache Cassandra) table replica, including enablement, minimum and maximum capacity units, and target utilization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="auto_scaling_disabled" type="bool">
+          When true, disables automatic scaling of read capacity for the replica, requiring you to specify fixed read capacity instead. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum_units" type="number">
+          The maximum number of read capacity units that the table can scale up to under automatic scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="minimum_units" type="number">
+          Specifies the minimum read capacity (in read request units per second) that Amazon Keyspaces can scale down to for the corresponding replica in this table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="scaling_policy" type="object">
+          Defines the target tracking scaling policy configuration (e.g., target utilization and scale-in/out behavior) for the read capacity auto scaling of the Cassandra table replica. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="target_tracking_scaling_policy_configuration" type="object">
+              Specifies the target tracking scaling policy configuration, including the target value and scale-in behavior, used for read capacity auto scaling on this replica. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="disable_scale_in" type="bool">
+                  When true, this target tracking scaling policy will not scale in (reduce provisioned read capacity) in response to low utilization, allowing only scale-out actions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="scale_in_cooldown" type="number">
+                  The amount of time, in seconds, after a scale-in activity completes before the read capacity target tracking policy can initiate another scale-in, used to prevent rapid repeated scaling down for a Cassandra table replica. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="scale_out_cooldown" type="number">
+                  The cooldown period (in seconds) that elapses before a scale-out activity can start, preventing rapid increases in read capacity for the replica. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="target_value" type="number">
+                  The target utilization percentage for read capacity that the auto scaling policy aims to maintain, triggering scaling adjustments to keep provisioned read capacity in line with the workload. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="read_capacity_units" type="number">
+      The number of read capacity units provisioned for this specific replica of the Cassandra table in its designated AWS region. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="region" type="string">
+      Specifies the AWS Region where the Cassandra table replica is created, enabling multi-Region replication. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="table_name" type="string">
+  Name for Cassandra table Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key (name) of a tag assigned to the Cassandra table. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value component of a tag assigned to the Amazon Keyspaces (for Apache Cassandra) table, used for cost allocation and resource management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="warm_throughput" type="object">
+  Warm throughput configuration for the table Optional.
+  <Expandable title="properties">
+    <ResponseField name="read_units_per_second" type="number">
+      Number of warm read capacity units per second for the table's warm throughput configuration. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="write_units_per_second" type="number">
+      The number of write capacity units per second allocated for throughput on warm data stored in the Amazon Keyspaces table. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>

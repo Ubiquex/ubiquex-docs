@@ -1,0 +1,172 @@
+---
+title: "aws_backup_selection"
+description: "`aws_backup_selection` assigns real AWS resources, by tag, by explicit resource ID, or by IAM role, to an `aws_backup_plan`..."
+---
+
+`aws_backup_selection` assigns real AWS resources, by tag, by explicit resource ID, or by IAM role, to an `aws_backup_plan`, the actual mechanism that determines which resources a plan's schedule and lifecycle rules apply to. A plan with no selection protects nothing.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	backup "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/backup"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own selection"})
+
+    		ubx.Resource(backup.Selection, "ci-runner", backup.SelectionConfig{
+    			BackupPlanId:    "example",
+    			BackupSelection: map[string]any{"iam_role_arn": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Selection } from "./local-sdk/aws/sdk/typescript/aws/backup/selection.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own selection" });
+
+      resource(Selection, "ci-runner", {
+        backupPlanId: "example",
+        backupSelection: { iamRoleArn: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.backup import Selection, SelectionConfig
+
+    def describe():
+        ubx.intent("payments own selection")
+
+        ubx.resource(Selection, "ci-runner", SelectionConfig(
+            backup_plan_id="example",
+            backup_selection={"iam_role_arn": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_backup_selection, with backup plan id example, backup
+    selection a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="backup_plan_id" type="string" required>
+  The unique identifier of the AWS Backup plan to which this backup selection belongs. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="backup_selection" type="object" required>
+  Specifies the resources to be backed up, including the selection name, the IAM role AWS Backup uses to authenticate, and the resource lists or tags that define which resources are included or excluded from the backup plan. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="conditions" type="object">
+      Defines condition expressions (such as StringEquals or StringLike) evaluated against resource attributes like tags to determine which resources match this backup selection. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="string_equals" type="list(object)">
+          Specifies tag key-value pairs that resources must match exactly to be included in the backup selection, where each object contains a key and a value that must equal the resource's tag value. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="condition_key" type="string">
+              Specifies the tag key that must match for resources to be included in the backup selection when using a StringEquals condition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="condition_value" type="string">
+              The value that must exactly match the specified condition key (for example, a resource tag's value) for a resource to satisfy this string-equals condition and be included in the backup selection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="string_like" type="list(object)">
+          A list of tag-based conditions that select resources for the backup plan when the value of a specified tag key matches the given pattern, supporting wildcard characters such as * and ?. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="condition_key" type="string">
+              Defines the tag key (e.g., aws:ResourceTag/Environment) or resource attribute used as the condition key in a string-like match to determine which resources are included in the backup selection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="condition_value" type="string">
+              The value that the resource tag key (specified by condition_key) must match, using wildcard matching, for the resource to be included in the backup selection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="string_not_equals" type="list(object)">
+          Defines a list of key-value pairs that must not equal the resource's tag values for the resource to be included in the backup selection. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="condition_key" type="string">
+              Specifies the tag or resource attribute key to compare in a StringNotEquals condition, excluding resources whose value for this key equals the specified condition value from the backup selection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="condition_value" type="string">
+              The value that the resource attribute (such as a tag) must not equal for the backup selection condition to match, used in a StringNotEquals condition within the AWS Backup selection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="string_not_like" type="list(object)">
+          Defines a list of key-value conditions that match backup resources whose value for the specified key is not similar to the given pattern, used to exclude resources from the backup selection. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="condition_key" type="string">
+              The condition key (typically a tag key like `aws:ResourceTag/Environment`) that the `string_not_like` operator evaluates, so that resources with a matching value pattern are excluded from the backup selection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="condition_value" type="string">
+              For a StringNotLike condition, this is the string pattern (supporting wildcards such as * and ?) that the tag value identified by the condition key must not match, so the resource is excluded from the backup selection when it matches. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="iam_role_arn" type="string" required>
+      The ARN of the IAM role that AWS Backup assumes to perform backup and restore operations, giving it permissions to access the resources being backed up. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="list_of_tags" type="list(object)">
+      Specifies a list of tag conditions that determine which resources are included in the backup plan, each condition requiring a tag key, a tag value, and a match type such as STRINGEQUALS. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="condition_key" type="string">
+          The tag key to match when selecting resources based on tag conditions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="condition_type" type="string">
+          Specifies how the tag condition is evaluated for a resource, and in AWS Backup this must be STRINGEQUALS, meaning the resource must have a tag whose key and value exactly match the specified condition key and value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="condition_value" type="string">
+          The tag value (or wildcard pattern) that the backup selection uses to match AWS resources by tag, paired with a tag key in the same tag condition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="not_resources" type="list(string)">
+      Specifies a list of resource ARNs to exclude from the backup selection, refining which resources are included in the backup plan. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="resources" type="list(string)">
+      Specifies the list of resources (by ARN or resource ID) that this backup selection selects for backup, such as EC2 instances or DynamoDB tables. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="selection_name" type="string" required>
+      A user-defined name for the backup selection that identifies the set of resources assigned to an AWS Backup plan. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The unique AWS-generated identifier assigned to the backup selection when it is created, used to reference the selection in AWS Backup and IAM policies. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="selection_id" type="string">
+  The unique identifier assigned by AWS Backup to the backup selection, used internally to reference the selection within a backup plan. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

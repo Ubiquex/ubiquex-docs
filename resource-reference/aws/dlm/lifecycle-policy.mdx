@@ -1,0 +1,544 @@
+---
+title: "aws_dlm_lifecycle_policy"
+description: "`aws_dlm_lifecycle_policy` automates the real, recurring creation, retention, and deletion of EBS snapshots and EBS-backed AMIs on a defined schedule..."
+---
+
+`aws_dlm_lifecycle_policy` automates the real, recurring creation, retention, and deletion of EBS snapshots and EBS-backed AMIs on a defined schedule, so backups happen consistently without a caller manually creating or cleaning up snapshots.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	dlm "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/dlm"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own lifecycle policy"})
+
+    		ubx.Resource(dlm.LifecyclePolicy, "ci-runner", dlm.LifecyclePolicyConfig{
+    			CopyTags:               true,
+    			CreateInterval:         1,
+    			CrossRegionCopyTargets: []map[string]any{{"target_region": "example"}},
+    			DefaultPolicy:          "example",
+    			Description:            "Managed by ubx.",
+    			Exclusions:             map[string]any{"exclude_boot_volumes": true},
+    			ExecutionRoleArn:       "arn:aws:iam::123456789012:policy/ci",
+    			ExtendDeletion:         true,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { LifecyclePolicy } from "./local-sdk/aws/sdk/typescript/aws/dlm/lifecycle_policy.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own lifecycle policy" });
+
+      resource(LifecyclePolicy, "ci-runner", {
+        copyTags: true,
+        createInterval: 1,
+        crossRegionCopyTargets: [{ targetRegion: "example" }],
+        defaultPolicy: "example",
+        description: "Managed by ubx.",
+        exclusions: { excludeBootVolumes: true },
+        executionRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        extendDeletion: true,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.dlm import LifecyclePolicy, LifecyclePolicyConfig
+
+    def describe():
+        ubx.intent("payments own lifecycle policy")
+
+        ubx.resource(LifecyclePolicy, "ci-runner", LifecyclePolicyConfig(
+            copy_tags=True,
+            create_interval=1,
+            cross_region_copy_targets=[{"target_region": "example"}],
+            default_policy="example",
+            description="Managed by ubx.",
+            exclusions={"exclude_boot_volumes": True},
+            execution_role_arn="arn:aws:iam::123456789012:policy/ci",
+            extend_deletion=True,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_dlm_lifecycle_policy, with copy tags true, create
+    interval 1, cross region copy targets a set value, default policy
+    example, description Managed by ubx., exclusions a set value,
+    execution role arn arn:aws:iam::123456789012:policy/ci, extend
+    deletion true.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="copy_tags" type="bool">
+  Indicates whether to copy tags from the source EBS volume to the snapshots created by this lifecycle policy. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="create_interval" type="number">
+  The interval (in hours or days) between automatic EBS snapshot creations for a schedule in the DLM lifecycle policy, controlled by the associated interval unit. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="cross_region_copy_targets" type="list(object)">
+  Defines the destination regions and their encryption configurations (including optional KMS key ARN) to which snapshots or AMIs created by this DLM lifecycle policy are copied. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="target_region" type="string">
+      The destination AWS region to which the policy copies snapshots or AMIs as part of its cross-region copy action. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="default_policy" type="string">
+  Optional.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A user-provided descriptive text that identifies the purpose and details of the DLM lifecycle policy, helping to distinguish it from other policies in the AWS account. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="exclusions" type="object">
+  Specifies the tags and resource types that exclude matching resources from the lifecycle policy, preventing automatic snapshots or AMI creation for those resources. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="exclude_boot_volumes" type="bool">
+      When true, the lifecycle policy excludes boot volumes from its snapshot schedules, preventing snapshots from being created for EC2 instance boot volumes. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="exclude_tags" type="list(object)">
+      The list of key-value tag pairs that, when matched on a resource, cause that resource to be excluded from the lifecycle policy. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          The tag key that, when present on a resource, excludes that resource from the DLM lifecycle policy's actions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value" type="string">
+          The tag value that, when paired with the corresponding tag key in an exclusion filter, causes matching resources to be excluded from the lifecycle policy's actions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="exclude_volume_types" type="list(any)">
+      Specifies the EBS volume types (for example, gp2 or io1) that should be excluded from the lifecycle policy's snapshot or AMI creation actions. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="execution_role_arn" type="string">
+  The Amazon Resource Name (ARN) of the IAM role that AWS Data Lifecycle Manager assumes to create snapshots and manage the lifecycle of the target resources. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="extend_deletion" type="bool">
+  Optional.
+</ResponseField>
+
+<ResponseField name="policy_details" type="object">
+  This object defines the core configuration of the DLM lifecycle policy, specifying the resource type (e.g., EBS snapshots or AMIs), target resource tags, state, and the schedules with their associated actions, such as creating, retaining, and deleting snapshots or AMIs. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="actions" type="list(object)">
+      Specifies the list of actions, each containing a name and cross-Region copy settings, that an event-based DLM lifecycle policy executes when its configured event is triggered. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="cross_region_copy" type="list(object)">
+          Specifies the cross-Region copy action parameters that define how snapshots or AMIs are copied from the source Region to one or more target Regions as part of the lifecycle policy's action. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="encryption_configuration" type="object">
+              Specifies the encryption settings for snapshot copies created by the cross-region copy action, including whether the copied snapshots are encrypted and the ARN of the AWS KMS customer master key (CMK) to use for encryption. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="cmk_arn" type="string">
+                  The ARN of the AWS KMS customer master key (CMK) used to encrypt snapshots copied to the destination region, defaulting to the region's default EBS encryption key if not specified. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="encrypted" type="bool">
+                  Whether the cross-Region snapshot copies are encrypted, which when true uses the specified KMS key or an AWS managed key. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="retain_rule" type="object">
+              Specifies the retention rule for snapshots copied to the target region, defining either a retention interval (value and unit such as days, weeks, months, or years) or a maximum count of snapshots to retain. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="interval" type="number">
+                  Specifies the retention period value for cross-region copied snapshots or AMIs, which combined with interval_unit determines how long they are kept in the destination region. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="interval_unit" type="string">
+                  Specifies the unit of time (DAYS, WEEKS, MONTHS, or YEARS) for the retention interval of the cross-region copy action in the lifecycle policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="target" type="string">
+              The AWS Region to which the resource is copied by this cross-region copy action in the DLM lifecycle policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Identifies the type of action to be performed by the DLM lifecycle policy, such as 'cross-region-copy', which determines the operation executed on the target resources. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="copy_tags" type="bool">
+      Indicates whether to copy all user-defined tags from the source snapshot to the target snapshots created by the lifecycle policy. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="create_interval" type="number">
+      The create_interval determines how often the Data Lifecycle Manager policy creates snapshots or AMIs, specified in hours for EBS snapshot policies (1 -- 24) and in days for EBS-backed AMI policies (1 -- 7). Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="cross_region_copy_targets" type="list(object)">
+      Defines the list of destination Regions to which snapshots or AMIs are copied, along with per-target encryption and retention settings. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="target_region" type="string">
+          The AWS region code to which the lifecycle policy copies snapshots as part of a cross-region copy target configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="event_source" type="object">
+      Defines the event source that triggers an event-based lifecycle policy, such as a CloudWatch Events rule, including its type (e.g., MANAGED_CWS_EVENT) and parameters like event type and snapshot owner. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="parameters" type="object">
+          The parameters object of an event source in a DLM lifecycle policy, used when the event source type is MANAGED_CWE, contains a description that identifies the CloudWatch Events rule that triggers the event-based policy. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="description_regex" type="string">
+              A regular expression used to match the description of snapshots to trigger this event-based DLM lifecycle policy. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="event_type" type="string" required>
+              Specifies the type of event that triggers this event-based lifecycle policy, with `shareSnapshot` being the only supported value, meaning the policy runs when a snapshot is shared with your account. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="snapshot_owner" type="list(string)" required>
+              Specifies the AWS account IDs of the snapshot owners that can trigger the lifecycle policy when an event occurs (e.g., shared snapshot event) for an event-driven DLM policy. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="type" type="string" required>
+          Specifies the type of event source for an event-based DLM lifecycle policy, where the only valid value is MANAGED_CWL to use Amazon CloudWatch Events. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="exclusions" type="object">
+      Defines the exclusions for the lifecycle policy, which identify specific resources or resource types (such as volumes with certain tags or specific volume types) that should not be affected by the policy. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="exclude_boot_volumes" type="bool">
+          Indicates whether the Data Lifecycle Manager policy excludes boot volumes from all snapshot and AMI creation actions, so that boot volumes are not affected by the policy's lifecycle rules. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="exclude_tags" type="list(object)">
+          Defines tag key-value pairs that identify resources to exclude from the lifecycle policy's actions, such as snapshot or AMI creation. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The key of a tag that identifies resources to be excluded from the lifecycle policy's actions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              Specifies the tag value for a tag-based exclusion rule, which excludes resources that have this tag value from the lifecycle policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="exclude_volume_types" type="list(any)">
+          Specifies the list of EBS volume types (e.g., 'gp2', 'io1', 'gp3') to exclude from the lifecycle policy, so the policy does not apply to or create snapshots for volumes of those types. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="extend_deletion" type="bool">
+      Optional.
+    </ResponseField>
+    <ResponseField name="parameters" type="object">
+      Specifies optional parameters, such as ExcludeBootVolume or NoReboot, that modify the behavior of the lifecycle policy's snapshot creation operations. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="exclude_boot_volume" type="bool">
+          Indicates whether the boot volume of the instance is excluded from the EBS snapshots created by this lifecycle policy when the policy targets instances. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="exclude_data_volume_tags" type="list(object)">
+          A list of tag filters (key-value pairs) that identifies data volumes to exclude from the lifecycle policy's snapshot or AMI creation actions. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The tag key used to identify data volumes to exclude from the lifecycle policy's snapshot management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The value portion of a key-value pair in the exclude data volume tags list, used to match an Amazon EBS volume tag and exclude that volume from the lifecycle policy's snapshot or AMI creation actions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="no_reboot" type="bool">
+          Indicates whether to skip rebooting the instance when creating snapshots, so a value of true prevents the typical reboot that occurs during snapshot creation. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="policy_language" type="string">
+      Specifies the policy language format, either SIMPLIFIED or STANDARD, which determines how resource types and actions are expressed in the policy. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="policy_type" type="string">
+      Specifies the type of lifecycle policy, which can be EBS_SNAPSHOT_MANAGEMENT to manage EBS snapshots, IMAGE_MANAGEMENT to manage EBS-backed AMIs, or EVENT_BASED to trigger on Amazon CloudWatch events. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="resource_locations" type="list(string)">
+      Specifies the target resource locations for the lifecycle policy, allowing values like 'CLOUD' for resources in the AWS cloud and 'OUTPOST' for resources on an AWS Outpost. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="resource_type" type="string">
+      Specifies the type of AWS resource (either 'VOLUME' or 'INSTANCE') that a DLM lifecycle policy targets, determining whether the policy creates EBS snapshots or AMIs. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="resource_types" type="list(string)">
+      The types of resources (such as VOLUME or INSTANCE) that this lifecycle policy will manage and snapshot. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="retain_interval" type="number">
+      Optional.
+    </ResponseField>
+    <ResponseField name="schedules" type="list(object)">
+      Defines the schedule(s) that specify when to create Amazon EBS snapshots (or AMIs) and how long to retain them under this lifecycle policy. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="archive_rule" type="object">
+          Defines the archive rule for this schedule, specifying how long snapshots are retained in the Amazon EBS Archive tier (e.g., the number of days to keep them archived) before deletion. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="retain_rule" type="object">
+              Specifies the retention duration for archived snapshots created by the containing archive rule, defining how long they are kept before being expired. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="retention_archive_tier" type="object">
+                  Specifies the retention period for snapshots stored in the archive tier, either as a count of snapshots or as an interval with a unit (e.g., days), after which they expire. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="count" type="number">
+                      The number of snapshots to retain in the archive storage tier. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="interval" type="number">
+                      Specifies the numeric value for how long snapshots are retained in the archive tier before deletion, paired with the interval_unit property to define the unit of time (e.g., days, weeks). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="interval_unit" type="string">
+                      Specifies the unit of time (e.g., DAYS, WEEKS, MONTHS, YEARS) for the retention period of snapshots in the archive tier, used with the retention_archive_tier.interval value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="copy_tags" type="bool">
+          Copies all user-defined tags from the source snapshot to the snapshots created by this schedule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="create_rule" type="object">
+          Defines when the schedule triggers resource creation (e.g., EBS snapshots or AMIs), typically via a recurring interval or a cron expression. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="cron_expression" type="string">
+              The cron expression that specifies when this create rule triggers snapshot or AMI creation in the DLM lifecycle policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="interval" type="number">
+              Specifies how often the lifecycle policy creates snapshots; for example, a value of 12 with an interval_unit of 'hours' creates snapshots every 12 hours, and it must be paired with the interval_unit property to define the schedule frequency. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="interval_unit" type="string">
+              For the create rule of a schedule, this field sets the time unit (HOURS or DAYS) that the interval value uses to control how often AWS Data Lifecycle Manager creates snapshots or AMIs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="location" type="string">
+              Specifies whether the lifecycle policy creates snapshots of resources in the AWS Cloud (CLOUD) or on AWS Outposts (OUTPOST). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="scripts" type="list(object)">
+              Optional; if omitted, computed by AWS.
+              <Expandable title="properties">
+                <ResponseField name="execute_operation_on_script_failure" type="bool">
+                  Determines whether the DLM lifecycle policy should proceed with the snapshot creation operation even if this script fails to execute successfully. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="execution_handler" type="string">
+                  Specifies the ARN of the AWS Lambda function or the name of an AWS Systems Manager document that acts as the execution handler for the script configured in this DLM lifecycle policy schedule, enabling custom pre-snapshot or post-snapshot actions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="execution_handler_service" type="string">
+                  Specifies the AWS service that executes the script (for example, AWS Systems Manager) when the create rule triggers snapshot creation in a DLM lifecycle policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="execution_timeout" type="number">
+                  Sets the maximum time in seconds that AWS Data Lifecycle Manager waits for the script (a Systems Manager automation document) to finish executing before declaring the pre/post snapshot action a failure, applied per script in the create rule of the lifecycle policy schedule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="maximum_retry_count" type="number">
+                  Specifies the maximum number of times AWS DLM will retry a script (defined in the schedule's create rule) after it fails before marking the script execution as failed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="stages" type="list(string)">
+                  Specifies the stage(s) during the EBS snapshot creation process at which the script should run, with allowed values 'pre' and 'post'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="times" type="list(string)">
+              Specifies the times in UTC (formatted as HH:00) at which the lifecycle policy creates snapshots according to this schedule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="cross_region_copy_rules" type="list(object)">
+          Configures the rules for copying snapshots to other AWS Regions as part of this schedule, including destination region, encryption, and retention settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="cmk_arn" type="string">
+              The ARN of the AWS KMS customer master key (CMK) used to encrypt the EBS snapshots or AMIs copied to the target region under this cross-region copy rule in the DLM lifecycle policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="copy_tags" type="bool">
+              Indicates whether to copy all user-defined tags from the source EBS snapshot (or AMI) to the cross-region copied snapshot (or AMI). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="deprecate_rule" type="object">
+              Specifies the interval and interval unit after which the cross-region copied AMIs are deprecated in the target Region. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="interval" type="number">
+                  The numeric length of the time period (with units set in the sibling `interval_unit` field) after which copied AMIs in the target Region are deprecated according to this cross-region copy deprecate rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="interval_unit" type="string">
+                  The unit of time (e.g., days, weeks, months, or years) that, together with the interval value, determines how long the copied AMI is retained in the target region before it is deprecated. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="encrypted" type="bool">
+              Specifies whether snapshots copied to the target region by this cross-region copy rule are encrypted. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="retain_rule" type="object">
+              Defines the retention behavior for snapshots copied to the destination region, specifying either a time-based interval (with unit such as days, weeks, months, or years) or a maximum count of snapshots to retain. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="interval" type="number">
+                  The number of interval units (as specified by the associated interval_unit) to retain cross-Region copied snapshots in the target Region before they are deleted. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="interval_unit" type="string">
+                  The unit of time used with the retention interval to specify how long cross-region snapshot copies are retained in the target region, such as days, weeks, months, or years. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="target" type="string">
+              The destination AWS Region to which the snapshot or AMI is copied, specified as a Region name (e.g., us-east-1) in the cross-Region copy rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="target_region" type="string">
+              The destination AWS Region to which snapshots or AMIs are copied by this cross-Region copy rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="deprecate_rule" type="object">
+          Defines when AMIs created by this schedule are automatically deprecated, either by specifying a maximum retained count or a time-based interval (e.g., days) after which the AMI is deprecated. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="count" type="number">
+              The maximum number of AMIs to retain; when this count is exceeded, the oldest AMIs are deprecated by the lifecycle policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="interval" type="number">
+              The number of time units (as specified by the associated interval_unit field) after which the Amazon Machine Image (AMI) is deprecated in this lifecycle policy's deprecation rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="interval_unit" type="string">
+              The unit of time (DAYS, WEEKS, MONTHS, or YEARS) used with the interval to determine how long to wait before deprecating the AMI in this schedule's deprecate rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="fast_restore_rule" type="object">
+          Configures the fast snapshot restore rule for this schedule, specifying the Availability Zones in which to enable fast snapshot restore and the number of snapshots (or time interval) for which fast restore is retained, allowing EBS snapshots to be restored quickly in those zones. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="availability_zone_ids" type="list(string)">
+              Specifies the list of Availability Zones in which to enable fast snapshot restore for snapshots created by this schedule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="availability_zones" type="list(string)">
+              Specifies the Availability Zones in which fast snapshot restore is enabled for snapshots created by this schedule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="count" type="number">
+              The number of snapshots to enable Fast Snapshot Restore on for this schedule's fast restore rule in the DLM lifecycle policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="interval" type="number">
+              Specifies the interval number, paired with the interval unit, that determines how frequently the lifecycle policy enables fast snapshot restore for snapshots taken under this schedule, used as an alternative to the count parameter. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="interval_unit" type="string">
+              The unit of time (DAYS or WEEKS) for the interval during which snapshots created by this schedule will have fast snapshot restore enabled. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The name of the DLM lifecycle policy schedule, which must be unique among all schedules in the policy and is used to reference the schedule in associated tags and rules. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="retain_rule" type="object">
+          Specifies the retention rule for snapshots or AMIs created by this schedule, controlling whether to keep a maximum count or retain for a specific interval (in days or years) before deletion. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="count" type="number">
+              Specifies the maximum number of snapshots to retain for the policy schedule when the retain rule is based on a count, after which the oldest snapshots are deleted. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="interval" type="number">
+              The number of intervals (measured in the unit specified by the sibling field interval_unit) that snapshots or AMIs are retained by this lifecycle policy schedule before they are deleted. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="interval_unit" type="string">
+              Specifies the unit of time (DAYS, WEEKS, MONTHS, or YEARS) used with the retain rule's interval value to determine how long snapshots created by this schedule are retained. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="share_rules" type="list(object)">
+          Specifies the rules for sharing snapshots created by this schedule with other AWS accounts, including target account IDs and the interval for unsharing them. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="target_accounts" type="list(string)">
+              Specifies the AWS account IDs to which snapshots created by this schedule are shared, as defined in the share rules of the lifecycle policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="unshare_interval" type="number">
+              Specifies the numeric interval, paired with the associated unit, after which DLM automatically unshares snapshots or AMIs that were shared with the target accounts in this share rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="unshare_interval_unit" type="string">
+              The unit of time (DAYS or WEEKS) used with the unshare interval to determine how frequently snapshots are unshared from other accounts in the lifecycle policy's share rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="tags_to_add" type="list(object)">
+          Specifies the tags to apply to the snapshots or AMIs created by this schedule, allowing you to organize and identify the resources created by the lifecycle policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The key of a tag to be added to resources created by this lifecycle policy schedule, such as snapshots or AMIs, where the corresponding value is specified in the adjacent value field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The value for a custom tag that AWS Data Lifecycle Manager applies to the snapshots or AMIs created by this schedule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="variable_tags" type="list(object)">
+          Specifies a list of tags with variable placeholders that are applied to the snapshots or AMIs created when the schedule triggers, where tag values can use DLM-supported variables such as $(instance-id), $(timestamp), or $(uuid) and are replaced with actual resource information at execution time. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The tag key for a variable tag entry that DLM attaches to snapshots or AMIs created by this schedule, where the corresponding value can contain dynamic variables such as $(instance-id) or $(timestamp). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              This string defines the value of a variable tag applied to snapshots or AMIs created by the schedule, and may contain DLM-supported placeholders such as $&#123;instance-id&#125; or $&#123;timestamp&#125; to dynamically populate the tag value from the source resource or event time. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="target_tags" type="list(object)">
+      Tags that identify the resources the lifecycle policy will manage; the policy applies to resources that have all these tags. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          The tag key used to identify resources that the lifecycle policy should target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value" type="string">
+          The tag value used together with the corresponding key in policy_details.target_tags to identify the resources that the lifecycle policy will manage for snapshot or AMI creation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="retain_interval" type="number">
+  The numeric interval for retaining snapshots in a DLM lifecycle policy schedule, working with `retain_interval_unit` to define the duration (e.g., number of days, weeks, months, or years). Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Specifies whether the lifecycle policy is set to ENABLED or DISABLED, controlling whether the policy is active and can create snapshots. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  This field defines the user-defined tags to attach to the lifecycle policy, which can be used to organize, identify, and manage the policy through cost allocation and resource tagging. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value for a tag key assigned to the Amazon Data Lifecycle Manager lifecycle policy, used to categorize, identify, or manage access to the policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies this DLM lifecycle policy. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The unique identifier assigned by AWS to the DLM lifecycle policy. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

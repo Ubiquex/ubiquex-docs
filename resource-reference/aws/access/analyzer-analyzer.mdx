@@ -1,0 +1,202 @@
+---
+title: "aws_access_analyzer_analyzer"
+description: "`aws_access_analyzer_analyzer` creates an IAM Access Analyzer, a real analyzer that continuously scans resource policies (S3 buckets, IAM roles..."
+---
+
+`aws_access_analyzer_analyzer` creates an IAM Access Analyzer, a real analyzer that continuously scans resource policies (S3 buckets, IAM roles, KMS keys, and similar) and reports which grant access to anything outside the account or organization it's scoped to. Analyzers come in a few real, distinct modes, external access, unused access, and internal access, and the same resource also drives policy validation and policy generation from real CloudTrail activity.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	access "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/access"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own analyzer analyzer"})
+
+    		ubx.Resource(access.AnalyzerAnalyzer, "ci-runner", access.AnalyzerAnalyzerConfig{
+    			Type:                  "example",
+    			AnalyzerConfiguration: map[string]any{"internal_access_configuration": map[string]any{"internal_access_analysis_rule": map[string]any{"inclusions": []map[string]any{{"account_ids": []string{"example"}}}}}},
+    			AnalyzerName:          "example-analyzer-name",
+    			ArchiveRules:          []map[string]any{{"filter": []map[string]any{{"contains": []string{"example"}}}}},
+    			Tags:                  []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AnalyzerAnalyzer } from "./local-sdk/aws/sdk/typescript/aws/access/analyzer_analyzer.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own analyzer analyzer" });
+
+      resource(AnalyzerAnalyzer, "ci-runner", {
+        type: "example",
+        analyzerConfiguration: {
+          internalAccessConfiguration: {
+            internalAccessAnalysisRule: {
+              inclusions: [{ accountIds: ["example"] }],
+            },
+          },
+        },
+        analyzerName: "example-analyzer-name",
+        archiveRules: [{ filter: [{ contains: ["example"] }] }],
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.access import AnalyzerAnalyzer, AnalyzerAnalyzerConfig
+
+    def describe():
+        ubx.intent("payments own analyzer analyzer")
+
+        ubx.resource(AnalyzerAnalyzer, "ci-runner", AnalyzerAnalyzerConfig(
+            type="example",
+            analyzer_configuration={"internal_access_configuration": {"internal_access_analysis_rule": {"inclusions": [{"account_ids": ["example"]}]}}},
+            analyzer_name="example-analyzer-name",
+            archive_rules=[{"filter": [{"contains": ["example"]}]}],
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_access_analyzer_analyzer, with type example, analyzer
+    configuration a set value, analyzer name example-analyzer-name,
+    archive rules a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="analyzer_configuration" type="object">
+  The configuration for the analyzer Optional.
+  <Expandable title="properties">
+    <ResponseField name="internal_access_configuration" type="object">
+      Specifies the configuration of an internal access analyzer for an AWS organization or account. This configuration determines how the analyzer evaluates internal access within your AWS environment. Optional.
+      <Expandable title="properties">
+        <ResponseField name="internal_access_analysis_rule" type="object">
+          Contains information about analysis rules for the internal access analyzer. Analysis rules determine which entities will generate findings based on the criteria you define when you create the rule. Optional.
+          <Expandable title="properties">
+            <ResponseField name="inclusions" type="list(object)">
+              A list of rules for the internal access analyzer containing criteria to include in analysis. Only resources that meet the rule criteria will generate findings. Optional.
+              <Expandable title="properties">
+                <ResponseField name="account_ids" type="list(string)">
+                  The AWS account IDs to include in the internal access analysis rule, defining the set of accounts whose access to resources is analyzed by the internal access analyzer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="resource_arns" type="list(string)">
+                  The list of resource ARNs that define the inclusion scope for the internal access analysis rule, restricting the Access Analyzer's internal access analysis to the specified resources. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="resource_types" type="list(string)">
+                  The list of AWS resource types (such as AWS::S3::Bucket or AWS::IAM::Role) that are explicitly included in the internal access analysis rule, meaning that the internal access analyzer will only analyze these resources for access within your security perimeter. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="unused_access_configuration" type="object">
+      The Configuration for Unused Access Analyzer Optional.
+      <Expandable title="properties">
+        <ResponseField name="analysis_rule" type="object">
+          Contains information about rules for the analyzer. Optional.
+          <Expandable title="properties">
+            <ResponseField name="exclusions" type="list(object)">
+              A list of rules for the analyzer containing criteria to exclude from analysis. Entities that meet the rule criteria will not generate findings. Optional.
+              <Expandable title="properties">
+                <ResponseField name="account_ids" type="list(string)">
+                  The list of AWS account IDs that this exclusion applies to, excluding those accounts' resources from being analyzed by the unused access analysis rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="resource_tags" type="list(list(object))">
+                  Specifies a list of resource tag key-value pairs that identify AWS resources to exclude from unused access analysis when the exclusion type is set to resource_tag. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="unused_access_age" type="number">
+          The specified access age in days for which to generate findings for unused access. For example, if you specify 90 days, the analyzer will generate findings for IAM entities within the accounts of the selected organization for any access that hasn't been used in 90 or more days since the analyzer's last scan. You can choose a value between 1 and 365 days. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="analyzer_name" type="string">
+  Analyzer name Optional.
+</ResponseField>
+
+<ResponseField name="archive_rules" type="list(object)">
+  Archive rules that automatically archive new findings matching the specified filter criteria before they are listed in the analyzer's active findings. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="filter" type="list(object)">
+      Defines the filter conditions for an archive rule, specifying which findings to automatically archive by matching criteria such as resource, principal, or other finding attributes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="contains" type="list(string)">
+          Specifies a list of strings that the criterion's value must contain for a finding to match the archive rule and be archived. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="eq" type="list(string)">
+          In an archive rule filter, the eq field contains a list of string values that the rule's chosen property (e.g., the principal ARN or resource ID) must exactly match for a finding to be archived. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="exists" type="bool">
+          Indicates whether the archive rule filter matches when the specified criterion exists (true) or does not exist (false) on the analyzed resource, used to automatically archive findings based on presence or absence of a property. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="neq" type="list(string)">
+          Specifies a list of values that the filter criterion must not match, causing findings where the specified property does not equal any of these values to be archived under this archive rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="property" type="string">
+          The name of the resource property the archive rule filter applies to, such as 'aws.accountId', 'aws.region', or 'error', used to match against findings in AWS Access Analyzer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="rule_name" type="string">
+      The name of an archive rule in IAM Access Analyzer, which identifies a rule that automatically archives findings matching its defined criteria. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the Access Analyzer analyzer, used as the name of the key-value metadata pair for organizing or identifying the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value component of a tag attached to the AWS Access Analyzer analyzer, allowing you to associate arbitrary metadata such as ownership or environment with the analyzer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="type" type="string" required>
+  The type of the analyzer, must be one of ACCOUNT, ORGANIZATION, ACCOUNT_INTERNAL_ACCESS, ORGANIZATION_INTERNAL_ACCESS, ACCOUNT_UNUSED_ACCESS and ORGANIZATION_UNUSED_ACCESS Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  Amazon Resource Name (ARN) of the analyzer Computed by AWS after `ship`.
+</ResponseField>

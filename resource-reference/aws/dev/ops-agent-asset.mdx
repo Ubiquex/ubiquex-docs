@@ -1,0 +1,143 @@
+---
+title: "aws_dev_ops_agent_asset"
+description: "`aws_dev_ops_agent_asset` attaches a real, supporting file or document, runbooks, architecture diagrams, to an `aws_dev_ops_agent_agent_space`..."
+---
+
+`aws_dev_ops_agent_asset` attaches a real, supporting file or document, runbooks, architecture diagrams, to an `aws_dev_ops_agent_agent_space`, giving AWS DevOps Agent's own operator app additional real context to reason from. AWS DevOps Agent reached general availability in March 2026, roughly five months ago, so behavior here is verified live rather than assumed from general knowledge.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	dev "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/dev"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own ops agent asset"})
+
+    		ubx.Resource(dev.OpsAgentAsset, "ci-runner", dev.OpsAgentAssetConfig{
+    			AgentSpaceId: "example",
+    			AssetType:    "example",
+    			Files:        []map[string]any{{"content_bytes": "example"}},
+    			Metadata:     "example",
+    			Zip:          "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { OpsAgentAsset } from "./local-sdk/aws/sdk/typescript/aws/dev/ops_agent_asset.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own ops agent asset" });
+
+      resource(OpsAgentAsset, "ci-runner", {
+        agentSpaceId: "example",
+        assetType: "example",
+        files: [{ contentBytes: "example" }],
+        metadata: "example",
+        zip: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.dev import OpsAgentAsset, OpsAgentAssetConfig
+
+    def describe():
+        ubx.intent("payments own ops agent asset")
+
+        ubx.resource(OpsAgentAsset, "ci-runner", OpsAgentAssetConfig(
+            agent_space_id="example",
+            asset_type="example",
+            files=[{"content_bytes": "example"}],
+            metadata="example",
+            zip="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_dev_ops_agent_asset, with agent space id example,
+    asset type example, files a set value, metadata example, zip
+    example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="agent_space_id" type="string" required>
+  The unique identifier of the parent Agent Space. The asset is created as a child of this agent space. Required.
+</ResponseField>
+
+<ResponseField name="asset_type" type="string" required>
+  The type of asset. The Asset API treats this as an open string; call ListAssetTypes for the current authoritative set of supported types. As of launch, customer-creatable types include skill, agents_md, and attachment. Required.
+</ResponseField>
+
+<ResponseField name="files" type="list(object)">
+  Inline file list. Mutually exclusive with Zip; enforced by the handler at Create/Update time. Write-only: not repopulated by Read. Optional.
+  <Expandable title="properties">
+    <ResponseField name="content_bytes" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="content_text" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="metadata" type="any">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="path" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="metadata" type="any">
+  Asset metadata document. Required and optional keys depend on AssetType. Values may be strings, numbers, booleans, or lists of any of those - validated server-side; see the public Asset API docs for the per-type metadata schema. Optional.
+</ResponseField>
+
+<ResponseField name="zip" type="string">
+  Base64-encoded zip bundle containing all files for the asset. Mutually exclusive with Files; enforced by the handler at Create/Update time. Write-only: not repopulated by Read. Server treats a zip as 'replace all files' (max 6 MiB). Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the asset. Nested under the parent Agent Space: arn:&lt;partition&gt;:aidevops:&lt;region&gt;:&lt;account-id&gt;:agentspace/&lt;agentspace-id&gt;/asset/&lt;asset-id&gt;. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="asset_id" type="string">
+  The unique identifier of the asset (assigned by the service on Create). Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  The timestamp when the asset was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  The timestamp when the asset was last updated. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="version" type="number">
+  The current asset version. Server-managed; bumps on every successful Update (including no-op updates). This is the drift signal for change detection. Computed by AWS after `ship`.
+</ResponseField>

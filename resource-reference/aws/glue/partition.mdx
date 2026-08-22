@@ -1,0 +1,221 @@
+---
+title: "aws_glue_partition"
+description: "`aws_glue_partition` registers one real, physical subdivision of an `aws_glue_table`'s data, a specific date or Region's worth of files, for instance..."
+---
+
+`aws_glue_partition` registers one real, physical subdivision of an `aws_glue_table`'s data, a specific date or Region's worth of files, for instance, so a query engine can skip reading partitions that don't match a query's filter instead of scanning the entire table.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	glue "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/glue"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own partition"})
+
+    		ubx.Resource(glue.Partition, "ci-runner", glue.PartitionConfig{
+    			CatalogId:      "example",
+    			DatabaseName:   "example-database-name",
+    			PartitionInput: map[string]any{"values": []string{"example"}},
+    			TableName:      "example-table-name",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Partition } from "./local-sdk/aws/sdk/typescript/aws/glue/partition.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own partition" });
+
+      resource(Partition, "ci-runner", {
+        catalogId: "example",
+        databaseName: "example-database-name",
+        partitionInput: { values: ["example"] },
+        tableName: "example-table-name",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.glue import Partition, PartitionConfig
+
+    def describe():
+        ubx.intent("payments own partition")
+
+        ubx.resource(Partition, "ci-runner", PartitionConfig(
+            catalog_id="example",
+            database_name="example-database-name",
+            partition_input={"values": ["example"]},
+            table_name="example-table-name",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_glue_partition, with catalog id example, database name
+    example-database-name, partition input a set value, table name
+    example-table-name.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="catalog_id" type="string" required>
+  The identifier of the AWS Glue Data Catalog (typically the AWS account ID) that contains the database and table where this partition is created. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="database_name" type="string" required>
+  The name of the Glue Data Catalog database that contains the table for which this partition is defined. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="partition_input" type="object" required>
+  The partition_input field defines the metadata and storage configuration for a single partition in a Glue table, including its values, storage descriptor, and parameters. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="parameters" type="any">
+      Specifies key-value pairs that store custom metadata for the partition (e.g., compression type or other table properties), as a dynamic map of strings. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="storage_descriptor" type="object">
+      Defines the physical storage details for the partition, including its location (such as an S3 path), input and output formats, column schema, SerDe configuration, and bucket or sort key settings. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="bucket_columns" type="list(string)">
+          The list of column names by which the partition data is bucketed (hash-partitioned) within the Glue table. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="columns" type="list(object)">
+          Defines the columns (name, data type, and optional comment) that make up the schema of the partition's storage descriptor. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="comment" type="string">
+              Sets the optional comment or description for a column within the partition's storage descriptor, providing human-readable context for that column in the AWS Glue Data Catalog. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="name" type="string">
+              The name of a column in the storage descriptor for the partition, defining the schema of the data stored in the partition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="type" type="string">
+              The data type (e.g., string, int, boolean) of the column in the partition's schema, as used by Glue when reading or writing the underlying data format. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="compressed" type="bool">
+          Indicates whether the data in the partition is compressed, as defined in the AWS Glue StorageDescriptor for the partition's table format. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="input_format" type="string">
+          The fully qualified class name of the input format used for reading files in this partition, such as org.apache.hadoop.mapred.TextInputFormat. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="location" type="string">
+          The URI of the storage location (typically an S3 prefix) where the data files for this partition reside, as defined in the partition's StorageDescriptor. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="number_of_buckets" type="number">
+          Specifies the number of buckets in the storage descriptor for the partition, which defines the bucketing layout of the underlying data in AWS Glue. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_format" type="string">
+          Specifies the fully qualified class name of the Hadoop OutputFormat used for writing data files in the partition, such as org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat or org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="parameters" type="any">
+          Specifies custom key-value pairs (parameters) for the storage descriptor, such as SerDe or compression properties, for the Glue partition. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="schema_reference" type="object">
+          Specifies a reference to a schema in the AWS Glue Schema Registry, including the schema identifier and version, that defines the column structure for this partition. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="schema_id" type="object">
+              Identifies the schema in the AWS Glue Schema Registry (by schema ARN or registry name and schema name) that this partition's storage descriptor references via its schema reference. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="registry_name" type="string">
+                  The name of the AWS Glue Schema Registry that contains the schema referenced by the partition's storage descriptor. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="schema_arn" type="string">
+                  The Amazon Resource Name (ARN) of the schema in the AWS Glue Schema Registry that this partition's storage descriptor references. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="schema_name" type="string">
+                  The name of the AWS Glue Schema Registry schema that this partition's storage descriptor references. Optional. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="schema_version_id" type="string">
+              The unique identifier (UUID) of a specific version of a schema in the AWS Glue Schema Registry, used to reference that schema version for this partition's storage descriptor when schema reference is configured. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="schema_version_number" type="number">
+              The version number of the referenced Glue schema, used to pin the partition's storage descriptor to a specific schema version for schema evolution compatibility. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="serde_info" type="object">
+          Specifies the serialization/deserialization (SerDe) configuration, including the SerDe library name and parameters, used to interpret the data in the partition's storage descriptor. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="name" type="string">
+              The name of the serializer/deserializer (SerDe) library used to read and write data for the partition's storage descriptor. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="parameters" type="any">
+              Specifies the key-value configuration parameters for the SerDe (serializer/deserializer), such as format-specific options like delimiters, applied to the partition's storage descriptor. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="serialization_library" type="string">
+              Specifies the fully qualified class name of the SerDe library (e.g., org.openx.data.jsonserde.JsonSerDe) used to serialize and deserialize data in the table partition. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="skewed_info" type="object">
+          Specifies skewed column names, skewed column values, and their location mappings for the partition's storage descriptor, used to optimize storage and query handling for skewed data in the table. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="skewed_column_names" type="list(string)">
+              A list of column names in the partition's storage descriptor that are identified as having skewed data values, used together with skewed column value maps for optimizing storage and query performance in AWS Glue. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="skewed_column_value_location_maps" type="any">
+              Specifies a mapping from skewed column values to their physical file or directory locations within the storage descriptor, allowing query engines to locate data for unbalanced values efficiently. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="skewed_column_values" type="list(string)">
+              Specifies the list of skewed values (in the same order and count as the skewed column names) that should be mapped to separate physical locations for asymmetric or skewed data in the Glue table's storage descriptor. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="sort_columns" type="list(object)">
+          Sorts the data stored in the partition by the specified columns, each entry providing a column name and an integer sort order (0 for descending, 1 for ascending). Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="column" type="string">
+              The name of the column that serves as the sort key for this partition, determining the order of data within the partition's storage descriptor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="sort_order" type="number">
+              Specifies whether the column is sorted in ascending (0) or descending (1) order. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="stored_as_sub_directories" type="bool">
+          Specifies whether the partition's data is stored in subdirectories rather than in a single directory, as part of the storage descriptor. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="values" type="list(string)" required>
+      The list of partition key values that uniquely identify this partition within the Glue table, matching the order of the table's partition key columns. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="table_name" type="string" required>
+  The name of the Glue table to which this partition belongs. Required. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The unique identifier of the Glue partition, typically a composite of the database name, table name, and partition values (e.g., 'database:table:value1/value2'). Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

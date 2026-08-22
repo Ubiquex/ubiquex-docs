@@ -1,0 +1,187 @@
+---
+title: "aws_verified_permissions_identity_source"
+description: "`aws_verified_permissions_identity_source` connects a real identity provider, a Cognito user pool or an OIDC provider..."
+---
+
+`aws_verified_permissions_identity_source` connects a real identity provider, a Cognito user pool or an OIDC provider, to an `aws_verified_permissions_policy_store`, so a token's own claims can be evaluated as principal attributes in an authorization decision.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	verified "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/verified"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own permissions identity source"})
+
+    		ubx.Resource(verified.PermissionsIdentitySource, "ci-runner", verified.PermissionsIdentitySourceConfig{
+    			Configuration:       map[string]any{"cognito_user_pool_configuration": map[string]any{"client_ids": []string{"example"}}},
+    			PolicyStoreId:       "example",
+    			PrincipalEntityType: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { PermissionsIdentitySource } from "./local-sdk/aws/sdk/typescript/aws/verified/permissions_identity_source.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own permissions identity source" });
+
+      resource(PermissionsIdentitySource, "ci-runner", {
+        configuration: { cognitoUserPoolConfiguration: { clientIds: ["example"] } },
+        policyStoreId: "example",
+        principalEntityType: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.verified import PermissionsIdentitySource, PermissionsIdentitySourceConfig
+
+    def describe():
+        ubx.intent("payments own permissions identity source")
+
+        ubx.resource(PermissionsIdentitySource, "ci-runner", PermissionsIdentitySourceConfig(
+            configuration={"cognito_user_pool_configuration": {"client_ids": ["example"]}},
+            policy_store_id="example",
+            principal_entity_type="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_verified_permissions_identity_source, with
+    configuration a set value, policy store id example, principal
+    entity type example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="configuration" type="object" required>
+  Specifies the identity provider configuration for the identity source, such as Amazon Cognito user pool details (UserPoolArn, ClientId) or an OpenID Connect provider (issuer, client ID, etc.), which Amazon Verified Permissions uses to authenticate and authorize principals. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="cognito_user_pool_configuration" type="object">
+      Configures an Amazon Cognito user pool as the identity source for AWS Verified Permissions, specifying the user pool ARN and associated client application IDs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="client_ids" type="list(string)">
+          The list of Amazon Cognito app client IDs that are allowed to use this identity source for authentication. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="group_configuration" type="object">
+          Defines the optional group configuration for the Amazon Cognito user pool identity source, specifically setting the GroupEntityType that maps Cognito user pool groups to an entity type used in Cedar policies for group-based authorization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="group_entity_type" type="string">
+              The Cedar entity type that Cognito user pool groups are mapped to when groups are converted into principal entities for authorization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="user_pool_arn" type="string">
+          The ARN of the Amazon Cognito user pool that this Verified Permissions identity source is associated with, used to validate and authorize user identities within the policy store. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="open_id_connect_configuration" type="object">
+      Configuration object that defines the OpenID Connect (OIDC) identity provider settings, including the issuer URL, entity ID prefix, group configuration, and token selection rules for the identity source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="entity_id_prefix" type="string">
+          The entity ID prefix that is prepended to the subject claim of the OIDC identity token to create the unique principal entity ID used by Amazon Verified Permissions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="group_configuration" type="object">
+          Specifies the OIDC token claim (via its group_claim field) that contains group membership information for the identity source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="group_claim" type="string">
+              Specifies the name of the claim in the OIDC token that contains the user's group memberships, used by AWS Verified Permissions to determine group assignments for authorization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="group_entity_type" type="string">
+              Specifies the entity type (e.g., "MyApp::Group") that represents groups in the identity source, used to map OIDC group claims to Cedar group entities. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="issuer" type="string">
+          The URL of the OpenID Connect issuer, which identifies the OIDC provider and is used to verify the issuer claim in access tokens. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="token_selection" type="object">
+          Defines how Verified Permissions extracts the principal identifier from an OIDC-issued token by selecting whether to use the access token or the identity token and optionally specifying which token claim to use as the principal's identity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="access_token_only" type="object">
+              Configures the OIDC identity source to use only the access token for principal identification, including the claim used to extract the principal ID. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="audiences" type="list(string)">
+                  The list of allowed audience (aud) claim values that an access token must contain for it to be accepted by the identity source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="principal_id_claim" type="string">
+                  Specifies the claim in the access token that should be used as the principal identifier for the identity source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="identity_token_only" type="object">
+              Defines the configuration for accepting only the OIDC identity token for authorization, optionally specifying the list of client IDs that are allowed to use this token. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="client_ids" type="list(string)">
+                  Specifies the list of OIDC client IDs that are allowed to use the identity token, restricting authentication and authorization to tokens issued for those client applications. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="principal_id_claim" type="string">
+                  Specifies the OIDC claim (e.g., 'sub' or 'user_id') from the identity token that is used as the unique principal identifier for the identity source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="policy_store_id" type="string" required>
+  The unique identifier of the policy store to which this identity source is attached. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="principal_entity_type" type="string">
+  Specifies the principal entity type (e.g., 'User' or 'Group') that identities from this identity source are mapped to for use in Cedar policies. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="details" type="object">
+  `details` returns the computed configuration details of the identity source, including the Amazon Cognito user pool client IDs and group configuration settings, as resolved by AWS Verified Permissions. Computed by AWS after `ship`. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="client_ids" type="list(string)">
+      Specifies the client IDs of the identity provider (such as a Cognito user pool app or OIDC application) that are allowed to use this identity source for Amazon Verified Permissions. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="discovery_url" type="string">
+      The URL of the OpenID Connect discovery endpoint for the identity provider, which Verified Permissions uses to automatically fetch the provider's configuration. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="open_id_issuer" type="string">
+      The issuer URL of the OpenID Connect provider used for this identity source, which AWS Verified Permissions uses to discover and validate tokens issued by that provider. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="user_pool_arn" type="string">
+      The Amazon Resource Name (ARN) of the Amazon Cognito user pool that acts as the identity provider for this identity source. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="identity_source_id" type="string">
+  The unique identifier assigned by AWS to the identity source. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

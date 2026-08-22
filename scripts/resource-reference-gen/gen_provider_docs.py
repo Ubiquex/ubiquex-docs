@@ -488,8 +488,22 @@ def real_intro_for(provider, wire, intros_by_provider):
     in-memory lookup instead of re-reading the same file per resource).
     Returns None (not an empty string) when this provider has no real
     intros loaded, or this specific wire has no real entry yet -- the
-    caller's own fallback path, not a fabricated placeholder here."""
-    return (intros_by_provider.get(provider) or {}).get(wire)
+    caller's own fallback path, not a fabricated placeholder here.
+
+    UBI-175 Step 2, found-in-review: 4 of AWS's own pre-existing
+    hand-authored intros (aws_vpc, aws_ecr_repository, aws_iam_policy,
+    aws_iam_role) carry literal embedded newlines from an earlier
+    session's hard-wrapped authoring -- frontmatter_description_from_
+    intro's own `first.strip()` only trims the ends, so those newlines
+    survived straight into the YAML frontmatter `description: "..."`
+    value and broke it across multiple malformed lines (caught by
+    verify_regen_corpus.py's real frontmatter check, not assumed fine).
+    Collapsing whitespace once here, at the single real chokepoint
+    every intro passes through before either frontmatter or body
+    rendering, fixes both call sites at once rather than patching each
+    downstream user of this text separately."""
+    text = (intros_by_provider.get(provider) or {}).get(wire)
+    return " ".join(text.split()) if text else text
 
 
 def pick_richer_example_fields(fields):

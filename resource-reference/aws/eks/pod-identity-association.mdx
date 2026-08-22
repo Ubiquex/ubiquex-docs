@@ -1,0 +1,182 @@
+---
+title: "aws_eks_pod_identity_association"
+description: "`aws_eks_pod_identity_association` maps a real IAM role to a Kubernetes service account in an `aws_eks_cluster`..."
+---
+
+`aws_eks_pod_identity_association` maps a real IAM role to a Kubernetes service account in an `aws_eks_cluster`, giving pods using that service account automatically rotated, temporary AWS credentials without the OIDC-provider setup IAM roles for service accounts requires.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	"encoding/json"
+
+    	eks "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/eks"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own pod identity association"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Resource(eks.PodIdentityAssociation, "ci-runner", eks.PodIdentityAssociationConfig{
+    			ClusterName:        "example-cluster-name",
+    			Namespace:          "example",
+    			RoleArn:            "arn:aws:iam::123456789012:policy/ci",
+    			ServiceAccount:     "example",
+    			DisableSessionTags: true,
+    			Policy:             string(accessPolicy),
+    			Tags:               []map[string]any{{"key": "example"}},
+    			TargetRoleArn:      "arn:aws:iam::123456789012:policy/ci",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { PodIdentityAssociation } from "./local-sdk/aws/sdk/typescript/aws/eks/pod_identity_association.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own pod identity association" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      resource(PodIdentityAssociation, "ci-runner", {
+        clusterName: "example-cluster-name",
+        namespace: "example",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        serviceAccount: "example",
+        disableSessionTags: true,
+        policy: accessPolicy,
+        tags: [{ key: "example" }],
+        targetRoleArn: "arn:aws:iam::123456789012:policy/ci",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import json
+    import ubx_sdk as ubx
+    from ubx.aws.eks import PodIdentityAssociation, PodIdentityAssociationConfig
+
+    def describe():
+        ubx.intent("payments own pod identity association")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.resource(PodIdentityAssociation, "ci-runner", PodIdentityAssociationConfig(
+            cluster_name="example-cluster-name",
+            namespace="example",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            service_account="example",
+            disable_session_tags=True,
+            policy=access_policy,
+            tags=[{"key": "example"}],
+            target_role_arn="arn:aws:iam::123456789012:policy/ci",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_eks_pod_identity_association, with cluster name
+    example-cluster-name, namespace example, role arn
+    arn:aws:iam::123456789012:policy/ci, service account example,
+    disable session tags true, policy a real, valid value, tags a set
+    value, target role arn arn:aws:iam::123456789012:policy/ci.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="cluster_name" type="string" required>
+  The cluster that the pod identity association is created for. Required.
+</ResponseField>
+
+<ResponseField name="disable_session_tags" type="bool">
+  The Disable Session Tags of the pod identity association. Optional.
+</ResponseField>
+
+<ResponseField name="namespace" type="string" required>
+  The Kubernetes namespace that the pod identity association is created for. Required.
+</ResponseField>
+
+<ResponseField name="policy" type="string">
+  The policy of the pod identity association. Optional.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  The IAM role ARN that the pod identity association is created for. Required.
+</ResponseField>
+
+<ResponseField name="service_account" type="string" required>
+  The Kubernetes service account that the pod identity association is created for. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The tag key used to label the Pod Identity Association, enabling cost allocation, access control, and resource identification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag key-value pair attached to the EKS Pod Identity Association, used for labeling, organizing, and managing the association with custom metadata. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="target_role_arn" type="string">
+  The Target Role Arn of the pod identity association. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="association_arn" type="string">
+  The ARN of the pod identity association. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="association_id" type="string">
+  The ID of the pod identity association. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="external_id" type="string">
+  The External Id of the pod identity association. Computed by AWS after `ship`.
+</ResponseField>

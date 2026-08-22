@@ -1,0 +1,114 @@
+---
+title: "aws_io_t_role_alias"
+description: "`aws_io_t_role_alias` lets a real, authenticated device exchange its `aws_io_t_certificate` for temporary AWS credentials tied to a specific IAM role..."
+---
+
+`aws_io_t_role_alias` lets a real, authenticated device exchange its `aws_io_t_certificate` for temporary AWS credentials tied to a specific IAM role, through the IoT credentials provider, without embedding a long-lived AWS access key on the device itself.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	io "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/io"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own t role alias"})
+
+    		ubx.Resource(io.TRoleAlias, "ci-runner", io.TRoleAliasConfig{
+    			RoleArn:                   "arn:aws:iam::123456789012:policy/ci",
+    			CredentialDurationSeconds: 7200,
+    			RoleAlias:                 "example",
+    			Tags:                      []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { TRoleAlias } from "./local-sdk/aws/sdk/typescript/aws/io/t_role_alias.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own t role alias" });
+
+      resource(TRoleAlias, "ci-runner", {
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        credentialDurationSeconds: 7200,
+        roleAlias: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.io import TRoleAlias, TRoleAliasConfig
+
+    def describe():
+        ubx.intent("payments own t role alias")
+
+        ubx.resource(TRoleAlias, "ci-runner", TRoleAliasConfig(
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            credential_duration_seconds=7200,
+            role_alias="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_io_t_role_alias, with role arn
+    arn:aws:iam::123456789012:policy/ci, credential duration seconds
+    7200, role alias example, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="credential_duration_seconds" type="number">
+  Specifies the duration, in seconds, for which the temporary credentials returned by the AWS IoT role alias remain valid when the role is assumed via the alias. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="role_alias" type="string">
+  The unique name for the role alias, used in IoT policies and API calls to refer to the IAM role associated with this alias. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the IAM role that the role alias points to, which devices assume when authenticating through the AWS IoT credentials provider. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Defines the list of tag objects to attach to the AWS IoT role alias, which can be used to organize, identify, and control access to the alias resource. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The user-defined key of a tag attached to the AWS IoT Role Alias, used for metadata, cost tracking, and access management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Specifies the value portion of a tag attached to an AWS IoT Role Alias, used for organizing and identifying the alias with custom metadata. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="role_alias_arn" type="string">
+  The Amazon Resource Name (ARN) of the IoT role alias, automatically assigned by AWS when the alias is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

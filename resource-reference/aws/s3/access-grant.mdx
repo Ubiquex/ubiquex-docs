@@ -1,0 +1,158 @@
+---
+title: "aws_s3_access_grant"
+description: "`aws_s3_access_grant` grants a real IAM principal or an IAM Identity Center user or group temporary..."
+---
+
+`aws_s3_access_grant` grants a real IAM principal or an IAM Identity Center user or group temporary, credential-vended access to a specific S3 prefix through an `aws_s3_access_grants_instance`, without writing or maintaining a bucket policy for that grant.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	s3 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/s3"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own access grant"})
+
+    		ubx.Resource(s3.AccessGrant, "ci-runner", s3.AccessGrantConfig{
+    			AccessGrantsLocationId:            "example",
+    			Grantee:                           map[string]any{"grantee_identifier": "example"},
+    			Permission:                        "example",
+    			AccessGrantsLocationConfiguration: map[string]any{"s3_sub_prefix": "example"},
+    			ApplicationArn:                    "arn:aws:iam::123456789012:policy/ci",
+    			S3PrefixType:                      "example",
+    			Tags:                              []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AccessGrant } from "./local-sdk/aws/sdk/typescript/aws/s3/access_grant.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own access grant" });
+
+      resource(AccessGrant, "ci-runner", {
+        accessGrantsLocationId: "example",
+        grantee: { granteeIdentifier: "example" },
+        permission: "example",
+        accessGrantsLocationConfiguration: { s3SubPrefix: "example" },
+        applicationArn: "arn:aws:iam::123456789012:policy/ci",
+        s3PrefixType: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.s3 import AccessGrant, AccessGrantConfig
+
+    def describe():
+        ubx.intent("payments own access grant")
+
+        ubx.resource(AccessGrant, "ci-runner", AccessGrantConfig(
+            access_grants_location_id="example",
+            grantee={"grantee_identifier": "example"},
+            permission="example",
+            access_grants_location_configuration={"s3_sub_prefix": "example"},
+            application_arn="arn:aws:iam::123456789012:policy/ci",
+            s3_prefix_type="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_s3_access_grant, with access grants location id
+    example, grantee a set value, permission example, access grants
+    location configuration a set value, application arn
+    arn:aws:iam::123456789012:policy/ci, s3 prefix type example, tags
+    a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="access_grants_location_configuration" type="object">
+  Configures the S3 sub-prefix (S3SubPrefix) within the associated access grants location, restricting the access grant's permission scope to that prefix. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="s3_sub_prefix" type="string" required>
+      The S3 sub prefix of a registered location in your S3 Access Grants instance Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="access_grants_location_id" type="string" required>
+  The custom S3 location to be accessed by the grantee Required.
+</ResponseField>
+
+<ResponseField name="application_arn" type="string">
+  The ARN of the application grantees will use to access the location Optional.
+</ResponseField>
+
+<ResponseField name="grantee" type="object" required>
+  Defines the entity that receives the access grant, including its type (such as an IAM principal, directory user, or directory group) and its identifier (e.g., an ARN or directory ID). Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="grantee_identifier" type="string" required>
+      The unique identifier of the Grantee Required.
+    </ResponseField>
+    <ResponseField name="grantee_type" type="string" required>
+      Configures the transfer acceleration state for an Amazon S3 bucket. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="permission" type="string" required>
+  The level of access to be afforded to the grantee Required.
+</ResponseField>
+
+<ResponseField name="s3_prefix_type" type="string">
+  The type of S3SubPrefix. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Assigns a list of user-defined tag key-value pairs to the S3 Access Grant to help identify, organize, and manage the grant (e.g., for cost allocation). Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The tag key attached to the S3 Access Grant, used to organize and manage the grant, and can be referenced in resource-based policies for access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Specifies the value for a given tag key applied to the S3 Access Grant, which is used for organizing, identifying, and managing the resource in AWS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="access_grant_arn" type="string">
+  the Amazon Resource Name (ARN) of the specified access grant. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="access_grant_id" type="string">
+  The ID assigned to this access grant. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="grant_scope" type="string">
+  The S3 path of the data to which you are granting access. It is a combination of the S3 path of the registered location and the subprefix. Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,172 @@
+---
+title: "aws_kinesis_stream"
+description: "`aws_kinesis_stream` creates a real, sharded data stream that ingests and retains streaming records for a configurable window..."
+---
+
+`aws_kinesis_stream` creates a real, sharded data stream that ingests and retains streaming records for a configurable window, from the default 24 hours up to 365 days, for real-time, multi-consumer processing.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	kinesis "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/kinesis"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own stream"})
+
+    		ubx.Resource(kinesis.Stream, "ci-runner", kinesis.StreamConfig{
+    			Name:                     "ci-runner",
+    			DesiredShardLevelMetrics: []string{"example"},
+    			MaxRecordSizeInKiB:       1,
+    			RetentionPeriodHours:     1,
+    			ShardCount:               1,
+    			StreamEncryption:         map[string]any{"encryption_type": "example"},
+    			StreamModeDetails:        map[string]any{"stream_mode": "example"},
+    			Tags:                     []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Stream } from "./local-sdk/aws/sdk/typescript/aws/kinesis/stream.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own stream" });
+
+      resource(Stream, "ci-runner", {
+        name: "ci-runner",
+        desiredShardLevelMetrics: ["example"],
+        maxRecordSizeInKiB: 1,
+        retentionPeriodHours: 1,
+        shardCount: 1,
+        streamEncryption: { encryptionType: "example" },
+        streamModeDetails: { streamMode: "example" },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.kinesis import Stream, StreamConfig
+
+    def describe():
+        ubx.intent("payments own stream")
+
+        ubx.resource(Stream, "ci-runner", StreamConfig(
+            name="ci-runner",
+            desired_shard_level_metrics=["example"],
+            max_record_size_in_ki_b=1,
+            retention_period_hours=1,
+            shard_count=1,
+            stream_encryption={"encryption_type": "example"},
+            stream_mode_details={"stream_mode": "example"},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_kinesis_stream called "ci-runner", with desired shard
+    level metrics a set value, max record size in ki b 1, retention
+    period hours 1, shard count 1, stream encryption a set value,
+    stream mode details a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="desired_shard_level_metrics" type="list(string)">
+  The final list of shard-level metrics Optional.
+</ResponseField>
+
+<ResponseField name="max_record_size_in_ki_b" type="number">
+  Maximum size of a data record in KiB allowed to be put into Kinesis stream. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the Kinesis stream. Optional.
+</ResponseField>
+
+<ResponseField name="retention_period_hours" type="number">
+  The number of hours for the data records that are stored in shards to remain accessible. Optional.
+</ResponseField>
+
+<ResponseField name="shard_count" type="number">
+  The number of shards that the stream uses. Required when StreamMode = PROVISIONED is passed. Optional.
+</ResponseField>
+
+<ResponseField name="stream_encryption" type="object">
+  When specified, enables or updates server-side encryption using an AWS KMS key for a specified stream. Removing this property from your stack template and updating your stack disables encryption. Optional.
+  <Expandable title="properties">
+    <ResponseField name="encryption_type" type="string" required>
+      The encryption type to use. The only valid value is KMS. Required.
+    </ResponseField>
+    <ResponseField name="key_id" type="any" required>
+      The GUID for the customer-managed AWS KMS key to use for encryption. This value can be a globally unique identifier, a fully specified Amazon Resource Name (ARN) to either an alias or a key, or an alias name prefixed by "alias/".You can also use a master key owned by Kinesis Data Streams by specifying the alias aws/kinesis. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="stream_mode_details" type="object">
+  When specified, enables or updates the mode of stream. Default is PROVISIONED. Optional.
+  <Expandable title="properties">
+    <ResponseField name="stream_mode" type="string" required>
+      The mode of the stream Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An arbitrary set of tags (key-value pairs) to associate with the Kinesis stream. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the Kinesis stream, used to organize, identify, and manage access to the stream. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Specifies the value of a user-defined tag applied to the Kinesis data stream, allowing you to associate arbitrary metadata with the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="warm_throughput_mi_bps" type="number">
+  Target warm throughput in MiB/s for the stream. This property can ONLY be set when StreamMode is ON_DEMAND. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon resource name (ARN) of the Kinesis stream Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="warm_throughput_object" type="object">
+  Warm throughput configuration details for the stream. Only present for ON_DEMAND streams. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="current_mi_bps" type="number">
+      Current warm throughput in MiB/s Optional.
+    </ResponseField>
+    <ResponseField name="target_mi_bps" type="number">
+      Target warm throughput in MiB/s that a customer can write to a stream at any given time Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>

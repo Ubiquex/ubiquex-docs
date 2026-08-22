@@ -1,0 +1,194 @@
+---
+title: "aws_ec2_vpcendpoint"
+description: "`aws_ec2_vpcendpoint` lets a VPC reach an AWS service, or a real, specific `aws_ec2_vpcendpoint_service` another account exposes, privately..."
+---
+
+`aws_ec2_vpcendpoint` lets a VPC reach an AWS service, or a real, specific `aws_ec2_vpcendpoint_service` another account exposes, privately, without traffic ever crossing the public internet, the caller side of what AWS PrivateLink actually connects to.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ec2 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ec2"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own vpcendpoint"})
+
+    		ubx.Resource(ec2.Vpcendpoint, "ci-runner", ec2.VpcendpointConfig{
+    			VpcId:                    "example",
+    			DnsOptions:               map[string]any{"dns_record_ip_type": "example"},
+    			IpAddressType:            "example",
+    			PolicyDocument:           "example",
+    			PrivateDnsEnabled:        true,
+    			ResourceConfigurationArn: "arn:aws:iam::123456789012:policy/ci",
+    			RouteTableIds:            []string{"example"},
+    			SecurityGroupIds:         []string{"example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Vpcendpoint } from "./local-sdk/aws/sdk/typescript/aws/ec2/vpcendpoint.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own vpcendpoint" });
+
+      resource(Vpcendpoint, "ci-runner", {
+        vpcId: "example",
+        dnsOptions: { dnsRecordIpType: "example" },
+        ipAddressType: "example",
+        policyDocument: "example",
+        privateDnsEnabled: true,
+        resourceConfigurationArn: "arn:aws:iam::123456789012:policy/ci",
+        routeTableIds: ["example"],
+        securityGroupIds: ["example"],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ec2 import Vpcendpoint, VpcendpointConfig
+
+    def describe():
+        ubx.intent("payments own vpcendpoint")
+
+        ubx.resource(Vpcendpoint, "ci-runner", VpcendpointConfig(
+            vpc_id="example",
+            dns_options={"dns_record_ip_type": "example"},
+            ip_address_type="example",
+            policy_document="example",
+            private_dns_enabled=True,
+            resource_configuration_arn="arn:aws:iam::123456789012:policy/ci",
+            route_table_ids=["example"],
+            security_group_ids=["example"],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ec2_vpcendpoint, with vpc id example, dns options a
+    set value, ip address type example, policy document example,
+    private dns enabled true, resource configuration arn
+    arn:aws:iam::123456789012:policy/ci, route table ids a set value,
+    security group ids a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="dns_options" type="object">
+  Describes the DNS options for an endpoint. Optional.
+  <Expandable title="properties">
+    <ResponseField name="dns_record_ip_type" type="string">
+      The DNS records created for the endpoint. Optional.
+    </ResponseField>
+    <ResponseField name="private_dns_only_for_inbound_resolver_endpoint" type="string">
+      Indicates whether to enable private DNS only for inbound endpoints. This option is available only for services that support both gateway and interface endpoints. It routes traffic that originates from the VPC to the gateway endpoint and traffic that originates from on-premises to the interface endpoint. Optional.
+    </ResponseField>
+    <ResponseField name="private_dns_preference" type="string">
+      The preference for which private domains have a private hosted zone created for and associated with the specified VPC. Only supported when private DNS is enabled and when the VPC endpoint type is ServiceNetwork or Resource. Optional.
+    </ResponseField>
+    <ResponseField name="private_dns_specified_domains" type="list(string)">
+      Indicates which of the private domains to create private hosted zones for and associate with the specified VPC. Only supported when private DNS is enabled and the private DNS preference is ``VERIFIED_DOMAINS_AND_SPECIFIED_DOMAINS`` or ``SPECIFIED_DOMAINS_ONLY``. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="ip_address_type" type="string">
+  The supported IP address types. Optional.
+</ResponseField>
+
+<ResponseField name="policy_document" type="string">
+  An endpoint policy, which controls access to the service from the VPC. The default endpoint policy allows full access to the service. Endpoint policies are supported only for gateway and interface endpoints. For CloudFormation templates in YAML, you can provide the policy in JSON or YAML format. For example, if you have a JSON policy, you can convert it to YAML before including it in the YAML template, and CFNlong converts the policy to JSON format before calling the API actions for privatelink. Alternatively, you can include the JSON directly in the YAML, as shown in the following ``Properties`` section: ``Properties: VpcEndpointType: 'Interface' ServiceName: !Sub 'com.amazonaws.$&#123;AWS::Region&#125;.logs' PolicyDocument: '&#123; "Version":"2012-10-17", "Statement": [&#123; "Effect":"Allow", "Principal":"*", "Action":["logs:Describe*","logs:Get*","logs:List*","logs:FilterLogEvents"], "Resource":"*" &#125;] &#125;'`` Optional.
+</ResponseField>
+
+<ResponseField name="private_dns_enabled" type="bool">
+  Indicate whether to associate a private hosted zone with the specified VPC. The private hosted zone contains a record set for the default public DNS name for the service for the Region (for example, ``kinesis.us-east-1.amazonaws.com``), which resolves to the private IP addresses of the endpoint network interfaces in the VPC. This enables you to make requests to the default public DNS name for the service instead of the public DNS names that are automatically generated by the VPC endpoint service. To use a private hosted zone, you must set the following VPC attributes to ``true``: ``enableDnsHostnames`` and ``enableDnsSupport``. This property is supported only for interface endpoints. Default: ``false`` Optional.
+</ResponseField>
+
+<ResponseField name="resource_configuration_arn" type="string">
+  The Amazon Resource Name (ARN) of the resource configuration. Optional.
+</ResponseField>
+
+<ResponseField name="route_table_ids" type="list(string)">
+  The IDs of the route tables. Routing is supported only for gateway endpoints. Optional.
+</ResponseField>
+
+<ResponseField name="security_group_ids" type="list(any)">
+  The IDs of the security groups to associate with the endpoint network interfaces. If this parameter is not specified, we use the default security group for the VPC. Security groups are supported only for interface endpoints. Optional.
+</ResponseField>
+
+<ResponseField name="service_name" type="string">
+  The name of the endpoint service. Optional.
+</ResponseField>
+
+<ResponseField name="service_network_arn" type="string">
+  The Amazon Resource Name (ARN) of the service network. Optional.
+</ResponseField>
+
+<ResponseField name="service_region" type="string">
+  Describes a Region. Optional.
+</ResponseField>
+
+<ResponseField name="subnet_ids" type="list(string)">
+  The IDs of the subnets in which to create endpoint network interfaces. You must specify this property for an interface endpoint or a Gateway Load Balancer endpoint. You can't specify this property for a gateway endpoint. For a Gateway Load Balancer endpoint, you can specify only one subnet. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags to associate with the endpoint. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vpc_endpoint_type" type="string">
+  The type of endpoint. Default: Gateway Optional.
+</ResponseField>
+
+<ResponseField name="vpc_id" type="string" required>
+  The ID of the VPC. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="creation_timestamp" type="string">
+  The timestamp indicating when the VPC endpoint was created, as returned by the EC2 API. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="dns_entries" type="list(string)">
+  This computed attribute returns the list of DNS hostnames assigned to the VPC endpoint, allowing clients to connect to the endpoint by name. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The unique identifier assigned by AWS to the VPC endpoint, typically in the format vpce-xxxxxxxx (e.g., vpce-0123456789abcdef0). Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="network_interface_ids" type="list(string)">
+  The list of elastic network interface (ENI) IDs created in the subnets for this VPC endpoint, used for routing traffic to the endpoint service. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

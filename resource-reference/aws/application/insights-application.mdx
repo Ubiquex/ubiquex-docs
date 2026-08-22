@@ -1,0 +1,647 @@
+---
+title: "aws_application_insights_application"
+description: "`aws_application_insights_application` registers an application with CloudWatch Application Insights, which scans its component stack (databases..."
+---
+
+`aws_application_insights_application` registers an application with CloudWatch Application Insights, which scans its component stack (databases, web and application servers, load balancers, queues) to recommend and set up key metrics, logs, and alarms, then correlates anomalies and errors into automated dashboards pointing at a likely root cause.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	application "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/application"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own insights application"})
+
+    		ubx.Resource(application.InsightsApplication, "ci-runner", application.InsightsApplicationConfig{
+    			ResourceGroupName:           "example-resource-group-name",
+    			AttachMissingPermission:     true,
+    			AutoConfigurationEnabled:    true,
+    			ComponentMonitoringSettings: []map[string]any{{"component_arn": "example"}},
+    			CustomComponents:            []map[string]any{{"component_name": "example-component-name"}},
+    			CwemonitorEnabled:           true,
+    			GroupingType:                "example",
+    			LogPatternSets:              []map[string]any{{"log_patterns": []map[string]any{{"pattern": "example"}}}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { InsightsApplication } from "./local-sdk/aws/sdk/typescript/aws/application/insights_application.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own insights application" });
+
+      resource(InsightsApplication, "ci-runner", {
+        resourceGroupName: "example-resource-group-name",
+        attachMissingPermission: true,
+        autoConfigurationEnabled: true,
+        componentMonitoringSettings: [{ componentArn: "example" }],
+        customComponents: [{ componentName: "example-component-name" }],
+        cwemonitorEnabled: true,
+        groupingType: "example",
+        logPatternSets: [{ logPatterns: [{ pattern: "example" }] }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.application import InsightsApplication, InsightsApplicationConfig
+
+    def describe():
+        ubx.intent("payments own insights application")
+
+        ubx.resource(InsightsApplication, "ci-runner", InsightsApplicationConfig(
+            resource_group_name="example-resource-group-name",
+            attach_missing_permission=True,
+            auto_configuration_enabled=True,
+            component_monitoring_settings=[{"component_arn": "example"}],
+            custom_components=[{"component_name": "example-component-name"}],
+            cwemonitor_enabled=True,
+            grouping_type="example",
+            log_pattern_sets=[{"log_patterns": [{"pattern": "example"}]}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_application_insights_application, with resource group
+    name example-resource-group-name, attach missing permission true,
+    auto configuration enabled true, component monitoring settings a
+    set value, custom components a set value, cwemonitor enabled
+    true, grouping type example, log pattern sets a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="attach_missing_permission" type="bool">
+  If set to true, the managed policies for SSM and CW will be attached to the instance roles if they are missing Optional.
+</ResponseField>
+
+<ResponseField name="auto_configuration_enabled" type="bool">
+  If set to true, application will be configured with recommended monitoring configuration. Optional.
+</ResponseField>
+
+<ResponseField name="component_monitoring_settings" type="list(object)">
+  The monitoring settings of the components. Optional.
+  <Expandable title="properties">
+    <ResponseField name="component_arn" type="string">
+      The Amazon Resource Name (ARN) of the component to which these monitoring settings apply, used as an alternative to component name to identify a specific component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="component_configuration_mode" type="string">
+      Specifies whether the component uses default monitoring settings, default settings with overwrites, or fully custom configuration, with allowed values DEFAULT, DEFAULT_WITH_OVERWRITE, or CUSTOM. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="component_name" type="string">
+      Specifies the name of the application component to which these monitoring settings apply. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="custom_component_configuration" type="object">
+      In an Application Insights application's component monitoring settings, the custom_component_configuration field defines the exact monitoring configuration (including sub-component type configurations and monitored metrics/logs) for a component when the component configuration mode is set to CUSTOM. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="configuration_details" type="object">
+          Specifies the detailed monitoring configuration for a custom component, including the metrics, logs, and Windows events that AWS Application Insights will collect and analyze for that component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="alarm_metrics" type="list(object)">
+              Defines the list of CloudWatch alarm metrics to monitor for the custom component, where each object specifies a CloudWatch alarm by name (AlarmMetricName) to include in the component's configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="alarm_metric_name" type="string">
+                  Specifies the name of the Amazon CloudWatch metric to be monitored for generating alarms in the custom component configuration of Application Insights. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="alarms" type="list(object)">
+              A list of CloudWatch alarms to be monitored for the custom component, where each alarm specifies an alarm name and an optional severity level. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="alarm_name" type="string">
+                  The name of the CloudWatch alarm that Application Insights monitors for the custom component's configuration details. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="severity" type="string">
+                  Specifies the severity level (e.g., HIGH, MEDIUM, or LOW) assigned to a CloudWatch alarm in the custom component configuration, which determines the alarm's criticality in Application Insights monitoring. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="hacluster_prometheus_exporter" type="object">
+              Configuration for the HA cluster Prometheus exporter, specifying exporter-specific settings such as the Prometheus port to enable collection of HA cluster metrics for the custom component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="prometheus_port" type="string">
+                  Specifies the port number that the HA Cluster Prometheus Exporter listens on to expose Prometheus metrics for the custom component's monitoring configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="hanaprometheus_exporter" type="object">
+              Contains the settings for the SAP HANA Prometheus exporter, such as the exporter type and the port on which Prometheus metrics are exposed for Application Insights monitoring. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="agree_to_install_hanadbclient" type="bool">
+                  Whether to agree to install the SAP HANA database client on the monitored server for the HANA Prometheus exporter configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="hanaport" type="string">
+                  The port number (specified as a string) that the SAP HANA Prometheus exporter listens on, used by Application Insights to collect HANA performance metrics from that endpoint. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="hanasecret_name" type="string">
+                  The name of the AWS Secrets Manager secret that stores the HANA database credentials used by the HANA Prometheus exporter for authentication. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="hanasid" type="string">
+                  The SAP HANA system ID (SID) of the HANA database that the HANA Prometheus exporter monitors, used to identify the HANA instance when collecting metrics for the custom component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="prometheus_port" type="string">
+                  Specifies the network port on which the HANA Prometheus exporter exposes metrics for collection by Application Insights. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="jmxprometheus_exporter" type="object">
+              Defines the JMX Prometheus exporter endpoint (hostname and port) that CloudWatch Application Insights uses to scrape Java application metrics for the custom component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="host_port" type="string">
+                  Specifies the host and port of the JMX endpoint that the Prometheus exporter scrapes to collect metrics. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="jmxurl" type="string">
+                  For a custom component using JMXPrometheusExporter, this URL defines the JMX endpoint the exporter connects to in order to scrape Java application metrics. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="prometheus_port" type="string">
+                  The port on which the JMX Prometheus exporter exposes metrics for the custom component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="logs" type="list(object)">
+              Specifies the log files to monitor for the custom component, including the log type, file path, and optional log encoding settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="encoding" type="string">
+                  Specifies the character encoding (e.g., UTF-8) that Application Insights uses when reading the log file for the custom component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="log_group_name" type="string">
+                  The name of the CloudWatch Logs log group that Application Insights monitors for the custom component's logs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="log_path" type="string">
+                  Specifies the file system path to the log file or directory that Application Insights monitors for the custom component, such as a Windows or Linux log path. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="log_type" type="string">
+                  Indicates the type of log (e.g., SQL_SERVER, IIS, APPLICATION, WINDOWS_EVENT) that Application Insights will monitor for the custom component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="pattern_set" type="string">
+                  For each log monitored in the custom component, this pattern set contains the regular expression patterns Application Insights uses to match and extract metrics from log events. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="net_weaver_prometheus_exporter" type="object">
+              Specifies the configuration for the SAP NetWeaver Prometheus exporter used in a custom component's monitoring, including the instance number and Prometheus exporter port. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="instance_numbers" type="list(string)">
+                  Specifies the SAP NetWeaver instance numbers for which the Prometheus exporter should collect and expose metrics within the custom component configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="prometheus_port" type="string">
+                  The TCP port on which the SAP NetWeaver Prometheus exporter listens to expose metrics for Application Insights to scrape. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="sapsid" type="string">
+                  The SAP system ID (SID) of the SAP NetWeaver system to be monitored by the Prometheus exporter, identifying the specific SAP system in the application's custom component configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="processes" type="list(object)">
+              Specifies the list of operating system processes on the instance that Application Insights monitors for this custom component, where each process entry includes a process name and optional associated alarm metrics. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="alarm_metrics" type="list(object)">
+                  Specifies the alarm metrics for a process, where each entry defines a CloudWatch metric name (AlarmMetricName) that Application Insights monitors for that process in the custom component configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="alarm_metric_name" type="string">
+                      Specifies the CloudWatch metric name (e.g., CPUUtilization or MemoryUtilization) that Application Insights monitors for the process to trigger an alarm in the custom component configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="process_name" type="string">
+                  The name of the process on the monitored resource that Application Insights uses to configure custom component monitoring and alarms. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="sqlserver_prometheus_exporter" type="object">
+              This object configures the Prometheus exporter for monitoring a SQL Server component, specifying the Prometheus port and the AWS Secrets Manager secret that contains the SQL Server credentials. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="prometheus_port" type="string">
+                  The TCP port on which the SQL Server Prometheus exporter listens to expose metrics for collection by Application Insights. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="sqlsecret_name" type="string">
+                  The name of the AWS Secrets Manager secret that stores the SQL Server credentials used by the Prometheus exporter to connect to the database. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="windows_events" type="list(object)">
+              Defines the list of Windows Event Log entries to be monitored as part of the custom component configuration for the Application Insights application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="event_levels" type="list(string)">
+                  Specifies the Windows Event Log levels (e.g., CRITICAL, ERROR, WARNING, INFORMATION, VERBOSE) for the given Windows event that Application Insights monitors. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="event_name" type="string">
+                  The name of the Windows Event Log (such as System, Application, or a custom log) that this component monitoring configuration applies to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="log_group_name" type="string">
+                  The name of the Windows Event Log (such as Application, System, or Security) that AWS Application Insights monitors for the specified Windows event in this custom component's configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="pattern_set" type="string">
+                  Defines the event patterns that are matched against Windows Event logs for the custom component configuration, controlling which events are monitored. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="sub_component_type_configurations" type="list(object)">
+          Configures monitoring for each sub-component type (e.g., SQL Server or IIS) within the custom component, specifying the metrics and log sets to collect for that sub-component type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="sub_component_configuration_details" type="object">
+              Specifies the detailed monitoring configuration (e.g., alarm metrics, logs, and Windows events) that is applied to the sub-component type defined by the parent sub_component_type_configurations entry. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="alarm_metrics" type="list(object)">
+                  Specifies the list of CloudWatch alarm metrics to monitor for the sub-component type defined in this sub-component configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="alarm_metric_name" type="string">
+                      The name of the CloudWatch metric for which an alarm is configured in the sub-component's alarm metrics definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="logs" type="list(object)">
+                  Specifies the list of log configurations to be monitored for the sub-component type configuration, with each entry defining log group, path, and related monitoring details. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="encoding" type="string">
+                      Specifies the character encoding (e.g., UTF-8) used by Application Insights to read and interpret log files for this custom component configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="log_group_name" type="string">
+                      The name of the CloudWatch Logs log group that Application Insights monitors for this sub-component type configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="log_path" type="string">
+                      The absolute or relative filesystem path (including wildcards) to the application log files that Application Insights monitors and collects metrics and log data from for this sub-component configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="log_type" type="string">
+                      Defines the log type (e.g., SQL_SERVER, IIS, APPLICATION) that Amazon CloudWatch Application Insights monitors for the sub-component, determining which log pattern sets are applied. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="pattern_set" type="string">
+                      Defines the set of log patterns that Application Insights matches against incoming log entries to filter which ones are monitored and included in the log configuration for the custom component's sub-component type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="processes" type="list(object)">
+                  A list of process configurations (each containing a process name and its associated alarm metrics) that Application Insights monitors for the custom sub-component type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="alarm_metrics" type="list(object)">
+                      Specifies the list of CloudWatch alarm metrics to monitor for the process, each defining a metric name and threshold used to create CloudWatch alarms. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="alarm_metric_name" type="string">
+                          The name of the CloudWatch metric to monitor for the process, used to define custom alarm metrics for Application Insights. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="process_name" type="string">
+                      The name of the process to be monitored on the application component, used to identify the process within the sub-component configuration details. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="windows_events" type="list(object)">
+                  Configures the list of Windows Event log entries (e.g., Application, Security, System) that Application Insights monitors for this sub-component, specifying each event name, the event levels to collect, and the destination log group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="event_levels" type="list(string)">
+                      Specifies the list of severity levels (e.g., CRITICAL, ERROR, WARNING, INFORMATION, VERBOSE) to filter which Windows Event log entries are monitored for the associated Windows event configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="event_name" type="string">
+                      The name of the Windows Event Log (e.g., 'Application', 'System', 'Security') that Application Insights monitors for the component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="log_group_name" type="string">
+                      The name of the CloudWatch Logs log group to which the Windows event logs are streamed for monitoring. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="pattern_set" type="string">
+                      Defines a list of event log patterns (such as specific event IDs) to match when monitoring Windows events for the sub-component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="sub_component_type" type="string">
+              This field specifies the AWS resource type (e.g., AWS::EC2::Instance) of the sub-component within a custom component, determining which resource type the associated sub-component configuration applies to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="default_overwrite_component_configuration" type="object">
+      Specifies whether to overwrite the default monitoring configuration for a component, including the monitoring mode (DEFAULT or OVERWRITE) and the custom component configuration used when overwriting. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="configuration_details" type="object">
+          Specifies the detailed configuration (alarm metrics, logs, Windows events, and alarms) that overrides the default component configuration in Application Insights. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="alarm_metrics" type="list(object)">
+              Specifies the list of CloudWatch metric-based alarms that overwrite the default component configuration, determining which metrics trigger alerts for the monitored application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="alarm_metric_name" type="string">
+                  Specifies the name of the CloudWatch metric that Application Insights uses to define the alarm for this component's monitoring, overriding the default alarm metric. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="alarms" type="list(object)">
+              The list of CloudWatch alarms to monitor for the component when the default overwrite configuration is used, where each alarm is specified by name and optional severity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="alarm_name" type="string">
+                  The name of an existing CloudWatch alarm to be associated with the Application Insights component monitoring configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="severity" type="string">
+                  Specifies the severity threshold (such as HIGH, MEDIUM, or LOW) used to filter which CloudWatch alarms are included for monitoring in this application component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="hacluster_prometheus_exporter" type="object">
+              Specifies the configuration for the HA cluster Prometheus exporter, including the port and metrics path used to scrape Prometheus metrics from the high-availability cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="prometheus_port" type="string">
+                  The TCP port on which the HA cluster Prometheus exporter exposes metrics for Application Insights to scrape. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="hanaprometheus_exporter" type="object">
+              Specifies the configuration for the HANA Prometheus exporter that Application Insights uses to collect SAP HANA monitoring metrics, including the port and path on which the exporter exposes them. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="agree_to_install_hanadbclient" type="bool">
+                  Indicates whether to agree to install the SAP HANA database client that is required for the HANA Prometheus exporter to collect metrics from the SAP HANA database. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="hanaport" type="string">
+                  Specifies the TCP port of the SAP HANA database that the HANA Prometheus exporter uses to connect and collect metrics. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="hanasecret_name" type="string">
+                  The name of the AWS Secrets Manager secret that stores the SAP HANA database credentials used by the HANA Prometheus exporter. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="hanasid" type="string">
+                  The SAP HANA system identifier (SID) that the HANA Prometheus exporter uses to connect to and monitor the specific HANA database within the application component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="prometheus_port" type="string">
+                  The TCP port on which the HANA Prometheus exporter listens to expose metrics for scraping. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="jmxprometheus_exporter" type="object">
+              Specifies the JMX Prometheus exporter configuration for the component, defining how Java/JVM metrics are collected and exposed in Prometheus format. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="host_port" type="string">
+                  Specifies the host and port (in `host:port` format) where the JMX Prometheus exporter is listening, used by Application Insights to scrape Java application metrics for this component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="jmxurl" type="string">
+                  The JMX service URL (e.g., service:jmx:rmi:///jndi/rmi://host:port/jmxrmi) that AWS Application Insights uses to connect to the Java application's JMX endpoint for collecting Prometheus-format metrics. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="prometheus_port" type="string">
+                  The port number on which the JMX Prometheus exporter listens to expose application metrics for this component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="logs" type="list(object)">
+              Specifies the list of log sources (e.g., log groups or file paths) that Application Insights monitors for the component, including per-log settings such as log type and encoding. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="encoding" type="string">
+                  The encoding format applied to logs collected from the application, such as utf-8 or utf-16, ensuring the log content is interpreted correctly for analysis. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="log_group_name" type="string">
+                  The name of the CloudWatch Logs log group that Application Insights monitors for the component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="log_path" type="string">
+                  The file system path to the log file or directory that Application Insights monitors for the component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="log_type" type="string">
+                  Specifies the type of log to be monitored (e.g., SQL_SERVER, IIS, APPLICATION), which determines how Application Insights analyzes and parses the log data for the component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="pattern_set" type="string">
+                  Specifies the log pattern set (a string with one pattern per line) that Application Insights uses to detect specific events or anomalies in the matched log group or path. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="net_weaver_prometheus_exporter" type="object">
+              This object configures the SAP NetWeaver Prometheus exporter for Application Insights, specifying the port and protocol used to scrape metrics from the SAP NetWeaver system. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="instance_numbers" type="list(string)">
+                  Specifies the list of SAP NetWeaver instance numbers to monitor via the Prometheus exporter for the component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="prometheus_port" type="string">
+                  The TCP port on which the SAP NetWeaver Prometheus exporter listens for metrics collection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="sapsid" type="string">
+                  The SAP system identifier (SAPSID) that the NetWeaver Prometheus exporter uses to uniquely identify the SAP system being monitored. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="processes" type="list(object)">
+              Specifies the list of processes to monitor in the component, where each process object defines the process name and the alarm metrics used to monitor that process. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="alarm_metrics" type="list(object)">
+                  Specifies the list of CloudWatch alarm metrics to monitor for the process, enabling custom alarm-based health monitoring for each process in the Application Insights application's component configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="alarm_metric_name" type="string">
+                      The name of the metric (e.g., CPU Utilization, Memory) to monitor for the process's alarm, used to define alarm metrics in the default component configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="process_name" type="string">
+                  The name of the application process to be monitored under the custom component's configuration details. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="sqlserver_prometheus_exporter" type="object">
+              This object configures the SQL Server Prometheus exporter, specifying settings such as the exporter's listening port and Prometheus endpoint path used by Application Insights to collect SQL Server metrics. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="prometheus_port" type="string">
+                  The port number on which the SQL Server Prometheus exporter listens to expose metrics for collection by Application Insights. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="sqlsecret_name" type="string">
+                  The name of the AWS Secrets Manager secret that stores the SQL Server credentials (username and password) used by the Prometheus exporter to connect to the SQL Server database. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="windows_events" type="list(object)">
+              Specifies the list of Windows Event Log configurations (including event type, event levels, and log group name) that Amazon CloudWatch Application Insights monitors for the component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="event_levels" type="list(string)">
+                  Specifies the Windows event log levels (such as ERROR, WARNING, INFO) to monitor for the given Windows event in Application Insights. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="event_name" type="string">
+                  The name of the Windows Event Log (e.g., Application, System, or Security) to monitor for the component's configuration details. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="log_group_name" type="string">
+                  The name of the Windows Event Log (e.g., Application, System, Security) that Application Insights monitors for the component when using this default overwrite configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="pattern_set" type="string">
+                  Specifies a regular expression pattern set used to filter Windows event messages for Application Insights monitoring. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="sub_component_type_configurations" type="list(object)">
+          Specifies a list of monitoring configurations for individual sub-component types (e.g., AWS::EC2::Instance) that override the base default configuration contained in the parent DefaultOverwriteComponentConfiguration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="sub_component_configuration_details" type="object">
+              Specifies the alarm metrics and log configurations that define how to monitor a specific sub-component type when the component's default configuration is overwritten. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="alarm_metrics" type="list(object)">
+                  Specifies the list of alarm metrics that define the CloudWatch alarms to monitor for the sub-component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="alarm_metric_name" type="string">
+                      Specifies the name of the CloudWatch metric that Application Insights monitors and uses to create an alarm for the component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="logs" type="list(object)">
+                  Defines the log configurations (e.g., log group names or paths) to be monitored for this sub-component type in the Application Insights application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="encoding" type="string">
+                      Specifies the encoding format (e.g., UTF-8) that Application Insights uses to read the log file for this sub-component's log configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="log_group_name" type="string">
+                      The name of the CloudWatch Logs log group whose events Application Insights collects and analyzes for the specified sub-component type, enabling anomaly detection and metric generation from those logs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="log_path" type="string">
+                      The file system path on the application host to the log file or directory that Application Insights monitors for this sub-component type (e.g., /var/log/myapp or C:\logs\app.log). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="log_type" type="string">
+                      Specifies the type of logs to monitor, such as SQL_SERVER, IIS, APPLICATION, or CUSTOM, for this sub-component configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="pattern_set" type="string">
+                      For a given log in a sub-component's configuration, pattern_set specifies custom log patterns (typically one per line) that Application Insights uses to match and highlight specific events in that log, overriding the default pattern set. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="processes" type="list(object)">
+                  Specifies the list of process names to be monitored for the sub-component type configuration, enabling Application Insights to track operating system-level processes under the default overwrite component monitoring settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="alarm_metrics" type="list(object)">
+                      Specifies the CloudWatch metrics to monitor for the processes defined in the sub-component type configuration, where each object in the list identifies a metric name to be used for creating alarms. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="alarm_metric_name" type="string">
+                          The name of the CloudWatch metric that the alarm monitors for the process (for example, CPU or memory usage). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="process_name" type="string">
+                      The name of the process to be monitored as part of the sub-component configuration for this application component's monitoring settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="windows_events" type="list(object)">
+                  Specifies the Windows event logs to monitor for the sub-component, where each entry defines an event name (e.g., Application, System) and optionally its log group, event levels, and pattern set to determine which events are collected. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="event_levels" type="list(string)">
+                      The list of Windows Event Log levels (e.g., ERROR, WARNING, INFO) to monitor for the specified Windows Event in the sub-component configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="event_name" type="string">
+                      The name of the Windows Event Log to monitor, such as Application, System, or a custom log name, when overriding configuration for a sub-component type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="log_group_name" type="string">
+                      Specifies the CloudWatch Logs log group name where the Windows Event Logs are collected for monitoring by Application Insights. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="pattern_set" type="string">
+                      The comma-separated list of Windows Event Log patterns (e.g., 'Application', 'System') used to filter which Windows events are monitored for this sub-component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="sub_component_type" type="string">
+              Identifies the AWS resource type of the sub-component (e.g., AWS::EC2::Instance or AWS::DynamoDB::Table) so that the accompanying sub-component configuration details can be applied to that specific resource type when overwriting default monitoring settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="tier" type="string">
+      The tier property specifies the application tier (e.g., DOT_NET_CORE, JAVA_JMX, MYSQL) that defines which monitoring settings apply to the component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="custom_components" type="list(object)">
+  The custom grouped components. Optional.
+  <Expandable title="properties">
+    <ResponseField name="component_name" type="string">
+      The user-defined name for the custom component that groups related resources for monitoring in the Application Insights application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="resource_list" type="list(string)">
+      Defines the list of AWS resources, specified by ARN or resource identifier, that are grouped together into this custom component for monitoring by Application Insights. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="cwemonitor_enabled" type="bool">
+  Indicates whether Application Insights can listen to CloudWatch events for the application resources. Optional.
+</ResponseField>
+
+<ResponseField name="grouping_type" type="string">
+  The grouping type of the application Optional.
+</ResponseField>
+
+<ResponseField name="log_pattern_sets" type="list(object)">
+  The log pattern sets. Optional.
+  <Expandable title="properties">
+    <ResponseField name="log_patterns" type="list(object)">
+      Defines the list of log patterns within a log pattern set, where each pattern specifies a regular expression (Pattern), a name (PatternName), and a rank for evaluation order. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="pattern" type="string">
+          The regular expression pattern used to match log lines for this custom log pattern in Application Insights. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="pattern_name" type="string">
+          The name to assign to this log pattern within a log pattern set, used to identify the pattern in the configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="rank" type="number">
+          A numeric value that sets the priority order of this log pattern within its log pattern set, where lower ranks are evaluated first. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="pattern_set_name" type="string">
+      The name of a log pattern set in AWS Application Insights, which groups a collection of log patterns to detect specific issues in application logs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="ops_center_enabled" type="bool">
+  When set to true, creates opsItems for any problems detected on an application. Optional.
+</ResponseField>
+
+<ResponseField name="ops_item_snstopic_arn" type="string">
+  The SNS topic provided to Application Insights that is associated to the created opsItem. Optional.
+</ResponseField>
+
+<ResponseField name="resource_group_name" type="string" required>
+  The name of the resource group. Required.
+</ResponseField>
+
+<ResponseField name="snsnotification_arn" type="string">
+  Application Insights sends notifications to this SNS topic whenever there is a problem update in the associated application. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags of Application Insights application. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag associated with the Application Insights application, used to categorize and manage the resource within AWS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="application_arn" type="string">
+  The ARN of the ApplicationInsights application. Computed by AWS after `ship`.
+</ResponseField>

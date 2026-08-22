@@ -1,0 +1,155 @@
+---
+title: "aws_ssm_maintenance_window"
+description: "`aws_ssm_maintenance_window` defines a real, recurring time window during which `aws_ssm_maintenance_window_task`s are allowed to run against..."
+---
+
+`aws_ssm_maintenance_window` defines a real, recurring time window during which `aws_ssm_maintenance_window_task`s are allowed to run against `aws_ssm_maintenance_window_target`s, so disruptive operations like patching only happen when they're actually scheduled to.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ssm "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ssm"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own maintenance window"})
+
+    		ubx.Resource(ssm.MaintenanceWindow, "ci-runner", ssm.MaintenanceWindowConfig{
+    			AllowUnassociatedTargets: true,
+    			Cutoff:                   1,
+    			Duration:                 7200,
+    			Name:                     "ci-runner",
+    			Schedule:                 "example",
+    			Description:              "Managed by ubx.",
+    			EndDate:                  "example",
+    			ScheduleOffset:           1,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MaintenanceWindow } from "./local-sdk/aws/sdk/typescript/aws/ssm/maintenance_window.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own maintenance window" });
+
+      resource(MaintenanceWindow, "ci-runner", {
+        allowUnassociatedTargets: true,
+        cutoff: 1,
+        duration: 7200,
+        name: "ci-runner",
+        schedule: "example",
+        description: "Managed by ubx.",
+        endDate: "example",
+        scheduleOffset: 1,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ssm import MaintenanceWindow, MaintenanceWindowConfig
+
+    def describe():
+        ubx.intent("payments own maintenance window")
+
+        ubx.resource(MaintenanceWindow, "ci-runner", MaintenanceWindowConfig(
+            allow_unassociated_targets=True,
+            cutoff=1,
+            duration=7200,
+            name="ci-runner",
+            schedule="example",
+            description="Managed by ubx.",
+            end_date="example",
+            schedule_offset=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ssm_maintenance_window called "ci-runner", with allow
+    unassociated targets true, cutoff 1, duration 7200, schedule
+    example, description Managed by ubx., end date example, schedule
+    offset 1.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="allow_unassociated_targets" type="bool" required>
+  Enables a maintenance window task to run on managed instances, even if you have not registered those instances as targets. If enabled, then you must specify the unregistered instances (by instance ID) when you register a task with the maintenance window. Required.
+</ResponseField>
+
+<ResponseField name="cutoff" type="number" required>
+  The number of hours before the end of the maintenance window that AWS Systems Manager stops scheduling new tasks for execution. Required.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A description of the maintenance window. Optional.
+</ResponseField>
+
+<ResponseField name="duration" type="number" required>
+  The duration of the maintenance window in hours. Required.
+</ResponseField>
+
+<ResponseField name="end_date" type="string">
+  The date and time, in ISO-8601 Extended format, for when the maintenance window is scheduled to become inactive. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the maintenance window. Required.
+</ResponseField>
+
+<ResponseField name="schedule" type="string" required>
+  The schedule of the maintenance window in the form of a cron or rate expression. Required.
+</ResponseField>
+
+<ResponseField name="schedule_offset" type="number">
+  The number of days to wait to run a maintenance window after the scheduled cron expression date and time. Optional.
+</ResponseField>
+
+<ResponseField name="schedule_timezone" type="string">
+  The time zone that the scheduled maintenance window executions are based on, in Internet Assigned Numbers Authority (IANA) format. Optional.
+</ResponseField>
+
+<ResponseField name="start_date" type="string">
+  The date and time, in ISO-8601 Extended format, for when the maintenance window is scheduled to become active. StartDate allows you to delay activation of the maintenance window until the specified future date. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Optional metadata that you assign to a resource in the form of an arbitrary set of tags (key-value pairs). Tags enable you to categorize a resource in different ways, such as by purpose, owner, or environment. For example, you might want to tag a maintenance window to identify the type of tasks it will run, the types of targets, and the environment it will run in. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Specifies a user-defined value for a tag that can be used to categorize and manage this Systems Manager maintenance window, such as by project or environment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="window_id" type="string">
+  The ID of the maintenance window. Computed by AWS after `ship`.
+</ResponseField>

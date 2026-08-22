@@ -1,0 +1,196 @@
+---
+title: "aws_config_config_rule"
+description: "`aws_config_config_rule` evaluates a real AWS resource's configuration against a defined condition every time it's created, changed, or deleted..."
+---
+
+`aws_config_config_rule` evaluates a real AWS resource's configuration against a defined condition every time it's created, changed, or deleted, flagging the resource noncompliant and sending a notification the moment it violates the rule rather than requiring a caller to poll for drift.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	config "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/config"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own config rule"})
+
+    		ubx.Resource(config.ConfigRule, "ci-runner", config.ConfigRuleConfig{
+    			Source:                    map[string]any{"owner": "example"},
+    			ConfigRuleName:            "example-config-rule-name",
+    			Description:               "Managed by ubx.",
+    			EvaluationModes:           []map[string]any{{"mode": "example"}},
+    			InputParameters:           "example",
+    			MaximumExecutionFrequency: "example",
+    			Scope:                     map[string]any{"compliance_resource_id": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ConfigRule } from "./local-sdk/aws/sdk/typescript/aws/config/config_rule.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own config rule" });
+
+      resource(ConfigRule, "ci-runner", {
+        source: { owner: "example" },
+        configRuleName: "example-config-rule-name",
+        description: "Managed by ubx.",
+        evaluationModes: [{ mode: "example" }],
+        inputParameters: "example",
+        maximumExecutionFrequency: "example",
+        scope: { complianceResourceId: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.config import ConfigRule, ConfigRuleConfig
+
+    def describe():
+        ubx.intent("payments own config rule")
+
+        ubx.resource(ConfigRule, "ci-runner", ConfigRuleConfig(
+            source={"owner": "example"},
+            config_rule_name="example-config-rule-name",
+            description="Managed by ubx.",
+            evaluation_modes=[{"mode": "example"}],
+            input_parameters="example",
+            maximum_execution_frequency="example",
+            scope={"compliance_resource_id": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_config_config_rule, with source a set value, config
+    rule name example-config-rule-name, description Managed by ubx.,
+    evaluation modes a set value, input parameters example, maximum
+    execution frequency example, scope a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="config_rule_name" type="string">
+  A name for the CC rule. If you don't specify a name, CFN generates a unique physical ID and uses that ID for the rule name. For more information, see [Name Type](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html). Optional.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  The description that you provide for the CC rule. Optional.
+</ResponseField>
+
+<ResponseField name="evaluation_modes" type="list(object)">
+  The modes the CC rule can be evaluated in. The valid values are distinct objects. By default, the value is Detective evaluation mode only. Optional.
+  <Expandable title="properties">
+    <ResponseField name="mode" type="string">
+      Specifies the evaluation mode of the AWS Config rule, which is either 'DETECTIVE' (evaluates resources after changes are made) or 'PROACTIVE' (evaluates resources before deployment to prevent noncompliant resources). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="input_parameters" type="string">
+  A string, in JSON format, that is passed to the CC rule Lambda function. Optional.
+</ResponseField>
+
+<ResponseField name="maximum_execution_frequency" type="string">
+  The maximum frequency with which CC runs evaluations for a rule. You can specify a value for ``MaximumExecutionFrequency`` when: + You are using an AWS managed rule that is triggered at a periodic frequency. + Your custom rule is triggered when CC delivers the configuration snapshot. For more information, see [ConfigSnapshotDeliveryProperties](https://docs.aws.amazon.com/config/latest/APIReference/API_ConfigSnapshotDeliveryProperties.html). By default, rules with a periodic trigger are evaluated every 24 hours. To change the frequency, specify a valid value for the ``MaximumExecutionFrequency`` parameter. Optional.
+</ResponseField>
+
+<ResponseField name="scope" type="object">
+  Defines which resources trigger an evaluation for an CC rule. The scope can include one or more resource types, a combination of a tag key and value, or a combination of one resource type and one resource ID. Specify a scope to constrain which resources trigger an evaluation for a rule. Otherwise, evaluations for the rule are triggered when any resource in your recording group changes in configuration. Optional.
+  <Expandable title="properties">
+    <ResponseField name="compliance_resource_id" type="string">
+      The ID of the only AWS resource that you want to trigger an evaluation for the rule. If you specify a resource ID, you must specify one resource type for ``ComplianceResourceTypes``. Optional.
+    </ResponseField>
+    <ResponseField name="compliance_resource_types" type="list(string)">
+      The resource types of only those AWS resources that you want to trigger an evaluation for the rule. You can only specify one type if you also specify a resource ID for ``ComplianceResourceId``. Optional.
+    </ResponseField>
+    <ResponseField name="tag_key" type="string">
+      The tag key that is applied to only those AWS resources that you want to trigger an evaluation for the rule. Optional.
+    </ResponseField>
+    <ResponseField name="tag_value" type="string">
+      The tag value applied to only those AWS resources that you want to trigger an evaluation for the rule. If you specify a value for ``TagValue``, you must also specify a value for ``TagKey``. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="source" type="object" required>
+  Provides the CustomPolicyDetails, the rule owner (```` for managed rules, ``CUSTOM_POLICY`` for Custom Policy rules, and ``CUSTOM_LAMBDA`` for Custom Lambda rules), the rule identifier, and the events that cause the evaluation of your AWS resources. Required.
+  <Expandable title="properties">
+    <ResponseField name="custom_policy_details" type="object">
+      Provides the CustomPolicyDetails, the rule owner (```` for managed rules, ``CUSTOM_POLICY`` for Custom Policy rules, and ``CUSTOM_LAMBDA`` for Custom Lambda rules), the rule identifier, and the events that cause the evaluation of your AWS resources. Optional.
+      <Expandable title="properties">
+        <ResponseField name="enable_debug_log_delivery" type="bool">
+          The boolean expression for enabling debug logging for your CC Custom Policy rule. The default value is ``false``. Optional.
+        </ResponseField>
+        <ResponseField name="policy_runtime" type="string">
+          The runtime system for your CC Custom Policy rule. Guard is a policy-as-code language that allows you to write policies that are enforced by CC Custom Policy rules. For more information about Guard, see the [Guard GitHub Repository](https://docs.aws.amazon.com/https://github.com/aws-cloudformation/cloudformation-guard). Optional.
+        </ResponseField>
+        <ResponseField name="policy_text" type="string">
+          The policy definition containing the logic for your CC Custom Policy rule. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="owner" type="string" required>
+      Indicates whether AWS or the customer owns and manages the CC rule. CC Managed Rules are predefined rules owned by AWS. For more information, see [Managed Rules](https://docs.aws.amazon.com/config/latest/developerguide/evaluate-config_use-managed-rules.html) in the *developer guide*. CC Custom Rules are rules that you can develop either with Guard (``CUSTOM_POLICY``) or LAMlong (``CUSTOM_LAMBDA``). For more information, see [Custom Rules](https://docs.aws.amazon.com/config/latest/developerguide/evaluate-config_develop-rules.html) in the *developer guide*. Required.
+    </ResponseField>
+    <ResponseField name="source_details" type="list(object)">
+      Provides the source and the message types that cause CC to evaluate your AWS resources against a rule. It also provides the frequency with which you want CC to run evaluations for the rule if the trigger type is periodic. If the owner is set to ``CUSTOM_POLICY``, the only acceptable values for the CC rule trigger message type are ``ConfigurationItemChangeNotification`` and ``OversizedConfigurationItemChangeNotification``. Optional.
+      <Expandable title="properties">
+        <ResponseField name="event_source" type="string">
+          For a custom AWS Config rule, this field indicates the AWS service that emits the events that trigger the rule, and the only valid value is `aws.config`. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum_execution_frequency" type="string">
+          Specifies how often AWS Config runs the rule's evaluations (e.g., One_Hour, TwentyFour_Hours) when the rule's source details define a periodic trigger. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="message_type" type="string">
+          The type of event that triggers the AWS Config rule's Lambda function, such as ConfigurationItemChangeNotification or ScheduledNotification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="source_identifier" type="string">
+      For CC Managed rules, a predefined identifier from a list. For example, ``IAM_PASSWORD_POLICY`` is a managed rule. To reference a managed rule, see [List of Managed Rules](https://docs.aws.amazon.com/config/latest/developerguide/managed-rules-by-aws-config.html). For CC Custom Lambda rules, the identifier is the Amazon Resource Name (ARN) of the rule's LAMlong function, such as ``arn:aws:lambda:us-east-2:123456789012:function:custom_rule_name``. For CC Custom Policy rules, this field will be ignored. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the AWS Config rule, automatically assigned by AWS when the rule is created and used to uniquely identify the rule. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="compliance" type="object">
+  Indicates whether an AWS resource or CC rule is compliant and provides the number of contributors that affect the compliance. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="type" type="string">
+      Compliance type determined by the Config rule Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="config_rule_id" type="string">
+  The unique identifier assigned by AWS to the Config rule when it is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

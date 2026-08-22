@@ -1,0 +1,167 @@
+---
+title: "aws_bedrock_agent_core_dataset"
+description: "`aws_bedrock_agent_core_dataset` is a fixed set of test scenarios AgentCore runs an agent against in one call, invoking it, waiting for telemetry..."
+---
+
+`aws_bedrock_agent_core_dataset` is a fixed set of test scenarios AgentCore runs an agent against in one call, invoking it, waiting for telemetry, and scoring the results with an `aws_bedrock_agent_core_evaluator`, real regression testing for agent behavior instead of manually invoking and checking each scenario.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	bedrock "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/bedrock"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own agent core dataset"})
+
+    		ubx.Resource(bedrock.AgentCoreDataset, "ci-runner", bedrock.AgentCoreDatasetConfig{
+    			DatasetName: "example-dataset-name",
+    			SchemaType:  "example",
+    			Description: "Managed by ubx.",
+    			KmsKeyArn:   "arn:aws:iam::123456789012:policy/ci",
+    			Source:      map[string]any{"inline_examples": map[string]any{"examples": []string{"example"}}},
+    			Tags:        []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AgentCoreDataset } from "./local-sdk/aws/sdk/typescript/aws/bedrock/agent_core_dataset.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own agent core dataset" });
+
+      resource(AgentCoreDataset, "ci-runner", {
+        datasetName: "example-dataset-name",
+        schemaType: "example",
+        description: "Managed by ubx.",
+        kmsKeyArn: "arn:aws:iam::123456789012:policy/ci",
+        source: { inlineExamples: { examples: ["example"] } },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.bedrock import AgentCoreDataset, AgentCoreDatasetConfig
+
+    def describe():
+        ubx.intent("payments own agent core dataset")
+
+        ubx.resource(AgentCoreDataset, "ci-runner", AgentCoreDatasetConfig(
+            dataset_name="example-dataset-name",
+            schema_type="example",
+            description="Managed by ubx.",
+            kms_key_arn="arn:aws:iam::123456789012:policy/ci",
+            source={"inline_examples": {"examples": ["example"]}},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_bedrock_agent_core_dataset, with dataset name
+    example-dataset-name, schema type example, description Managed by
+    ubx., kms key arn arn:aws:iam::123456789012:policy/ci, source a
+    set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="dataset_name" type="string" required>
+  Human-readable name for the dataset. Unique within the account (case-insensitive). Immutable after creation. Required.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A description of the dataset. Optional.
+</ResponseField>
+
+<ResponseField name="kms_key_arn" type="string">
+  Optional AWS KMS key ARN for SSE-KMS on service S3 writes. Optional.
+</ResponseField>
+
+<ResponseField name="schema_type" type="string" required>
+  Versioned schema type governing the structure of examples. Immutable after creation. Required.
+</ResponseField>
+
+<ResponseField name="source" type="object">
+  Source of initial examples. Provide either inline examples or an S3 URI pointing to a JSONL file. Optional.
+  <Expandable title="properties">
+    <ResponseField name="inline_examples" type="object">
+      Inline examples provided directly in the request body. Optional.
+      <Expandable title="properties">
+        <ResponseField name="examples" type="list(any)" required>
+          Examples to add. Each example is a free-form JSON document validated against the declared schemaType. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="s3_source" type="object">
+      S3 location of a JSONL file containing dataset examples. Optional.
+      <Expandable title="properties">
+        <ResponseField name="s3_uri" type="string" required>
+          S3 URI of the JSONL file (e.g. s3://my-bucket/path/to/examples.jsonl). Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of tags to assign to the dataset. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a user-defined tag applied to the Amazon Bedrock Agent Core Dataset, used to help identify, organize, and manage this dataset resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="created_at" type="string">
+  The timestamp when the dataset was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="dataset_arn" type="string">
+  The Amazon Resource Name (ARN) of the dataset. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="dataset_id" type="string">
+  The unique identifier of the dataset. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="example_count" type="number">
+  The number of examples in the dataset DRAFT. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The current status of the dataset. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  The timestamp when the dataset was last updated. Computed by AWS after `ship`.
+</ResponseField>

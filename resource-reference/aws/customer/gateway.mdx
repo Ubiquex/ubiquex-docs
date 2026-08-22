@@ -1,0 +1,136 @@
+---
+title: "aws_customer_gateway"
+description: "`aws_customer_gateway` tells AWS the real, public-facing details, IP address among them, of an on-premises VPN device..."
+---
+
+`aws_customer_gateway` tells AWS the real, public-facing details, IP address among them, of an on-premises VPN device, the AWS-side resource a Site-to-Site VPN connection's two tunnels terminate against. It does not configure the physical or software device itself, a caller sets that up independently to match.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	customer "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/customer"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own gateway"})
+
+    		ubx.Resource(customer.Gateway, "ci-runner", customer.GatewayConfig{
+    			IpAddress:      "example",
+    			Type:           "example",
+    			BgpAsn:         1,
+    			BgpAsnExtended: 1,
+    			CertificateArn: "arn:aws:iam::123456789012:policy/ci",
+    			DeviceName:     "example-device-name",
+    			Tags:           []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Gateway } from "./local-sdk/aws/sdk/typescript/aws/customer/gateway.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own gateway" });
+
+      resource(Gateway, "ci-runner", {
+        ipAddress: "example",
+        type: "example",
+        bgpAsn: 1,
+        bgpAsnExtended: 1,
+        certificateArn: "arn:aws:iam::123456789012:policy/ci",
+        deviceName: "example-device-name",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.customer import Gateway, GatewayConfig
+
+    def describe():
+        ubx.intent("payments own gateway")
+
+        ubx.resource(Gateway, "ci-runner", GatewayConfig(
+            ip_address="example",
+            type="example",
+            bgp_asn=1,
+            bgp_asn_extended=1,
+            certificate_arn="arn:aws:iam::123456789012:policy/ci",
+            device_name="example-device-name",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_customer_gateway, with ip address example, type
+    example, bgp asn 1, bgp asn extended 1, certificate arn
+    arn:aws:iam::123456789012:policy/ci, device name
+    example-device-name, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="bgp_asn" type="number">
+  For customer gateway devices that support BGP, specify the device's ASN. You must specify either ``BgpAsn`` or ``BgpAsnExtended`` when creating the customer gateway. If the ASN is larger than ``2,147,483,647``, you must use ``BgpAsnExtended``. Default: 65000 Valid values: ``1`` to ``2,147,483,647`` Optional.
+</ResponseField>
+
+<ResponseField name="bgp_asn_extended" type="number">
+  For customer gateway devices that support BGP, specify the device's ASN. You must specify either ``BgpAsn`` or ``BgpAsnExtended`` when creating the customer gateway. If the ASN is larger than ``2,147,483,647``, you must use ``BgpAsnExtended``. Valid values: ``2,147,483,648`` to ``4,294,967,295`` Optional.
+</ResponseField>
+
+<ResponseField name="certificate_arn" type="string">
+  The Amazon Resource Name (ARN) for the customer gateway certificate. Optional.
+</ResponseField>
+
+<ResponseField name="device_name" type="string">
+  The name of customer gateway device. Optional.
+</ResponseField>
+
+<ResponseField name="ip_address" type="string" required>
+  The IP address for the customer gateway device's outside interface. The address must be static. If ``OutsideIpAddressType`` in your VPN connection options is set to ``PrivateIpv4``, you can use an RFC6598 or RFC1918 private IPv4 address. If ``OutsideIpAddressType`` is set to ``Ipv6``, you can use an IPv6 address. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  One or more tags for the customer gateway. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key for a tag assigned to the AWS Customer Gateway resource, used for identification and resource management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a tag assigned to the customer gateway, used for arbitrary metadata. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="type" type="string" required>
+  The type of VPN connection that this customer gateway supports (``ipsec.1``). Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="customer_gateway_id" type="string">
+  The unique identifier assigned by AWS to the customer gateway, such as cgw-0a1b2c3d4e5f6g7h8. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

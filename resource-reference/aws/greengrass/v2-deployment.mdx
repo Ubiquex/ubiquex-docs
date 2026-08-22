@@ -1,0 +1,217 @@
+---
+title: "aws_greengrass_v2_deployment"
+description: "`aws_greengrass_v2_deployment` pushes a real, defined set of `aws_greengrass_v2_component_version`s to a target group of Greengrass V2 core devices..."
+---
+
+`aws_greengrass_v2_deployment` pushes a real, defined set of `aws_greengrass_v2_component_version`s to a target group of Greengrass V2 core devices, with rollout and rollback configuration, the actual mechanism that gets software running on real edge devices.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	greengrass "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/greengrass"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own v2 deployment"})
+
+    		ubx.Resource(greengrass.V2Deployment, "ci-runner", greengrass.V2DeploymentConfig{
+    			TargetArn:           "arn:aws:iam::123456789012:policy/ci",
+    			Components:          "example",
+    			DeploymentName:      "example-deployment-name",
+    			DeploymentPolicies:  map[string]any{"component_update_policy": map[string]any{"action": "example"}},
+    			IotJobConfiguration: map[string]any{"abort_config": map[string]any{"criteria_list": []map[string]any{{"action": "example"}}}},
+    			ParentTargetArn:     "arn:aws:iam::123456789012:policy/ci",
+    			Tags:                "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { V2Deployment } from "./local-sdk/aws/sdk/typescript/aws/greengrass/v2_deployment.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own v2 deployment" });
+
+      resource(V2Deployment, "ci-runner", {
+        targetArn: "arn:aws:iam::123456789012:policy/ci",
+        components: "example",
+        deploymentName: "example-deployment-name",
+        deploymentPolicies: { componentUpdatePolicy: { action: "example" } },
+        iotJobConfiguration: {
+          abortConfig: { criteriaList: [{ action: "example" }] },
+        },
+        parentTargetArn: "arn:aws:iam::123456789012:policy/ci",
+        tags: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.greengrass import V2Deployment, V2DeploymentConfig
+
+    def describe():
+        ubx.intent("payments own v2 deployment")
+
+        ubx.resource(V2Deployment, "ci-runner", V2DeploymentConfig(
+            target_arn="arn:aws:iam::123456789012:policy/ci",
+            components="example",
+            deployment_name="example-deployment-name",
+            deployment_policies={"component_update_policy": {"action": "example"}},
+            iot_job_configuration={"abort_config": {"criteria_list": [{"action": "example"}]}},
+            parent_target_arn="arn:aws:iam::123456789012:policy/ci",
+            tags="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_greengrass_v2_deployment, with target arn
+    arn:aws:iam::123456789012:policy/ci, components example,
+    deployment name example-deployment-name, deployment policies a
+    set value, iot job configuration a set value, parent target arn
+    arn:aws:iam::123456789012:policy/ci, tags example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="components" type="any">
+  Specifies the components to deploy and their deployment configuration, including component version, configuration updates, and system resource limits for each component within the AWS IoT Greengrass V2 deployment. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="deployment_name" type="string">
+  Specifies a friendly name for the deployment, which is used to identify the deployment in the AWS IoT Greengrass V2 console and API; if not provided, AWS IoT Greengrass generates a unique name. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="deployment_policies" type="object">
+  Specifies the policies that govern component update behavior and failure handling during a Greengrass V2 deployment, including the component update policy and failure handling policy. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="component_update_policy" type="object">
+      Specifies the policy for updating components that are already deployed on the device, including the action to take (NOTIFY_COMPONENTS or SKIP_NOTIFY_COMPONENTS) and the timeout in seconds for the component update. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="action" type="string">
+          Specifies whether the AWS IoT Greengrass V2 deployment sends a notification to components that they need to update (NOTIFY) or skips the notification entirely (SKIP_NOTIFY). Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="timeout_in_seconds" type="number">
+          The timeout in seconds for the component update policy, which sets how long the deployment waits for components to update before stopping. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="configuration_validation_policy" type="object">
+      Defines the configuration validation policy, which specifies the timeout (in seconds) for validating component configurations before applying a Greengrass V2 deployment. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="timeout_in_seconds" type="number">
+          The maximum time in seconds that a Greengrass core device will wait for component configuration validation to complete before the deployment is considered failed. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="failure_handling_policy" type="string">
+      Determines the deployment behavior when a component fails: ROLLBACK rolls back the deployment to the previous version, while DO_NOTHING leaves the deployment in a failed state. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="iot_job_configuration" type="object">
+  Specifies the AWS IoT job configuration for the deployment, including rollout, abort, and timeout behaviors for the job that deploys the components to target devices. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="abort_config" type="object">
+      Specifies the abort criteria for the AWS IoT job that executes the Greengrass V2 deployment, allowing the job to be canceled if a set number or percentage of devices fail or exceed a threshold based on failure type. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="criteria_list" type="list(object)" required>
+          Specifies a list of abort criteria for the AWS IoT job that performs the deployment, each defining a failure type, minimum number of executed things, and threshold percentage that must be met before the job is aborted. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="action" type="string">
+              Determines whether AWS IoT Jobs cancels or continues the deployment job when the abort criteria's failure threshold is reached, with allowed values CANCEL or CONTINUE. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="failure_type" type="string">
+              Specifies the type of AWS IoT job execution failure (e.g., FAILED, REJECTED, TIMED_OUT, or ALL) that triggers the abort condition for the deployment's IoT job. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="min_number_of_executed_things" type="number">
+              The minimum number of IoT job executions that must have occurred before the abort criteria can trigger, ensuring that the abort condition is only evaluated after at least this many things have executed the job. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="threshold_percentage" type="number">
+              The percentage of devices in the job execution that must fail the associated failure type (e.g., FAILED or TIMED_OUT) to trigger the abort action, when the abort criteria list is used in an AWS IoT job for a Greengrass V2 deployment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="job_executions_rollout_config" type="object">
+      Specifies the rollout configuration for the AWS IoT job that deploys the Greengrass V2 deployment to devices, controlling the rate at which the job is initiated across the device fleet. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="exponential_rate" type="object">
+          Configures the exponential rollout rate for the AWS IoT job that performs the deployment, specifying the base rate per minute, the increment factor, and the criteria (number of notified or succeeded things) that trigger the rate increase. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="base_rate_per_minute" type="number" required>
+              Specifies the base number of IoT things per minute that the deployment is initially rolled out to, before the exponential rate increment increases the rollout speed. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="increment_factor" type="number" required>
+              The multiplier applied to the base job execution rollout rate for each increment, controlling how the number of Greengrass v2 deployment IoT job executions started per minute grows exponentially. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="rate_increase_criteria" type="object" required>
+              Defines the threshold (number of notified or succeeded IoT things) that, when reached, triggers an increase in the exponential rollout rate of the AWS IoT job for this Greengrass deployment. Required. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="number_of_notified_things" type="number">
+                  Specifies the number of notified things at which the IoT job rollout rate increases exponentially for the Greengrass V2 deployment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="number_of_succeeded_things" type="number">
+                  Specifies the number of succeeded thing executions that must be reached before the exponential rollout rate increases the job execution rate for an AWS IoT Greengrass V2 deployment's IoT job configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="maximum_per_minute" type="number">
+          The maximum number of IoT job executions that can be started per minute for the deployment. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="timeout_config" type="object">
+      The timeout configuration for the AWS IoT deployment job, specifying the maximum number of minutes a device has to complete the job execution before it times out. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="in_progress_timeout_in_minutes" type="number">
+          Sets the in-progress timeout in minutes for the AWS IoT job that performs the Greengrass deployment, after which a device-level deployment still in progress is marked as timed out. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="parent_target_arn" type="string">
+  ARN of the AWS IoT thing or thing group that is the target of the parent deployment, used to create this deployment as a subdeployment under that parent. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  A map of key-value pairs used to tag the AWS IoT Greengrass V2 deployment, enabling you to categorize, identify, and manage deployments by cost, environment, or other criteria. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="target_arn" type="string" required>
+  The ARN of the target AWS IoT thing or thing group to which the deployment is applied. Required. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="deployment_id" type="string">
+  The unique identifier assigned to the deployment by AWS IoT Greengrass V2. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

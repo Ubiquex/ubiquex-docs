@@ -1,0 +1,178 @@
+---
+title: "aws_glue_table_optimizer"
+description: "`aws_glue_table_optimizer` automatically runs real, background maintenance, compacting small files, expiring old snapshots, deleting orphaned files..."
+---
+
+`aws_glue_table_optimizer` automatically runs real, background maintenance, compacting small files, expiring old snapshots, deleting orphaned files, against an Apache Iceberg `aws_glue_table`, storage and query-performance upkeep a caller would otherwise have to schedule and run manually.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	glue "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/glue"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own table optimizer"})
+
+    		ubx.Resource(glue.TableOptimizer, "ci-runner", glue.TableOptimizerConfig{
+    			CatalogId:                   "example",
+    			DatabaseName:                "example-database-name",
+    			TableName:                   "example-table-name",
+    			TableOptimizerConfiguration: map[string]any{"enabled": true},
+    			Type:                        "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { TableOptimizer } from "./local-sdk/aws/sdk/typescript/aws/glue/table_optimizer.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own table optimizer" });
+
+      resource(TableOptimizer, "ci-runner", {
+        catalogId: "example",
+        databaseName: "example-database-name",
+        tableName: "example-table-name",
+        tableOptimizerConfiguration: { enabled: true },
+        type: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.glue import TableOptimizer, TableOptimizerConfig
+
+    def describe():
+        ubx.intent("payments own table optimizer")
+
+        ubx.resource(TableOptimizer, "ci-runner", TableOptimizerConfig(
+            catalog_id="example",
+            database_name="example-database-name",
+            table_name="example-table-name",
+            table_optimizer_configuration={"enabled": True},
+            type="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_glue_table_optimizer, with catalog id example,
+    database name example-database-name, table name
+    example-table-name, table optimizer configuration a set value,
+    type example.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="catalog_id" type="string" required>
+  The catalog ID of the table Required.
+</ResponseField>
+
+<ResponseField name="database_name" type="string" required>
+  The name of the database. For Hive compatibility, this is folded to lowercase when it is stored. Required.
+</ResponseField>
+
+<ResponseField name="table_name" type="string" required>
+  The table name. For Hive compatibility, this must be entirely lowercase. Required.
+</ResponseField>
+
+<ResponseField name="table_optimizer_configuration" type="object" required>
+  Defines the table optimizer's settings, such as whether automatic optimization is enabled and the IAM role ARN that runs the optimizer jobs. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="compaction_configuration" type="object">
+      Defines the settings for the compaction operation in the Glue table optimizer, including whether compaction is enabled (Enabled flag) for the table. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="iceberg_configuration" type="object">
+          Specifies the Iceberg-specific settings for the compaction configuration of the AWS Glue table optimizer, controlling how compaction is performed on Apache Iceberg table data. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="delete_file_threshold" type="number">
+              The minimum number of deletes in a data file to make it eligible for compaction. Optional.
+            </ResponseField>
+            <ResponseField name="min_input_files" type="number">
+              The minimum number of input files before compaction is triggered. Optional.
+            </ResponseField>
+            <ResponseField name="strategy" type="string">
+              The compaction strategy to use. Valid values are binpack, sort, and z-order. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="enabled" type="bool" required>
+      Whether the table optimization is enabled. Required.
+    </ResponseField>
+    <ResponseField name="orphan_file_deletion_configuration" type="object">
+      Configuration for the orphan file deletion optimizer, specifying the retention period (in days) for orphan files before they are deleted from the S3 table. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="iceberg_configuration" type="object">
+          Specifies the Iceberg-specific settings for the orphan file deletion optimizer, including the retention period in days that determines when orphan files are eligible for deletion. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="location" type="string">
+              Specifies a directory in which to look for orphan files (defaults to the table's location). You may choose a sub-directory rather than the top-level table location. Optional.
+            </ResponseField>
+            <ResponseField name="orphan_file_retention_period_in_days" type="number">
+              The specific number of days you want to keep the orphan files. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="retention_configuration" type="object">
+      Configures the retention settings for the Glue table optimizer, specifying the snapshot retention period and the number of snapshots to retain for Apache Iceberg tables. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="iceberg_configuration" type="object">
+          Specifies Iceberg-specific snapshot retention settings, such as the number of snapshots to retain and the retention period in days, for the Glue table optimizer's retention configuration. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="clean_expired_files" type="bool">
+              When enabled, this flag instructs the Glue table optimizer to physically delete expired Iceberg data files that are no longer referenced by any retained snapshot as part of the table's retention policy. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="number_of_snapshots_to_retain" type="number">
+              The maximum number of Iceberg snapshots to retain when expiring old snapshots for the table, as part of the table optimizer's retention configuration. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="snapshot_retention_period_in_days" type="number">
+              The number of days to retain Iceberg snapshots before they are automatically expired by the Glue table optimizer. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="role_arn" type="string" required>
+      A role passed by the caller which gives the service permission to update the resources associated with the optimizer on the caller's behalf. Required.
+    </ResponseField>
+    <ResponseField name="vpc_configuration" type="object">
+      Configures the VPC settings, including subnet and security group IDs, that the AWS Glue job running the table optimization uses to access resources within a virtual private cloud. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="glue_connection_name" type="string">
+          The name of the AWS Glue connection used for the VPC for the table optimizer. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="type" type="string" required>
+  The type of table optimizer. Required.
+</ResponseField>

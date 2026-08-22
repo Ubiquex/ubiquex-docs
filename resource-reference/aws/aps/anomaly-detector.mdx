@@ -1,0 +1,166 @@
+---
+title: "aws_aps_anomaly_detector"
+description: "`aws_aps_anomaly_detector` runs machine learning, specifically the Random Cut Forest algorithm..."
+---
+
+`aws_aps_anomaly_detector` runs machine learning, specifically the Random Cut Forest algorithm, against a metric in an `aws_aps_workspace` to learn its normal pattern and flag deviations, producing new anomaly and confidence-score time series that can drive alerting rules or be visualized alongside the original metric.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	aps "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/aps"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own anomaly detector"})
+
+    		ubx.Resource(aps.AnomalyDetector, "ci-runner", aps.AnomalyDetectorConfig{
+    			Alias:                       "example",
+    			Configuration:               map[string]any{"random_cut_forest": map[string]any{"query": "example"}},
+    			Workspace:                   "example",
+    			EvaluationIntervalInSeconds: 7200,
+    			Labels:                      []map[string]any{{"key": "example"}},
+    			MissingDataAction:           "example",
+    			Tags:                        []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AnomalyDetector } from "./local-sdk/aws/sdk/typescript/aws/aps/anomaly_detector.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own anomaly detector" });
+
+      resource(AnomalyDetector, "ci-runner", {
+        alias: "example",
+        configuration: { randomCutForest: { query: "example" } },
+        workspace: "example",
+        evaluationIntervalInSeconds: 7200,
+        labels: [{ key: "example" }],
+        missingDataAction: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.aps import AnomalyDetector, AnomalyDetectorConfig
+
+    def describe():
+        ubx.intent("payments own anomaly detector")
+
+        ubx.resource(AnomalyDetector, "ci-runner", AnomalyDetectorConfig(
+            alias="example",
+            configuration={"random_cut_forest": {"query": "example"}},
+            workspace="example",
+            evaluation_interval_in_seconds=7200,
+            labels=[{"key": "example"}],
+            missing_data_action="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_aps_anomaly_detector, with alias example,
+    configuration a set value, workspace example, evaluation interval
+    in seconds 7200, labels a set value, missing data action example,
+    tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="alias" type="string" required>
+  The AnomalyDetector alias. Required.
+</ResponseField>
+
+<ResponseField name="configuration" type="object" required>
+  Configures the anomaly detector with a PromQL-based metric definition and optional dimension filters that determine which metric time series are analyzed for anomalous behavior. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="random_cut_forest" type="object" required>
+      Defines the configuration for the Random Cut Forest algorithm used by this anomaly detector to identify anomalous patterns in Prometheus metric data. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="ignore_near_expected_from_above" type="any">
+          Controls the Random Cut Forest anomaly detection sensitivity by specifying whether to ignore data points that are close to the expected value from above, reducing false positives for minor upper-side deviations. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="ignore_near_expected_from_below" type="any">
+          When enabled, this parameter instructs the Random Cut Forest anomaly detector to ignore deviations that are below but very close to the expected value, preventing them from being flagged as anomalies. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="query" type="string" required>
+          The PromQL query that selects the time series data to be analyzed for anomalies by the random cut forest algorithm in the anomaly detector. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="sample_size" type="number">
+          In the Random Cut Forest configuration of an AWS APS anomaly detector, sample_size specifies the number of data points from the input time series used to train the model, balancing training accuracy against computational cost. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="shingle_size" type="number">
+          The number of consecutive time series data points grouped into a single shingle (feature vector) that the Random Cut Forest model considers when evaluating anomalies. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="evaluation_interval_in_seconds" type="number">
+  The AnomalyDetector period of detection and metric generation. Optional.
+</ResponseField>
+
+<ResponseField name="labels" type="list(object)">
+  An array of key-value pairs to provide meta-data. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="missing_data_action" type="any">
+  Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the Amazon Managed Service for Prometheus anomaly detector, used to categorize and manage the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value part of a tag applied to the Amazon Managed Prometheus anomaly detector, used for resource categorization, cost allocation, and access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="workspace" type="string" required>
+  Required to identify a specific APS Workspace associated with this Anomaly Detector. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The AnomalyDetector ARN. Computed by AWS after `ship`.
+</ResponseField>

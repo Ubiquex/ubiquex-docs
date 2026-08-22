@@ -1,0 +1,117 @@
+---
+title: "aws_drs_source_network"
+description: "`aws_drs_source_network` replicates a real, in-AWS network's own configuration, subnet CIDRs, security groups, route tables, internet gateways..."
+---
+
+`aws_drs_source_network` replicates a real, in-AWS network's own configuration, subnet CIDRs, security groups, route tables, internet gateways, into AWS Elastic Disaster Recovery, so a recovery launch reproduces the source network's actual layout instead of requiring it to be rebuilt from scratch during a failover.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	drs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/drs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own source network"})
+
+    		ubx.Resource(drs.SourceNetwork, "ci-runner", drs.SourceNetworkConfig{
+    			OriginAccountId: "example",
+    			OriginRegion:    "example",
+    			VpcId:           "example",
+    			Tags:            []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { SourceNetwork } from "./local-sdk/aws/sdk/typescript/aws/drs/source_network.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own source network" });
+
+      resource(SourceNetwork, "ci-runner", {
+        originAccountId: "example",
+        originRegion: "example",
+        vpcId: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.drs import SourceNetwork, SourceNetworkConfig
+
+    def describe():
+        ubx.intent("payments own source network")
+
+        ubx.resource(SourceNetwork, "ci-runner", SourceNetworkConfig(
+            origin_account_id="example",
+            origin_region="example",
+            vpc_id="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_drs_source_network, with origin account id example,
+    origin region example, vpc id example, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="origin_account_id" type="string" required>
+  The account ID containing the VPC to protect. Required.
+</ResponseField>
+
+<ResponseField name="origin_region" type="string" required>
+  The region containing the VPC to protect. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A set of tags associated with the Source Network. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      A user-defined key for a tag on the AWS Elastic Disaster Recovery (DRS) Source Network, used to categorize and identify the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vpc_id" type="string" required>
+  The VPC ID to protect. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The ARN of the Source Network. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="source_network_id" type="string">
+  The ID of the Source Network. Computed by AWS after `ship`.
+</ResponseField>

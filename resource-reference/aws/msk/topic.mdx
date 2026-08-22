@@ -1,0 +1,114 @@
+---
+title: "aws_msk_topic"
+description: "`aws_msk_topic` creates a real Kafka topic directly on an `aws_msk_cluster` through CloudFormation..."
+---
+
+`aws_msk_topic` creates a real Kafka topic directly on an `aws_msk_cluster` through CloudFormation, instead of creating it out-of-band with a Kafka admin client after the cluster already exists.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	msk "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/msk"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own topic"})
+
+    		ubx.Resource(msk.Topic, "ci-runner", msk.TopicConfig{
+    			ClusterArn:        "arn:aws:iam::123456789012:policy/ci",
+    			PartitionCount:    1,
+    			ReplicationFactor: 1,
+    			TopicName:         "example-topic-name",
+    			Configs:           "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Topic } from "./local-sdk/aws/sdk/typescript/aws/msk/topic.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own topic" });
+
+      resource(Topic, "ci-runner", {
+        clusterArn: "arn:aws:iam::123456789012:policy/ci",
+        partitionCount: 1,
+        replicationFactor: 1,
+        topicName: "example-topic-name",
+        configs: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.msk import Topic, TopicConfig
+
+    def describe():
+        ubx.intent("payments own topic")
+
+        ubx.resource(Topic, "ci-runner", TopicConfig(
+            cluster_arn="arn:aws:iam::123456789012:policy/ci",
+            partition_count=1,
+            replication_factor=1,
+            topic_name="example-topic-name",
+            configs="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_msk_topic, with cluster arn
+    arn:aws:iam::123456789012:policy/ci, partition count 1,
+    replication factor 1, topic name example-topic-name, configs
+    example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="cluster_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the MSK cluster Required.
+</ResponseField>
+
+<ResponseField name="configs" type="string">
+  Base64 encoded configuration properties of the topic Optional.
+</ResponseField>
+
+<ResponseField name="partition_count" type="number" required>
+  The number of partitions for the topic Required.
+</ResponseField>
+
+<ResponseField name="replication_factor" type="number" required>
+  The replication factor for the topic Required.
+</ResponseField>
+
+<ResponseField name="topic_name" type="string" required>
+  The name of the topic Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="topic_arn" type="string">
+  The Amazon Resource Name (ARN) of the topic Computed by AWS after `ship`.
+</ResponseField>

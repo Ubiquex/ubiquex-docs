@@ -1,0 +1,331 @@
+---
+title: "aws_amazon_mq_broker"
+description: "`aws_amazon_mq_broker` creates the actual message broker environment, ActiveMQ or RabbitMQ, that Amazon MQ runs."
+---
+
+It's the basic building block of the service, everything else, configuration, users, network placement, attaches to a broker rather than existing independently.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	amazon "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/amazon"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own mq broker"})
+
+    		ubx.Resource(amazon.MqBroker, "ci-runner", amazon.MqBrokerConfig{
+    			BrokerName:              "example-broker-name",
+    			DeploymentMode:          "example",
+    			EngineType:              "example",
+    			HostInstanceType:        "example",
+    			PubliclyAccessible:      true,
+    			AuthenticationStrategy:  "example",
+    			AutoMinorVersionUpgrade: true,
+    			Configuration:           map[string]any{"id": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MqBroker } from "./local-sdk/aws/sdk/typescript/aws/amazon/mq_broker.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own mq broker" });
+
+      resource(MqBroker, "ci-runner", {
+        brokerName: "example-broker-name",
+        deploymentMode: "example",
+        engineType: "example",
+        hostInstanceType: "example",
+        publiclyAccessible: true,
+        authenticationStrategy: "example",
+        autoMinorVersionUpgrade: true,
+        configuration: { id: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.amazon import MqBroker, MqBrokerConfig
+
+    def describe():
+        ubx.intent("payments own mq broker")
+
+        ubx.resource(MqBroker, "ci-runner", MqBrokerConfig(
+            broker_name="example-broker-name",
+            deployment_mode="example",
+            engine_type="example",
+            host_instance_type="example",
+            publicly_accessible=True,
+            authentication_strategy="example",
+            auto_minor_version_upgrade=True,
+            configuration={"id": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_amazon_mq_broker, with broker name
+    example-broker-name, deployment mode example, engine type
+    example, host instance type example, publicly accessible true,
+    authentication strategy example, auto minor version upgrade true,
+    configuration a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="authentication_strategy" type="string">
+  Defines the authentication strategy for the broker, where SIMPLE uses built-in username/password authentication and LDAP integrates with an external LDAP server for ActiveMQ brokers. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="auto_minor_version_upgrade" type="bool">
+  Indicates whether the broker automatically upgrades to new minor versions of the Amazon MQ engine as they are released by AWS. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="broker_name" type="string" required>
+  A user-defined name for the broker that must be unique within your AWS account and region, used to identify the Amazon MQ broker. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="configuration" type="object">
+  Specifies the ID and revision of the Amazon MQ broker configuration that defines the broker's engine settings and other configuration parameters. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="id" type="string" required>
+      The unique identifier of the Amazon MQ configuration that defines the broker's engine settings and parameters. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="revision" type="number" required>
+      The revision number of the Amazon MQ broker configuration that identifies a specific version of the configuration to apply, required when specifying a configuration for the broker. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="data_replication_mode" type="any">
+  Specifies the data replication mode for the Amazon MQ broker, allowing either 'NONE' to disable replication or 'CRDR' to enable continuous data replication to a secondary broker in another region. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="data_replication_primary_broker_arn" type="string">
+  The ARN of the primary broker that is used to replicate data from in a data replication pair when creating a replica. This field is only used at creation-time. Changes to it subsequently are ignored by CloudFormation. Information on the current primary is available on the DataReplicationMetadata object returned by the API. Optional.
+</ResponseField>
+
+<ResponseField name="deployment_mode" type="any" required>
+  Determines whether the broker runs as a single instance or as an active/standby pair across multiple Availability Zones. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="encryption_options" type="object">
+  Specifies the encryption configuration for the broker, including the KMS key ID to use and whether to use an AWS-owned key for encrypting data at rest. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="kms_key_id" type="string">
+      The customer master key (CMK) to use for the A KMS (KMS). This key is used to encrypt your data at rest. If not provided, Amazon MQ will use a default CMK to encrypt your data. The Key ARN is recommended so that drift can be detected, but a key ID or key alias will also be accepted for API compatibility reasons. Optional.
+    </ResponseField>
+    <ResponseField name="use_aws_owned_key" type="bool" required>
+      Indicates whether to use an AWS-owned key for encrypting data at rest on the broker; when set to false, you must supply a customer-managed KMS key ID in the `KmsKeyId` field. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="engine_type" type="any" required>
+  The type of broker engine to provision, such as ActiveMQ or RabbitMQ, which determines the broker's messaging protocol and features. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="engine_version" type="string">
+  The version specified to use. See also EngineVersionCurrent. Optional.
+</ResponseField>
+
+<ResponseField name="host_instance_type" type="string" required>
+  The Amazon MQ broker instance type (e.g., mq.t3.micro, mq.m5.large) that determines the compute and memory capacity of the broker. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="ldap_server_metadata" type="object">
+  Defines the LDAP server connection and search parameters (such as hosts, service account credentials, and user/role search criteria) used by the broker to authenticate and authorize users when the broker's authentication strategy is set to LDAP. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="hosts" type="list(string)" required>
+      Specifies the list of fully qualified domain names (FQDN) of the LDAP servers used for authentication in the Amazon MQ broker's LDAP server metadata. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="role_base" type="string" required>
+      Specifies the LDAP distinguished name (DN) of the base object for role (group) searches, used to authenticate and authorize user roles in the Amazon MQ broker's LDAP server metadata. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="role_name" type="string">
+      Specifies the LDAP attribute name that contains the role name for role-based access control when using LDAP authentication for the Amazon MQ broker. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="role_search_matching" type="string" required>
+      The LDAP search filter (e.g., `(memberOf=cn=myrole,ou=groups,dc=example,dc=com)`) used to locate role (group) entries in the directory when mapping users to roles for the Amazon MQ broker's LDAP authentication. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="role_search_subtree" type="bool">
+      Specifies whether the LDAP role search should recursively search the entire subtree beneath the role base (true) or only a single level (false). Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="service_account_password" type="string">
+      The password for the service account that Amazon MQ uses to authenticate to the LDAP server when LDAP-based user authentication and authorization is configured. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="service_account_username" type="string" required>
+      The username of the LDAP service account that Amazon MQ uses to authenticate and bind to the LDAP server for user and group queries. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="user_base" type="string" required>
+      Specifies the Distinguished Name (DN) of the base directory entry in the LDAP server that contains the user accounts used for authentication and authorization for the Amazon MQ broker. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="user_role_name" type="string">
+      Specifies the name of the LDAP role that is associated with the user for the Amazon MQ broker, defining the user's permissions in the LDAP directory. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="user_search_matching" type="string" required>
+      Provides the LDAP search filter, using `%s` as a placeholder for the username, that Amazon MQ uses to locate the user entry during authentication. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="user_search_subtree" type="bool">
+      This boolean specifies whether the LDAP search for users is performed across the entire directory subtree (true) or only at the base context (false). Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="logs" type="object">
+  Specifies the logging configuration for the Amazon MQ broker, including whether general and audit logs are enabled. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="audit" type="bool">
+      Specifies whether to enable audit logging for the broker, which publishes audit log entries to the configured CloudWatch Logs log group. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="general" type="bool">
+      Whether to enable general logging for the Amazon MQ broker, which publishes broker activity logs to Amazon CloudWatch Logs. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="maintenance_window_start_time" type="object">
+  Specifies the preferred maintenance window start time (day of week, time of day, and time zone) during which Amazon MQ performs maintenance on the broker. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="day_of_week" type="any" required>
+      _Allowed Values_: &lt;code&gt;MONDAY&lt;/code&gt; | &lt;code&gt;TUESDAY&lt;/code&gt; | &lt;code&gt;WEDNESDAY&lt;/code&gt; | &lt;code&gt;THURSDAY&lt;/code&gt; | &lt;code&gt;FRIDAY&lt;/code&gt; | &lt;code&gt;SATURDAY&lt;/code&gt; | &lt;code&gt;SUNDAY&lt;/code&gt; Required.
+    </ResponseField>
+    <ResponseField name="time_of_day" type="string" required>
+      The time, in 24-hour format, and use only numbers separated by a colon, HH:MM or HH:MM:SS. Example: 13:05. When writing YAML this may need to be quoted to prevent a timestamp being read and converted to a number of minutes or seconds. Required.
+    </ResponseField>
+    <ResponseField name="time_zone" type="string" required>
+      The time zone, UTC by default, in either the Country/City format, or the UTC offset format. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="publicly_accessible" type="bool" required>
+  Determines whether the broker can be reached from the public internet (true) or only from within the associated VPC (false). Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="resource_share_arns" type="list(string)">
+  The ARNs of the resource shares to be associated with the broker. Optional.
+</ResponseField>
+
+<ResponseField name="security_groups" type="list(string)">
+  List of security group IDs to associate with the broker for controlling network traffic. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="storage_size" type="number">
+  The broker's storage size in GB. Optional.
+</ResponseField>
+
+<ResponseField name="storage_type" type="any">
+  The storage type (EBS or EFS) used for the broker's message store, determining the underlying storage backend for the Amazon MQ broker. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="subnet_ids" type="list(string)">
+  Specifies the subnets where the broker's instances are deployed: one subnet for a single-instance broker, or two subnets in different Availability Zones for an active/standby broker; if you provide subnet IDs, you must also provide the SecurityGroups property. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value part of a key-value tag assigned to the Amazon MQ broker, used to categorize, identify, and manage the broker for cost allocation and resource grouping. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="users" type="list(object)">
+  Users to configure on the broker. For RabbitMQ, this should be one user, created when the broker is created, and changes thereafter are ignored. For ActiveMQ, changes to anything but Password are detected and will trigger an update, but changes to Password cannot be detected so updates to Password may not take effect unless there is some other change. Optional.
+  <Expandable title="properties">
+    <ResponseField name="console_access" type="bool">
+      Whether the user is allowed to access the ActiveMQ web console for this broker. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="groups" type="list(string)">
+      Specifies the list of authorization groups that this user belongs to, which define the user's permissions on the Amazon MQ broker. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="password" type="string">
+      The password for the Amazon MQ broker user, used to authenticate client connections to the broker's messaging endpoints. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="replication_user" type="bool">
+      Indicates whether this user is a replication user, which is required for ActiveMQ brokers to replicate data between active and standby brokers. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="username" type="string">
+      The username for a user that can access the broker, used as part of the credentials to authenticate to the ActiveMQ broker. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="amqp_endpoints" type="list(string)">
+  The list of AMQP protocol connection endpoints (host:port) for the Amazon MQ RabbitMQ broker instances, used by clients to connect. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the Amazon MQ broker. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="configuration_id" type="string">
+  The ID of the current actual configuration. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="configuration_revision" type="string">
+  The revision of the current actual configuration. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="console_urls" type="list(string)">
+  Provides the list of console URLs for accessing the ActiveMQ web console of each broker instance in the Amazon MQ broker. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="engine_version_current" type="string">
+  The version in use. This may have more precision than the specified EngineVersion. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The unique broker identifier assigned by Amazon MQ, which serves as the Terraform resource ID. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="ip_addresses" type="list(string)">
+  Computed list of IP addresses assigned to the broker, with one entry per broker instance (for example, two for active/standby deployments). Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="mqtt_endpoints" type="list(string)">
+  The list of MQTT protocol endpoints (host and port) for the Amazon MQ broker, computed and returned as strings for client connections. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="open_wire_endpoints" type="list(string)">
+  The list of OpenWire protocol endpoints (broker host and port) that clients can use to connect to the Amazon MQ broker. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="stomp_endpoints" type="list(string)">
+  The list of STOMP protocol endpoints (URLs) that clients use to connect to the broker, including both plain and TLS-secured connection strings. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="wss_endpoints" type="list(string)">
+  The list of WebSocket Secure (WSS) protocol endpoints for the Amazon MQ broker, automatically populated after the broker is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

@@ -1,0 +1,126 @@
+---
+title: "aws_lambda_event_invoke_config"
+description: "`aws_lambda_event_invoke_config` configures a real `aws_lambda_function`'s asynchronous-invocation behavior, retry attempts, maximum event age..."
+---
+
+`aws_lambda_event_invoke_config` configures a real `aws_lambda_function`'s asynchronous-invocation behavior, retry attempts, maximum event age, and success/failure destinations, for invocations that don't wait synchronously for a response.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	lambda "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/lambda"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own event invoke config"})
+
+    		ubx.Resource(lambda.EventInvokeConfig, "ci-runner", lambda.EventInvokeConfigConfig{
+    			FunctionName:             "example-function-name",
+    			Qualifier:                "example",
+    			DestinationConfig:        map[string]any{"on_failure": map[string]any{"destination": "example"}},
+    			MaximumEventAgeInSeconds: 7200,
+    			MaximumRetryAttempts:     1,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { EventInvokeConfig } from "./local-sdk/aws/sdk/typescript/aws/lambda/event_invoke_config.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own event invoke config" });
+
+      resource(EventInvokeConfig, "ci-runner", {
+        functionName: "example-function-name",
+        qualifier: "example",
+        destinationConfig: { onFailure: { destination: "example" } },
+        maximumEventAgeInSeconds: 7200,
+        maximumRetryAttempts: 1,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.lambda_ import EventInvokeConfig, EventInvokeConfigConfig
+
+    def describe():
+        ubx.intent("payments own event invoke config")
+
+        ubx.resource(EventInvokeConfig, "ci-runner", EventInvokeConfigConfig(
+            function_name="example-function-name",
+            qualifier="example",
+            destination_config={"on_failure": {"destination": "example"}},
+            maximum_event_age_in_seconds=7200,
+            maximum_retry_attempts=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_lambda_event_invoke_config, with function name
+    example-function-name, qualifier example, destination config a
+    set value, maximum event age in seconds 7200, maximum retry
+    attempts 1.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="destination_config" type="object">
+  A destination for events after they have been sent to a function for processing. Optional.
+  <Expandable title="properties">
+    <ResponseField name="on_failure" type="object">
+      The destination configuration for failed invocations. Optional.
+      <Expandable title="properties">
+        <ResponseField name="destination" type="string" required>
+          The Amazon Resource Name (ARN) of the destination resource. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="on_success" type="object">
+      The destination configuration for successful invocations. Optional.
+      <Expandable title="properties">
+        <ResponseField name="destination" type="string" required>
+          The Amazon Resource Name (ARN) of the destination resource. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="function_name" type="string" required>
+  The name of the Lambda function. Required.
+</ResponseField>
+
+<ResponseField name="maximum_event_age_in_seconds" type="number">
+  The maximum age of a request that Lambda sends to a function for processing. Optional.
+</ResponseField>
+
+<ResponseField name="maximum_retry_attempts" type="number">
+  The maximum number of times to retry when the function returns an error. Optional.
+</ResponseField>
+
+<ResponseField name="qualifier" type="string" required>
+  The identifier of a version or alias. Required.
+</ResponseField>

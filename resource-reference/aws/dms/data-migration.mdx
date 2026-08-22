@@ -1,0 +1,174 @@
+---
+title: "aws_dms_data_migration"
+description: "`aws_dms_data_migration` is the real, actual DMS Serverless data migration run from within an `aws_dms_migration_project`..."
+---
+
+`aws_dms_data_migration` is the real, actual DMS Serverless data migration run from within an `aws_dms_migration_project`, moving data between the source and target already defined by that project's own data providers.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	dms "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/dms"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own data migration"})
+
+    		ubx.Resource(dms.DataMigration, "ci-runner", dms.DataMigrationConfig{
+    			DataMigrationType:          "example",
+    			MigrationProjectIdentifier: "example",
+    			ServiceAccessRoleArn:       "arn:aws:iam::123456789012:policy/ci",
+    			DataMigrationIdentifier:    "example",
+    			DataMigrationName:          "example-data-migration-name",
+    			DataMigrationSettings:      map[string]any{"cloudwatch_logs_enabled": true},
+    			SourceDataSettings:         []map[string]any{{"cdcstart_position": "example"}},
+    			Tags:                       []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { DataMigration } from "./local-sdk/aws/sdk/typescript/aws/dms/data_migration.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own data migration" });
+
+      resource(DataMigration, "ci-runner", {
+        dataMigrationType: "example",
+        migrationProjectIdentifier: "example",
+        serviceAccessRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        dataMigrationIdentifier: "example",
+        dataMigrationName: "example-data-migration-name",
+        dataMigrationSettings: { cloudwatchLogsEnabled: true },
+        sourceDataSettings: [{ cdcstartPosition: "example" }],
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.dms import DataMigration, DataMigrationConfig
+
+    def describe():
+        ubx.intent("payments own data migration")
+
+        ubx.resource(DataMigration, "ci-runner", DataMigrationConfig(
+            data_migration_type="example",
+            migration_project_identifier="example",
+            service_access_role_arn="arn:aws:iam::123456789012:policy/ci",
+            data_migration_identifier="example",
+            data_migration_name="example-data-migration-name",
+            data_migration_settings={"cloudwatch_logs_enabled": True},
+            source_data_settings=[{"cdcstart_position": "example"}],
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_dms_data_migration, with data migration type example,
+    migration project identifier example, service access role arn
+    arn:aws:iam::123456789012:policy/ci, data migration identifier
+    example, data migration name example-data-migration-name, data
+    migration settings a set value, source data settings a set value,
+    tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="data_migration_identifier" type="string">
+  The property describes an ARN of the data migration. Optional.
+</ResponseField>
+
+<ResponseField name="data_migration_name" type="string">
+  The property describes a name to identify the data migration. Optional.
+</ResponseField>
+
+<ResponseField name="data_migration_settings" type="object">
+  Specifies the execution settings for the data migration, including the number of parallel jobs to run (NumberOfJobs) and the JSON selection rules that determine which database objects are included in the migration. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="cloudwatch_logs_enabled" type="bool">
+      The property specifies whether to enable the CloudWatch log. Optional.
+    </ResponseField>
+    <ResponseField name="number_of_jobs" type="number">
+      The number of parallel jobs that trigger parallel threads to unload the tables from the source, and then load them to the target. Optional.
+    </ResponseField>
+    <ResponseField name="selection_rules" type="string">
+      The property specifies the rules of selecting objects for data migration. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="data_migration_type" type="string" required>
+  The property describes the type of migration. Required.
+</ResponseField>
+
+<ResponseField name="migration_project_identifier" type="string" required>
+  The property describes an identifier for the migration project. It is used for describing/deleting/modifying can be name/arn Required.
+</ResponseField>
+
+<ResponseField name="service_access_role_arn" type="string" required>
+  The property describes Amazon Resource Name (ARN) of the service access role. Required.
+</ResponseField>
+
+<ResponseField name="source_data_settings" type="list(object)">
+  The property describes the settings for the data migration. Optional.
+  <Expandable title="properties">
+    <ResponseField name="cdcstart_position" type="string">
+      Specifies the position in the source database's transaction log (such as binary log) from which AWS DMS starts reading changes when using change data capture (CDC) for the data migration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="cdcstart_time" type="string">
+      The timestamp (in the source database's timezone) from which change data capture (CDC) begins for ongoing replication in the data migration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="cdcstop_time" type="string">
+      Specifies the UTC timestamp at which Change Data Capture (CDC) stops collecting incremental changes from the source database for this data migration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="slot_name" type="string">
+      Specifies the name of the PostgreSQL replication slot that DMS uses to capture change data for ongoing replication (change data capture) from the source database. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the AWS DMS data migration resource, used for categorizing, cost tracking, and access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Specifies the value of a tag attached to the DMS data migration resource, used to categorize and manage the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="data_migration_arn" type="string">
+  The property describes an ARN of the data migration. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="data_migration_create_time" type="string">
+  The property describes the create time of the data migration. Computed by AWS after `ship`.
+</ResponseField>

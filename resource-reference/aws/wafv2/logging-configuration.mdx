@@ -1,0 +1,163 @@
+---
+title: "aws_wafv2_logging_configuration"
+description: "`aws_wafv2_logging_configuration` streams a real log of every request an `aws_wafv2_web_acl` evaluates, along with which rule matched..."
+---
+
+`aws_wafv2_logging_configuration` streams a real log of every request an `aws_wafv2_web_acl` evaluates, along with which rule matched, to a CloudWatch Logs group, S3 bucket, or Firehose delivery stream.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	wafv2 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/wafv2"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own logging configuration"})
+
+    		ubx.Resource(wafv2.LoggingConfiguration, "ci-runner", wafv2.LoggingConfigurationConfig{
+    			LogDestinationConfigs: []string{"example"},
+    			ResourceArn:           "arn:aws:iam::123456789012:policy/ci",
+    			LoggingFilter:         map[string]any{"default_behavior": "example"},
+    			RedactedFields:        []map[string]any{{"method": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { LoggingConfiguration } from "./local-sdk/aws/sdk/typescript/aws/wafv2/logging_configuration.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own logging configuration" });
+
+      resource(LoggingConfiguration, "ci-runner", {
+        logDestinationConfigs: ["example"],
+        resourceArn: "arn:aws:iam::123456789012:policy/ci",
+        loggingFilter: { defaultBehavior: "example" },
+        redactedFields: [{ method: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.wafv2 import LoggingConfiguration, LoggingConfigurationConfig
+
+    def describe():
+        ubx.intent("payments own logging configuration")
+
+        ubx.resource(LoggingConfiguration, "ci-runner", LoggingConfigurationConfig(
+            log_destination_configs=["example"],
+            resource_arn="arn:aws:iam::123456789012:policy/ci",
+            logging_filter={"default_behavior": "example"},
+            redacted_fields=[{"method": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_wafv2_logging_configuration, with log destination
+    configs a set value, resource arn
+    arn:aws:iam::123456789012:policy/ci, logging filter a set value,
+    redacted fields a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="log_destination_configs" type="list(string)" required>
+  The Amazon Resource Names (ARNs) of the logging destinations that you want to associate with the web ACL. Required.
+</ResponseField>
+
+<ResponseField name="logging_filter" type="object">
+  Filtering that specifies which web requests are kept in the logs and which are dropped. You can filter on the rule action and on the web request labels that were applied by matching rules during web ACL evaluation. Optional.
+  <Expandable title="properties">
+    <ResponseField name="default_behavior" type="string" required>
+      Default handling for logs that don't match any of the specified filtering conditions. Required.
+    </ResponseField>
+    <ResponseField name="filters" type="list(object)" required>
+      The filters that you want to apply to the logs. Required.
+      <Expandable title="properties">
+        <ResponseField name="behavior" type="string">
+          Specifies whether to keep or drop logs for matching requests, with valid values `KEEP` or `DROP`. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="conditions" type="list(object)">
+          A list of conditions for this logging filter, where each condition pairs a KEEP/DROP action with a label name to match, determining whether matching web requests are included in or excluded from the WAF logs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="action_condition" type="object">
+              Specifies the web request action (e.g., ALLOW, BLOCK, COUNT) that must match for the logging filter condition to apply, allowing log filtering based on the action taken by AWS WAF. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="action" type="string">
+                  Specifies the WAF action (ALLOW, BLOCK, or COUNT) that must match the action taken by AWS WAF on a request, as part of an action condition in a logging filter. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="label_name_condition" type="object">
+              Defines a condition that matches when a web request carries a label with the exact name specified, allowing the WAFv2 logging filter to include or exclude requests from logging based on that label. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="label_name" type="string">
+                  The name of the AWS WAF label that a web request must have for the logging filter condition to match, thereby including or excluding that request's logs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="requirement" type="string">
+          Determines whether the filter's conditions must all match (MEETS_ALL) or any one must match (MEETS_ANY) for the filter to apply. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="redacted_fields" type="list(object)">
+  The parts of the request that you want to keep out of the logs. For example, if you redact the HEADER field, the HEADER field in the firehose will be xxx. Optional.
+  <Expandable title="properties">
+    <ResponseField name="method" type="any">
+      Redact the HTTP method (e.g., GET, POST) from the logs for web requests matching the logging configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="query_string" type="any">
+      This field specifies whether to redact the query string of web requests from the logs produced by the WAFv2 logging configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="single_header" type="object">
+      Specifies the name of a single request header whose value WAF will redact in the logging configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="name" type="string">
+          The name of the HTTP header whose values are redacted (masked) from the logs delivered by this WAFv2 logging configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="uri_path" type="any">
+      When included as an empty object in a redacted_fields block, this setting causes the URI path of matching web requests to be redacted (omitted) from the WAF logging output. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="resource_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the web ACL that you want to associate with LogDestinationConfigs. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="managed_by_firewall_manager" type="bool">
+  Indicates whether the logging configuration was created by AWS Firewall Manager, as part of an AWS WAF policy configuration. If true, only Firewall Manager can modify or delete the configuration. Computed by AWS after `ship`.
+</ResponseField>

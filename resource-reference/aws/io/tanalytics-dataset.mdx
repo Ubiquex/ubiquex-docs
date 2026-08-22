@@ -1,0 +1,331 @@
+---
+title: "aws_io_tanalytics_dataset"
+description: "`aws_io_tanalytics_dataset` runs a real, recurring SQL query or containerized analysis against an `aws_io_tanalytics_datastore` and materializes..."
+---
+
+`aws_io_tanalytics_dataset` runs a real, recurring SQL query or containerized analysis against an `aws_io_tanalytics_datastore` and materializes the result, the actual output a caller or downstream application reads insights from.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	io "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/io"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own tanalytics dataset"})
+
+    		ubx.Resource(io.TanalyticsDataset, "ci-runner", io.TanalyticsDatasetConfig{
+    			Actions:                 []map[string]any{{"action_name": "example-action-name"}},
+    			ContentDeliveryRules:    []map[string]any{{"destination": map[string]any{"iot_events_destination_configuration": map[string]any{"input_name": "example-input-name"}}}},
+    			DatasetName:             "example-dataset-name",
+    			LateDataRules:           []map[string]any{{"rule_configuration": map[string]any{"delta_time_session_window_configuration": map[string]any{"timeout_in_minutes": 1}}}},
+    			RetentionPeriod:         map[string]any{"number_of_days": 1},
+    			Tags:                    []map[string]any{{"key": "example"}},
+    			Triggers:                []map[string]any{{"schedule": map[string]any{"schedule_expression": "example"}}},
+    			VersioningConfiguration: map[string]any{"max_versions": 1},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { TanalyticsDataset } from "./local-sdk/aws/sdk/typescript/aws/io/tanalytics_dataset.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own tanalytics dataset" });
+
+      resource(TanalyticsDataset, "ci-runner", {
+        actions: [{ actionName: "example-action-name" }],
+        contentDeliveryRules: [{
+          destination: {
+            iotEventsDestinationConfiguration: { inputName: "example-input-name" },
+          },
+        }],
+        datasetName: "example-dataset-name",
+        lateDataRules: [{
+          ruleConfiguration: {
+            deltaTimeSessionWindowConfiguration: { timeoutInMinutes: 1 },
+          },
+        }],
+        retentionPeriod: { numberOfDays: 1 },
+        tags: [{ key: "example" }],
+        triggers: [{ schedule: { scheduleExpression: "example" } }],
+        versioningConfiguration: { maxVersions: 1 },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.io import TanalyticsDataset, TanalyticsDatasetConfig
+
+    def describe():
+        ubx.intent("payments own tanalytics dataset")
+
+        ubx.resource(TanalyticsDataset, "ci-runner", TanalyticsDatasetConfig(
+            actions=[{"action_name": "example-action-name"}],
+            content_delivery_rules=[{"destination": {"iot_events_destination_configuration": {"input_name": "example-input-name"}}}],
+            dataset_name="example-dataset-name",
+            late_data_rules=[{"rule_configuration": {"delta_time_session_window_configuration": {"timeout_in_minutes": 1}}}],
+            retention_period={"number_of_days": 1},
+            tags=[{"key": "example"}],
+            triggers=[{"schedule": {"schedule_expression": "example"}}],
+            versioning_configuration={"max_versions": 1},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_io_tanalytics_dataset, with actions a set value,
+    content delivery rules a set value, dataset name
+    example-dataset-name, late data rules a set value, retention
+    period a set value, tags a set value, triggers a set value,
+    versioning configuration a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="actions" type="list(object)" required>
+  The actions define the orders of operations that create the dataset content, either by running a SQL query on the IoT Analytics data store or by invoking a containerized application to transform the data. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="action_name" type="string">
+      A user-defined string that names this IoT Analytics dataset action, distinguishing it from other actions in the dataset's actions list. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="container_action" type="object">
+      Defines the container action that runs a Docker container to execute custom code for generating the dataset content, including the Docker image, execution role, and resource configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="execution_role_arn" type="string">
+          The ARN of the IAM role that grants the container action access to the AWS resources it needs to execute, such as data in the datastore or output to other services. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="image" type="string">
+          The Docker image used to run the container action for the IoT Analytics dataset. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="resource_configuration" type="object">
+          Defines the compute resources (CPU and memory) allocated to the container that runs the container action for the IoT Analytics dataset. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="compute_type" type="string">
+              Specifies the compute type (e.g., ACU_1 or ACU_2) allocated for the container action's resource configuration in the AWS IoT Analytics dataset. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="volume_size_in_gb" type="number">
+              Specifies the size, in gigabytes, of the volume to allocate to the container's storage for this IoT Analytics dataset container action. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="variables" type="list(object)">
+          Provides the set of variables (name-value pairs) that are passed as environment parameters to the container when the dataset's container action runs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="dataset_content_version_value" type="object">
+              Configures this container action variable to take its value from the content of the specified dataset (via its DatasetName), effectively supplying the latest dataset content version to the container. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="dataset_name" type="string">
+                  The name of the source AWS IoT Analytics dataset whose latest content version is used to populate this variable in the container action. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="double_value" type="number">
+              Specifies the double-precision numeric value for this container action variable, which will be passed as a parameter to the containerized application when the dataset content is produced. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="output_file_uri_value" type="object">
+              This object holds the Amazon S3 file name (URI) of an output file produced by the container action, which is used as the value for this variable. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="file_name" type="string">
+                  Optional; if omitted, computed by AWS.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="string_value" type="string">
+              Sets the string value of a variable in the container action's variable list, used to pass a fixed string parameter to the container that generates the dataset content. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="variable_name" type="string">
+              The name of the variable to pass to the container action, which is used to identify the value in the container's environment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="query_action" type="object">
+      This object defines a query action that executes an SQL query against the IoT Analytics data source to generate the dataset's content. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="filters" type="list(object)">
+          A list of filter objects, each containing an 'Include' time-window expression that restricts the rows returned by the query action to a specific time range (e.g., '1hour'), thereby controlling the dataset content. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="delta_time" type="object">
+              Defines the time-based filter for the IoT Analytics dataset query, using an offset in seconds and a time expression (e.g., cron) to limit data to a specific sliding time window. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="offset_seconds" type="number">
+                  The number of seconds before the current time from which to include data in the dataset query, used to define a rolling time window. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="time_expression" type="string">
+                  Provides the time expression (e.g., 'timestamp') that names the message timestamp field used by the delta-time filter to select records within the query's relative time window. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="sql_query" type="string">
+          The SQL query that is executed against the IoT Analytics data store to populate this dataset when the query action runs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="content_delivery_rules" type="list(object)">
+  Defines the content delivery rules for the dataset, which automate delivery of dataset contents to a destination (such as an Amazon S3 bucket) according to each rule's schedule or trigger configuration. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="destination" type="object">
+      Specifies the destination configuration for delivering dataset content, which can be either an S3 bucket (via S3DestinationConfiguration) or an AWS IoT Events input (via IotEventsDestinationConfiguration), as part of a content delivery rule for the AWS IoT Analytics dataset. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="iot_events_destination_configuration" type="object">
+          Configuration for delivering dataset content to an AWS IoT Events input, specifying the input name and the IAM role used to write the content. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="input_name" type="string">
+              The name of the AWS IoT Events input that receives the dataset contents when this content delivery rule is triggered. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="role_arn" type="string">
+              The ARN of the IAM role that grants AWS IoT Analytics permission to deliver dataset contents to the specified AWS IoT Events input. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="s3_destination_configuration" type="object">
+          Specifies the configuration for delivering dataset content to an Amazon S3 bucket, including the target bucket, key prefix, and output format. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="bucket" type="string">
+              The name of the S3 bucket where the dataset content is delivered when the content delivery rule triggers. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="glue_configuration" type="object">
+              Specifies the AWS Glue configuration for the S3 destination, including the database and table names under which the dataset content is registered in the Glue Data Catalog. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="database_name" type="string">
+                  The name of the AWS Glue database in which the dataset's table is registered when content delivery exports the dataset to Amazon S3 via AWS Glue. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="table_name" type="string">
+                  The name of the AWS Glue table that the IoT Analytics dataset content is delivered to when using the S3 destination with Glue configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="key" type="string">
+              The S3 object key template (for example, `dataset/&#123;version&#125;/data.json`) under the destination bucket where IoT Analytics dataset contents are delivered, with the `&#123;version&#125;` placeholder replaced by the dataset content version. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="role_arn" type="string">
+              The ARN of the IAM role that grants AWS IoT Analytics permission to write the dataset content to the S3 bucket defined in this destination configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="entry_name" type="string">
+      For each content delivery rule in an AWS IoT Analytics dataset's content_delivery_rules list, this string provides the rule's entry name, which is used to identify the delivery rule when the dataset content is delivered to its configured destination (e.g., an Amazon S3 bucket). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="dataset_name" type="string">
+  The name to assign to the AWS IoT Analytics dataset; if not provided, CloudFormation generates a unique name. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="late_data_rules" type="list(object)">
+  Defines the late data rules for the AWS IoT Analytics dataset, each specifying a delta-time configuration that determines when late-arriving data should trigger a dataset content update. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="rule_configuration" type="object">
+      Contains the delta time session window configuration for the late data rule, specifying the timeout in minutes during which late data can still be included in the dataset. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="delta_time_session_window_configuration" type="object">
+          Configures the delta time session window for a late data rule, defining the maximum delay in minutes between when a data point was emitted and when it arrives, during which the IoT Analytics dataset will still include it in its content. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="timeout_in_minutes" type="number">
+              The timeout in minutes for the delta time session window, which specifies how long the dataset waits for late data before considering it missing. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="rule_name" type="string">
+      The name of the late data rule, which identifies the rule that configures a delayed data session window for handling late-arriving data in the IoT Analytics dataset. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="retention_period" type="object">
+  Specifies how long the dataset's data is retained, either for a finite number of days or indefinitely. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="number_of_days" type="number">
+      Specifies the number of days that dataset contents are retained before they are automatically deleted. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="unlimited" type="bool">
+      When true, the dataset content is retained indefinitely, and any specified number of days is ignored; when false, content is retained for the specified number of days. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of key-value pairs used to tag the AWS IoT Analytics dataset for identification and categorization. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The Key of a tag attached to the AWS IoT Analytics dataset, used to identify the tag within the resource's set of tags. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag assigned to the IoT Analytics dataset, used for user-defined metadata and resource management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="triggers" type="list(object)">
+  Specifies the list of triggers that determine when the dataset content is generated, each trigger containing either a schedule cron expression or a reference to another dataset whose content creation triggers this dataset. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="schedule" type="object">
+      Specifies the schedule (cron expression) that determines when this trigger initiates dataset content creation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="schedule_expression" type="string">
+          The cron-based schedule expression that defines when this trigger runs to refresh the IoT Analytics dataset. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="triggering_dataset" type="object">
+      This object names another IoT Analytics dataset whose content generation, when completed, automatically triggers an update of this dataset's content. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="dataset_name" type="string">
+          The name of the dataset whose successful completion triggers the creation of this dataset. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="versioning_configuration" type="object">
+  Configures how dataset content versions are retained, specifying either unlimited versioning or a maximum number of versions to keep. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="max_versions" type="number">
+      Maximum number of dataset content versions to retain when dataset versioning is enabled. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="unlimited" type="bool">
+      When true, the dataset keeps all versions of its content without a limit, overriding the maxVersions setting; when false, the number of versions is limited by maxVersions. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>

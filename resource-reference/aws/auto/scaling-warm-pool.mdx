@@ -1,0 +1,113 @@
+---
+title: "aws_auto_scaling_warm_pool"
+description: "`aws_auto_scaling_warm_pool` keeps a pool of pre-initialized EC2 instances attached to an `aws_auto_scaling_auto_scaling_group` in a stopped or running..."
+---
+
+`aws_auto_scaling_warm_pool` keeps a pool of pre-initialized EC2 instances attached to an `aws_auto_scaling_auto_scaling_group` in a stopped or running state outside the group's own capacity count, so a scale-out event can pull an already-booted instance into service instead of waiting on a cold launch.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	auto "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/auto"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own scaling warm pool"})
+
+    		ubx.Resource(auto.ScalingWarmPool, "ci-runner", auto.ScalingWarmPoolConfig{
+    			AutoScalingGroupName:     "example-auto-scaling-group-name",
+    			InstanceReusePolicy:      map[string]any{"reuse_on_scale_in": true},
+    			MaxGroupPreparedCapacity: 1,
+    			MinSize:                  1,
+    			PoolState:                "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ScalingWarmPool } from "./local-sdk/aws/sdk/typescript/aws/auto/scaling_warm_pool.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own scaling warm pool" });
+
+      resource(ScalingWarmPool, "ci-runner", {
+        autoScalingGroupName: "example-auto-scaling-group-name",
+        instanceReusePolicy: { reuseOnScaleIn: true },
+        maxGroupPreparedCapacity: 1,
+        minSize: 1,
+        poolState: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.auto import ScalingWarmPool, ScalingWarmPoolConfig
+
+    def describe():
+        ubx.intent("payments own scaling warm pool")
+
+        ubx.resource(ScalingWarmPool, "ci-runner", ScalingWarmPoolConfig(
+            auto_scaling_group_name="example-auto-scaling-group-name",
+            instance_reuse_policy={"reuse_on_scale_in": True},
+            max_group_prepared_capacity=1,
+            min_size=1,
+            pool_state="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_auto_scaling_warm_pool, with auto scaling group name
+    example-auto-scaling-group-name, instance reuse policy a set
+    value, max group prepared capacity 1, min size 1, pool state
+    example.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="auto_scaling_group_name" type="string" required>
+  The name of the Auto Scaling group for which the warm pool is configured. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="instance_reuse_policy" type="object">
+  Configures the instance reuse policy for the warm pool, which controls whether instances removed during scale-in are reused when the Auto Scaling group scales out. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="reuse_on_scale_in" type="bool">
+      When true, instances that are scaled in from the Auto Scaling group are returned to the warm pool for reuse instead of being terminated. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="max_group_prepared_capacity" type="number">
+  Specifies the maximum number of instances that can be in the warm pool and the Auto Scaling group together, defaulting to the group's maximum capacity if not provided. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="min_size" type="number">
+  Specifies the minimum number of instances to maintain in the warm pool. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="pool_state" type="string">
+  Specifies whether instances in the warm pool are stopped (Stopped, so they do not incur instance charges) or running (Running, so they incur instance charges). Optional. **(AI-inferred)**
+</ResponseField>

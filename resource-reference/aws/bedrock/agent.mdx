@@ -1,0 +1,401 @@
+---
+title: "aws_bedrock_agent"
+description: "`aws_bedrock_agent` orchestrates a foundation model, instructions, action groups (API operations or Lambda functions the agent can invoke)..."
+---
+
+`aws_bedrock_agent` orchestrates a foundation model, instructions, action groups (API operations or Lambda functions the agent can invoke), and knowledge bases into an agent that interprets user input, decides what to call, and iterates until it can return a final response. Amazon Bedrock Agents (now Bedrock Agents Classic) is no longer open to new customers; Amazon Bedrock AgentCore is its successor for new work.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	bedrock "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/bedrock"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own agent"})
+
+    		ubx.Resource(bedrock.Agent, "ci-runner", bedrock.AgentConfig{
+    			AgentName:                "example-agent-name",
+    			ActionGroups:             []map[string]any{{"action_group_executor": map[string]any{"custom_control": "example"}}},
+    			AgentCollaboration:       "example",
+    			AgentCollaborators:       []map[string]any{{"agent_descriptor": map[string]any{"alias_arn": "example"}}},
+    			AgentResourceRoleArn:     "arn:aws:iam::123456789012:policy/ci",
+    			AutoPrepare:              true,
+    			CustomOrchestration:      map[string]any{"executor": map[string]any{"lambda": "example"}},
+    			CustomerEncryptionKeyArn: "arn:aws:iam::123456789012:policy/ci",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Agent } from "./local-sdk/aws/sdk/typescript/aws/bedrock/agent.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own agent" });
+
+      resource(Agent, "ci-runner", {
+        agentName: "example-agent-name",
+        actionGroups: [{ actionGroupExecutor: { customControl: "example" } }],
+        agentCollaboration: "example",
+        agentCollaborators: [{ agentDescriptor: { aliasArn: "example" } }],
+        agentResourceRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        autoPrepare: true,
+        customOrchestration: { executor: { lambda: "example" } },
+        customerEncryptionKeyArn: "arn:aws:iam::123456789012:policy/ci",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.bedrock import Agent, AgentConfig
+
+    def describe():
+        ubx.intent("payments own agent")
+
+        ubx.resource(Agent, "ci-runner", AgentConfig(
+            agent_name="example-agent-name",
+            action_groups=[{"action_group_executor": {"custom_control": "example"}}],
+            agent_collaboration="example",
+            agent_collaborators=[{"agent_descriptor": {"alias_arn": "example"}}],
+            agent_resource_role_arn="arn:aws:iam::123456789012:policy/ci",
+            auto_prepare=True,
+            custom_orchestration={"executor": {"lambda": "example"}},
+            customer_encryption_key_arn="arn:aws:iam::123456789012:policy/ci",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_bedrock_agent, with agent name example-agent-name,
+    action groups a set value, agent collaboration example, agent
+    collaborators a set value, agent resource role arn
+    arn:aws:iam::123456789012:policy/ci, auto prepare true, custom
+    orchestration a set value, customer encryption key arn
+    arn:aws:iam::123456789012:policy/ci.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="action_groups" type="list(object)">
+  List of ActionGroups Optional.
+  <Expandable title="properties">
+    <ResponseField name="action_group_executor" type="object">
+      Specifies the executor of an action group, which is either the ARN of a Lambda function that the agent invokes for the action group's logic or a custom control mode (like RETURN_CONTROL) that determines whether the agent hands control back to the caller. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="custom_control" type="string">
+          Determines the custom control mode for the action group executor; when set to the string value 'AMAZON_USER_INPUT', the agent returns action group invocation results to the calling application for execution rather than invoking a Lambda function. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="lambda" type="string">
+          The ARN of the AWS Lambda function that serves as the executor for this action group in the Bedrock agent. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="action_group_name" type="string">
+      The name of the action group, required to be unique among all action groups defined for the agent and used to reference it in the agent configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="action_group_state" type="string">
+      Indicates whether the action group is enabled or disabled, with allowed values ENABLED and DISABLED. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="api_schema" type="object">
+      The API schema object for the action group, which provides an S3 location or an inline OpenAPI-compatible payload that defines the operations the agent can invoke. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="payload" type="string">
+          The inline OpenAPI schema (JSON or YAML) string that defines the API operations for the action group, used when the schema is provided directly rather than via an S3 object. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="s3" type="object">
+          Specifies the S3 bucket, key, and optional version for the OpenAPI schema that defines the action group's API. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="s3_bucket_name" type="string">
+              The name of the S3 bucket that contains the OpenAPI schema file defining the API for this action group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="s3_object_key" type="string">
+              The S3 object key of the OpenAPI schema file stored in the S3 bucket specified by the sibling s3BucketName, used to define the API schema for this action group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      A free-form text field that describes the purpose or functionality of the action group, which defines the set of APIs or tools the agent can invoke. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="function_schema" type="object">
+      Specifies the schema of functions available to the agent within this action group, defining the function signatures and parameters that the agent can invoke to interact with external systems. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="functions" type="list(object)">
+          Defines the list of functions (each with name, description, and parameters) that the Bedrock agent can invoke through this action group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="description" type="string">
+              Describes the function's purpose so that the Amazon Bedrock Agent can evaluate when to invoke it. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="name" type="string">
+              The name of the function defined in the function schema for an action group of an Amazon Bedrock agent, which the agent uses to invoke the function. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="parameters" type="any">
+              Defines the parameters for each function in an agent's action group function schema, including each parameter's name, type, description, and required flag for the function invocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="require_confirmation" type="string">
+              Specifies whether the agent requires user confirmation before invoking this function, with valid values being ENABLED or DISABLED. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="parent_action_group_signature" type="string">
+      Specifies the unique identifier (signature) of a parent action group when this action group is defined as a sub-action group, establishing a hierarchical relationship between the action groups within the Bedrock agent. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="skip_resource_in_use_check_on_delete" type="bool">
+      This boolean controls whether the action group's deletion skips the AWS resource-in-use check, allowing the action group to be removed even if it is still considered in use by the agent or other AWS resources. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="agent_collaboration" type="string">
+  Agent collaboration state Optional.
+</ResponseField>
+
+<ResponseField name="agent_collaborators" type="list(object)">
+  List of Agent Collaborators Optional.
+  <Expandable title="properties">
+    <ResponseField name="agent_descriptor" type="object">
+      Specifies the agent ID and alias ARN that identify the collaborator agent in a multi-agent collaboration, allowing the current Bedrock agent to invoke and delegate to that sub-agent. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="alias_arn" type="string">
+          The Amazon Resource Name (ARN) of the alias of the collaborator agent that this agent can invoke. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="collaboration_instruction" type="string">
+      The instruction that the main agent uses to determine how to delegate tasks or queries to this sub-agent collaborator. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="collaborator_name" type="string">
+      The name of the collaborating agent that this Bedrock agent can call during multi-agent collaboration, used to identify the sub-agent within the agent_collaborators list. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="relay_conversation_history" type="string">
+      Determines whether the conversation history is relayed to the collaborator agent, with values such as TO_COLLABORATOR or DISABLED. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="agent_name" type="string" required>
+  Name for a resource. Required.
+</ResponseField>
+
+<ResponseField name="agent_resource_role_arn" type="string">
+  ARN of a IAM role. Optional.
+</ResponseField>
+
+<ResponseField name="auto_prepare" type="bool">
+  Specifies whether to automatically prepare after creating or updating the agent. Optional.
+</ResponseField>
+
+<ResponseField name="custom_orchestration" type="object">
+  Structure for custom orchestration Optional.
+  <Expandable title="properties">
+    <ResponseField name="executor" type="object">
+      Types of executors for custom orchestration strategy Optional.
+      <Expandable title="properties">
+        <ResponseField name="lambda" type="string" required>
+          ARN of a Lambda. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="customer_encryption_key_arn" type="string">
+  A KMS key ARN Optional.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Description of the Resource. Optional.
+</ResponseField>
+
+<ResponseField name="foundation_model" type="string">
+  ARN or name of a Bedrock model. Optional.
+</ResponseField>
+
+<ResponseField name="guardrail_configuration" type="object">
+  Configuration for a guardrail. Optional.
+  <Expandable title="properties">
+    <ResponseField name="guardrail_identifier" type="string">
+      Identifier for the guardrail, could be the id or the arn Optional.
+    </ResponseField>
+    <ResponseField name="guardrail_version" type="string">
+      Version of the guardrail Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="idle_session_ttlin_seconds" type="number">
+  Max Session Time. Optional.
+</ResponseField>
+
+<ResponseField name="instruction" type="string">
+  Instruction for the agent. Optional.
+</ResponseField>
+
+<ResponseField name="knowledge_bases" type="list(object)">
+  List of Agent Knowledge Bases Optional.
+  <Expandable title="properties">
+    <ResponseField name="description" type="string">
+      The description of a knowledge base attached to the Bedrock agent, which provides a free-form text explanation of the knowledge base's purpose and is stored as part of the agent's knowledge base configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="knowledge_base_id" type="string">
+      The unique identifier of the Amazon Bedrock knowledge base that the agent uses to retrieve information for response generation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="knowledge_base_state" type="string">
+      Defines the runtime state of the connected knowledge base, allowing you to enable or disable its use by the Amazon Bedrock agent, with valid values of ENABLED and DISABLED. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="memory_configuration" type="object">
+  Configuration for memory storage Optional.
+  <Expandable title="properties">
+    <ResponseField name="enabled_memory_types" type="list(string)">
+      Types of session storage persisted in memory Optional.
+    </ResponseField>
+    <ResponseField name="session_summary_configuration" type="object">
+      Configuration for Session Summarization Optional.
+      <Expandable title="properties">
+        <ResponseField name="max_recent_sessions" type="number">
+          Maximum number of Sessions to Summarize Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="storage_days" type="number">
+      Maximum number of days to store session details Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="orchestration_type" type="string">
+  Types of orchestration strategy for agents Optional.
+</ResponseField>
+
+<ResponseField name="prompt_override_configuration" type="object">
+  Configuration for prompt override. Optional.
+  <Expandable title="properties">
+    <ResponseField name="override_lambda" type="string">
+      ARN of a Lambda. Optional.
+    </ResponseField>
+    <ResponseField name="prompt_configurations" type="list(object)" required>
+      List of BasePromptConfiguration Required.
+      <Expandable title="properties">
+        <ResponseField name="additional_model_request_fields" type="any">
+          Specifies a JSON object of additional inference parameters that are passed through to the foundation model, beyond the standard inference configuration, when the prompt is invoked. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="base_prompt_template" type="string">
+          Provides the base prompt template string for this prompt configuration, which contains the instructions and placeholder variables that the Bedrock agent uses when generating the prompt for the corresponding prompt type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="foundation_model" type="string">
+          The Amazon Bedrock foundation model ID (e.g., 'anthropic.claude-v2') used for this prompt configuration in the agent's prompt override settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="inference_configuration" type="object">
+          Specifies the inference parameters (such as temperature, top P, and maximum length) for a particular prompt configuration in the agent's prompt override settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="maximum_length" type="number">
+              Specifies the maximum number of tokens the model is allowed to generate in its response for this prompt configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="stop_sequences" type="list(string)">
+              Specifies a list of stop sequences (strings) that cause the model to halt token generation when any of them is encountered in the output. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="temperature" type="number">
+              Specifies the sampling temperature for the model's inference, controlling the randomness of generated responses for this prompt's configuration, where higher values yield more diverse outputs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="top_k" type="number">
+              The top_k sampling parameter specifies the number of most-likely tokens to consider for each generation step, controlling the randomness and diversity of the model's responses within the prompt's inference configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="top_p" type="number">
+              Sets the nucleus sampling probability threshold for the foundation model, such that only tokens whose cumulative probability mass reaches this top_p value are considered during response generation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="parser_mode" type="string">
+          Specifies the parsing mode for the prompt configuration, indicating whether the agent uses the default parser (DEFAULT) or an overridden parser prompt (OVERRIDE) to interpret the model's output. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="prompt_creation_mode" type="string">
+          Specifies whether the prompt configuration uses the default Bedrock prompt or a custom override, with valid values PROMPT_CREATION_MODE_DEFAULT and PROMPT_CREATION_MODE_OVERRIDDEN. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="prompt_state" type="string">
+          Determines whether this prompt override configuration is active (ENABLED) or inactive (DISABLED), controlling whether the custom prompt is used for the associated agent step. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="prompt_type" type="string">
+          Specifies which step in the agent's orchestration flow this prompt override applies to, such as PRE_PROCESSING, ORCHESTRATION, POST_PROCESSING, or KNOWLEDGE_BASE_RESPONSE_GENERATION. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="skip_resource_in_use_check_on_delete" type="bool">
+  Specifies whether to allow deleting agent while it is in use. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  A map of tag keys and values Optional.
+</ResponseField>
+
+<ResponseField name="test_alias_tags" type="any">
+  A map of tag keys and values Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="agent_arn" type="string">
+  Arn representation of the Agent. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="agent_id" type="string">
+  Identifier for a resource. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="agent_status" type="string">
+  Schema Type for Action APIs. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="agent_version" type="string">
+  Draft Agent Version. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  Time Stamp. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="failure_reasons" type="list(string)">
+  Failure Reasons for Error. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="prepared_at" type="string">
+  Time Stamp. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="recommended_actions" type="list(string)">
+  The recommended actions users can take to resolve an error in failureReasons. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  Time Stamp. Computed by AWS after `ship`.
+</ResponseField>

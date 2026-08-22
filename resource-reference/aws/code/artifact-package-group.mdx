@@ -1,0 +1,178 @@
+---
+title: "aws_code_artifact_package_group"
+description: "`aws_code_artifact_package_group` applies real origin control and configuration consistently across every package in an `aws_code_artifact_domain`..."
+---
+
+`aws_code_artifact_package_group` applies real origin control and configuration consistently across every package in an `aws_code_artifact_domain` whose name matches the group's pattern, rather than a caller setting the same policy on each individual package by hand.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	code "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/code"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own artifact package group"})
+
+    		ubx.Resource(code.ArtifactPackageGroup, "ci-runner", code.ArtifactPackageGroupConfig{
+    			DomainName:          "example-domain-name",
+    			Pattern:             "example",
+    			ContactInfo:         "example",
+    			Description:         "Managed by ubx.",
+    			DomainOwner:         "example",
+    			OriginConfiguration: map[string]any{"restrictions": map[string]any{"external_upstream": map[string]any{"restriction_mode": "example"}}},
+    			Tags:                []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ArtifactPackageGroup } from "./local-sdk/aws/sdk/typescript/aws/code/artifact_package_group.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own artifact package group" });
+
+      resource(ArtifactPackageGroup, "ci-runner", {
+        domainName: "example-domain-name",
+        pattern: "example",
+        contactInfo: "example",
+        description: "Managed by ubx.",
+        domainOwner: "example",
+        originConfiguration: {
+          restrictions: { externalUpstream: { restrictionMode: "example" } },
+        },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.code import ArtifactPackageGroup, ArtifactPackageGroupConfig
+
+    def describe():
+        ubx.intent("payments own artifact package group")
+
+        ubx.resource(ArtifactPackageGroup, "ci-runner", ArtifactPackageGroupConfig(
+            domain_name="example-domain-name",
+            pattern="example",
+            contact_info="example",
+            description="Managed by ubx.",
+            domain_owner="example",
+            origin_configuration={"restrictions": {"external_upstream": {"restriction_mode": "example"}}},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_code_artifact_package_group, with domain name
+    example-domain-name, pattern example, contact info example,
+    description Managed by ubx., domain owner example, origin
+    configuration a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="contact_info" type="string">
+  The contact info of the package group. Optional.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  The text description of the package group. Optional.
+</ResponseField>
+
+<ResponseField name="domain_name" type="string" required>
+  The name of the domain that contains the package group. Required.
+</ResponseField>
+
+<ResponseField name="domain_owner" type="string">
+  The 12-digit account ID of the AWS account that owns the domain. Optional.
+</ResponseField>
+
+<ResponseField name="origin_configuration" type="object">
+  Configures the origin restrictions for the package group, controlling whether package versions can be published directly or pulled from upstream repositories. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="restrictions" type="object" required>
+      Specifies the publishing and access restrictions for external and upstream origins to control how package versions are added or read within this package group. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="external_upstream" type="object">
+          Specifies the restriction mode (ALLOW or BLOCK) for whether package versions in this package group can be obtained from external upstream repositories, governing the origin of packages pulled into the repository. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="repositories" type="list(string)">
+              Specifies the list of external upstream repository names to which the restriction mode (e.g., ALLOW or BLOCK) for 'external_upstream' applies in the package group's origin configuration. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="restriction_mode" type="string" required>
+              This required string specifies the restriction mode for external upstream repositories (e.g., public registries) in the package group's origin configuration, with allowed values such as ALLOW, BLOCK, or ALLOW_SPECIFIC_REPOSITORIES. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="internal_upstream" type="object">
+          Specifies the origin restriction settings for internal upstream repositories, controlling whether package versions can be pulled from other CodeArtifact repositories in the same domain via the `pull` mode (with allowed values `ALLOW`, `BLOCK`, or `ALLOW_OR_BLOCK`). Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="repositories" type="list(string)">
+              Specifies a list of CodeArtifact repository names that are allowed as internal upstream sources for this package group when the internal upstream restriction mode is set to ALLOW_SPECIFIC_REPOSITORIES. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="restriction_mode" type="string" required>
+              Determines whether packages in this package group can be sourced from internal upstream repositories (upstream repositories within the same AWS CodeArtifact domain), with allowed values ALLOW, BLOCK, or ALLOW_SPECIFIC_REPOSITORIES to permit only specific repositories. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="publish" type="object">
+          Configures the restriction mode for publishing package versions to this package group, controlling whether new package versions can be published directly to the repository associated with this group. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="repositories" type="list(string)">
+              A list of repository ARNs that are allowed to publish packages to this package group when the publish restriction is set to ALLOW_SPECIFIC_REPOSITORIES in the origin configuration. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="restriction_mode" type="string" required>
+              Controls the publish restriction mode for the package group, where ALLOW permits publishing, BLOCK denies all publishing, and READ_ONLY permits reading package metadata but blocks publishing. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="pattern" type="string" required>
+  The package group pattern that is used to gather packages. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to the package group. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The ARN of the package group. Computed by AWS after `ship`.
+</ResponseField>

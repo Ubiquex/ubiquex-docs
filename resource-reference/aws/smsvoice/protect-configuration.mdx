@@ -1,0 +1,145 @@
+---
+title: "aws_smsvoice_protect_configuration"
+description: "`aws_smsvoice_protect_configuration` configures real, account-level protection rules..."
+---
+
+`aws_smsvoice_protect_configuration` configures real, account-level protection rules, blocking known-fraudulent destination number patterns or applying country-level rules, that an `aws_smsvoice_phone_number` or `aws_smsvoice_pool` can opt into to reduce toll fraud and spam.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	smsvoice "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/smsvoice"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own protect configuration"})
+
+    		ubx.Resource(smsvoice.ProtectConfiguration, "ci-runner", smsvoice.ProtectConfigurationConfig{
+    			CountryRuleSet:            map[string]any{"mms": []map[string]any{{"country_code": "example"}}},
+    			DeletionProtectionEnabled: true,
+    			Tags:                      []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ProtectConfiguration } from "./local-sdk/aws/sdk/typescript/aws/smsvoice/protect_configuration.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own protect configuration" });
+
+      resource(ProtectConfiguration, "ci-runner", {
+        countryRuleSet: { mms: [{ countryCode: "example" }] },
+        deletionProtectionEnabled: true,
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.smsvoice import ProtectConfiguration, ProtectConfigurationConfig
+
+    def describe():
+        ubx.intent("payments own protect configuration")
+
+        ubx.resource(ProtectConfiguration, "ci-runner", ProtectConfigurationConfig(
+            country_rule_set={"mms": [{"country_code": "example"}]},
+            deletion_protection_enabled=True,
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_smsvoice_protect_configuration, with country rule set
+    a set value, deletion protection enabled true, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="country_rule_set" type="object">
+  Defines the per-country rules for the protect configuration, where each key is a two-letter country code and the value is a rule object containing Boolean flags for Sms, Voice, and Send that control whether messages can be sent to that destination. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="mms" type="list(object)">
+      Defines a list of MMS messaging rules for a given country in the protect configuration, where each item in the list specifies an action to apply to MMS messages for that country. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="country_code" type="string">
+          The country code to which this MMS rule in the AWS SMS Voice protect configuration's country rule set applies, controlling MMS messaging restrictions for that country. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="protect_status" type="string">
+          Determines whether MMS messages are allowed or blocked for the specified country rule set within the protect configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="sms" type="list(object)">
+      The `sms` list under `country_rule_set` defines country-specific SMS protection rules for the protect configuration, allowing you to set per-country settings such as daily spend limits and opt-out behavior for SMS messages. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="country_code" type="string">
+          The two-character country code (such as 'US') that defines the country to which this SMS rule applies in the protect configuration's country rule set. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="protect_status" type="string">
+          Determines whether outbound SMS messages to the associated country are allowed or blocked by this protect configuration's country rule set for the SMS channel. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="voice" type="list(object)">
+      The voice property contains a list of voice-specific rule objects that control whether voice calls to and from the listed country are allowed or blocked in the protect configuration. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="country_code" type="string">
+          The ISO 3166-1 alpha-2 country code (e.g., 'US') for which the associated voice rule in the protect configuration's country rule set is defined. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="protect_status" type="string">
+          Determines whether voice calls to numbers in the associated country are allowed or blocked, with valid values 'ALLOW' or 'BLOCK'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="deletion_protection_enabled" type="bool">
+  When set to true deletion protection is enabled and protect configuration cannot be deleted. By default this is set to false. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the protect configuration. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="protect_configuration_id" type="string">
+  The unique identifier for the protect configuration. Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,321 @@
+---
+title: "aws_sage_maker_model"
+description: "`aws_sage_maker_model` registers a real trained model, its inference container image and model artifacts in S3..."
+---
+
+`aws_sage_maker_model` registers a real trained model, its inference container image and model artifacts in S3, the resource an `aws_sage_maker_endpoint_config` references to actually serve predictions.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	sage "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sage"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own maker model"})
+
+    		ubx.Resource(sage.MakerModel, "ci-runner", sage.MakerModelConfig{
+    			Containers:               []map[string]any{{"container_hostname": "example"}},
+    			EnableNetworkIsolation:   true,
+    			ExecutionRoleArn:         "arn:aws:iam::123456789012:policy/ci",
+    			InferenceExecutionConfig: map[string]any{"mode": "example"},
+    			ModelName:                "example-model-name",
+    			PrimaryContainer:         map[string]any{"container_hostname": "example"},
+    			Tags:                     []map[string]any{{"key": "example"}},
+    			VpcConfig:                map[string]any{"security_group_ids": []string{"example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MakerModel } from "./local-sdk/aws/sdk/typescript/aws/sage/maker_model.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own maker model" });
+
+      resource(MakerModel, "ci-runner", {
+        containers: [{ containerHostname: "example" }],
+        enableNetworkIsolation: true,
+        executionRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        inferenceExecutionConfig: { mode: "example" },
+        modelName: "example-model-name",
+        primaryContainer: { containerHostname: "example" },
+        tags: [{ key: "example" }],
+        vpcConfig: { securityGroupIds: ["example"] },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.sage import MakerModel, MakerModelConfig
+
+    def describe():
+        ubx.intent("payments own maker model")
+
+        ubx.resource(MakerModel, "ci-runner", MakerModelConfig(
+            containers=[{"container_hostname": "example"}],
+            enable_network_isolation=True,
+            execution_role_arn="arn:aws:iam::123456789012:policy/ci",
+            inference_execution_config={"mode": "example"},
+            model_name="example-model-name",
+            primary_container={"container_hostname": "example"},
+            tags=[{"key": "example"}],
+            vpc_config={"security_group_ids": ["example"]},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_sage_maker_model, with containers a set value, enable
+    network isolation true, execution role arn
+    arn:aws:iam::123456789012:policy/ci, inference execution config a
+    set value, model name example-model-name, primary container a set
+    value, tags a set value, vpc config a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="containers" type="list(object)">
+  Specifies the containers in the inference pipeline. Optional.
+  <Expandable title="properties">
+    <ResponseField name="container_hostname" type="string">
+      Specifies the custom hostname assigned to the container within a multi-container SageMaker model, allowing other containers to address it by that hostname. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="environment" type="any">
+      A map of environment variable keys and values that are passed to the container when the SageMaker model is deployed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="image" type="string">
+      Specifies the Amazon ECR registry path (image URI) of the Docker image that SageMaker uses to run inference for this container in the model. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="image_config" type="object">
+      Configures how the container image is accessed, including the repository access mode (Platform or Vpc) and optional credentials provider ARN for pulling the image from a private registry. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="repository_access_mode" type="string">
+          Sets the repository access mode for the container image, with Platform using the default public registry access and Vpc enabling access through your Amazon VPC for private ECR repositories. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="repository_auth_config" type="object">
+          Configures authentication for pulling container images from a private repository by specifying the ARN of an AWS Secrets Manager secret that holds the repository credentials. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="repository_credentials_provider_arn" type="string">
+              Specifies the ARN of an AWS Secrets Manager secret that holds the credentials for accessing a private container repository, used by the SageMaker model container's image configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="inference_specification_name" type="string">
+      Specifies the name of an inference specification from a model package to use for this container when creating the SageMaker model, enabling selection among multiple inference configurations defined in the model package. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="mode" type="string">
+      Determines whether this container serves a single model ('SingleModel', the default) or is configured to host multiple models in a multi-model endpoint ('MultiModel'). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="model_data_source" type="object">
+      Provides the model data source configuration for a SageMaker model container, specifying the S3 location (URI and data type) of the model artifact instead of using the direct ModelDataUrl field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="s3_data_source" type="object">
+          Defines the S3 data source used to point SageMaker at the model artifacts for a container, by specifying the S3 bucket URI and the data type (S3Prefix or S3Object) of the model data. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="compression_type" type="string">
+              Specifies the compression type of the model data in Amazon S3, either 'None' or 'Gzip'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="hub_access_config" type="object">
+              Optional; if omitted, computed by AWS.
+              <Expandable title="properties">
+                <ResponseField name="hub_content_arn" type="string">
+                  The ARN of the SageMaker Hub content that serves as the model data source when the model is referenced from a hub. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="model_access_config" type="object">
+              Controls access to the S3 model data by specifying whether to accept the end-user license agreement (EULA) for the model. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="accept_eula" type="bool">
+                  Indicates whether to accept the End User License Agreement (EULA) required to access the model artifact from the specified S3 data source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="s3_data_type" type="string">
+              Specifies whether the S3 data source is an S3 prefix pointing to model artifacts (S3Prefix) or a manifest file that lists the model artifacts (ManifestFile). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="s3_uri" type="string">
+              The S3 URI that specifies the location of the model artifacts in Amazon S3 for this container, which SageMaker uses to download the model when the data source is an S3DataSource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="model_data_url" type="string">
+      Specifies the S3 URL (e.g., s3://bucket/model.tar.gz) of the model artifacts used by this container definition in the SageMaker model. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="model_package_name" type="string">
+      The name of the model package to use for this container, which references an existing model package registered in Amazon SageMaker Model Registry. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="multi_model_config" type="object">
+      Configures this container for multi-model endpoints by setting the model cache behavior (e.g., enabling or disabling the cache of models in the container's memory). Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="model_cache_setting" type="string">
+          Specifies whether SageMaker caches the model artifacts at the endpoint for a multi-model endpoint, with values 'Enabled' or 'Disabled'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="enable_network_isolation" type="bool">
+  Isolates the model container. No inbound or outbound network calls can be made to or from the model container. Optional.
+</ResponseField>
+
+<ResponseField name="execution_role_arn" type="string">
+  The Amazon Resource Name (ARN) of the IAM role that you specified for the model. Optional.
+</ResponseField>
+
+<ResponseField name="inference_execution_config" type="object">
+  Specifies details about how containers in a multi-container endpoint are run. Optional.
+  <Expandable title="properties">
+    <ResponseField name="mode" type="string" required>
+      How containers in a multi-container are run. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="model_name" type="string">
+  The name of the new model. Optional.
+</ResponseField>
+
+<ResponseField name="primary_container" type="object">
+  Describes the container, as part of model definition. Optional.
+  <Expandable title="properties">
+    <ResponseField name="container_hostname" type="string">
+      This parameter is ignored for models that contain only a PrimaryContainer. When a ContainerDefinition is part of an inference pipeline, the value of the parameter uniquely identifies the container for the purposes of logging and metrics. For information, see [Use Logs and Metrics to Monitor an Inference Pipeline](https://docs.aws.amazon.com/sagemaker/latest/dg/inference-pipeline-logs-metrics.html). If you don't specify a value for this parameter for a ContainerDefinition that is part of an inference pipeline, a unique name is automatically assigned based on the position of the ContainerDefinition in the pipeline. If you specify a value for the ContainerHostName for any ContainerDefinition that is part of an inference pipeline, you must specify a value for the ContainerHostName parameter of every ContainerDefinition in that pipeline. Optional.
+    </ResponseField>
+    <ResponseField name="environment" type="any">
+      The environment variables to set in the Docker container. Don't include any sensitive data in your environment variables. The maximum length of each key and value in the Environment map is 1024 bytes. The maximum length of all keys and values in the map, combined, is 32 KB. If you pass multiple containers to a CreateModel request, then the maximum length of all of their maps, combined, is also 32 KB. Optional.
+    </ResponseField>
+    <ResponseField name="image" type="string">
+      The path where inference code is stored. This can be either in Amazon EC2 Container Registry or in a Docker registry that is accessible from the same VPC that you configure for your endpoint. If you are using your own custom algorithm instead of an algorithm provided by SageMaker, the inference code must meet SageMaker requirements. SageMaker supports both registry/repository[:tag] and registry/repository[@digest] image path formats. For more information, see [Using Your Own Algorithms with Amazon SageMaker](https://docs.aws.amazon.com/sagemaker/latest/dg/your-algorithms.html). Optional.
+    </ResponseField>
+    <ResponseField name="image_config" type="object">
+      Specifies whether the model container is in Amazon ECR or a private Docker registry accessible from your Amazon Virtual Private Cloud (VPC). Optional.
+      <Expandable title="properties">
+        <ResponseField name="repository_access_mode" type="string" required>
+          Set this to one of the following values: Platform - The model image is hosted in Amazon ECR. Vpc - The model image is hosted in a private Docker registry in your VPC. Required.
+        </ResponseField>
+        <ResponseField name="repository_auth_config" type="object">
+          Specifies an authentication configuration for the private docker registry where your model image is hosted. Specify a value for this property only if you specified `Vpc` as the value for the `RepositoryAccessMode` field of the `ImageConfig` object that you passed to a call to `CreateModel` and the private Docker registry where the model image is hosted requires authentication. Optional.
+          <Expandable title="properties">
+            <ResponseField name="repository_credentials_provider_arn" type="string" required>
+              The Amazon Resource Name (ARN) of an AWS Lambda function that provides credentials to authenticate to the private Docker registry where your model image is hosted. For information about how to create an AWS Lambda function, see [Create a Lambda function with the console](https://docs.aws.amazon.com/lambda/latest/dg/getting-started-create-function.html) in the AWS Lambda Developer Guide Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="inference_specification_name" type="string">
+      The inference specification name in the model package version. Optional.
+    </ResponseField>
+    <ResponseField name="mode" type="string">
+      Whether the container hosts a single model or multiple models. Optional.
+    </ResponseField>
+    <ResponseField name="model_data_source" type="object">
+      Specifies the location of ML model data to deploy. If specified, you must specify one and only one of the available data sources. Optional.
+      <Expandable title="properties">
+        <ResponseField name="s3_data_source" type="object" required>
+          Specifies the S3 location of ML model data to deploy. Required.
+          <Expandable title="properties">
+            <ResponseField name="compression_type" type="string" required>
+              Specifies how the ML model data is prepared. Required.
+            </ResponseField>
+            <ResponseField name="hub_access_config" type="object">
+              Configuration information specifying which hub contents have accessible deployment options. Optional.
+              <Expandable title="properties">
+                <ResponseField name="hub_content_arn" type="string" required>
+                  The ARN of the hub content for which deployment access is allowed. Required.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="model_access_config" type="object">
+              The access configuration file to control access to the ML model. You can explicitly accept the model end-user license agreement (EULA) within the `ModelAccessConfig`. Optional.
+              <Expandable title="properties">
+                <ResponseField name="accept_eula" type="bool" required>
+                  Specifies agreement to the model end-user license agreement (EULA). The `AcceptEula` value must be explicitly defined as `True` in order to accept the EULA that this model requires. You are responsible for reviewing and complying with any applicable license terms and making sure they are acceptable for your use case before downloading or using a model. Required.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="s3_data_type" type="string" required>
+              Specifies the type of ML model data to deploy. Required.
+            </ResponseField>
+            <ResponseField name="s3_uri" type="string" required>
+              Specifies the S3 path of ML model data to deploy. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="model_data_url" type="string">
+      The S3 path where the model artifacts, which result from model training, are stored. This path must point to a single gzip compressed tar archive (.tar.gz suffix). The S3 path is required for SageMaker built-in algorithms, but not if you use your own algorithms. For more information on built-in algorithms, see [Common Parameters](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html). If you provide a value for this parameter, SageMaker uses AWS Security Token Service to download model artifacts from the S3 path you provide. AWS STS is activated in your AWS account by default. If you previously deactivated AWS STS for a region, you need to reactivate AWS STS for that region. For more information, see [Activating and Deactivating AWS STS in an AWS Region](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html) in the AWS Identity and Access Management User Guide Optional.
+    </ResponseField>
+    <ResponseField name="model_package_name" type="string">
+      The name or Amazon Resource Name (ARN) of the model package to use to create the model. Optional.
+    </ResponseField>
+    <ResponseField name="multi_model_config" type="object">
+      Specifies additional configuration for multi-model endpoints. Optional.
+      <Expandable title="properties">
+        <ResponseField name="model_cache_setting" type="string">
+          Whether to cache models for a multi-model endpoint. By default, multi-model endpoints cache models so that a model does not have to be loaded into memory each time it is invoked. Some use cases do not benefit from model caching. For example, if an endpoint hosts a large number of models that are each invoked infrequently, the endpoint might perform better if you disable model caching. To disable model caching, set the value of this parameter to `Disabled`. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs. You can use tags to categorize your AWS resources in different ways, for example, by purpose, owner, or environment. For more information, see [Tagging AWS Resources](https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html). Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      A tag key that, together with a tag value, attaches metadata to the SageMaker model for resource organization, cost allocation, and access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag attached to the SageMaker model, used to store arbitrary metadata such as cost center or environment for the model. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vpc_config" type="object">
+  Specifies an Amazon Virtual Private Cloud (VPC) that your SageMaker jobs, hosted models, and compute resources have access to. You can control access to and from your resources by configuring a VPC. For more information, see [Give SageMaker Access to Resources in your Amazon VPC](https://docs.aws.amazon.com/sagemaker/latest/dg/infrastructure-give-access.html). Optional.
+  <Expandable title="properties">
+    <ResponseField name="security_group_ids" type="list(string)" required>
+      The VPC security group IDs, in the form `sg-xxxxxxxx`. Specify the security groups for the VPC that is specified in the `Subnets` field. Required.
+    </ResponseField>
+    <ResponseField name="subnets" type="list(string)" required>
+      The ID of the subnets in the VPC to which you want to connect your training job or model. For information about the availability of specific instance types, see [Supported Instance Types and Availability Zones](https://docs.aws.amazon.com/sagemaker/latest/dg/instance-types-az.html). Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="model_arn" type="string">
+  The Amazon Resource Name (ARN) of the model. Computed by AWS after `ship`.
+</ResponseField>

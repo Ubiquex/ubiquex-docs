@@ -1,0 +1,207 @@
+---
+title: "aws_eks_capability"
+description: "`aws_eks_capability` installs a real, fully managed, opinionated Kubernetes-native platform feature, Argo CD for continuous deployment..."
+---
+
+`aws_eks_capability` installs a real, fully managed, opinionated Kubernetes-native platform feature, Argo CD for continuous deployment, AWS Controllers for Kubernetes for AWS resource management, Kube Resource Orchestrator, running entirely in AWS-managed infrastructure rather than consuming an `aws_eks_cluster`'s own compute. Reached general availability November 30, 2025.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	eks "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/eks"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own capability"})
+
+    		ubx.Resource(eks.Capability, "ci-runner", eks.CapabilityConfig{
+    			CapabilityName:          "example-capability-name",
+    			ClusterName:             "example-cluster-name",
+    			DeletePropagationPolicy: "example",
+    			RoleArn:                 "arn:aws:iam::123456789012:policy/ci",
+    			Type:                    "example",
+    			Tags:                    []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Capability } from "./local-sdk/aws/sdk/typescript/aws/eks/capability.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own capability" });
+
+      resource(Capability, "ci-runner", {
+        capabilityName: "example-capability-name",
+        clusterName: "example-cluster-name",
+        deletePropagationPolicy: "example",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        type: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.eks import Capability, CapabilityConfig
+
+    def describe():
+        ubx.intent("payments own capability")
+
+        ubx.resource(Capability, "ci-runner", CapabilityConfig(
+            capability_name="example-capability-name",
+            cluster_name="example-cluster-name",
+            delete_propagation_policy="example",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            type="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_eks_capability, with capability name
+    example-capability-name, cluster name example-cluster-name,
+    delete propagation policy example, role arn
+    arn:aws:iam::123456789012:policy/ci, type example, tags a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="capability_name" type="string" required>
+  A unique name for the capability. The name must be unique within your cluster and can contain alphanumeric characters, hyphens, and underscores. Required.
+</ResponseField>
+
+<ResponseField name="cluster_name" type="string" required>
+  The name of the EKS cluster where you want to create the capability. Required.
+</ResponseField>
+
+<ResponseField name="delete_propagation_policy" type="string" required>
+  Specifies how Kubernetes resources managed by the capability should be handled when the capability is deleted. Currently, the only supported value is RETAIN which retains all Kubernetes resources managed by the capability when the capability is deleted. Required.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the IAM role that the capability uses to interact with AWS services. This role must have a trust policy that allows the EKS service principal to assume it, and it must have the necessary permissions for the capability type you're creating. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="type" type="string" required>
+  The type of capability to create. Valid values are: ACK (AWS Controllers for Kubernetes, which lets you manage AWS resources directly from Kubernetes), ARGOCD (Argo CD for GitOps-based continuous delivery), or KRO (Kube Resource Orchestrator for composing and managing custom Kubernetes resources). Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the capability. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="configuration" type="object">
+  Configuration settings for a capability. The structure of this object varies depending on the capability type. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="ack" type="any">
+      Optional.
+    </ResponseField>
+    <ResponseField name="argo_cd" type="object">
+      Configuration settings for an Argo CD capability. This includes the Kubernetes namespace, IAM Identity Center integration, RBAC role mappings, and network access configuration. Optional.
+      <Expandable title="properties">
+        <ResponseField name="aws_idc" type="object" required>
+          Configuration for integrating Argo CD with IAM Identity Center. This allows you to use your organization's identity provider for authentication to Argo CD. Required.
+          <Expandable title="properties">
+            <ResponseField name="idc_instance_arn" type="string" required>
+              The ARN of the IAM Identity Center instance to use for authentication. Required.
+            </ResponseField>
+            <ResponseField name="idc_managed_application_arn" type="string">
+              The ARN of the managed application created in IAM Identity Center for this Argo CD capability. This application is automatically created and managed by EKS. Optional.
+            </ResponseField>
+            <ResponseField name="idc_region" type="string">
+              The Region where your IAM Identity Center instance is located. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="namespace" type="string">
+          The Kubernetes namespace where Argo CD resources will be created. If not specified, the default namespace is used. Optional.
+        </ResponseField>
+        <ResponseField name="network_access" type="object">
+          Configuration for network access to the Argo CD capability's managed API server endpoint. By default, the Argo CD server is accessible via a public endpoint. You can optionally specify one or more VPC endpoint IDs to enable private connectivity from your VPCs. Optional.
+          <Expandable title="properties">
+            <ResponseField name="vpce_ids" type="list(string)">
+              A list of VPC endpoint IDs to associate with the managed Argo CD API server endpoint. Each VPC endpoint provides private connectivity from a specific VPC to the Argo CD server. You can specify multiple VPC endpoint IDs to enable access from multiple VPCs. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="rbac_role_mappings" type="list(object)">
+          A list of role mappings that define which IAM Identity Center users or groups have which Argo CD roles. Each mapping associates an Argo CD role (ADMIN, EDITOR, or VIEWER) with one or more IAM Identity Center identities. Optional.
+          <Expandable title="properties">
+            <ResponseField name="identities" type="list(object)">
+              Specifies a list of IAM principal ARNs (users or roles) that are mapped to the corresponding Argo CD RBAC role, granting those identities the permissions defined for that role in the Kubernetes cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="id" type="string">
+                  Optional; if omitted, computed by AWS.
+                </ResponseField>
+                <ResponseField name="type" type="string">
+                  Defines the identity type (user or group) for an Argo CD RBAC role mapping in the EKS capability configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="role" type="string">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="server_url" type="string">
+          The URL of the Argo CD server. Use this URL to access the Argo CD web interface and API. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  The Unix epoch timestamp in seconds for when the capability was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="modified_at" type="string">
+  The Unix epoch timestamp in seconds for when the capability was last modified. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The current status of the capability. Valid values include: CREATING (the capability is being created), ACTIVE (the capability is running and available), UPDATING (the capability is being updated), DELETING (the capability is being deleted), CREATE_FAILED (the capability creation failed), UPDATE_FAILED (the capability update failed), or DELETE_FAILED (the capability deletion failed). Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="version" type="string">
+  The version of the capability software that is currently running. Computed by AWS after `ship`.
+</ResponseField>

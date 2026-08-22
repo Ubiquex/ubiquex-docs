@@ -1,0 +1,85 @@
+---
+title: "aws_kms_alias"
+description: "`aws_kms_alias` creates a real, friendly name for an `aws_kms_key`..."
+---
+
+`aws_kms_alias` creates a real, friendly name for an `aws_kms_key`, so application code and IAM policies can reference the alias rather than a key's own generated ID, and keep working unchanged if the underlying key is ever rotated to a new one.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	kms "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/kms"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own alias"})
+
+    		ubx.Resource(kms.Alias, "ci-runner", kms.AliasConfig{
+    			AliasName:   "example-alias-name",
+    			TargetKeyId: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Alias } from "./local-sdk/aws/sdk/typescript/aws/kms/alias.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own alias" });
+
+      resource(Alias, "ci-runner", {
+        aliasName: "example-alias-name",
+        targetKeyId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.kms import Alias, AliasConfig
+
+    def describe():
+        ubx.intent("payments own alias")
+
+        ubx.resource(Alias, "ci-runner", AliasConfig(
+            alias_name="example-alias-name",
+            target_key_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_kms_alias, with alias name example-alias-name, target
+    key id example.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="alias_name" type="string" required>
+  Specifies the alias name. This value must begin with ``alias/`` followed by a name, such as ``alias/ExampleAlias``. If you change the value of the ``AliasName`` property, the existing alias is deleted and a new alias is created for the specified KMS key. This change can disrupt applications that use the alias. It can also allow or deny access to a KMS key affected by attribute-based access control (ABAC). The alias must be string of 1-256 characters. It can contain only alphanumeric characters, forward slashes (/), underscores (_), and dashes (-). The alias name cannot begin with ``alias/aws/``. The ``alias/aws/`` prefix is reserved for [](https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#aws-managed-cmk). Required.
+</ResponseField>
+
+<ResponseField name="target_key_id" type="string" required>
+  Associates the alias with the specified [](https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#customer-cmk). The KMS key must be in the same AWS-account and Region. A valid key ID is required. If you supply a null or empty string value, this operation returns an error. For help finding the key ID and ARN, see [Finding the key ID and ARN](https://docs.aws.amazon.com/kms/latest/developerguide/viewing-keys.html#find-cmk-id-arn) in the *Developer Guide*. Specify the key ID or the key ARN of the KMS key. For example: + Key ID: ``1234abcd-12ab-34cd-56ef-1234567890ab`` + Key ARN: ``arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab`` To get the key ID and key ARN for a KMS key, use [ListKeys](https://docs.aws.amazon.com/kms/latest/APIReference/API_ListKeys.html) or [DescribeKey](https://docs.aws.amazon.com/kms/latest/APIReference/API_DescribeKey.html). Required.
+</ResponseField>

@@ -1,0 +1,167 @@
+---
+title: "aws_bedrock_agent_core_code_interpreter_custom"
+description: "`aws_bedrock_agent_core_code_interpreter_custom` configures AgentCore's Code Interpreter with a caller's own network mode (sandboxed, public internet..."
+---
+
+`aws_bedrock_agent_core_code_interpreter_custom` configures AgentCore's Code Interpreter with a caller's own network mode (sandboxed, public internet, or a specific VPC) and execution role, letting an agent write and run real Python, JavaScript, or TypeScript code with access scoped beyond AgentCore's own default isolated sandbox.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	bedrock "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/bedrock"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own agent core code interpreter custom"})
+
+    		ubx.Resource(bedrock.AgentCoreCodeInterpreterCustom, "ci-runner", bedrock.AgentCoreCodeInterpreterCustomConfig{
+    			Name:                 "ci-runner",
+    			NetworkConfiguration: map[string]any{"network_mode": "example"},
+    			Certificates:         []map[string]any{{"certificate_location": map[string]any{"secret_arn": "example"}}},
+    			Description:          "Managed by ubx.",
+    			ExecutionRoleArn:     "arn:aws:iam::123456789012:policy/ci",
+    			Tags:                 "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AgentCoreCodeInterpreterCustom } from "./local-sdk/aws/sdk/typescript/aws/bedrock/agent_core_code_interpreter_custom.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own agent core code interpreter custom" });
+
+      resource(AgentCoreCodeInterpreterCustom, "ci-runner", {
+        name: "ci-runner",
+        networkConfiguration: { networkMode: "example" },
+        certificates: [{ certificateLocation: { secretArn: "example" } }],
+        description: "Managed by ubx.",
+        executionRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        tags: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.bedrock import AgentCoreCodeInterpreterCustom, AgentCoreCodeInterpreterCustomConfig
+
+    def describe():
+        ubx.intent("payments own agent core code interpreter custom")
+
+        ubx.resource(AgentCoreCodeInterpreterCustom, "ci-runner", AgentCoreCodeInterpreterCustomConfig(
+            name="ci-runner",
+            network_configuration={"network_mode": "example"},
+            certificates=[{"certificate_location": {"secret_arn": "example"}}],
+            description="Managed by ubx.",
+            execution_role_arn="arn:aws:iam::123456789012:policy/ci",
+            tags="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_bedrock_agent_core_code_interpreter_custom called
+    "ci-runner", with network configuration a set value, certificates
+    a set value, description Managed by ubx., execution role arn
+    arn:aws:iam::123456789012:policy/ci, tags example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="certificates" type="list(object)">
+  List of root CA certificates. Optional.
+  <Expandable title="properties">
+    <ResponseField name="certificate_location" type="object">
+      The certificate_location property of each certificate specifies the S3 URI of the certificate file that is mounted into the custom core code interpreter container to establish trust for secure connections. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="secret_arn" type="string">
+          The ARN of the AWS Secrets Manager secret that stores the certificate for a custom certificate location, used by the AWS Bedrock Agent Core code interpreter custom resource to secure TLS connections. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Description of the code interpreter. Optional.
+</ResponseField>
+
+<ResponseField name="execution_role_arn" type="string">
+  The ARN of the IAM role. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the sandbox. Required.
+</ResponseField>
+
+<ResponseField name="network_configuration" type="object" required>
+  Network configuration for code interpreter Required.
+  <Expandable title="properties">
+    <ResponseField name="network_mode" type="string" required>
+      Network modes supported by code interpreter Required.
+    </ResponseField>
+    <ResponseField name="vpc_config" type="object">
+      Network mode configuration for VPC Optional.
+      <Expandable title="properties">
+        <ResponseField name="security_groups" type="list(string)" required>
+          Security groups for VPC Required.
+        </ResponseField>
+        <ResponseField name="subnets" type="list(string)" required>
+          Subnets for VPC Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  A map of tag keys and values Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="code_interpreter_arn" type="string">
+  The ARN of a CodeInterpreter resource. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="code_interpreter_id" type="string">
+  The id of the code interpreter. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  Timestamp when the code interpreter was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="failure_reason" type="string">
+  The reason for failure if the code interpreter creation or operation failed. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="last_updated_at" type="string">
+  Timestamp when the code interpreter was last updated. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Status of Code interpreter Computed by AWS after `ship`.
+</ResponseField>

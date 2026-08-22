@@ -1,0 +1,192 @@
+---
+title: "aws_ses_email_identity"
+description: "`aws_ses_email_identity` verifies a real sending domain or individual email address with SES..."
+---
+
+`aws_ses_email_identity` verifies a real sending domain or individual email address with SES, the identity-verification step required before SES will send mail from it, and the resource DKIM and custom MAIL FROM settings are configured against.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ses "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ses"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own email identity"})
+
+    		ubx.Resource(ses.EmailIdentity, "ci-runner", ses.EmailIdentityConfig{
+    			EmailIdentity:              "example",
+    			ConfigurationSetAttributes: map[string]any{"configuration_set_name": "example-configuration-set-name"},
+    			DkimAttributes:             map[string]any{"signing_enabled": true},
+    			DkimSigningAttributes:      map[string]any{"domain_signing_private_key": "example"},
+    			FeedbackAttributes:         map[string]any{"email_forwarding_enabled": true},
+    			MailFromAttributes:         map[string]any{"behavior_on_mx_failure": "example"},
+    			Tags:                       []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { EmailIdentity } from "./local-sdk/aws/sdk/typescript/aws/ses/email_identity.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own email identity" });
+
+      resource(EmailIdentity, "ci-runner", {
+        emailIdentity: "example",
+        configurationSetAttributes: {
+          configurationSetName: "example-configuration-set-name",
+        },
+        dkimAttributes: { signingEnabled: true },
+        dkimSigningAttributes: { domainSigningPrivateKey: "example" },
+        feedbackAttributes: { emailForwardingEnabled: true },
+        mailFromAttributes: { behaviorOnMxFailure: "example" },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ses import EmailIdentity, EmailIdentityConfig
+
+    def describe():
+        ubx.intent("payments own email identity")
+
+        ubx.resource(EmailIdentity, "ci-runner", EmailIdentityConfig(
+            email_identity="example",
+            configuration_set_attributes={"configuration_set_name": "example-configuration-set-name"},
+            dkim_attributes={"signing_enabled": True},
+            dkim_signing_attributes={"domain_signing_private_key": "example"},
+            feedback_attributes={"email_forwarding_enabled": True},
+            mail_from_attributes={"behavior_on_mx_failure": "example"},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ses_email_identity, with email identity example,
+    configuration set attributes a set value, dkim attributes a set
+    value, dkim signing attributes a set value, feedback attributes a
+    set value, mail from attributes a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="configuration_set_attributes" type="object">
+  Used to associate a configuration set with an email identity. Optional.
+  <Expandable title="properties">
+    <ResponseField name="configuration_set_name" type="string">
+      The configuration set to use by default when sending from this identity. Note that any configuration set defined in the email sending request takes precedence. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="dkim_attributes" type="object">
+  Used to enable or disable DKIM authentication for an email identity. Optional.
+  <Expandable title="properties">
+    <ResponseField name="signing_enabled" type="bool">
+      Sets the DKIM signing configuration for the identity. When you set this value true, then the messages that are sent from the identity are signed using DKIM. If you set this value to false, your messages are sent without DKIM signing. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="dkim_signing_attributes" type="object">
+  If your request includes this object, Amazon SES configures the identity to use Bring Your Own DKIM (BYODKIM) for DKIM authentication purposes, or, configures the key length to be used for Easy DKIM. Optional.
+  <Expandable title="properties">
+    <ResponseField name="domain_signing_private_key" type="string">
+      [Bring Your Own DKIM] A private key that's used to generate a DKIM signature. The private key must use 1024 or 2048-bit RSA encryption, and must be encoded using base64 encoding. Optional.
+    </ResponseField>
+    <ResponseField name="domain_signing_selector" type="string">
+      [Bring Your Own DKIM] A string that's used to identify a public key in the DNS configuration for a domain. Optional.
+    </ResponseField>
+    <ResponseField name="next_signing_key_length" type="string">
+      [Easy DKIM] The key length of the future DKIM key pair to be generated. This can be changed at most once per day. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="email_identity" type="string" required>
+  The email address or domain to verify. Required.
+</ResponseField>
+
+<ResponseField name="feedback_attributes" type="object">
+  Used to enable or disable feedback forwarding for an identity. Optional.
+  <Expandable title="properties">
+    <ResponseField name="email_forwarding_enabled" type="bool">
+      If the value is true, you receive email notifications when bounce or complaint events occur Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="mail_from_attributes" type="object">
+  Used to enable or disable the custom Mail-From domain configuration for an email identity. Optional.
+  <Expandable title="properties">
+    <ResponseField name="behavior_on_mx_failure" type="string">
+      The action to take if the required MX record isn't found when you send an email. When you set this value to UseDefaultValue , the mail is sent using amazonses.com as the MAIL FROM domain. When you set this value to RejectMessage , the Amazon SES API v2 returns a MailFromDomainNotVerified error, and doesn't attempt to deliver the email. Optional.
+    </ResponseField>
+    <ResponseField name="mail_from_domain" type="string">
+      The custom MAIL FROM domain that you want the verified identity to use Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags (keys and values) associated with the email identity. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag applied to the SES email identity, used for organizing and managing the identity via metadata. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag assigned to the SES email identity, used for metadata and resource management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="dkim_dnstoken_name1" type="string">
+  The first CNAME record name (DKIM DNS token name) that you must publish in your DNS configuration to complete Easy DKIM setup for this Amazon SES email identity. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="dkim_dnstoken_name2" type="string">
+  The second of three DNS record names (CNAME route) generated for Easy DKIM, which must be added to the domain's DNS settings to complete identity verification. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="dkim_dnstoken_name3" type="string">
+  For the third Easy DKIM token generated for this SES identity, this is the DNS CNAME record name that you must publish in your domain's DNS settings to complete DKIM verification. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="dkim_dnstoken_value1" type="string">
+  This read-only value is the first of three DKIM DNS token values that must be published as a CNAME record in your DNS to enable DKIM signing for the SES email identity. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="dkim_dnstoken_value2" type="string">
+  The second of three DNS CNAME record values that must be published to complete Easy DKIM verification for the SES email identity. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="dkim_dnstoken_value3" type="string">
+  The third DKIM DNS token value, automatically generated by Amazon SES for this email identity, which is used as the record name in the CNAME record required for Easy DKIM authentication. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

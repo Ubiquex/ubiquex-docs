@@ -1,0 +1,89 @@
+---
+title: "aws_certificate_manager_account"
+description: "`aws_certificate_manager_account` configures account-wide ACM settings..."
+---
+
+`aws_certificate_manager_account` configures account-wide ACM settings, specifically how many days before expiry ACM starts sending daily EventBridge events for every `aws_certificate_manager_certificate` in the account, 45 days by default for private and imported certificates, 30 for public ones.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	certificate "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/certificate"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own manager account"})
+
+    		ubx.Resource(certificate.ManagerAccount, "ci-runner", certificate.ManagerAccountConfig{
+    			ExpiryEventsConfiguration: map[string]any{"days_before_expiry": 1},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ManagerAccount } from "./local-sdk/aws/sdk/typescript/aws/certificate/manager_account.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own manager account" });
+
+      resource(ManagerAccount, "ci-runner", {
+        expiryEventsConfiguration: { daysBeforeExpiry: 1 },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.certificate import ManagerAccount, ManagerAccountConfig
+
+    def describe():
+        ubx.intent("payments own manager account")
+
+        ubx.resource(ManagerAccount, "ci-runner", ManagerAccountConfig(
+            expiry_events_configuration={"days_before_expiry": 1},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_certificate_manager_account, with expiry events
+    configuration a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="expiry_events_configuration" type="object" required>
+  Configures the day-based threshold (DaysBeforeExpiry) at which AWS Certificate Manager emits certificate expiration events, enabling EventBridge notifications for upcoming renewals. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="days_before_expiry" type="number">
+      Specifies the number of days before certificate expiration when ACM begins emitting expiry-related events, allowing you to adjust the notification lead time. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="account_id" type="string">
+  The AWS account ID that owns this ACM account-level configuration, automatically derived from the account in which the resource is deployed. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

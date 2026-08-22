@@ -1,0 +1,402 @@
+---
+title: "aws_bedrock_guardrail"
+description: "`aws_bedrock_guardrail` configures real, runtime content filters, hate, insults, sexual content, violence, prompt-attack detection among them..."
+---
+
+`aws_bedrock_guardrail` configures real, runtime content filters, hate, insults, sexual content, violence, prompt-attack detection among them, plus PII masking, applied to both input prompts and model responses, with a configurable block action when Amazon Bedrock detects harmful content.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	bedrock "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/bedrock"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own guardrail"})
+
+    		ubx.Resource(bedrock.Guardrail, "ci-runner", bedrock.GuardrailConfig{
+    			BlockedInputMessaging:           "example",
+    			BlockedOutputsMessaging:         "example",
+    			Name:                            "ci-runner",
+    			AutomatedReasoningPolicyConfig:  map[string]any{"policies": []string{"example"}},
+    			ContentPolicyConfig:             map[string]any{"filters_config": []map[string]any{{"input_action": "example"}}},
+    			ContextualGroundingPolicyConfig: map[string]any{"filters_config": []map[string]any{{"action": "example"}}},
+    			CrossRegionConfig:               map[string]any{"guardrail_profile_arn": "example"},
+    			Description:                     "Managed by ubx.",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Guardrail } from "./local-sdk/aws/sdk/typescript/aws/bedrock/guardrail.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own guardrail" });
+
+      resource(Guardrail, "ci-runner", {
+        blockedInputMessaging: "example",
+        blockedOutputsMessaging: "example",
+        name: "ci-runner",
+        automatedReasoningPolicyConfig: { policies: ["example"] },
+        contentPolicyConfig: { filtersConfig: [{ inputAction: "example" }] },
+        contextualGroundingPolicyConfig: { filtersConfig: [{ action: "example" }] },
+        crossRegionConfig: { guardrailProfileArn: "example" },
+        description: "Managed by ubx.",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.bedrock import Guardrail, GuardrailConfig
+
+    def describe():
+        ubx.intent("payments own guardrail")
+
+        ubx.resource(Guardrail, "ci-runner", GuardrailConfig(
+            blocked_input_messaging="example",
+            blocked_outputs_messaging="example",
+            name="ci-runner",
+            automated_reasoning_policy_config={"policies": ["example"]},
+            content_policy_config={"filters_config": [{"input_action": "example"}]},
+            contextual_grounding_policy_config={"filters_config": [{"action": "example"}]},
+            cross_region_config={"guardrail_profile_arn": "example"},
+            description="Managed by ubx.",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_bedrock_guardrail called "ci-runner", with blocked
+    input messaging example, blocked outputs messaging example,
+    automated reasoning policy config a set value, content policy
+    config a set value, contextual grounding policy config a set
+    value, cross region config a set value, description Managed by
+    ubx..
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="automated_reasoning_policy_config" type="object">
+  Optional configuration for integrating Automated Reasoning policies with the guardrail. Optional.
+  <Expandable title="properties">
+    <ResponseField name="confidence_threshold" type="number">
+      The confidence threshold for triggering guardrail actions based on Automated Reasoning policy violations. Optional.
+    </ResponseField>
+    <ResponseField name="policies" type="list(string)" required>
+      The list of Automated Reasoning policy ARNs to include in the guardrail configuration Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="blocked_input_messaging" type="string" required>
+  Messaging for when violations are detected in text Required.
+</ResponseField>
+
+<ResponseField name="blocked_outputs_messaging" type="string" required>
+  Messaging for when violations are detected in text Required.
+</ResponseField>
+
+<ResponseField name="content_policy_config" type="object">
+  Content policy config for a guardrail. Optional.
+  <Expandable title="properties">
+    <ResponseField name="content_filters_tier_config" type="object">
+      Guardrail tier config for content policy Optional.
+      <Expandable title="properties">
+        <ResponseField name="tier_name" type="string" required>
+          Tier name for tier configuration in content filters policy Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="filters_config" type="list(object)" required>
+      List of content filter configs in content policy. Required.
+      <Expandable title="properties">
+        <ResponseField name="input_action" type="string">
+          Specifies whether the guardrail's content filter blocks or allows the matched content type in user input prompts, accepting values like 'BLOCK' or 'NONE'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="input_enabled" type="bool">
+          Specifies whether this content filter is enabled for user inputs (prompts) processed by the guardrail. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="input_modalities" type="list(string)">
+          Specifies the input modalities (e.g., TEXT or IMAGE) that the content filter applies to, allowing the filter to target specific types of content entering the guardrail. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="input_strength" type="string">
+          Specifies the strength of the content filter applied to user input prompts, controlling how aggressively the guardrail filters content for the input direction (e.g., NONE, LOW, MEDIUM, HIGH). Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_action" type="string">
+          Determines whether content matching the filter category is blocked (BLOCK) or allowed (NONE) when it appears in model-generated output. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_enabled" type="bool">
+          Determines whether the content policy filter applies to generated model outputs, enabling or disabling the evaluation and filtering of the guardrail's responses for the specified filter category. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_modalities" type="list(string)">
+          Specifies the output modalities (such as TEXT or IMAGE) to which this content filter applies for generated responses. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_strength" type="string">
+          The strength (e.g., NONE, LOW, MEDIUM, HIGH) applied when filtering the model's generated (output) content for the specified content policy filter type, determining how aggressively the guardrail blocks or moderates that content. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          The category of harmful content that this guardrail filter targets, such as SEXUAL, VIOLENCE, HATE, INSULTS, MISCONDUCT, or PROMPT_ATTACK. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="contextual_grounding_policy_config" type="object">
+  Contextual grounding policy config for a guardrail. Optional.
+  <Expandable title="properties">
+    <ResponseField name="filters_config" type="list(object)" required>
+      List of contextual grounding filter configs. Required.
+      <Expandable title="properties">
+        <ResponseField name="action" type="string">
+          Specifies whether the contextual grounding filter blocks the request (BLOCK) or allows it (NONE) when the filter's check fails. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="enabled" type="bool">
+          Boolean that enables or disables this specific contextual grounding filter (e.g., grounding or relevance) within the guardrail's contextual grounding policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="threshold" type="number">
+          The confidence threshold (between 0 and 1) for a contextual grounding filter (of type GROUNDING or RELEVANCE), which sets the minimum score the model's response must meet to be considered grounded or relevant, and responses scoring below this threshold are blocked. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          The type of the contextual grounding filter, which must be either GROUNDING or RELEVANCE, controlling whether the filter checks factual grounding or query relevance. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="cross_region_config" type="object">
+  The system-defined guardrail profile that you’re using with your guardrail Optional.
+  <Expandable title="properties">
+    <ResponseField name="guardrail_profile_arn" type="string" required>
+      The Amazon Resource Name (ARN) of the guardrail profile Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Description of the guardrail or its version Optional.
+</ResponseField>
+
+<ResponseField name="kms_key_arn" type="string">
+  The KMS key with which the guardrail was encrypted at rest Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Name of the guardrail Required.
+</ResponseField>
+
+<ResponseField name="sensitive_information_policy_config" type="object">
+  Sensitive information policy config for a guardrail. Optional.
+  <Expandable title="properties">
+    <ResponseField name="pii_entities_config" type="list(object)">
+      List of entities. Optional.
+      <Expandable title="properties">
+        <ResponseField name="action" type="string">
+          In an AWS Bedrock Guardrail's sensitive information policy, the `action` property for each PII entity config determines the enforcement response when that type of personally identifiable information is detected, with valid values such as `BLOCK` to deny the input or output, or `ANONYMIZE` to replace it with a placeholder. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="input_action" type="string">
+          Defines how the guardrail responds to detected personally identifiable information (PII) in an end-user prompt, allowing values like 'BLOCK' to deny the request or 'ANONYMIZE' to replace the PII with a placeholder before processing. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="input_enabled" type="bool">
+          Indicates whether the PII filter for this entity type is enabled on input (prompt) text in the guardrail's sensitive information policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_action" type="string">
+          Specifies the action (e.g., BLOCK or ANONYMIZE) the guardrail applies when the configured PII entity type is detected in the model's output. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_enabled" type="bool">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          Specifies the type of PII entity (e.g., EMAIL, PHONE, SSN) to be filtered by the guardrail's sensitive information policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="regexes_config" type="list(object)">
+      List of regex. Optional.
+      <Expandable title="properties">
+        <ResponseField name="action" type="string">
+          Determines whether a regex-pattern match triggers blocking (BLOCK) or anonymization/masking (ANONYMIZE) of the detected sensitive information in guarded content. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="description" type="string">
+          A user-defined textual description that explains the purpose or context of this custom regex pattern in the guardrail's sensitive information policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="input_action" type="string">
+          Defines the action (BLOCK or ANONYMIZE) the guardrail takes when a regex pattern in this configuration matches sensitive information in the prompt (input). Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="input_enabled" type="bool">
+          Indicates whether this regex pattern in the guardrail's sensitive information policy is applied to model inputs (prompts) as opposed to only model outputs (responses). Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The name of the custom regex pattern defined in the guardrail's sensitive information policy, used to identify and reference the regex-based filter. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_action" type="string">
+          Specifies whether a matched regex pattern in the model's output is blocked or anonymized when detected by the Bedrock guardrail. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_enabled" type="bool">
+          Indicates whether the regex pattern for this sensitive information filter is enabled on model output; when false, the pattern is only applied to input. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="pattern" type="string">
+          The regular expression pattern used to detect sensitive information in the guardrail's sensitive information policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  List of Tags Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag to apply to the Bedrock guardrail, used for organizing and identifying the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="topic_policy_config" type="object">
+  Topic policy config for a guardrail. Optional.
+  <Expandable title="properties">
+    <ResponseField name="topics_config" type="list(object)" required>
+      List of topic configs in topic policy. Required.
+      <Expandable title="properties">
+        <ResponseField name="definition" type="string">
+          In the topic policy of an Amazon Bedrock guardrail, each topic's definition provides a natural-language description of the specific subject matter that the guardrail should identify and block or deny in model responses. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="examples" type="list(string)">
+          Specifies a list of sample phrases that illustrate the topic, used to improve the accuracy of the guardrail's detection of the topic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="input_action" type="string">
+          Specifies the action the guardrail takes when user input matches this topic, such as BLOCK or ALLOW. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="input_enabled" type="bool">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The user-defined name of a topic configured in the guardrail's topic policy, used to identify a specific subject (e.g., 'investment advice') that the model is instructed to avoid discussing. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_action" type="string">
+          Specifies the action taken on the output when a user query or model response matches the topic, with allowed values 'BLOCK' to deny the content and 'NONE' to allow it. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_enabled" type="bool">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          Specifies whether the topic is defined as a denied (DENY) or allowed (ALLOW) topic in the guardrail's topic policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="topics_tier_config" type="object">
+      Guardrail tier config for topic policy Optional.
+      <Expandable title="properties">
+        <ResponseField name="tier_name" type="string" required>
+          Tier name for tier configuration in topic policy Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="word_policy_config" type="object">
+  Word policy config for a guardrail. Optional.
+  <Expandable title="properties">
+    <ResponseField name="managed_word_lists_config" type="list(object)">
+      A config for the list of managed words. Optional.
+      <Expandable title="properties">
+        <ResponseField name="input_action" type="string">
+          Determines the action applied to the input when a word from the managed word list is detected, with values such as BLOCK to block the input or NONE to allow it. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="input_enabled" type="bool">
+          Enables or disables the managed word list (e.g., profanity) filter for user input prompts in the guardrail. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_action" type="string">
+          For each managed word list configured in the guardrail's word policy, this field determines the action taken when a word from that list is detected, with allowed values of 'BLOCK' (block the content) or 'NONE' (allow the content). Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_enabled" type="bool">
+          Indicates whether the managed word list (e.g., profanity) is applied to filter the model's output text. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          Specifies the managed word list category to apply to the guardrail, with the supported value PROFANITY for filtering profane language. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="words_config" type="list(object)">
+      List of custom word configs. Optional.
+      <Expandable title="properties">
+        <ResponseField name="input_action" type="string">
+          Determines whether a word in this list is blocked when it appears in the user prompt (input) text, with `BLOCK` filtering it out and `NONE` permitting it. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="input_enabled" type="bool">
+          Indicates whether this custom word in the word policy is filtered from the input (user prompt) traffic, as opposed to output (model response) traffic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_action" type="string">
+          Specifies the action the guardrail takes when a model output contains the configured word, with BLOCKED causing the word to be blocked and NONE allowing it to pass through. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="output_enabled" type="bool">
+          Indicates whether the word is enabled for output filtering, meaning that when true, the guardrail prevents the word from appearing in model-generated responses. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="text" type="string">
+          The word or phrase that the guardrail's word policy will filter or block in model responses. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="created_at" type="string">
+  Time Stamp Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="failure_recommendations" type="list(string)">
+  List of failure recommendations Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="guardrail_arn" type="string">
+  Arn representation for the guardrail Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="guardrail_id" type="string">
+  Unique id for the guardrail Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Status of the guardrail Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status_reasons" type="list(string)">
+  List of status reasons Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  Time Stamp Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="version" type="string">
+  Guardrail version Computed by AWS after `ship`.
+</ResponseField>

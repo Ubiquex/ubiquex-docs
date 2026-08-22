@@ -1,0 +1,1400 @@
+---
+title: "aws_emr_cluster"
+description: "`aws_emr_cluster` provisions a real, managed Hadoop/Spark cluster, EC2 instances running the actual big-data processing frameworks..."
+---
+
+`aws_emr_cluster` provisions a real, managed Hadoop/Spark cluster, EC2 instances running the actual big-data processing frameworks, that an `aws_emr_step` or an EMR Studio notebook runs work against.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	emr "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/emr"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own cluster"})
+
+    		ubx.Resource(emr.Cluster, "ci-runner", emr.ClusterConfig{
+    			Instances:             map[string]any{"additional_master_security_groups": []string{"example"}},
+    			JobFlowRole:           "example",
+    			Name:                  "ci-runner",
+    			ServiceRole:           "example",
+    			AdditionalInfo:        "example",
+    			Applications:          []map[string]any{{"name": "example-name"}},
+    			AutoScalingRole:       "example",
+    			AutoTerminationPolicy: map[string]any{"idle_timeout": 1},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Cluster } from "./local-sdk/aws/sdk/typescript/aws/emr/cluster.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own cluster" });
+
+      resource(Cluster, "ci-runner", {
+        instances: { additionalMasterSecurityGroups: ["example"] },
+        jobFlowRole: "example",
+        name: "ci-runner",
+        serviceRole: "example",
+        additionalInfo: "example",
+        applications: [{ name: "example-name" }],
+        autoScalingRole: "example",
+        autoTerminationPolicy: { idleTimeout: 1 },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.emr import Cluster, ClusterConfig
+
+    def describe():
+        ubx.intent("payments own cluster")
+
+        ubx.resource(Cluster, "ci-runner", ClusterConfig(
+            instances={"additional_master_security_groups": ["example"]},
+            job_flow_role="example",
+            name="ci-runner",
+            service_role="example",
+            additional_info="example",
+            applications=[{"name": "example-name"}],
+            auto_scaling_role="example",
+            auto_termination_policy={"idle_timeout": 1},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_emr_cluster called "ci-runner", with instances a set
+    value, job flow role example, service role example, additional
+    info example, applications a set value, auto scaling role
+    example, auto termination policy a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="additional_info" type="any">
+  A JSON string used to enable additional Amazon EMR cluster features, such as setting "instanceAwsClientVpn" to true. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="applications" type="list(object)">
+  Specifies the applications (such as Hadoop, Spark, Hive) to install on the EMR cluster, where each object provides the application name and optionally its version. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="additional_info" type="any">
+      For each EMR application (e.g., Spark or Hive), this map supplies extra key-value configuration that is forwarded to the application at cluster creation time. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="args" type="list(string)">
+      The args attribute supplies a list of command-line arguments that are passed to the corresponding EMR application (for example, Hadoop or Spark) at launch time to customize its behavior or configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      The name of an application to install on the EMR cluster, such as 'Hadoop' or 'Spark'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="version" type="string">
+      The exact version of the application (for example, '2.4.4' for Spark or '2.8.5' for Hadoop) to install on the EMR cluster, matching the Version field of the AWS::EMR::Cluster Application property. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="auto_scaling_role" type="string">
+  The IAM role ARN that Amazon EMR assumes to manage automatic scaling of the cluster. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="auto_termination_policy" type="object">
+  Specifies the auto-termination policy for the EMR cluster, determining the idle timeout in seconds after which the cluster is automatically terminated. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="idle_timeout" type="number">
+      Specifies the number of seconds the cluster can remain idle before it automatically terminates, as part of the auto-termination policy. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="bootstrap_actions" type="list(object)">
+  A list of bootstrap actions that run on cluster nodes before Hadoop starts, allowing you to configure the instances (e.g., install applications or adjust settings) via scripts. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="name" type="string">
+      The name of the bootstrap action, a user-defined label used to identify the action in the EMR cluster configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="script_bootstrap_action" type="object">
+      Specifies the S3 location of the bootstrap script and optional arguments to pass to it when the bootstrap action runs on each cluster node before application startup. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="args" type="list(string)">
+          A list of string arguments to pass to the bootstrap script (Path) when it runs on each cluster instance during startup. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="path" type="string">
+          The S3 location (URI) of the bootstrap action script that runs on cluster instances during startup. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="configurations" type="list(object)">
+  Specifies the list of application configurations (e.g., for Hadoop, Spark, Hive) applied to the EMR cluster, allowing overrides of default settings via classification properties and nested configuration blocks. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="classification" type="string">
+      The classification property specifies the name of the configuration classification (such as core-site, hdfs-site, or yarn-site) that is being customized within the EMR cluster's list of configurations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="configuration_properties" type="any">
+      Map of key-value pairs used by the EMR service to override or set specific application settings for the given configuration classification (e.g., properties for Hadoop, Spark, HBase, or other services), which are applied to the corresponding config files on the cluster nodes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="configurations" type="list(any)">
+      Specifies a list of nested configuration objects within a single configuration, allowing hierarchical customization of EMR applications by grouping related settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="custom_ami_id" type="string">
+  Specifies a custom Amazon Machine Image (AMI) to use for the EC2 instances in the EMR cluster, overriding the default EMR-provided AMI. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="ebs_root_volume_iops" type="number">
+  This field sets the provisioned IOPS for the EBS root volume of each EC2 instance in the EMR cluster, allowing higher performance for root volumes supporting provisioned IOPS. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="ebs_root_volume_size" type="number">
+  Specifies the size in GiB of the Amazon EBS root device volume for each EC2 instance in the EMR cluster; if omitted, EMR uses a default root volume size of 10 GiB. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="ebs_root_volume_throughput" type="number">
+  Sets the throughput in MiB/s for the EBS root volume attached to each EC2 instance in the EMR cluster. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="instances" type="object" required>
+  Specifies the EC2 instance configuration for the cluster, including master, core, and task instance groups, the EC2 key name, and placement settings. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="additional_master_security_groups" type="list(string)">
+      A list of additional Amazon EC2 security group IDs to attach to the master node(s) of the EMR cluster, in addition to the security groups managed by Amazon EMR. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="additional_slave_security_groups" type="list(string)">
+      A list of additional Amazon EC2 security groups to attach to slave (core and task) nodes in the EMR cluster, in addition to the automatically created security group. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="core_instance_fleet" type="object">
+      Specifies the configuration for the core instance fleet, which consists of core nodes that run the Hadoop DataNode and YARN NodeManager services and process data for the cluster. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="instance_type_configs" type="list(object)">
+          Defines the EC2 instance type configurations (such as instance type, bid price, weighted capacity, and EBS settings) used for the core instance fleet in the EMR cluster. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="bid_price" type="string">
+              Specifies the maximum spot price you are willing to pay per instance hour for this instance type in the core instance fleet; if not set, the default on-demand or spot price is used. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="bid_price_as_percentage_of_on_demand_price" type="number">
+              Sets the bid price for Spot Instances as a percentage of the On-Demand price, enabling cost control for core nodes within the instance fleet configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="configurations" type="list(object)">
+              List of EMR Configuration objects (with Classification and Properties) that apply EMR settings, such as Hadoop, Spark, or Hive configurations, specifically to the EC2 instances of this instance type in the core instance fleet, overriding cluster-level settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="classification" type="string">
+                  Specifies the name of the EMR configuration classification (such as hive-site or spark-defaults) that defines the settings applied to the instance type configuration within the core instance fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="configuration_properties" type="any">
+                  Provides a map of key-value properties for the configuration's classification (such as spark-defaults or hadoop-env), applied to the core instance fleet's instance type configuration settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="configurations" type="list(any)">
+                  A recursive list of nested EMR configuration objects (each containing a classification, properties, and optionally further sub-configurations) that can be applied to the core instance fleet, allowing layered software configuration overrides on cluster instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="custom_ami_id" type="string">
+              The custom AMI ID to use for launching EC2 instances of this instance type in the core instance fleet, overriding the default EMR AMI. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="ebs_configuration" type="object">
+              Specifies the Elastic Block Store (EBS) configuration, including block device configurations and EBS-optimized settings, for each EC2 instance of a given instance type in the core instance fleet of the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="ebs_block_device_configs" type="list(object)">
+                  Specifies the list of EBS block device configurations (such as volume type, size, and number of volumes) to attach to each core instance in the core instance fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="volume_specification" type="object">
+                      Defines the EBS volume attributes (volume type, size, and IOPS) for a block device in the EBS configuration of an instance type in the core instance fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="iops" type="number">
+                          The number of I/O operations per second (IOPS) that the EBS volume should support, used to configure the performance of the attached storage. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="size_in_gb" type="number">
+                          The size in GiB of each EBS volume attached to the core instance fleet instances in the EMR cluster, defining the storage capacity for each block device. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="throughput" type="number">
+                          The provisioned throughput in MiB/s for the EBS volume, applicable when the volume type is gp3 to control I/O performance. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="volume_type" type="string">
+                          Specifies the Amazon EBS volume type (e.g., gp2, gp3, io1, or standard) for the EBS volumes attached to the core instance fleet's instance type configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="volumes_per_instance" type="number">
+                      The number of EBS volumes to attach to each instance for this EBS block device configuration in the core instance fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="ebs_optimized" type="bool">
+                  When set to true, this flag indicates that the Amazon EBS volumes for the specified instance type in the core instance fleet are EBS-optimized, providing dedicated throughput for EBS I/O to enhance storage performance. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="instance_type" type="string">
+              The EC2 instance type (e.g., m5.xlarge) to use for the core instance fleet when using instance fleets in the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="priority" type="number">
+              Specifies the allocation priority for this instance type within the core instance fleet, where a lower value gives it higher precedence when Amazon EMR provisions instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="weighted_capacity" type="number">
+              Defines the number of capacity units that this instance type contributes to the core instance fleet's target capacity, enabling mixed instance type scaling. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="launch_specifications" type="object">
+          Specifies the Spot Instance procurement settings for the core instance fleet, including the allocation strategy, provisioning timeout duration, and timeout action. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="on_demand_specification" type="object">
+              Defines the allocation strategy for On-Demand Instances launched by the core instance fleet, such as lowest-price or prioritized, via the AllocationStrategy property. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="allocation_strategy" type="string" required>
+                  Specifies the allocation strategy for Amazon EC2 On-Demand instances in the core instance fleet, controlling how capacity is provisioned across Availability Zones, with values such as 'lowest-price' and 'prioritized'. Required. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="capacity_reservation_options" type="object">
+                  Configures how On-Demand instances in this core instance fleet use EC2 Capacity Reservations, including whether to launch into any available reservation or only a specifically targeted one. Optional. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="capacity_reservation_preference" type="string">
+                      Specifies whether core instance fleet instances can use unused capacity from open EC2 Capacity Reservations, with 'open' allowing it and 'none' preventing it. Optional. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="capacity_reservation_resource_group_arn" type="string">
+                      The ARN of the Capacity Reservation resource group in which to launch the core instance fleet's on-demand instances. Optional. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="usage_strategy" type="string">
+                      Determines whether the EMR cluster's core instance fleet on-demand instances will launch into unused EC2 Capacity Reservations first, with the value use-capacity-reservations-first enabling that behavior. Optional. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="spot_specification" type="object">
+              Specifies the Spot Instance provisioning timeout and allocation strategy for the core instance fleet's Spot Instances. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="allocation_strategy" type="string">
+                  Defines the Spot Instance allocation strategy for the core instance fleet, controlling how Amazon EMR selects and provisions Spot Instances across specified instance types (e.g., lowest-price, diversified, capacity-optimized, price-capacity-optimized). Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="block_duration_minutes" type="number">
+                  The block duration in minutes for Spot instances in the core instance fleet, which reserves them for that period without interruption (commonly 0 or 60 -- 360 in 30-minute steps). Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="timeout_action" type="string" required>
+                  Specifies the action to take when Spot Instances cannot be provisioned within the timeout period, either switching to On-Demand capacity (SWITCH_TO_ON_DEMAND) or terminating the cluster (TERMINATE_CLUSTER). Required. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="timeout_duration_minutes" type="number" required>
+                  Specifies the timeout duration in minutes that EMR waits for Spot instances in the core instance fleet to be provisioned before applying the configured TimeoutAction, with a valid range of 5 to 1440 minutes. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          A friendly name for the core instance fleet in the EMR cluster, used to identify this fleet within the cluster configuration and in metrics. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="resize_specifications" type="object">
+          Specifies the resize specifications for the core instance fleet, controlling the spot resize behavior including the timeout duration and allocation strategy used when resizing spot instances. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="on_demand_resize_specification" type="object">
+              Specifies the on-demand resize specification for the core instance fleet, containing the timeout duration (in minutes) after which a resize request is cancelled if not completed. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="allocation_strategy" type="string">
+                  Determines the allocation strategy (lowest-price or prioritized) for launching on-demand instances in the core instance fleet when EMR managed scaling triggers a resize, as defined in the on-demand resize specification. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="capacity_reservation_options" type="object">
+                  Specifies the capacity reservation options for the on-demand resize specification of the core instance fleet, including the preference (open or targeted) and the ARN of a capacity reservation resource group to use for targeted reservations. Optional. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="capacity_reservation_preference" type="string">
+                      Controls whether the EMR cluster uses open EC2 Capacity Reservations when launching on-demand core instances during a resize, with allowed values 'open' or 'none'. Optional. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="capacity_reservation_resource_group_arn" type="string">
+                      The ARN of the EC2 capacity reservation resource group in which to launch On-Demand instances for this core instance fleet. Optional. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="usage_strategy" type="string">
+                      Determines whether On-Demand Capacity Reservations are used first or last when launching On-Demand instances during a resize of the core instance fleet, accepting values such as 'use-capacity-reservations-first' or 'use-capacity-reservations-last'. Optional. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="timeout_duration_minutes" type="number">
+                  Sets the maximum time in minutes (1 -- 600) for an on-demand resize of the core instance fleet to complete, after which EMR treats the resize as failed. Optional. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="spot_resize_specification" type="object">
+              Specifies the timeout duration and allocation strategy for resizing the core instance fleet's spot capacity, controlling how Amazon EMR scales spot instances when the fleet is resized. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="allocation_strategy" type="string">
+                  Specifies the allocation strategy for launching spot instances during a resize of the core instance fleet, either 'capacity-optimized' or 'lowest-price'. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="timeout_duration_minutes" type="number">
+                  For the core instance fleet, this sets the maximum time in minutes that Amazon EMR will wait for the required spot capacity to be fulfilled during a resize, after which the resize attempt is considered unsuccessful. Optional. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="target_on_demand_capacity" type="number">
+          Specifies the target number of on-demand EC2 instances to launch in the core instance fleet of the EMR cluster. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="target_spot_capacity" type="number">
+          Specifies the target number of Spot Instances to provision in the core instance fleet for the Amazon EMR cluster, where core nodes run Hadoop DataNode and manage HDFS storage. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="core_instance_group" type="object">
+      Configuration block for the core (worker) instance group, defining instance type, count, and EBS volume settings for the core nodes of the EMR cluster. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="auto_scaling_policy" type="object">
+          Defines the automatic scaling policy for the core instance group, specifying scaling constraints (minimum and maximum instance counts) and scaling rules that adjust the number of core instances based on CloudWatch metrics. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="constraints" type="object" required>
+              Specifies the minimum and maximum number of instances that the core instance group can scale to under the auto scaling policy. Required. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max_capacity" type="number" required>
+                  Sets the maximum number of EC2 instances that the core instance group can scale out to under this auto scaling policy, acting as the upper capacity limit for the group. Required. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min_capacity" type="number" required>
+                  The minimum number of EC2 instances that the core instance group can scale down to when the auto scaling policy is active. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="rules" type="list(object)" required>
+              Specifies the list of scaling rules (each with a CloudWatch alarm trigger and a scaling action) that determine when the core instance group automatically adds or removes instances. Required. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="action" type="object">
+                  Specifies the scaling action to take when the rule condition is met, including the required SimpleScalingPolicyConfiguration (adjustment type, scaling adjustment, and cooldown) and an optional Market to move instances to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="market" type="string">
+                      Specifies the market type (ON_DEMAND or SPOT) for instances provisioned by the scaling action in the core instance group's auto scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="simple_scaling_policy_configuration" type="object">
+                      Defines the simple scaling action for the rule, including the scaling adjustment amount, adjustment type (e.g., CHANGE_IN_CAPACITY, EXACT_CAPACITY, PERCENT_CHANGE_IN_CAPACITY), and optional cooldown period in seconds. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="adjustment_type" type="string">
+                          Specifies the type of adjustment to make to the core instance group's capacity when this scaling rule triggers, such as adding or removing a fixed number of instances (CHANGE_IN_CAPACITY), adjusting by a percentage (PERCENT_CHANGE_IN_CAPACITY), or setting an exact instance count (EXACT_CAPACITY). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="cool_down" type="number">
+                          The cool-down period, in seconds, that must elapse after a scaling activity completes before another scaling activity can be triggered by this simple scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="scaling_adjustment" type="number">
+                          The scaling_adjustment specifies the amount by which to scale the core instance group's instance count (positive to scale out, negative to scale in) when the simple scaling policy action triggers. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="description" type="string">
+                  A user-defined description that provides additional context for the auto scaling rule's purpose or behavior within the EMR core instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="name" type="string">
+                  A friendly name that uniquely identifies this scaling rule within the auto scaling policy for the EMR core instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="trigger" type="object">
+                  Defines the CloudWatch alarm conditions (such as metric, comparison operator, threshold, and period) that trigger the scaling action for this auto scaling rule of the core instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="cloud_watch_alarm_definition" type="object">
+                      Defines the CloudWatch alarm that triggers the scaling rule, specifying the metric, namespace, period, statistic, threshold, comparison operator, and evaluation periods used to monitor the core instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="comparison_operator" type="string">
+                          Specifies the arithmetic operation to use when comparing the specified statistic and threshold (e.g., GreaterThanOrEqualToThreshold, LessThanThreshold, GreaterThanThreshold, LessThanOrEqualToThreshold). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="dimensions" type="list(object)">
+                          Specifies the dimensions (name-value pairs) for the CloudWatch alarm metric used by the auto scaling policy's trigger to filter the metric data for the core instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="key" type="string">
+                              Specifies the name of a CloudWatch metric dimension (for example, 'JobFlowId' or 'InstanceGroupId') that this auto scaling alarm definition uses to scope the metric for the EMR core instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                            <ResponseField name="value" type="string">
+                              Specifies the value of a CloudWatch alarm dimension pair, such as a job flow ID, that identifies the metric being monitored for the auto scaling rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                        <ResponseField name="evaluation_periods" type="number">
+                          The number of consecutive CloudWatch evaluation periods over which the metric must breach the threshold before the alarm and associated auto scaling rule trigger. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="metric_name" type="string">
+                          The name of the CloudWatch metric (e.g., YARNMemoryAvailablePercentage or PreemptedVCores) that the alarm monitors to trigger the EMR auto scaling policy's scaling rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="namespace" type="string">
+                          Specifies the CloudWatch namespace of the metric used in the alarm definition for the EMR core instance group auto scaling policy trigger, such as AWS/ElasticMapReduce for EMR metrics. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="period" type="number">
+                          The length of time, in seconds, used to evaluate the CloudWatch metric for the alarm that triggers the auto-scaling rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="statistic" type="string">
+                          The statistic to apply to the metric used in the CloudWatch alarm, such as AVERAGE, SUM, MINIMUM, MAXIMUM, SAMPLE_COUNT, or PERCENTILE. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="threshold" type="number">
+                          The numeric value that the specified CloudWatch metric must reach or exceed to trigger the alarm, used by EMR's automatic scaling policy for the core instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="unit" type="string">
+                          The unit of measure for the CloudWatch metric used in the alarm definition, such as 'Percent' or 'Seconds'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="bid_price" type="string">
+          The bid price for Spot Instances within the core instance group, which determines the maximum price you are willing to pay per instance-hour for the core nodes. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="configurations" type="list(object)">
+          This field provides a list of application configurations (classifications and properties) to apply to the core instance group, overriding the cluster-level configurations for those nodes. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="classification" type="string">
+              Specifies the name of the configuration classification (such as `core-site` or `hive-site`) that is applied to the core instance group's set of configurations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="configuration_properties" type="any">
+              A map of configuration property keys to values for the core instance group's configuration, which are applied to the specified classification (e.g., Hadoop or Spark settings) in the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="configurations" type="list(any)">
+              A list of nested configuration objects (containing classification, properties, and further nested configurations) that are applied to the core instance group of the EMR cluster, enabling hierarchical application configuration overrides. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="custom_ami_id" type="string">
+          This field specifies the ID of a custom Amazon Machine Image (AMI) used for the EC2 instances in the core instance group, overriding the default EMR AMI. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="ebs_configuration" type="object">
+          Specifies the Amazon EBS configuration, including block device mappings and EBS optimization settings, for the core instance group of the EMR cluster. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="ebs_block_device_configs" type="list(object)">
+              Specifies the EBS block device configurations (volume type, size, and number of volumes) to attach to each instance in the core instance group of the EMR cluster. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="volume_specification" type="object">
+                  Specifies the EBS volume type, size, and optional provisioned IOPS for block devices attached to core instance group instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="iops" type="number">
+                      The number of I/O operations per second (IOPS) for the EBS volume, required when the VolumeType is io1 (or gp3) in the EMR cluster's core instance group EBS block device configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="size_in_gb" type="number">
+                      The size in gigabytes of each EBS volume attached to the core instance group, as specified in the VolumeSpecification for the EBS block device configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="throughput" type="number">
+                      The throughput in MiB/s to provision for the EBS volume, used to set the I/O performance for general purpose SSD (gp3) volumes when the volume type supports this parameter. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="volume_type" type="string">
+                      This field sets the EBS volume type (such as gp3, gp2, io1, st1, sc1, or standard) used for each EBS block device attached to the core instance group of the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="volumes_per_instance" type="number">
+                  The number of EBS volumes with the specified block device configuration to attach to each EC2 instance in the core instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="ebs_optimized" type="bool">
+              Whether the EBS volumes attached to the core instance group are EBS-optimized to provide dedicated throughput and improved I/O performance. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="instance_count" type="number" required>
+          The number of EC2 instances in the core instance group of the EMR cluster, which run data node and node manager daemons for HDFS and YARN. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="instance_type" type="string" required>
+          EC2 instance type (e.g., m5.xlarge) launched for each core node in the EMR cluster, responsible for running HDFS DataNode and task execution on data stored in the cluster. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="market" type="string">
+          Specifies whether the core instance group uses On-Demand or Spot instances, with ON_DEMAND as the default, allowing Spot to reduce costs by tolerating instance interruptions. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          A user-defined name for the core instance group in the EMR cluster, used to identify it among other instance groups. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="ec2_key_name" type="string">
+      The name of the EC2 key pair used to enable SSH access to the cluster's EC2 instances. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="ec2_subnet_id" type="string">
+      The ID of the EC2 subnet in which the EMR cluster's EC2 instances are launched, controlling which VPC subnet the cluster nodes reside in. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="ec2_subnet_ids" type="list(string)">
+      Specifies the EC2 subnet IDs where the cluster's instances are launched, enabling distribution across multiple Availability Zones. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="emr_managed_master_security_group" type="string">
+      The ID of the Amazon EC2 security group that EMR automatically applies to the master node(s) of the cluster; if you don't specify one, EMR creates and uses a default security group. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="emr_managed_slave_security_group" type="string">
+      The EC2 security group ID that Amazon EMR uses for the core and task (slave) nodes in the cluster, controlling their network traffic. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="hadoop_version" type="string">
+      Specifies the version of Apache Hadoop to install on the EMR cluster, overriding the default version for the chosen release label. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="keep_job_flow_alive_when_no_steps" type="bool">
+      Controls whether the EMR cluster automatically terminates after completing all steps (False) or keeps running until explicitly terminated (True). Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="master_instance_fleet" type="object">
+      Specifies the master instance fleet, which defines the target capacity and instance type configurations (including Spot and On-Demand options) for the primary node of the EMR cluster. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="instance_type_configs" type="list(object)">
+          Defines the EC2 instance types, weighted capacities, and optional bid prices for the instances in the master instance fleet. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="bid_price" type="string">
+              Specifies the maximum hourly price (in USD) you are willing to pay for Spot Instances of this instance type within the master instance fleet; if omitted, the On-Demand price is used. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="bid_price_as_percentage_of_on_demand_price" type="number">
+              For the master instance fleet, this sets the maximum spot bid price for that instance type as a percentage of the on-demand price, controlling how much you are willing to pay for spot capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="configurations" type="list(object)">
+              Specifies the list of EMR configurations (classifications such as core-site, hdfs-site, or hadoop-env with their properties) that are applied to this specific instance type configuration in the master instance fleet, overriding the cluster-level configurations for that instance type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="classification" type="string">
+                  Defines the EMR configuration type (e.g., spark-defaults, hive-site) for a configuration block applied to the master instance fleet's instance type configuration, determining which application settings this block overrides. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="configuration_properties" type="any">
+                  Specifies key-value pairs for the configuration classification, defining application settings (e.g., Hadoop or Spark properties) applied to master instance fleet instance type configurations in the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="configurations" type="list(any)">
+                  Specifies nested configuration objects (each containing classification, properties, and further nested configurations) for a configuration within the master instance fleet's instance type configuration, enabling hierarchical application of software settings on the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="custom_ami_id" type="string">
+              The ID of a custom Amazon Machine Image (AMI) that Amazon EMR uses to launch the master instance fleet's instances of this instance type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="ebs_configuration" type="object">
+              Defines the EBS configuration, including block device volumes and EBS-optimized setting, for each EC2 instance launched with this instance type in the master instance fleet of the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="ebs_block_device_configs" type="list(object)">
+                  Specifies a list of EBS block device configurations (each defining volume type, size, IOPS, and the number of volumes) to attach to the master instance fleet's instances of this instance type config. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="volume_specification" type="object">
+                      Specifies the EBS volume type, size, and optional IOPS for the block device attached to each instance in the master instance fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="iops" type="number">
+                          The provisioned IOPS (I/O operations per second) for an EBS volume specification, typically used when the volume type is io1 or gp3 with a required IOPS setting. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="size_in_gb" type="number">
+                          Specifies the size in gigabytes (GB) of the Amazon EBS volume to be attached to instances in the master instance fleet, as part of the EBS block device configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="throughput" type="number">
+                          The throughput field specifies the baseline throughput in MiB/s for the EBS gp3 volume attached to the master instance fleet's instance type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="volume_type" type="string">
+                          Specifies the EBS volume type (such as gp2, gp3, io1, st1, sc1, or standard) for the block device defined in the EBS configuration of the master instance fleet's instance type configuration in the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="volumes_per_instance" type="number">
+                      Specifies the number of EBS volumes per instance to provision for this block device configuration in the master instance fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="ebs_optimized" type="bool">
+                  Indicates whether the EC2 instances in the master instance fleet are launched as EBS-optimized, providing dedicated I/O capacity for EBS volumes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="instance_type" type="string">
+              Specifies the EC2 instance type (e.g., m5.xlarge) to use for the master instances in this instance type configuration of the master instance fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="priority" type="number">
+              The priority of this EC2 instance type within the master instance fleet, where lower values are launched first (higher launch priority) when Amazon EMR provisions cluster instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="weighted_capacity" type="number">
+              The number of capacity units that each EC2 instance of this type contributes to the overall capacity of the EMR instance fleet, used to determine the proportion of instance types in the fleet and to scale based on total weighted capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="launch_specifications" type="object">
+          Specifies the launch specifications for the master instance fleet, including the Spot timeout and allocation strategy and the On-Demand allocation strategy. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="on_demand_specification" type="object">
+              Specifies the allocation strategy and timeout duration for provisioning On-Demand instances in the master instance fleet, including an optional timeout that can trigger a fallback to Spot instances. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="allocation_strategy" type="string" required>
+                  Determines the allocation strategy for on-demand instances in the master instance fleet, where the only valid value is 'lowest-price' to select the cheapest instance type that meets the fleet's requirements. Required. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="capacity_reservation_options" type="object">
+                  Specifies EC2 Capacity Reservation preferences for launching On-Demand master instances in the instance fleet, such as using open capacity reservations or a specific capacity reservation resource group. Optional. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="capacity_reservation_preference" type="string">
+                      Determines whether the On-Demand instances in the master instance fleet can launch into any available capacity reservation (using 'open') or must not use a capacity reservation (using 'none'). Optional. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="capacity_reservation_resource_group_arn" type="string">
+                      The ARN of the AWS Resource Group that identifies the Capacity Reservation to use when launching on-demand instances for the master instance fleet. Optional. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="usage_strategy" type="string">
+                      Determines whether EMR uses unused EC2 Capacity Reservations to fulfill the on-demand capacity of the master instance fleet, with `use-capacity-reservations-first` as the only valid value. Optional. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="spot_specification" type="object">
+              Specifies the Spot Instance allocation strategy, timeout duration, and timeout action for the master instance fleet's Spot Instances. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="allocation_strategy" type="string">
+                  Defines the Spot Instance allocation strategy used by the master instance fleet, such as 'capacity-optimized' (prioritizes pools with the most available Spot capacity) or 'lowest-price' (launches from the lowest-priced pools), controlling how EMR selects Spot capacity across Availability Zones and instance types. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="block_duration_minutes" type="number">
+                  The duration in minutes (valid values are 60, 120, 180, 240, 300, or 360) that the Spot instances in the master instance fleet are retained, preventing them from being reclaimed until the block duration expires. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="timeout_action" type="string" required>
+                  Specifies the action to take when Spot capacity has not been fulfilled within the timeout duration; either switch to On-Demand instances or terminate the cluster. Required. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="timeout_duration_minutes" type="number" required>
+                  The number of minutes Amazon EMR waits for spot capacity for the master instance fleet to be provisioned before timing out and, if configured, provisioning on-demand instances as a fallback. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          A friendly name for the master instance fleet, used to identify it within the EMR cluster configuration. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="resize_specifications" type="object">
+          Defines the Spot and On-Demand resize specifications (allocation strategy and timeout duration) that control how the master instance fleet is resized when Amazon EMR adjusts capacity. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="on_demand_resize_specification" type="object">
+              Configures the on-demand instance resize behavior for the master instance fleet, including the resize timeout duration and the action to take if the resize times out. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="allocation_strategy" type="string">
+                  Specifies the allocation strategy (either 'lowest-price' or 'prioritized') for launching on-demand EC2 instances when resizing the master instance fleet of the EMR cluster. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="capacity_reservation_options" type="object">
+                  Defines the EC2 Capacity Reservation settings (usage strategy and reservation preference) that Amazon EMR applies when resizing on-demand instances in this master instance fleet. Optional. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="capacity_reservation_preference" type="string">
+                      Specifies whether to use open Capacity Reservations for On-Demand instances in the master instance fleet during resize operations, where 'open' uses any matching open reservation and 'none' disables this behavior. Optional. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="capacity_reservation_resource_group_arn" type="string">
+                      Amazon Resource Name (ARN) of the resource group that contains the On-Demand Capacity Reservations used by the master instance fleet when this resize specification is applied. Optional. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="usage_strategy" type="string">
+                      Specifies whether the EMR cluster's on-demand capacity for the master instance fleet should first use unused EC2 Capacity Reservations when scaling, with the supported value being `use-capacity-reservations-first`. Optional. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="timeout_duration_minutes" type="number">
+                  Specifies the maximum time, in minutes, that Amazon EMR will wait for On-Demand instances in the master instance fleet to be provisioned during a resize operation, after which the resize times out. Optional. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="spot_resize_specification" type="object">
+              Specifies the resize timeout for Spot Instances in the master instance fleet, controlling how long a spot fleet resize operation may take before it times out. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="allocation_strategy" type="string">
+                  Specifies the Spot Instance allocation strategy (e.g., capacity-optimized, lowest-price, diversified, capacity-optimized-prioritized) used when launching Spot instances during a resize of the master instance fleet. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="timeout_duration_minutes" type="number">
+                  The timeout duration in minutes for the spot resize specification of the master instance fleet, which controls how long Amazon EMR waits for spot capacity to become available before considering the resize to have failed. Optional. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="target_on_demand_capacity" type="number">
+          Specifies the target number of on-demand instances to provision for the master instance fleet in the EMR cluster. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="target_spot_capacity" type="number">
+          Target number of Spot Instances to provision for the master instance fleet in the EMR cluster. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="master_instance_group" type="object">
+      Defines the EC2 instance configuration for the master node group of the EMR cluster, including instance type, purchase option, and number of instances. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="auto_scaling_policy" type="object">
+          Defines an automatic scaling policy for the master instance group, specifying minimum and maximum instance counts and scaling rules based on CloudWatch metrics. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="constraints" type="object" required>
+              Defines the minimum and maximum number of Amazon EC2 instances that the master instance group can scale to, enforcing capacity bounds for the auto scaling policy. Required. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max_capacity" type="number" required>
+                  The maximum number of EC2 instances that the master instance group can scale out to under the auto scaling policy. Required. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min_capacity" type="number" required>
+                  The minimum number of EC2 instances in the master instance group that the auto scaling policy can scale down to, serving as the lower bound for the group's capacity when auto scaling is active. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="rules" type="list(object)" required>
+              Defines the list of scaling rules for the master instance group's auto scaling policy, each specifying conditions and actions that add or remove instances based on CloudWatch metric alarms. Required. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="action" type="object">
+                  Specifies the scaling action to take when the rule's trigger condition is met, including the adjustment type (e.g., CHANGE_IN_CAPACITY, EXACT_CAPACITY, PERCENT_CHANGE_IN_CAPACITY), how much to adjust the instance group's target capacity, and optionally the market (ON_DEMAND or SPOT) to apply the adjustment to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="market" type="string">
+                      Specifies the market type (ON_DEMAND or SPOT) of the EC2 instances to which this auto scaling action applies, controlling whether the rule adjusts the cluster's on-demand or spot capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="simple_scaling_policy_configuration" type="object">
+                      Specifies the exact scaling adjustment (e.g., number of instances to add/remove as a percent or count) and cool-down period that this EMR auto scaling rule's action applies to the master instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="adjustment_type" type="string">
+                          Specifies how the scaling action adjusts the number of instances in the master instance group, using values such as CHANGE_IN_CAPACITY, PERCENT_CHANGE_IN_CAPACITY, or EXACT_CAPACITY. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="cool_down" type="number">
+                          The amount of time, in seconds, after a scaling activity completes before any further trigger-related scaling activities can start. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="scaling_adjustment" type="number">
+                          The numeric amount by which the master instance group's target capacity is increased or decreased when this scaling rule fires, interpreted according to the parent scaling adjustment type (for example, as a count of instances or a percentage of current capacity). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="description" type="string">
+                  A user-defined description for the auto scaling rule applied to the master instance group, used to document the rule's purpose. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="name" type="string">
+                  The name of the auto scaling rule, which must be unique within the auto scaling policy for the master instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="trigger" type="object">
+                  Defines the CloudWatch alarm conditions that trigger the scaling rule, including the metric, comparison operator, threshold, and evaluation periods. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="cloud_watch_alarm_definition" type="object">
+                      Defines the CloudWatch alarm parameters (metric, comparison operator, threshold, period, evaluation periods, and dimensions) that determine when the auto scaling rule triggers for the master instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="comparison_operator" type="string">
+                          Specifies the arithmetic operator (e.g., GREATER_THAN_THRESHOLD, LESS_THAN_OR_EQUAL_TO_THRESHOLD) used by the CloudWatch alarm to compare the metric value against the threshold, determining when the auto scaling rule is triggered for the EMR cluster's master instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="dimensions" type="list(object)">
+                          Specifies the list of name/value dimension pairs for the CloudWatch metric alarm that triggers this auto scaling rule, used to scope the metric being monitored. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="key" type="string">
+                              The name (key) of a CloudWatch metric dimension within the alarm definition, used to specify the metric scope (e.g., an instance ID or job flow ID) that triggers the auto scaling rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                            <ResponseField name="value" type="string">
+                              The value of a CloudWatch alarm dimension in the master instance group's auto scaling policy, used to specify the metric dimension value that the alarm monitors for triggering the scaling rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                        <ResponseField name="evaluation_periods" type="number">
+                          Specifies the number of consecutive evaluation periods that the metric must meet the alarm threshold before the CloudWatch alarm triggers the EMR auto scaling rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="metric_name" type="string">
+                          The name of the CloudWatch metric (e.g., YARNMemoryAvailablePercentage) that the alarm monitors to trigger the auto scaling policy on the master instance group of the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="namespace" type="string">
+                          The CloudWatch namespace for the metric monitored by the auto scaling alarm, such as AWS/ElasticMapReduce. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="period" type="number">
+                          The period, in seconds, over which the specified statistic is applied for the CloudWatch alarm that triggers the auto scaling rule for the master instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="statistic" type="string">
+                          Specifies the CloudWatch alarm statistic (e.g., Average, Sum, Minimum, Maximum) applied to the metric in the alarm definition for this EMR cluster auto scaling rule trigger. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="threshold" type="number">
+                          The threshold value that the CloudWatch metric must cross (based on the associated comparison operator) to trigger the alarm and thereby invoke the EMR cluster's auto scaling rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="unit" type="string">
+                          Defines the unit of measurement for the CloudWatch metric referenced by the alarm, such as 'Percent' or 'Count', which Amazon EMR uses when evaluating the metric threshold to trigger auto scaling for the master instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="bid_price" type="string">
+          The bid price for the EC2 instances in the master instance group when they are launched as spot instances. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="configurations" type="list(object)">
+          Specifies the configuration classifications (e.g., core-site, hdfs-site, yarn-site) to apply to the master instance group in the EMR cluster. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="classification" type="string">
+              The classification name (e.g., 'core-site', 'hdfs-site', 'yarn-site', 'spark-defaults', or 'hive-site') that specifies which configuration file or type the configuration properties apply to within the master instance group's list of configurations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="configuration_properties" type="any">
+              Implements a map of application-specific configuration properties (key-value pairs) for the named classification (e.g., hadoop-env, spark-defaults) that are applied to the master instance group when the EMR cluster is provisioned. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="configurations" type="list(any)">
+              The nested configuration objects applied under the parent configuration for the master instance group, allowing EMR classifications and properties to be organized hierarchically. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="custom_ami_id" type="string">
+          The ID of a custom Amazon Machine Image (AMI) to use for the EC2 instances in the master instance group, overriding the default EMR-provided AMI. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="ebs_configuration" type="object">
+          Specifies the EBS volume settings (type, size, and number of volumes) for the master instance group, controlling the storage configuration for the cluster's master nodes. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="ebs_block_device_configs" type="list(object)">
+              Specifies the list of EBS block device configurations for the master instance group, each defining a volume type, size, and number of volumes to attach to each master instance. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="volume_specification" type="object">
+                  Specifies the EBS volume type, size in GiB, and optional IOPS for each block device attached to the master instance group of the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="iops" type="number">
+                      The number of I/O operations per second (IOPS) that the EBS volume supports, used only for provisioned IOPS volume types. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="size_in_gb" type="number">
+                      The size of each EBS volume, in GiB, for the master instance group's EBS block device configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="throughput" type="number">
+                      The throughput in MiB/s to provision for each EBS gp3 volume in the master instance group's block device configuration, applicable only when the volume type is gp3. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="volume_type" type="string">
+                      Specifies the Amazon EBS volume type (e.g., gp2, gp3, io1, or standard) for the EBS block device attached to the master instance group of the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="volumes_per_instance" type="number">
+                  The number of EBS volumes to attach to each instance in the master instance group for this block device configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="ebs_optimized" type="bool">
+              Whether the EBS volumes attached to the master instance group are EBS-optimized, enabling dedicated throughput for Amazon EBS I/O. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="instance_count" type="number" required>
+          Defines the number of EC2 instances in the master instance group of the EMR cluster, which must be 1 for a non-HA cluster or 3 for a high-availability configuration with multiple master nodes. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="instance_type" type="string" required>
+          Specifies the EC2 instance type (e.g., m5.xlarge) used for the master node in this EMR cluster's master instance group. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="market" type="string">
+          Specifies the market type for the master instance group (ON_DEMAND or SPOT), determining whether the master node runs on on-demand or spot instances. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          A user-defined friendly name for the master instance group of the EMR cluster, used to identify it within the cluster configuration. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="placement" type="object">
+      Specifies the Availability Zone(s) in which the cluster's EC2 instances are launched. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="availability_zone" type="string" required>
+          Specifies the Amazon EC2 Availability Zone (AZ) where the EMR cluster's EC2 instances will be launched. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="service_access_security_group" type="string">
+      Specifies the ID or name of the Amazon EC2 security group that Amazon EMR uses for service access, enabling the cluster to communicate with other AWS services. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="task_instance_fleets" type="list(object)">
+      Configures the task instance fleets for the EMR cluster, specifying the mixed instance types, target on-demand and spot capacities, and launch specifications for task nodes. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="instance_type_configs" type="list(object)">
+          Specifies the list of EC2 instance types and their configurations (e.g., weighted capacity, bid price, EBS volumes, and software configurations) for each task instance fleet in the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="bid_price" type="string">
+              The maximum price you are willing to pay for each Spot Instance in the task instance fleet's instance type configuration, used for bidding on spot capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="bid_price_as_percentage_of_on_demand_price" type="number">
+              For each instance type in a task instance fleet, the spot bid price as a percentage of the on-demand price, controlling the maximum spot price you are willing to pay for that instance type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="configurations" type="list(object)">
+              Specifies the list of application configuration settings (classifications and key-value properties) applied to the EC2 instances of this task instance fleet's specific instance type configuration in the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="classification" type="string">
+                  Identifies the named set of Hadoop/EMR settings (such as core-site, hive-site, or spark-defaults) that this configuration applies to within the task instance fleet's instance type configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="configuration_properties" type="any">
+                  A map of software configuration property keys to their values (e.g., core-site, hdfs-site properties) applied to the task instance fleet's instance type configuration for the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="configurations" type="list(any)">
+                  Specifies a list of nested configuration objects, each with its own classification, properties, and further sub-configurations, allowing hierarchical software settings for the EMR instance type configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="custom_ami_id" type="string">
+              Specifies the custom Amazon Machine Image (AMI) ID used to launch the EC2 instances for this instance type configuration within the task instance fleet, overriding the default EMR AMI. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="ebs_configuration" type="object">
+              For each instance type in a task instance fleet, defines the EBS storage configuration, including whether the instances are EBS-optimized and the details of EBS volumes to attach. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="ebs_block_device_configs" type="list(object)">
+                  Specifies the EBS block device configurations (e.g., volume type, size, IOPS) to attach to instances of the task instance fleet's instance type in the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="volume_specification" type="object">
+                      Defines the EBS volume specification, including volume type, size, and optional IOPS (for io1/gp3 volumes), for the associated block device in an EMR instance fleet's task instance configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="iops" type="number">
+                          The number of I/O operations per second (IOPS) to provision for the EBS volume in the volume specification, used when the volume type is io1, io2, or gp3. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="size_in_gb" type="number">
+                          For each EBS block device configured for an instance type in a task instance fleet, this specifies the volume size in GiB. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="throughput" type="number">
+                          The throughput (in MiB/s) provisioned for the EBS volume, used for volume types such as gp3 that support specifying a throughput value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="volume_type" type="string">
+                          The EBS volume type to use for the task instance fleet's block device, such as gp2, gp3, io1, io2, st1, or sc1. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="volumes_per_instance" type="number">
+                      Specifies the number of EBS volumes defined by the associated block device configuration to attach to each EC2 instance in the task instance fleet's instance type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="ebs_optimized" type="bool">
+                  Indicates whether the instance type used in the task instance fleet is Amazon EBS-optimized, providing dedicated network and storage throughput for EBS volumes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="instance_type" type="string">
+              The EC2 instance type (e.g., m5.xlarge) used for each task node in this instance fleet configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="priority" type="number">
+              In an EMR task instance fleet, the priority value specifies the order in which this instance type is considered for provisioning, where lower numbers indicate higher priority and are launched first. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="weighted_capacity" type="number">
+              Specifies the number of capacity units that this instance type contributes to the target capacity of the task instance fleet, used for capacity-based provisioning. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="launch_specifications" type="object">
+          Defines the spot provisioning specifications (e.g., timeout duration and timeout action) for the task instance fleet's spot instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="on_demand_specification" type="object">
+              Defines the allocation strategy for On-Demand Instances in the task instance fleet, such as whether to launch the lowest-priced instance type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="allocation_strategy" type="string">
+                  Specifies the allocation strategy used to distribute On-Demand Instances across multiple instance types within the launch specification of a task instance fleet, where 'lowest-price' selects the cheapest instance type and 'prioritized' follows the custom priority order. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="capacity_reservation_options" type="object">
+                  Configures how EMR launches on-demand instances for the task instance fleet using EC2 On-Demand Capacity Reservations, including preferences like using open reservations first, restricting to a specific capacity reservation resource group, or disabling reservation usage. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="capacity_reservation_preference" type="string">
+                      Specifies whether on-demand instances launched for the task instance fleet use open EC2 Capacity Reservations, with 'open' allowing use of any matching open reservation and 'none' disabling capacity reservations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="capacity_reservation_resource_group_arn" type="string">
+                      The ARN of the Capacity Reservation resource group in which the On-Demand capacity for this task instance fleet is launched. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="usage_strategy" type="string">
+                      Specifies whether the task instance fleet should use unused EC2 Capacity Reservations first when launching On-Demand instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="spot_specification" type="object">
+              Defines the Spot Instance provisioning parameters for the task instance fleet, such as the timeout duration and action when Spot capacity cannot be obtained, along with the Spot allocation strategy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="allocation_strategy" type="string">
+                  Determines the allocation strategy used by Amazon EMR to select and provision Spot Instances across the instance types in the task instance fleet, such as capacity-optimized or lowest-price. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="block_duration_minutes" type="number">
+                  The number of minutes that a spot instance in the task instance fleet remains provisioned (block duration) before it can be reclaimed, affecting the spot instance's guaranteed uptime. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="timeout_action" type="string">
+                  Determines the action EMR takes when the Spot provisioning timeout is reached for this task instance fleet, either switching the fleet to On-Demand instances (`SWITCH_TO_ON_DEMAND`) or terminating the cluster (`TERMINATE_CLUSTER`). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="timeout_duration_minutes" type="number">
+                  The number of minutes EMR will wait for Spot capacity in this task instance fleet before applying the timeout action (switching to on-demand or terminating the cluster). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          A user-defined friendly name for the task instance fleet, used to identify the fleet within the EMR cluster's configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="resize_specifications" type="object">
+          Defines the resize specifications for a task instance fleet, including the timeout duration for resize operations and the action to take (e.g., drain or cancel) if a resize cannot complete within that timeout, used with EMR-managed scaling or spot fleet capacity adjustments. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="on_demand_resize_specification" type="object">
+              Specifies the on-demand resize specification for a task instance fleet, including the timeout duration in minutes after which an on-demand resize operation is considered failed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="allocation_strategy" type="string">
+                  Specifies the allocation strategy for On-Demand instance capacity (either 'lowest-price' or 'prioritized') when the EMR task instance fleet is resized, where 'lowest-price' selects the cheapest instance type and 'prioritized' uses the order of instance types as listed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="capacity_reservation_options" type="object">
+                  Specifies the EC2 Capacity Reservation preferences for launching on-demand instances during a resize of the task instance fleet, including whether to use open reservations or a specific Capacity Reservation resource group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="capacity_reservation_preference" type="string">
+                      Determines whether to use open On-Demand Capacity Reservations when resizing the task instance fleet on-demand capacity, with allowed values 'open' or 'none'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="capacity_reservation_resource_group_arn" type="string">
+                      Specifies the ARN of the capacity reservation resource group that Amazon EMR uses when launching on-demand instances in the task instance fleet during resize, tying instance placement to a specific reserved capacity group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="usage_strategy" type="string">
+                      Specifies whether to launch On-Demand instances from capacity reservations first during a resize of the task instance fleet, currently supporting the value 'use-capacity-reservations-first'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="timeout_duration_minutes" type="number">
+                  Specifies the maximum time in minutes that Amazon EMR waits for the on-demand task instance fleet resize to complete before marking it as unsuccessful. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="spot_resize_specification" type="object">
+              Configures the timeout duration for resizing a task instance fleet that uses spot instances, controlling how long EMR waits for spot capacity before the resize operation times out. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="allocation_strategy" type="string">
+                  Determines the Spot Instance allocation strategy (either 'capacity-optimized' or 'lowest-price') used when resizing a task instance fleet, controlling how EMR selects Spot capacity during resize operations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="timeout_duration_minutes" type="number">
+                  The maximum amount of time in minutes that Amazon EMR waits for spot instances to be provisioned during a resize of a task instance fleet, before timing out the resize operation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="target_on_demand_capacity" type="number">
+          Specifies the target number of On-Demand Instances to provision in the task instance fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="target_spot_capacity" type="number">
+          Specifies the target number of Spot Instances to provision in the task instance fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="task_instance_groups" type="list(object)">
+      Specifies the configuration for the task instance groups of the EMR cluster, which are optional groups of instances used solely to execute tasks and can be scaled independently without affecting the master and core nodes. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="auto_scaling_policy" type="object">
+          Defines the automatic scaling constraints (minimum and maximum instance counts) and CloudWatch alarm-based scaling rules for the task instance group, controlling when instances are added or removed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="constraints" type="object">
+              Specifies the minimum and maximum instance counts that bound the auto scaling policy for the task instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max_capacity" type="number">
+                  The maximum number of EC2 instances that the task instance group can scale out to, as defined by the Auto Scaling policy's constraints. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min_capacity" type="number">
+                  The minimum number of EC2 instances that the task instance group can scale down to, as defined by the auto scaling policy constraints. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="rules" type="list(object)">
+              This list defines the automatic scaling rules for the task instance group, where each rule specifies a CloudWatch metric condition and the resulting number of instances to add or remove. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="action" type="object">
+                  Specifies the scaling action (such as the number of EMR task instances to add or remove and whether they should be on-demand or spot) that the Auto Scaling policy executes when the rule's CloudWatch alarm condition is met. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="market" type="string">
+                      Specifies whether the auto scaling action adds on-demand or Spot instances to the task instance group when the scaling rule triggers, with valid values ON_DEMAND and SPOT. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="simple_scaling_policy_configuration" type="object">
+                      Specifies the adjustment type, cool-down period, and scaling adjustment amount for scaling the task instance group when the rule's CloudWatch alarm triggers a simple scaling action. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="adjustment_type" type="string">
+                          Specifies how the scaling adjustment is applied to the task instance group's capacity, with valid values being CHANGE_IN_CAPACITY, PERCENT_CHANGE_IN_CAPACITY, or EXACT_CAPACITY for the EMR auto scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="cool_down" type="number">
+                          Specifies the cooldown period in seconds after a scaling activity completes before another scaling activity can begin, preventing rapid successive scaling actions in the EMR cluster's auto scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="scaling_adjustment" type="number">
+                          Specifies the magnitude of the scaling adjustment (as an integer) applied to the task instance group's target capacity when the policy rule fires, with its meaning determined by the associated AdjustmentType (e.g., a number of instances for CHANGE_IN_CAPACITY or a percentage for PERCENT_CHANGE_IN_CAPACITY). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="description" type="string">
+                  The description is a user-defined text field that provides a human-readable explanation of the auto scaling rule's purpose or behavior, as used in an EMR task instance group's auto scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="name" type="string">
+                  Specifies a user-defined name for the auto scaling rule, which uniquely identifies the rule within the auto scaling policy applied to a task instance group of the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="trigger" type="object">
+                  Defines the CloudWatch alarm that triggers the auto scaling rule for the task instance group, specifying the metric, comparison operator, threshold, and evaluation period. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="cloud_watch_alarm_definition" type="object">
+                      Configures the CloudWatch alarm definition that determines when this auto scaling rule fires, specifying the metric, comparison operator, threshold, evaluation periods, and statictic used to trigger scaling actions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="comparison_operator" type="string">
+                          Specifies the comparison operator used to evaluate the CloudWatch alarm metric against the threshold (e.g., GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold) to trigger the EMR task instance group auto scaling rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="dimensions" type="list(object)">
+                          A list of CloudWatch metric dimensions (key-value pairs) that specify the metric's dimensions for the CloudWatch alarm used to trigger the scaling rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="key" type="string">
+                              The name of a CloudWatch metric dimension (e.g., 'JobFlowId') that scopes the alarm to a specific value within the EMR cluster's auto scaling trigger. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                            <ResponseField name="value" type="string">
+                              Specifies the value for a CloudWatch alarm dimension (for example, the instance group ID or job flow ID) that scopes the metric used to trigger the EMR autoscaling rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                        <ResponseField name="evaluation_periods" type="number">
+                          The number of consecutive evaluation periods the CloudWatch alarm must be in the ALARM state before the auto scaling rule triggers a scaling action for the EMR task instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="metric_name" type="string">
+                          The CloudWatch metric name that this alarm definition monitors, and whose threshold violations trigger the associated EMR auto scaling rule for the task instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="namespace" type="string">
+                          Specifies the CloudWatch namespace for the metric evaluated by the alarm, such as 'AWS/ElasticMapReduce' or a custom namespace, identifying the service or application the metric belongs to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="period" type="number">
+                          The period, in seconds, over which the CloudWatch alarm evaluates the specified metric to trigger the auto scaling rule for the task instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="statistic" type="string">
+                          Specifies the CloudWatch alarm statistic (e.g., Average, Sum, Minimum, Maximum) used to aggregate the metric for the trigger's threshold comparison in the EMR cluster's auto scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="threshold" type="number">
+                          The value that the CloudWatch alarm metric is compared against using the specified ComparisonOperator to determine when the auto scaling rule triggers. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="unit" type="string">
+                          The unit of measure for the CloudWatch metric used in the alarm definition (e.g., Percent, Count, Bytes, Seconds), which must match the metric's unit and is used when evaluating the alarm threshold for the EMR task instance group's auto scaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="bid_price" type="string">
+          The maximum hourly price you are willing to pay for a Spot instance in this task instance group, used when launching task nodes as Spot instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="configurations" type="list(object)">
+          Specifies the application configuration settings (classifications and properties, e.g., for Spark, Hive, or Hadoop) applied to the EC2 instances in this task instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="classification" type="string">
+              The classification string that identifies the type of EMR configuration to apply to the task instance group (e.g., 'spark-defaults', 'core-site', 'hdfs-site'). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="configuration_properties" type="any">
+              Specifies a map of key-value pairs that define the settings for the configuration classification applied to the task instance group's applications (e.g., Hadoop, Spark). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="configurations" type="list(any)">
+              Provides a nested list of configuration objects (e.g., classifications and properties) that are applied hierarchically within the parent configuration for each task instance group in the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="custom_ami_id" type="string">
+          Specifies the ID of a custom Amazon Machine Image (AMI) to use for the EC2 instances in this task instance group, overriding the default Amazon EMR AMI. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="ebs_configuration" type="object">
+          Specifies the Elastic Block Store (EBS) configuration, including block device mappings and EBS optimization, for the task instance groups in the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="ebs_block_device_configs" type="list(object)">
+              List of EBS block device configurations that define the volumes attached to each task instance group, specifying parameters such as volume type, size, IOPS, and number of volumes per instance. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="volume_specification" type="object">
+                  Specifies the EBS volume details (volume type, size in GiB, and IOPS for io1 volumes) for the EBS block device attached to each node in the task instance group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="iops" type="number">
+                      The number of I/O operations per second (IOPS) that the EBS volume supports, used when the volume type is provisioned IOPS (such as io1 or io2) or gp3. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="size_in_gb" type="number">
+                      Specifies the size in GiB of each EBS volume that is attached to the task instance group nodes in the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="throughput" type="number">
+                      The requested throughput in MiB/s for an EBS gp3 volume attached to task instance groups in the EMR cluster, used when the volume type is gp3. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="volume_type" type="string">
+                      Specifies the EBS volume type (e.g., gp2, gp3, or io1) for each block device attached to instances in the task instance group, determining the storage performance and cost characteristics. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="volumes_per_instance" type="number">
+                  The number of EBS volumes to attach to each instance in the task instance group when this block device configuration is applied. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="ebs_optimized" type="bool">
+              Indicates whether the EBS volumes attached to the instances in this task instance group are EBS-optimized, providing dedicated throughput for EBS storage. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="instance_count" type="number">
+          Specifies the number of EC2 instances to launch in the task instance group, which runs task nodes that execute individual tasks and can be scaled independently of core nodes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="instance_type" type="string">
+          The EC2 instance type to use for each instance in this task instance group, determining the hardware capacity of the task nodes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="market" type="string">
+          Specifies whether the EC2 instances in this task instance group are purchased as ON_DEMAND or SPOT instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          A user-defined name for the task instance group, used to identify it within the EMR cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="termination_protected" type="bool">
+      Indicates whether termination protection is enabled for the cluster, preventing accidental termination via the API, CLI, or console. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="unhealthy_node_replacement" type="bool">
+      Specifies whether Amazon EMR automatically replaces unhealthy nodes in the cluster to maintain cluster availability. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="job_flow_role" type="string" required>
+  The IAM role (instance profile) that Amazon EMR assumes on behalf of the cluster's EC2 instances to access other AWS services, such as S3 and DynamoDB. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="kerberos_attributes" type="object">
+  Configures Kerberos authentication for the EMR cluster by specifying the Kerberos realm, KDC admin password, and optional Active Directory domain join settings. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="addomain_join_password" type="string">
+      The password for the Active Directory domain join user (ADDomainJoinUser) that the cluster uses to join the Active Directory domain. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="addomain_join_user" type="string">
+      The user name used to join the cluster to the Active Directory domain for Kerberos authentication. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="cross_realm_trust_principal_password" type="string">
+      Specifies the password for the cross-realm trust principal, which is used to establish trust between the EMR cluster's Kerberos realm and an external Kerberos realm. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="kdc_admin_password" type="string" required>
+      The password for the Kerberos Key Distribution Center (KDC) administrator principal, used to authenticate to the KDC for managing Kerberos principals. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="realm" type="string" required>
+      The Kerberos realm name (e.g., EC2.INTERNAL) used for the cluster's Kerberos authentication. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="log_encryption_kms_key_id" type="string">
+  The AWS KMS key ID or ARN used to encrypt log files generated by the EMR cluster. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="log_uri" type="string">
+  The Amazon S3 location (e.g., s3://bucket/prefix) where the EMR cluster's log files are stored. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="managed_scaling_policy" type="object">
+  Defines a managed scaling policy for the EMR cluster, which automatically scales core and task nodes based on workload using compute limits. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="compute_limits" type="object">
+      Specifies the minimum and maximum capacity limits (in units such as instances or vCPUs) for each supported unit type, which are used by the cluster's managed scaling policy to determine scaling boundaries. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="maximum_capacity_units" type="number" required>
+          The maximum number of capacity units (as defined by the unit type, e.g., instance groups or instance fleets) that the managed scaling policy can scale out to for the EMR cluster. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum_core_capacity_units" type="number">
+          Specifies the maximum capacity units (either instances or vCPUs, as defined by the unit type) for the core instance group, capping how far managed scaling can scale out the core nodes. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum_on_demand_capacity_units" type="number">
+          Sets the maximum number of capacity units that can be allocated to On-Demand instances in the cluster's managed scaling policy, capping the scale-out for on-demand compute. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="minimum_capacity_units" type="number" required>
+          Specifies the minimum capacity, in the unit type defined by the compute limit's unit_type (e.g., instance units or vCPU), that the cluster's managed scaling policy will maintain when the cluster is running. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="unit_type" type="string" required>
+          Specifies the unit of measurement for the compute limit, either 'InstanceFleetUnits' (units of instance fleet capacity) or 'Instances' (number of EC2 instances), which determines how the maximum and minimum capacity values are interpreted in the EMR managed scaling policy. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="scaling_strategy" type="string">
+      Specifies the managed scaling strategy for the cluster, with valid values 'DEFAULT' (scale based on YARN memory) and 'ADVANCED' (use custom scaling policies). Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="utilization_performance_index" type="number">
+      Sets the utilization performance index for the managed scaling policy, a value between 0 and 1 that overrides the default target utilization and influences how aggressively the cluster scales in response to workloads. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the EMR cluster, required to identify the cluster in the AWS Management Console and API. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="osrelease_label" type="string">
+  Specifies the Amazon Linux release version to use for the EMR cluster (e.g., 'Amazon Linux 2' or 'Amazon Linux 2023'). Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="placement_group_configs" type="list(object)">
+  Specifies EC2 placement group configurations for the cluster's instance roles (master, core, task), including the placement strategy such as SPREAD or PARTITION to control how instances are distributed across hardware. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="instance_role" type="string">
+      The EMR instance role (MASTER, CORE, or TASK) to which this placement group configuration applies. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="placement_strategy" type="string">
+      Specifies the placement strategy (SPREAD, CLUSTER, or PARTITION) used for the EC2 instances of the given instance role, controlling how instances are distributed across hardware within the placement group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="release_label" type="string">
+  The Amazon EMR release label (e.g., emr-6.9.0) that specifies the versions of Hadoop, Spark, Hive, and other bundled applications installed on the cluster. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="scale_down_behavior" type="string">
+  Determines how EC2 instances are terminated during automatic scale-in or instance group resizing, either at the instance-hour boundary (TERMINATE_AT_INSTANCE_HOUR) or when tasks finish (TERMINATE_AT_TASK_COMPLETION). Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="security_configuration" type="string">
+  The name of the Amazon EMR security configuration to attach to the cluster, which defines Kerberos authentication and data encryption settings. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="service_role" type="string" required>
+  The IAM role that Amazon EMR assumes to call other AWS services on your behalf when processing the cluster. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="step_concurrency_level" type="number">
+  Specifies the maximum number of parallel execution steps that the EMR cluster can run concurrently. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="steps" type="list(object)">
+  Specifies a sequence of Hadoop job steps to execute on the EMR cluster, where each step includes a name, an action on failure, and a HadoopJarStep configuration defining the JAR and arguments. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="action_on_failure" type="string">
+      Specifies the action to take when a step in the EMR cluster fails, with valid values being CONTINUE to proceed with subsequent steps, TERMINATE_CLUSTER to shut down the cluster immediately, or CANCEL_AND_WAIT to cancel remaining steps and wait. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="hadoop_jar_step" type="object">
+      Specifies the configuration for a Hadoop JAR step, which defines a MapReduce or standalone JAR job to run on the EMR cluster, including the JAR location, main class, arguments, and optional properties. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="args" type="list(string)">
+          Arguments to pass to the main class of the Hadoop JAR step. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="jar" type="string">
+          The location (typically an Amazon S3 URI) of the JAR file containing the main class that the Hadoop step will execute. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="main_class" type="string">
+          Specifies the fully qualified name of the main class in the JAR for the Hadoop step; when this is not provided, the JAR file's manifest must contain a Main-Class entry. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="step_properties" type="list(object)">
+          Specifies the key-value pairs passed as properties to the Hadoop JAR step, which are available to the main class at runtime. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              Specifies the name of a Hadoop step property (a key in the key-value pair) that is passed to the JAR when the step runs, adjusting its runtime configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The value for a key in the Hadoop jar step's properties map, which is passed to the EMR step as a custom configuration pair. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      The name of the EMR cluster step, used to identify the step within the cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Tags are key-value pairs that you attach to the EMR cluster to help with cost allocation, organization, and access control using IAM policies. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key portion of a user-defined tag applied to the EMR cluster, which can be used for cost allocation, access control, and identifying cluster purposes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="visible_to_all_users" type="bool">
+  Indicates whether the EMR cluster is visible to all IAM users in the AWS account, with false restricting visibility to only the IAM user who created the cluster. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The unique identifier of the EMR cluster, assigned by AWS (e.g., j-2AXXXXXX). Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="master_public_dns" type="string">
+  The publicly resolvable DNS hostname of the cluster's master node, used for SSH or web access to the master instance. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

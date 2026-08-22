@@ -1,0 +1,141 @@
+---
+title: "aws_backup_vault"
+description: "`aws_backup_vault` is where AWS Backup actually stores backups..."
+---
+
+`aws_backup_vault` is where AWS Backup actually stores backups, separated from their source resources so a backup survives even if the original EC2 instance or EBS volume is deleted, with its own encryption key and resource-based access policy controlling who can read or restore from it.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	backup "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/backup"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own vault"})
+
+    		ubx.Resource(backup.Vault, "ci-runner", backup.VaultConfig{
+    			BackupVaultName:   "example-backup-vault-name",
+    			AccessPolicy:      "example",
+    			BackupVaultTags:   "example",
+    			EncryptionKeyArn:  "arn:aws:iam::123456789012:policy/ci",
+    			LockConfiguration: map[string]any{"min_retention_days": 1},
+    			Notifications:     map[string]any{"backup_vault_events": []string{"example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Vault } from "./local-sdk/aws/sdk/typescript/aws/backup/vault.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own vault" });
+
+      resource(Vault, "ci-runner", {
+        backupVaultName: "example-backup-vault-name",
+        accessPolicy: "example",
+        backupVaultTags: "example",
+        encryptionKeyArn: "arn:aws:iam::123456789012:policy/ci",
+        lockConfiguration: { minRetentionDays: 1 },
+        notifications: { backupVaultEvents: ["example"] },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.backup import Vault, VaultConfig
+
+    def describe():
+        ubx.intent("payments own vault")
+
+        ubx.resource(Vault, "ci-runner", VaultConfig(
+            backup_vault_name="example-backup-vault-name",
+            access_policy="example",
+            backup_vault_tags="example",
+            encryption_key_arn="arn:aws:iam::123456789012:policy/ci",
+            lock_configuration={"min_retention_days": 1},
+            notifications={"backup_vault_events": ["example"]},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_backup_vault, with backup vault name
+    example-backup-vault-name, access policy example, backup vault
+    tags example, encryption key arn
+    arn:aws:iam::123456789012:policy/ci, lock configuration a set
+    value, notifications a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="access_policy" type="any">
+  Specifies a resource-based policy (in JSON) that defines which IAM principals can perform actions on the backup vault and its recovery points, such as viewing, creating, or deleting backups. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="backup_vault_name" type="string" required>
+  The name of the backup vault, which must be unique within the account and region. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="backup_vault_tags" type="any">
+  Specifies the tags to attach to the backup vault as key-value pairs. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="encryption_key_arn" type="string">
+  The ARN of the AWS KMS key used to encrypt backups stored in this backup vault. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="lock_configuration" type="object">
+  Specifies the configuration for AWS Backup Vault Lock, including minimum and maximum retention durations (in days) and the period (in days) during which the lock settings can still be modified, enabling an immutable backup vault. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="changeable_for_days" type="number">
+      Specifies the number of days after the backup vault lock is applied during which the lock configuration can still be changed or removed, after which the vault lock becomes permanently immutable. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="max_retention_days" type="number">
+      Specifies the maximum number of days that the backup vault lock will retain recovery points before they are permanently deleted, enforcing an upper bound on retention for the vault. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="min_retention_days" type="number" required>
+      The minimum number of days that recovery points in the backup vault must be retained, enforced by the vault lock configuration. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="notifications" type="object">
+  Specifies the Amazon SNS topic and the backup vault events (such as BACKUP_JOB_STARTED or BACKUP_JOB_COMPLETED) that trigger notifications for this backup vault. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="backup_vault_events" type="list(string)" required>
+      Specifies the list of backup vault event types (e.g., BACKUP_JOB_STARTED, BACKUP_JOB_COMPLETED) that trigger the SNS notification to the configured topic. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="snstopic_arn" type="string" required>
+      The ARN of the Amazon SNS topic to which AWS Backup publishes event notifications for this backup vault, as configured for the vault's notification events. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="backup_vault_arn" type="string">
+  The Amazon Resource Name (ARN) of the backup vault, which uniquely identifies it within AWS. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

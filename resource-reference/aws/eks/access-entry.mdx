@@ -1,0 +1,153 @@
+---
+title: "aws_eks_access_entry"
+description: "`aws_eks_access_entry` grants a real IAM principal access to an `aws_eks_cluster`'s Kubernetes API, EKS's own current..."
+---
+
+`aws_eks_access_entry` grants a real IAM principal access to an `aws_eks_cluster`'s Kubernetes API, EKS's own current, native authentication and authorization mechanism that replaced the older aws-auth ConfigMap approach.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	eks "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/eks"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own access entry"})
+
+    		ubx.Resource(eks.AccessEntry, "ci-runner", eks.AccessEntryConfig{
+    			ClusterName:      "example-cluster-name",
+    			PrincipalArn:     "arn:aws:iam::123456789012:policy/ci",
+    			AccessPolicies:   []map[string]any{{"access_scope": map[string]any{"namespaces": []string{"example"}}}},
+    			KubernetesGroups: []string{"example"},
+    			Tags:             []map[string]any{{"key": "example"}},
+    			Type:             "example",
+    			Username:         "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AccessEntry } from "./local-sdk/aws/sdk/typescript/aws/eks/access_entry.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own access entry" });
+
+      resource(AccessEntry, "ci-runner", {
+        clusterName: "example-cluster-name",
+        principalArn: "arn:aws:iam::123456789012:policy/ci",
+        accessPolicies: [{ accessScope: { namespaces: ["example"] } }],
+        kubernetesGroups: ["example"],
+        tags: [{ key: "example" }],
+        type: "example",
+        username: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.eks import AccessEntry, AccessEntryConfig
+
+    def describe():
+        ubx.intent("payments own access entry")
+
+        ubx.resource(AccessEntry, "ci-runner", AccessEntryConfig(
+            cluster_name="example-cluster-name",
+            principal_arn="arn:aws:iam::123456789012:policy/ci",
+            access_policies=[{"access_scope": {"namespaces": ["example"]}}],
+            kubernetes_groups=["example"],
+            tags=[{"key": "example"}],
+            type="example",
+            username="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_eks_access_entry, with cluster name
+    example-cluster-name, principal arn
+    arn:aws:iam::123456789012:policy/ci, access policies a set value,
+    kubernetes groups a set value, tags a set value, type example,
+    username example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="access_policies" type="list(object)">
+  An array of access policies that are associated with the access entry. Optional.
+  <Expandable title="properties">
+    <ResponseField name="access_scope" type="object">
+      Defines the scope of the access policy, either for the entire cluster when the type is 'cluster' or for the specified namespaces when the type is 'namespace'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="namespaces" type="list(string)">
+          The namespaces that the access policy applies to when the access scope type is set to 'namespace', restricting the policy's permissions to those specific Kubernetes namespaces. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          Specifies whether the access policy applies to the entire EKS cluster or only to specific Kubernetes namespaces, with allowed values of 'cluster' or 'namespace'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="policy_arn" type="string">
+      The ARN of the IAM access policy that is associated with the access entry for the EKS cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="cluster_name" type="string" required>
+  The cluster that the access entry is created for. Required.
+</ResponseField>
+
+<ResponseField name="kubernetes_groups" type="list(string)">
+  The Kubernetes groups that the access entry is associated with. Optional.
+</ResponseField>
+
+<ResponseField name="principal_arn" type="string" required>
+  The principal ARN that the access entry is created for. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      A user-defined key for a tag attached to the EKS access entry, used to label and categorize the entry for management and cost tracking in AWS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag assigned to the EKS access entry, used to categorize or identify the resource for management and access control purposes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="type" type="string">
+  The node type to associate with the access entry. Optional.
+</ResponseField>
+
+<ResponseField name="username" type="string">
+  The Kubernetes user that the access entry is associated with. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="access_entry_arn" type="string">
+  The ARN of the access entry. Computed by AWS after `ship`.
+</ResponseField>

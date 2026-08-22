@@ -1,0 +1,123 @@
+---
+title: "aws_bedrock_session"
+description: "`aws_bedrock_session` persists conversation state and context across multiple, separate Amazon Bedrock invocations..."
+---
+
+`aws_bedrock_session` persists conversation state and context across multiple, separate Amazon Bedrock invocations, the managed alternative to a caller building and scaling their own backend to checkpoint multi-step generative AI conversations built with frameworks like LangGraph or LlamaIndex.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	bedrock "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/bedrock"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own session"})
+
+    		ubx.Resource(bedrock.Session, "ci-runner", bedrock.SessionConfig{
+    			EncryptionKeyArn: "arn:aws:iam::123456789012:policy/ci",
+    			SessionMetadata:  "example",
+    			Tags:             []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Session } from "./local-sdk/aws/sdk/typescript/aws/bedrock/session.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own session" });
+
+      resource(Session, "ci-runner", {
+        encryptionKeyArn: "arn:aws:iam::123456789012:policy/ci",
+        sessionMetadata: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.bedrock import Session, SessionConfig
+
+    def describe():
+        ubx.intent("payments own session")
+
+        ubx.resource(Session, "ci-runner", SessionConfig(
+            encryption_key_arn="arn:aws:iam::123456789012:policy/ci",
+            session_metadata="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_bedrock_session, with encryption key arn
+    arn:aws:iam::123456789012:policy/ci, session metadata example,
+    tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="encryption_key_arn" type="string">
+  The Amazon Resource Name (ARN) of the KMS key to use to encrypt the session data. Optional.
+</ResponseField>
+
+<ResponseField name="session_metadata" type="any">
+  A map of key-value pairs containing attributes to be persisted across the session. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of tags associated with the session. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the AWS Bedrock session, used to assign metadata for organizing, filtering, and managing the session. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="created_at" type="string">
+  The timestamp for when the session was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="last_updated_at" type="string">
+  The timestamp for when the session was last modified. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="session_arn" type="string">
+  The Amazon Resource Name (ARN) of the session. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="session_id" type="string">
+  The unique identifier of the session in UUID format. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="session_status" type="string">
+  The current status of the session. Computed by AWS after `ship`.
+</ResponseField>

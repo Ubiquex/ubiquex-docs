@@ -1,0 +1,121 @@
+---
+title: "aws_events_archive"
+description: "`aws_events_archive` continuously and automatically saves real events flowing through an `aws_events_event_bus`, matching an optional filter..."
+---
+
+`aws_events_archive` continuously and automatically saves real events flowing through an `aws_events_event_bus`, matching an optional filter, so they can be replayed back onto the bus later, real event replay rather than events being lost the moment they're processed once.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	events "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/events"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own archive"})
+
+    		ubx.Resource(events.Archive, "ci-runner", events.ArchiveConfig{
+    			SourceArn:        "arn:aws:iam::123456789012:policy/ci",
+    			ArchiveName:      "example-archive-name",
+    			Description:      "Managed by ubx.",
+    			EventPattern:     "example",
+    			KmsKeyIdentifier: "example",
+    			RetentionDays:    1,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Archive } from "./local-sdk/aws/sdk/typescript/aws/events/archive.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own archive" });
+
+      resource(Archive, "ci-runner", {
+        sourceArn: "arn:aws:iam::123456789012:policy/ci",
+        archiveName: "example-archive-name",
+        description: "Managed by ubx.",
+        eventPattern: "example",
+        kmsKeyIdentifier: "example",
+        retentionDays: 1,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.events import Archive, ArchiveConfig
+
+    def describe():
+        ubx.intent("payments own archive")
+
+        ubx.resource(Archive, "ci-runner", ArchiveConfig(
+            source_arn="arn:aws:iam::123456789012:policy/ci",
+            archive_name="example-archive-name",
+            description="Managed by ubx.",
+            event_pattern="example",
+            kms_key_identifier="example",
+            retention_days=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_events_archive, with source arn
+    arn:aws:iam::123456789012:policy/ci, archive name
+    example-archive-name, description Managed by ubx., event pattern
+    example, kms key identifier example, retention days 1.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="archive_name" type="string">
+  The name of the EventBridge archive, which uniquely identifies the archive within the AWS account and region. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  The description of the archive, providing an optional human-readable explanation of the archive's purpose or contents. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="event_pattern" type="any">
+  A JSON object specifying the event pattern that determines which events are captured in the archive. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="kms_key_identifier" type="string">
+  Specifies the AWS KMS key (by ARN or alias) used to encrypt the events stored in this archive; if omitted, EventBridge uses an AWS managed key. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="retention_days" type="number">
+  The number of days that events are retained in the archive before they are automatically deleted. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="source_arn" type="string" required>
+  The ARN of the event source, such as an EventBridge bus, from which the archive collects events. Required. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies this EventBridge archive in AWS. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

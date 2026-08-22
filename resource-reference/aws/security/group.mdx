@@ -1,0 +1,191 @@
+---
+title: "aws_security_group"
+description: "`aws_security_group` creates a real, stateful virtual firewall scoped to specific EC2 instances or other ENI-attached resources..."
+---
+
+`aws_security_group` creates a real, stateful virtual firewall scoped to specific EC2 instances or other ENI-attached resources, evaluating all its allow rules regardless of order, distinct from a `aws_network_acl`'s stateless, subnet-wide, ordered rule evaluation.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	security "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/security"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own group"})
+
+    		ubx.Resource(security.Group, "ci-runner", security.GroupConfig{
+    			GroupDescription:     "example",
+    			GroupName:            "example-group-name",
+    			SecurityGroupEgress:  []map[string]any{{"cidr_ip": "example"}},
+    			SecurityGroupIngress: []map[string]any{{"cidr_ip": "example"}},
+    			Tags:                 []map[string]any{{"key": "example"}},
+    			VpcId:                "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Group } from "./local-sdk/aws/sdk/typescript/aws/security/group.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own group" });
+
+      resource(Group, "ci-runner", {
+        groupDescription: "example",
+        groupName: "example-group-name",
+        securityGroupEgress: [{ cidrIp: "example" }],
+        securityGroupIngress: [{ cidrIp: "example" }],
+        tags: [{ key: "example" }],
+        vpcId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.security import Group, GroupConfig
+
+    def describe():
+        ubx.intent("payments own group")
+
+        ubx.resource(Group, "ci-runner", GroupConfig(
+            group_description="example",
+            group_name="example-group-name",
+            security_group_egress=[{"cidr_ip": "example"}],
+            security_group_ingress=[{"cidr_ip": "example"}],
+            tags=[{"key": "example"}],
+            vpc_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_security_group, with group description example, group
+    name example-group-name, security group egress a set value,
+    security group ingress a set value, tags a set value, vpc id
+    example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="group_description" type="string" required>
+  A description for the security group. Required.
+</ResponseField>
+
+<ResponseField name="group_name" type="string">
+  The name of the security group. Optional.
+</ResponseField>
+
+<ResponseField name="security_group_egress" type="list(object)">
+  [VPC only] The outbound rules associated with the security group. There is a short interruption during which you cannot connect to the security group. Optional.
+  <Expandable title="properties">
+    <ResponseField name="cidr_ip" type="string">
+      The IPv4 address range, in CIDR form, that is allowed as the destination for outbound traffic in this security group egress rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="cidr_ipv6" type="string">
+      The destination IPv6 CIDR block for the outbound traffic allowed by this security group egress rule, such as ::/0 for all IPv6 addresses. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      A human-readable description for the outbound (egress) rule, used to document the rule's purpose or context. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="destination_prefix_list_id" type="string">
+      The ID of the destination prefix list that the egress rule applies to, allowing traffic to the CIDR blocks defined by that prefix list (e.g., for VPC endpoints or managed prefix lists). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="destination_security_group_id" type="string">
+      The ID of the destination security group for this egress rule, which allows outbound traffic to that security group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="from_port" type="number">
+      The starting port number of the port range for this outbound (egress) rule, defining the lower bound of destination ports permitted for the specified protocol. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="ip_protocol" type="string">
+      Specifies the IP protocol name or number (such as tcp, udp, icmp, or -1 for all protocols) that this egress rule applies to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="to_port" type="number">
+      The end of the port range (inclusive) for the destination port in this outbound security group rule; for a single port, set it equal to from_port. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="security_group_ingress" type="list(object)">
+  The inbound rules associated with the security group. There is a short interruption during which you cannot connect to the security group. Optional.
+  <Expandable title="properties">
+    <ResponseField name="cidr_ip" type="string">
+      The IPv4 CIDR block from which inbound traffic is allowed by this security group ingress rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="cidr_ipv6" type="string">
+      The IPv6 CIDR block (e.g., 2001:db8::/32) that is allowed to send inbound traffic to the security group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      A brief, human-readable description for the security group ingress rule, used to document its purpose or source, with a maximum length of 255 characters. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="from_port" type="number">
+      The starting port number for the inbound rule's port range, or the ICMP type number when the protocol is ICMP. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="ip_protocol" type="string">
+      Specifies the IP protocol name (such as tcp, udp, or icmp), a protocol number, or ' -1 ' to represent all protocols, for the ingress rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="source_prefix_list_id" type="string">
+      The ID of an AWS prefix list (such as a managed prefix list for AWS services or VPC endpoints) that serves as the source of the inbound traffic permitted by this ingress rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="source_security_group_id" type="string">
+      Specifies the ID of the source security group (in the same VPC or a peer VPC) whose instances are allowed to send inbound traffic to this security group, used as the SourceSecurityGroupId property of a security group ingress rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="source_security_group_name" type="string">
+      The name of the source security group whose members are allowed inbound access by this ingress rule; this is used for EC2-Classic rules, whereas VPC security groups usually reference the source by its `SourceSecurityGroupId` instead. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="source_security_group_owner_id" type="string">
+      The AWS account ID of the owner of the referenced source security group, required when the source security group belongs to a different AWS account. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="to_port" type="number">
+      The ending port number of the range for this ingress rule; for a single port, specify the same value as from_port. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Any tags assigned to the security group. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag assigned to the security group, used to organize and identify the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vpc_id" type="string">
+  The ID of the VPC for the security group. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="group_id" type="string">
+  The group ID of the specified security group. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The group name or group ID depending on whether the SG is created in default or specific VPC Computed by AWS after `ship`.
+</ResponseField>

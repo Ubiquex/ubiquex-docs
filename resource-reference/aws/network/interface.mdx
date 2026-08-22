@@ -1,0 +1,251 @@
+---
+title: "aws_network_interface"
+description: "`aws_network_interface` creates a real Elastic Network Interface, a virtual network card with its own private IP addresses and security groups..."
+---
+
+`aws_network_interface` creates a real Elastic Network Interface, a virtual network card with its own private IP addresses and security groups, that can be attached to an EC2 instance.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	network "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/network"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own interface"})
+
+    		ubx.Resource(network.Interface, "ci-runner", network.InterfaceConfig{
+    			SubnetId:                        "example",
+    			ConnectionTrackingSpecification: map[string]any{"tcp_established_timeout": 1},
+    			Description:                     "Managed by ubx.",
+    			EnablePrimaryIpv6:               true,
+    			GroupSet:                        []string{"example"},
+    			InterfaceType:                   "example",
+    			Ipv4PrefixCount:                 1,
+    			Ipv4Prefixes:                    []map[string]any{{"ipv4_prefix": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Interface } from "./local-sdk/aws/sdk/typescript/aws/network/interface.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own interface" });
+
+      resource(Interface, "ci-runner", {
+        subnetId: "example",
+        connectionTrackingSpecification: { tcpEstablishedTimeout: 1 },
+        description: "Managed by ubx.",
+        enablePrimaryIpv6: true,
+        groupSet: ["example"],
+        interfaceType: "example",
+        ipv4PrefixCount: 1,
+        ipv4Prefixes: [{ ipv4Prefix: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.network import Interface, InterfaceConfig
+
+    def describe():
+        ubx.intent("payments own interface")
+
+        ubx.resource(Interface, "ci-runner", InterfaceConfig(
+            subnet_id="example",
+            connection_tracking_specification={"tcp_established_timeout": 1},
+            description="Managed by ubx.",
+            enable_primary_ipv6=True,
+            group_set=["example"],
+            interface_type="example",
+            ipv4_prefix_count=1,
+            ipv4_prefixes=[{"ipv4_prefix": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_network_interface, with subnet id example, connection
+    tracking specification a set value, description Managed by ubx.,
+    enable primary ipv6 true, group set a set value, interface type
+    example, ipv4 prefix count 1, ipv4 prefixes a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="connection_tracking_specification" type="object">
+  Specifies the connection tracking configuration for the network interface, including idle timeout values for established TCP connections and UDP flows to control stateful traffic tracking. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="tcp_established_timeout" type="number">
+      Specifies the timeout (in seconds) for TCP established connections for the network interface's connection tracking configuration. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="udp_stream_timeout" type="number">
+      The timeout in seconds for UDP streams in the established state on this network interface, after which connection tracking removes the flow if no packets are seen. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="udp_timeout" type="number">
+      Specifies the idle timeout in seconds for UDP traffic on the network interface, determining how long a UDP flow remains active in connection tracking before it expires. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A description for the network interface. Optional.
+</ResponseField>
+
+<ResponseField name="enable_primary_ipv6" type="bool">
+  If you have instances or ENIs that rely on the IPv6 address not changing, to avoid disrupting traffic to instances or ENIs, you can enable a primary IPv6 address. Enable this option to automatically assign an IPv6 associated with the ENI attached to your instance to be the primary IPv6 address. When you enable an IPv6 address to be a primary IPv6, you cannot disable it. Traffic will be routed to the primary IPv6 address until the instance is terminated or the ENI is detached. If you have multiple IPv6 addresses associated with an ENI and you enable a primary IPv6 address, the first IPv6 address associated with the ENI becomes the primary IPv6 address. Optional.
+</ResponseField>
+
+<ResponseField name="group_set" type="list(string)">
+  A list of security group IDs associated with this network interface. Optional.
+</ResponseField>
+
+<ResponseField name="interface_type" type="string">
+  Indicates the type of network interface. Optional.
+</ResponseField>
+
+<ResponseField name="ipv4_prefix_count" type="number">
+  The number of IPv4 prefixes to assign to a network interface. When you specify a number of IPv4 prefixes, Amazon EC2 selects these prefixes from your existing subnet CIDR reservations, if available, or from free spaces in the subnet. By default, these will be /28 prefixes. You can't specify a count of IPv4 prefixes if you've specified one of the following: specific IPv4 prefixes, specific private IPv4 addresses, or a count of private IPv4 addresses. Optional.
+</ResponseField>
+
+<ResponseField name="ipv4_prefixes" type="list(object)">
+  Assigns a list of IPv4 prefixes to the network interface. If you want EC2 to automatically assign IPv4 prefixes, use the Ipv4PrefixCount property and do not specify this property. Presently, only /28 prefixes are supported. You can't specify IPv4 prefixes if you've specified one of the following: a count of IPv4 prefixes, specific private IPv4 addresses, or a count of private IPv4 addresses. Optional.
+  <Expandable title="properties">
+    <ResponseField name="ipv4_prefix" type="string">
+      The IPv4 prefix (CIDR block) assigned to the network interface. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="ipv6_address_count" type="number">
+  The number of IPv6 addresses to assign to a network interface. Amazon EC2 automatically selects the IPv6 addresses from the subnet range. To specify specific IPv6 addresses, use the Ipv6Addresses property and don't specify this property. Optional.
+</ResponseField>
+
+<ResponseField name="ipv6_addresses" type="list(object)">
+  One or more specific IPv6 addresses from the IPv6 CIDR block range of your subnet to associate with the network interface. If you're specifying a number of IPv6 addresses, use the Ipv6AddressCount property and don't specify this property. Optional.
+  <Expandable title="properties">
+    <ResponseField name="ipv6_address" type="string">
+      Specifies an IPv6 address from the subnet's IPv6 CIDR block to assign to the network interface. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="ipv6_prefix_count" type="number">
+  The number of IPv6 prefixes to assign to a network interface. When you specify a number of IPv6 prefixes, Amazon EC2 selects these prefixes from your existing subnet CIDR reservations, if available, or from free spaces in the subnet. By default, these will be /80 prefixes. You can't specify a count of IPv6 prefixes if you've specified one of the following: specific IPv6 prefixes, specific IPv6 addresses, or a count of IPv6 addresses. Optional.
+</ResponseField>
+
+<ResponseField name="ipv6_prefixes" type="list(object)">
+  Assigns a list of IPv6 prefixes to the network interface. If you want EC2 to automatically assign IPv6 prefixes, use the Ipv6PrefixCount property and do not specify this property. Presently, only /80 prefixes are supported. You can't specify IPv6 prefixes if you've specified one of the following: a count of IPv6 prefixes, specific IPv6 addresses, or a count of IPv6 addresses. Optional.
+  <Expandable title="properties">
+    <ResponseField name="ipv6_prefix" type="string">
+      The IPv6 prefix (CIDR block) assigned to the network interface, such as 2001:db8::/64. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="private_ip_address" type="string">
+  Assigns a single private IP address to the network interface, which is used as the primary private IP address. If you want to specify multiple private IP address, use the PrivateIpAddresses property. Optional.
+</ResponseField>
+
+<ResponseField name="private_ip_addresses" type="list(object)">
+  Assigns a list of private IP addresses to the network interface. You can specify a primary private IP address by setting the value of the Primary property to true in the PrivateIpAddressSpecification property. If you want EC2 to automatically assign private IP addresses, use the SecondaryPrivateIpAddressCount property and do not specify this property. Optional.
+  <Expandable title="properties">
+    <ResponseField name="primary" type="bool">
+      Indicates whether this private IP address is the primary private IP address of the network interface. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="private_ip_address" type="string">
+      Specifies the private IPv4 address for a secondary IP address assignment on the network interface. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="public_ip_dns_hostname_type_specification" type="string">
+  Public IP DNS hostname type Optional.
+</ResponseField>
+
+<ResponseField name="secondary_private_ip_address_count" type="number">
+  The number of secondary private IPv4 addresses to assign to a network interface. When you specify a number of secondary IPv4 addresses, Amazon EC2 selects these IP addresses within the subnet's IPv4 CIDR range. You can't specify this option and specify more than one private IP address using privateIpAddresses Optional.
+</ResponseField>
+
+<ResponseField name="source_dest_check" type="bool">
+  Indicates whether traffic to or from the instance is validated. Optional.
+</ResponseField>
+
+<ResponseField name="subnet_id" type="string" required>
+  The ID of the subnet to associate with the network interface. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An arbitrary set of tags (key-value pairs) for this network interface. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag applied to the network interface, used for resource categorization, cost allocation, and access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  Network interface id. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="primary_ipv6_address" type="string">
+  The primary IPv6 address Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="primary_private_ip_address" type="string">
+  Returns the primary private IP address of the network interface. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="public_ip_dns_name_options" type="object">
+  Describes the public hostname type options, including public hostname type, IPv4-enabled public hostname, IPv6-enabled public hostname, and dual-stack public hostname. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="dns_hostname_type" type="string">
+      Specifies the type of DNS hostname to assign to the public IP address of the network interface, either 'ip-name' (default) or 'resource-name'. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="public_dual_stack_dns_name" type="string">
+      The public_dual_stack_dns_name is the fully qualified public DNS hostname that AWS assigns to the network interface, resolving to both its public IPv4 and public IPv6 addresses when dual-stack DNS naming is enabled in the containing public IP DNS name options. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="public_ipv4_dns_name" type="string">
+      The DNS name automatically assigned to the network interface's public IPv4 address (e.g., ec2-203-0-113-10.compute-1.amazonaws.com), determined by the HostnameType and DNS A record settings configured in the public_ip_dns_name_options block. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="public_ipv6_dns_name" type="string">
+      Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="secondary_private_ip_addresses" type="list(string)">
+  Returns the secondary private IP addresses of the network interface. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="vpc_id" type="string">
+  The ID of the VPC Computed by AWS after `ship`.
+</ResponseField>

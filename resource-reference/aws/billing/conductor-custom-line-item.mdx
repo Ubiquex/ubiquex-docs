@@ -1,0 +1,222 @@
+---
+title: "aws_billing_conductor_custom_line_item"
+description: "`aws_billing_conductor_custom_line_item` adds a manually defined charge or credit, a flat fee, a support markup, a negotiated discount..."
+---
+
+`aws_billing_conductor_custom_line_item` adds a manually defined charge or credit, a flat fee, a support markup, a negotiated discount, into an `aws_billing_conductor_billing_group`'s pro forma cost data, alongside its real, pricing-plan-derived AWS costs.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	billing "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/billing"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own conductor custom line item"})
+
+    		ubx.Resource(billing.ConductorCustomLineItem, "ci-runner", billing.ConductorCustomLineItemConfig{
+    			BillingGroupArn:             "arn:aws:iam::123456789012:policy/ci",
+    			Name:                        "ci-runner",
+    			AccountId:                   "example",
+    			BillingPeriodRange:          map[string]any{"exclusive_end_billing_period": "example"},
+    			ComputationRule:             "example",
+    			CustomLineItemChargeDetails: map[string]any{"type": "example"},
+    			Description:                 "Managed by ubx.",
+    			PresentationDetails:         map[string]any{"service": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ConductorCustomLineItem } from "./local-sdk/aws/sdk/typescript/aws/billing/conductor_custom_line_item.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own conductor custom line item" });
+
+      resource(ConductorCustomLineItem, "ci-runner", {
+        billingGroupArn: "arn:aws:iam::123456789012:policy/ci",
+        name: "ci-runner",
+        accountId: "example",
+        billingPeriodRange: { exclusiveEndBillingPeriod: "example" },
+        computationRule: "example",
+        customLineItemChargeDetails: { type: "example" },
+        description: "Managed by ubx.",
+        presentationDetails: { service: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.billing import ConductorCustomLineItem, ConductorCustomLineItemConfig
+
+    def describe():
+        ubx.intent("payments own conductor custom line item")
+
+        ubx.resource(ConductorCustomLineItem, "ci-runner", ConductorCustomLineItemConfig(
+            billing_group_arn="arn:aws:iam::123456789012:policy/ci",
+            name="ci-runner",
+            account_id="example",
+            billing_period_range={"exclusive_end_billing_period": "example"},
+            computation_rule="example",
+            custom_line_item_charge_details={"type": "example"},
+            description="Managed by ubx.",
+            presentation_details={"service": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_billing_conductor_custom_line_item called "ci-runner",
+    with billing group arn arn:aws:iam::123456789012:policy/ci,
+    account id example, billing period range a set value, computation
+    rule example, custom line item charge details a set value,
+    description Managed by ubx., presentation details a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="account_id" type="string">
+  The account which this custom line item will be charged to Optional.
+</ResponseField>
+
+<ResponseField name="billing_group_arn" type="string" required>
+  Billing Group ARN Required.
+</ResponseField>
+
+<ResponseField name="billing_period_range" type="object">
+  The range of billing periods during which the custom line item is active, defined by an inclusive start and exclusive end billing period. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="exclusive_end_billing_period" type="string">
+      The exclusive_end_billing_period sets the cutoff billing period, in YYYY-MM-DD format, after which the custom line item is no longer applied, with the range being exclusive so the item remains active through the end of the previous billing period. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="inclusive_start_billing_period" type="string">
+      The inclusive start billing period that defines the first billing period in the range for which the custom line item is applied. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="computation_rule" type="string">
+  The display settings of the Custom Line Item. Optional.
+</ResponseField>
+
+<ResponseField name="custom_line_item_charge_details" type="object">
+  Defines the billing charge type (fee or credit) and the associated flat or percentage amount details for the custom line item. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="flat" type="object">
+      Specifies the flat-rate charge details for the custom line item, defining a fixed monetary amount (charge_value) that is applied to the associated billing group's usage. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="charge_value" type="number" required>
+          The required fixed amount (in USD) that AWS Billing Conductor charges for the custom line item when its charge type is set to FLAT. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="line_item_filters" type="list(object)">
+      A list of filters that specify which underlying billing line items the custom line item charge applies to, based on matching attributes such as the AWS service, usage type, or operation. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="attribute" type="string">
+          Specifies the billing line item attribute (e.g., LINE_ITEM_TYPE, OPERATION, or USAGE_TYPE) that the filter's value is matched against to determine whether the custom line item is applied. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="attribute_values" type="list(string)">
+          The list of attribute values that the line item filter matches against, determining which billing line items are selected for the custom line item's charge calculations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="match_option" type="string">
+          Determines whether the line item filter should match all, any, or none of the specified filter values, with valid values including MATCH_ALL, MATCH_ANY, NOT_MATCH_ALL, and NOT_MATCH_ANY. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="values" type="list(string)">
+          Defines the list of matching values (e.g., specific line item types or product names) for the line item filter key, determining which billing line items the custom charge is applied to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="percentage" type="object">
+      The percentage-based charge configuration for the custom line item, which defines the percentage of the associated billing group's usage that is charged and optionally includes child resources. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="child_associated_resources" type="list(string)">
+          Specifies a list of Amazon Resource Names (ARNs) of the associated resources that the percentage-based custom line item charge applies to; if omitted, the percentage applies to all resources in the billing group. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="percentage_value" type="number" required>
+          The percentage of the custom line item charge, expressed as a numeric percentage (e.g., 10 for 10%). Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      The type of custom line item charge, which determines whether the line item is a fee (FEE) or a credit (CREDIT) applied to the customer's bill. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  An optional, user-defined text description that provides additional context about the custom line item, aiding identification in billing reports. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The descriptive name assigned to the custom line item, which appears in billing reports to identify the charge. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="presentation_details" type="object">
+  Specifies the customer-facing presentation of the custom line item, including its display name and whether it is visible or hidden on the customer's invoice. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="service" type="string" required>
+      Specifies the AWS service (e.g., AmazonS3, AmazonEC2) that the custom line item's charge applies to, as displayed in the customer's billing presentation. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Assigns a set of AWS resource tags (key-value pairs) to the custom line item for cost allocation, billing group identification, and resource management. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a user-defined tag attached to the custom line item, used for organizing, categorizing, and filtering billing resources in AWS Billing Conductor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Specifies the value of a tag attached to the custom line item, enabling you to categorize and track this item in AWS Billing Conductor for cost allocation and management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  ARN Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="association_size" type="number">
+  Number of source values associated to this custom line item Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="creation_time" type="number">
+  Creation timestamp in UNIX epoch time format Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="currency_code" type="string">
+  The ISO currency code (e.g., 'USD') that denominates the custom line item's charges, automatically set to the currency of the associated billing group. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="last_modified_time" type="number">
+  Latest modified timestamp in UNIX epoch time format Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="product_code" type="string">
+  The unique AWS-generated product code that identifies the custom line item in billing reports and invoices. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

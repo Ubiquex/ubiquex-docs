@@ -1,0 +1,152 @@
+---
+title: "aws_io_t_stream"
+description: "`aws_io_t_stream` delivers a real, large file, a firmware image, in ordered chunks over MQTT to a device running an `aws_io_t_job`..."
+---
+
+`aws_io_t_stream` delivers a real, large file, a firmware image, in ordered chunks over MQTT to a device running an `aws_io_t_job`, AWS IoT's own mechanism for file delivery to devices that can't make a normal HTTPS download request.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	io "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/io"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own t stream"})
+
+    		ubx.Resource(io.TStream, "ci-runner", io.TStreamConfig{
+    			Files:       []map[string]any{{"file_id": 1}},
+    			RoleArn:     "arn:aws:iam::123456789012:policy/ci",
+    			StreamId:    "example",
+    			Description: "Managed by ubx.",
+    			Tags:        []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { TStream } from "./local-sdk/aws/sdk/typescript/aws/io/t_stream.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own t stream" });
+
+      resource(TStream, "ci-runner", {
+        files: [{ fileId: 1 }],
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        streamId: "example",
+        description: "Managed by ubx.",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.io import TStream, TStreamConfig
+
+    def describe():
+        ubx.intent("payments own t stream")
+
+        ubx.resource(TStream, "ci-runner", TStreamConfig(
+            files=[{"file_id": 1}],
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            stream_id="example",
+            description="Managed by ubx.",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_io_t_stream, with files a set value, role arn
+    arn:aws:iam::123456789012:policy/ci, stream id example,
+    description Managed by ubx., tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  The description of the stream. Optional.
+</ResponseField>
+
+<ResponseField name="files" type="list(object)" required>
+  The files to stream. Required.
+  <Expandable title="properties">
+    <ResponseField name="file_id" type="number">
+      The unique numeric identifier for this file within the AWS IoT Stream, used by devices to reference and load the specific file from the stream. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="s3_location" type="object">
+      Specifies the Amazon S3 location (bucket, key, and optional version) of a file to be added to the AWS IoT stream, used to retrieve the file content for the stream. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="bucket" type="string">
+          The name of the S3 bucket that contains the file referenced by this IoT stream file entry. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="key" type="string">
+          Specifies the S3 object key (path) of the file to be added to the AWS IoT stream, locating the object within the bucket defined by the same s3_location block. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="version" type="string">
+          The version ID of the S3 object that contains the file to be streamed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  An IAM role that allows the IoT service principal to access your S3 files. Required.
+</ResponseField>
+
+<ResponseField name="stream_id" type="string" required>
+  The stream ID. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Metadata which can be used to manage streams. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the stream. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  The date when the stream was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="last_updated_at" type="string">
+  The date when the stream was last updated. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="stream_version" type="number">
+  The stream version. Computed by AWS after `ship`.
+</ResponseField>

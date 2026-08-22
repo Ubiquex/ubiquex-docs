@@ -1,0 +1,186 @@
+---
+title: "aws_sns_topic"
+description: "`aws_sns_topic` creates a real pub/sub topic that fans a published message out to every one of its subscribed endpoints, SQS queues, Lambda functions..."
+---
+
+`aws_sns_topic` creates a real pub/sub topic that fans a published message out to every one of its subscribed endpoints, SQS queues, Lambda functions, HTTP(S) endpoints, email, SMS, at once.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	sns "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sns"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own topic"})
+
+    		ubx.Resource(sns.Topic, "ci-runner", sns.TopicConfig{
+    			ArchivePolicy:             "example",
+    			ContentBasedDeduplication: true,
+    			DataProtectionPolicy:      "example",
+    			DeliveryStatusLogging:     []map[string]any{{"failure_feedback_role_arn": "example"}},
+    			DisplayName:               "example-display-name",
+    			FifoThroughputScope:       "example",
+    			FifoTopic:                 true,
+    			KmsMasterKeyId:            "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Topic } from "./local-sdk/aws/sdk/typescript/aws/sns/topic.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own topic" });
+
+      resource(Topic, "ci-runner", {
+        archivePolicy: "example",
+        contentBasedDeduplication: true,
+        dataProtectionPolicy: "example",
+        deliveryStatusLogging: [{ failureFeedbackRoleArn: "example" }],
+        displayName: "example-display-name",
+        fifoThroughputScope: "example",
+        fifoTopic: true,
+        kmsMasterKeyId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.sns import Topic, TopicConfig
+
+    def describe():
+        ubx.intent("payments own topic")
+
+        ubx.resource(Topic, "ci-runner", TopicConfig(
+            archive_policy="example",
+            content_based_deduplication=True,
+            data_protection_policy="example",
+            delivery_status_logging=[{"failure_feedback_role_arn": "example"}],
+            display_name="example-display-name",
+            fifo_throughput_scope="example",
+            fifo_topic=True,
+            kms_master_key_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_sns_topic, with archive policy example, content based
+    deduplication true, data protection policy example, delivery
+    status logging a set value, display name example-display-name,
+    fifo throughput scope example, fifo topic true, kms master key id
+    example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="archive_policy" type="any">
+  The ``ArchivePolicy`` determines the number of days SNS retains messages in FIFO topics. You can set a retention period ranging from 1 to 365 days. This property is only applicable to FIFO topics; attempting to use it with standard topics will result in a creation failure. Optional.
+</ResponseField>
+
+<ResponseField name="content_based_deduplication" type="bool">
+  ``ContentBasedDeduplication`` enables deduplication of messages based on their content for FIFO topics. By default, this property is set to false. If you create a FIFO topic with ``ContentBasedDeduplication`` set to false, you must provide a ``MessageDeduplicationId`` for each ``Publish`` action. When set to true, SNS automatically generates a ``MessageDeduplicationId`` using a SHA-256 hash of the message body (excluding message attributes). You can optionally override this generated value by specifying a ``MessageDeduplicationId`` in the ``Publish`` action. Note that this property only applies to FIFO topics; using it with standard topics will cause the creation to fail. Optional.
+</ResponseField>
+
+<ResponseField name="data_protection_policy" type="any">
+  The body of the policy document you want to use for this topic. You can only add one policy per topic. The policy must be in JSON string format. Length Constraints: Maximum length of 30,720. Optional.
+</ResponseField>
+
+<ResponseField name="delivery_status_logging" type="list(object)">
+  The ``DeliveryStatusLogging`` configuration enables you to log the delivery status of messages sent from your Amazon SNS topic to subscribed endpoints with the following supported delivery protocols: + HTTP + Amazon Kinesis Data Firehose + AWS Lambda + Platform application endpoint + Amazon Simple Queue Service Once configured, log entries are sent to Amazon CloudWatch Logs. Optional.
+  <Expandable title="properties">
+    <ResponseField name="failure_feedback_role_arn" type="string">
+      The IAM role ARN that Amazon SNS assumes to write delivery status logs for failed message deliveries to CloudWatch Logs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="protocol" type="string">
+      Specifies the protocol (e.g., http, https, sqs, lambda) for which this delivery status logging configuration applies in the SNS topic subscription delivery status logging settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="success_feedback_role_arn" type="string">
+      Specifies the ARN of an IAM role that Amazon SNS uses to write CloudWatch Logs for messages that were successfully delivered to subscribed endpoints for this topic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="success_feedback_sample_rate" type="string">
+      The percentage of successfully delivered messages (0-100, as a string) that Amazon SNS samples for delivery status logging to CloudWatch Logs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="display_name" type="string">
+  The display name to use for an SNS topic with SMS subscriptions. The display name must be maximum 100 characters long, including hyphens (-), underscores (_), spaces, and tabs. Optional.
+</ResponseField>
+
+<ResponseField name="fifo_throughput_scope" type="string">
+  Specifies the throughput quota and deduplication behavior to apply for the FIFO topic. Valid values are ``Topic`` or ``MessageGroup``. Optional.
+</ResponseField>
+
+<ResponseField name="fifo_topic" type="bool">
+  Set to true to create a FIFO topic. Optional.
+</ResponseField>
+
+<ResponseField name="kms_master_key_id" type="string">
+  The ID of an AWS managed customer master key (CMK) for SNS or a custom CMK. For more information, see [Key terms](https://docs.aws.amazon.com/sns/latest/dg/sns-server-side-encryption.html#sse-key-terms). For more examples, see ``KeyId`` in the *API Reference*. This property applies only to [server-side-encryption](https://docs.aws.amazon.com/sns/latest/dg/sns-server-side-encryption.html). Optional.
+</ResponseField>
+
+<ResponseField name="signature_version" type="string">
+  The signature version corresponds to the hashing algorithm used while creating the signature of the notifications, subscription confirmations, or unsubscribe confirmation messages sent by Amazon SNS. By default, ``SignatureVersion`` is set to ``1``. Optional.
+</ResponseField>
+
+<ResponseField name="subscription" type="list(object)">
+  The SNS subscriptions (endpoints) for this topic. If you specify the ``Subscription`` property in the ``AWS::SNS::Topic`` resource and it creates an associated subscription resource, the associated subscription is not deleted when the ``AWS::SNS::Topic`` resource is deleted. Optional.
+  <Expandable title="properties">
+    <ResponseField name="endpoint" type="string">
+      The endpoint that receives notifications from the SNS topic, such as an email address, phone number, or URL, depending on the subscription protocol. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="protocol" type="string">
+      The protocol specifies the type of endpoint that will receive messages from the topic, such as http, https, email, sqs, lambda, etc. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The list of tags to add to a new topic. To be able to tag a topic on creation, you must have the ``sns:CreateTopic`` and ``sns:TagResource`` permissions. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The tag key that, together with the corresponding tag value, assigns a user-defined metadata label to the SNS topic for purposes such as cost allocation and access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag attached to the SNS topic, used for metadata and cost allocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="topic_name" type="string">
+  The name of the topic you want to create. Topic names must include only uppercase and lowercase ASCII letters, numbers, underscores, and hyphens, and must be between 1 and 256 characters long. FIFO topic names must end with ``.fifo``. If you don't specify a name, CFN generates a unique physical ID and uses that ID for the topic name. For more information, see [Name type](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html). If you specify a name, you can't perform updates that require replacement of this resource. You can perform updates that require no or some interruption. If you must replace the resource, specify a new name. Optional.
+</ResponseField>
+
+<ResponseField name="tracing_config" type="string">
+  Tracing mode of an SNS topic. By default ``TracingConfig`` is set to ``PassThrough``, and the topic passes through the tracing header it receives from an SNS publisher to its subscriptions. If set to ``Active``, SNS will vend X-Ray segment data to topic owner account if the sampled flag in the tracing header is true. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="topic_arn" type="string">
+  The Amazon Resource Name (ARN) of the SNS topic, automatically assigned by AWS when the topic is created and used to reference the topic in other services. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

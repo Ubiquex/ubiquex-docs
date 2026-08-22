@@ -1,0 +1,197 @@
+---
+title: "aws_connect_routing_profile"
+description: "`aws_connect_routing_profile` assigns an `aws_connect_user` to one or more `aws_connect_queue`s with real priority and channel concurrency settings..."
+---
+
+`aws_connect_routing_profile` assigns an `aws_connect_user` to one or more `aws_connect_queue`s with real priority and channel concurrency settings, the mechanism that determines which queues an agent actually receives contacts from and how many at once.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	connect "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/connect"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own routing profile"})
+
+    		ubx.Resource(connect.RoutingProfile, "ci-runner", connect.RoutingProfileConfig{
+    			DefaultOutboundQueueArn:      "arn:aws:iam::123456789012:policy/ci",
+    			Description:                  "Managed by ubx.",
+    			InstanceArn:                  "arn:aws:iam::123456789012:policy/ci",
+    			MediaConcurrencies:           []map[string]any{{"channel": "example"}},
+    			Name:                         "ci-runner",
+    			AgentAvailabilityTimer:       "example",
+    			ManualAssignmentQueueConfigs: []map[string]any{{"queue_reference": map[string]any{"channel": "example"}}},
+    			QueueConfigs:                 []map[string]any{{"delay": 1}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { RoutingProfile } from "./local-sdk/aws/sdk/typescript/aws/connect/routing_profile.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own routing profile" });
+
+      resource(RoutingProfile, "ci-runner", {
+        defaultOutboundQueueArn: "arn:aws:iam::123456789012:policy/ci",
+        description: "Managed by ubx.",
+        instanceArn: "arn:aws:iam::123456789012:policy/ci",
+        mediaConcurrencies: [{ channel: "example" }],
+        name: "ci-runner",
+        agentAvailabilityTimer: "example",
+        manualAssignmentQueueConfigs: [{ queueReference: { channel: "example" } }],
+        queueConfigs: [{ delay: 1 }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.connect import RoutingProfile, RoutingProfileConfig
+
+    def describe():
+        ubx.intent("payments own routing profile")
+
+        ubx.resource(RoutingProfile, "ci-runner", RoutingProfileConfig(
+            default_outbound_queue_arn="arn:aws:iam::123456789012:policy/ci",
+            description="Managed by ubx.",
+            instance_arn="arn:aws:iam::123456789012:policy/ci",
+            media_concurrencies=[{"channel": "example"}],
+            name="ci-runner",
+            agent_availability_timer="example",
+            manual_assignment_queue_configs=[{"queue_reference": {"channel": "example"}}],
+            queue_configs=[{"delay": 1}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_connect_routing_profile called "ci-runner", with
+    default outbound queue arn arn:aws:iam::123456789012:policy/ci,
+    description Managed by ubx., instance arn
+    arn:aws:iam::123456789012:policy/ci, media concurrencies a set
+    value, agent availability timer example, manual assignment queue
+    configs a set value, queue configs a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="agent_availability_timer" type="string">
+  Whether agents with this routing profile will have their routing order calculated based on longest idle time or time since their last inbound contact. Optional.
+</ResponseField>
+
+<ResponseField name="default_outbound_queue_arn" type="string" required>
+  The identifier of the default outbound queue for this routing profile. Required.
+</ResponseField>
+
+<ResponseField name="description" type="string" required>
+  The description of the routing profile. Required.
+</ResponseField>
+
+<ResponseField name="instance_arn" type="string" required>
+  The identifier of the Amazon Connect instance. Required.
+</ResponseField>
+
+<ResponseField name="manual_assignment_queue_configs" type="list(object)">
+  The manual assignment queues to associate with this routing profile. Optional.
+  <Expandable title="properties">
+    <ResponseField name="queue_reference" type="object">
+      Specifies the queue and its contact channel (such as VOICE or CHAT) that manual assignment uses to route contacts, containing the queue ID and channel type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="channel" type="string">
+          Specifies the contact channel (VOICE, CHAT, or TASK) for the queue reference in this manual assignment queue configuration, determining which channel the queue handles for manual assignment in the routing profile. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="queue_arn" type="string">
+          The Amazon Resource Name (ARN) of the Amazon Connect queue that is included in the routing profile's manual assignment queue configuration, allowing agents to manually assign contacts to that queue. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="media_concurrencies" type="list(object)" required>
+  The channels agents can handle in the Contact Control Panel (CCP) for this routing profile. Required.
+  <Expandable title="properties">
+    <ResponseField name="channel" type="string">
+      Specifies the contact channel type (e.g., VOICE, CHAT, or TASK) to which the media concurrency limit applies in the Amazon Connect routing profile. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="concurrency" type="number">
+      The maximum number of concurrent contacts of the channel (e.g., VOICE, CHAT) that an agent assigned to this routing profile can handle at the same time. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="cross_channel_behavior" type="object">
+      Specifies how contacts from other channels are routed when this channel's concurrency limit is reached, with a `behavior_type` value (`ROUTE_CURRENT_CHANNEL_ONLY` or `ROUTE_ANY_CHANNEL`) controlling whether only the current channel or any channel can be routed to the agent. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="behavior_type" type="string">
+          Determines whether contacts from other channels are allowed to be routed to the agent while the agent is handling a contact on this media channel, with valid values ALLOW or DENY. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the routing profile. Required.
+</ResponseField>
+
+<ResponseField name="queue_configs" type="list(object)">
+  The queues to associate with this routing profile. Optional.
+  <Expandable title="properties">
+    <ResponseField name="delay" type="number">
+      Specifies the delay in seconds that a contact waits in this queue before the routing profile attempts to route the contact to a lower-priority queue (or to an available agent, if no other queues are configured). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="priority" type="number">
+      The priority assigned to a specific queue in the routing profile, where lower numbers indicate higher routing priority and contact distribution order. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="queue_reference" type="object">
+      Specifies the Amazon Connect queue to which this routing profile queue configuration applies, identified by its queue ID or ARN. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="channel" type="string">
+          Specifies the contact channel (VOICE, CHAT, or TASK) associated with the queue in the routing profile's queue configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="queue_arn" type="string">
+          The Amazon Resource Name (ARN) of the Amazon Connect queue that this routing profile configuration references, identifying the queue to which contacts are routed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The user-defined key of a tag that can be attached to an Amazon Connect routing profile to add custom metadata for resource management and categorization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a tag associated with the AWS Connect routing profile, used for resource metadata and categorization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="routing_profile_arn" type="string">
+  The Amazon Resource Name (ARN) of the routing profile. Computed by AWS after `ship`.
+</ResponseField>

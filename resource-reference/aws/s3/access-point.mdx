@@ -1,0 +1,163 @@
+---
+title: "aws_s3_access_point"
+description: "`aws_s3_access_point` creates a real, named network endpoint with its own access policy for an `aws_s3_bucket`..."
+---
+
+`aws_s3_access_point` creates a real, named network endpoint with its own access policy for an `aws_s3_bucket`, letting different applications reach the same bucket through different access points instead of managing one increasingly complex bucket policy.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	s3 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/s3"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own access point"})
+
+    		ubx.Resource(s3.AccessPoint, "ci-runner", s3.AccessPointConfig{
+    			Bucket:                         "example",
+    			Name:                           "ci-runner",
+    			BucketAccountId:                "example",
+    			Policy:                         "example",
+    			PublicAccessBlockConfiguration: map[string]any{"block_public_acls": true},
+    			Tags:                           []map[string]any{{"key": "example"}},
+    			VpcConfiguration:               map[string]any{"vpc_id": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AccessPoint } from "./local-sdk/aws/sdk/typescript/aws/s3/access_point.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own access point" });
+
+      resource(AccessPoint, "ci-runner", {
+        bucket: "example",
+        name: "ci-runner",
+        bucketAccountId: "example",
+        policy: "example",
+        publicAccessBlockConfiguration: { blockPublicAcls: true },
+        tags: [{ key: "example" }],
+        vpcConfiguration: { vpcId: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.s3 import AccessPoint, AccessPointConfig
+
+    def describe():
+        ubx.intent("payments own access point")
+
+        ubx.resource(AccessPoint, "ci-runner", AccessPointConfig(
+            bucket="example",
+            name="ci-runner",
+            bucket_account_id="example",
+            policy="example",
+            public_access_block_configuration={"block_public_acls": True},
+            tags=[{"key": "example"}],
+            vpc_configuration={"vpc_id": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_s3_access_point called "ci-runner", with bucket
+    example, bucket account id example, policy example, public access
+    block configuration a set value, tags a set value, vpc
+    configuration a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="bucket" type="string" required>
+  The name of the bucket that you want to associate this Access Point with. Required.
+</ResponseField>
+
+<ResponseField name="bucket_account_id" type="string">
+  The AWS account ID associated with the S3 bucket associated with this access point. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name you want to assign to this Access Point. If you don't specify a name, AWS CloudFormation generates a unique ID and uses that ID for the access point name. Optional.
+</ResponseField>
+
+<ResponseField name="policy" type="any">
+  The Access Point Policy you want to apply to this access point. Optional.
+</ResponseField>
+
+<ResponseField name="public_access_block_configuration" type="object">
+  Configuration block that specifies the public access block settings for this S3 access point, controlling whether public ACLs and public bucket policies are blocked and whether the access point can be accessed by public buckets. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="block_public_acls" type="bool">
+      Specifies whether Amazon S3 should block public access control lists (ACLs) for buckets in this account. Setting this element to TRUE causes the following behavior: - PUT Bucket acl and PUT Object acl calls fail if the specified ACL is public. - PUT Object calls fail if the request includes a public ACL. . - PUT Bucket calls fail if the request includes a public ACL. Enabling this setting doesn't affect existing policies or ACLs. Optional.
+    </ResponseField>
+    <ResponseField name="block_public_policy" type="bool">
+      Specifies whether Amazon S3 should block public bucket policies for buckets in this account. Setting this element to TRUE causes Amazon S3 to reject calls to PUT Bucket policy if the specified bucket policy allows public access. Enabling this setting doesn't affect existing bucket policies. Optional.
+    </ResponseField>
+    <ResponseField name="ignore_public_acls" type="bool">
+      Specifies whether Amazon S3 should ignore public ACLs for buckets in this account. Setting this element to TRUE causes Amazon S3 to ignore all public ACLs on buckets in this account and any objects that they contain. Enabling this setting doesn't affect the persistence of any existing ACLs and doesn't prevent new public ACLs from being set. Optional.
+    </ResponseField>
+    <ResponseField name="restrict_public_buckets" type="bool">
+      Specifies whether Amazon S3 should restrict public bucket policies for this bucket. Setting this element to TRUE restricts access to this bucket to only AWS services and authorized users within this account if the bucket has a public policy. Enabling this setting doesn't affect previously stored bucket policies, except that public and cross-account access within any public bucket policy, including non-public delegation to specific accounts, is blocked. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An arbitrary set of tags (key-value pairs) for this S3 Access Point. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag key-value pair attached to the S3 access point, used for metadata, cost allocation, and tag-based access control through IAM policies. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vpc_configuration" type="object">
+  The Virtual Private Cloud (VPC) configuration for a bucket access point. Optional.
+  <Expandable title="properties">
+    <ResponseField name="vpc_id" type="string">
+      If this field is specified, this access point will only allow connections from the specified VPC ID. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="alias" type="string">
+  The alias of this Access Point. This alias can be used for compatibility purposes with other AWS services and third-party applications. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="arn" type="string">
+  the Amazon Resource Name (ARN) of the specified accesspoint. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="network_origin" type="string">
+  Indicates whether this Access Point allows access from the public Internet. If VpcConfiguration is specified for this Access Point, then NetworkOrigin is VPC, and the Access Point doesn't allow access from the public Internet. Otherwise, NetworkOrigin is Internet, and the Access Point allows access from the public Internet, subject to the Access Point and bucket access policies. Computed by AWS after `ship`.
+</ResponseField>

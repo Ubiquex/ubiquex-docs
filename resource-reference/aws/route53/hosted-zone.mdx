@@ -1,0 +1,156 @@
+---
+title: "aws_route53_hosted_zone"
+description: "`aws_route53_hosted_zone` creates a real container for DNS records for a domain..."
+---
+
+`aws_route53_hosted_zone` creates a real container for DNS records for a domain, public (resolvable on the internet) or private (resolvable only inside associated VPCs), that `aws_route53_record_set`s are created within.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	route53 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/route53"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own hosted zone"})
+
+    		ubx.Resource(route53.HostedZone, "ci-runner", route53.HostedZoneConfig{
+    			Name:               "ci-runner",
+    			HostedZoneConfig:   map[string]any{"comment": "example"},
+    			HostedZoneFeatures: map[string]any{"enable_accelerated_recovery": true},
+    			HostedZoneTags:     []map[string]any{{"key": "example"}},
+    			QueryLoggingConfig: map[string]any{"cloud_watch_logs_log_group_arn": "example"},
+    			Vpcs:               []map[string]any{{"vpcid": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { HostedZone } from "./local-sdk/aws/sdk/typescript/aws/route53/hosted_zone.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own hosted zone" });
+
+      resource(HostedZone, "ci-runner", {
+        name: "ci-runner",
+        hostedZoneConfig: { comment: "example" },
+        hostedZoneFeatures: { enableAcceleratedRecovery: true },
+        hostedZoneTags: [{ key: "example" }],
+        queryLoggingConfig: { cloudWatchLogsLogGroupArn: "example" },
+        vpcs: [{ vpcid: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.route53 import HostedZone, HostedZoneConfig
+
+    def describe():
+        ubx.intent("payments own hosted zone")
+
+        ubx.resource(HostedZone, "ci-runner", HostedZoneConfig(
+            name="ci-runner",
+            hosted_zone_config={"comment": "example"},
+            hosted_zone_features={"enable_accelerated_recovery": True},
+            hosted_zone_tags=[{"key": "example"}],
+            query_logging_config={"cloud_watch_logs_log_group_arn": "example"},
+            vpcs=[{"vpcid": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_route53_hosted_zone called "ci-runner", with hosted
+    zone config a set value, hosted zone features a set value, hosted
+    zone tags a set value, query logging config a set value, vpcs a
+    set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="hosted_zone_config" type="object">
+  A complex type that contains an optional comment about your hosted zone. If you don't want to specify a comment, omit both the ``HostedZoneConfig`` and ``Comment`` elements. Optional.
+  <Expandable title="properties">
+    <ResponseField name="comment" type="string">
+      Any comments that you want to include about the hosted zone. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="hosted_zone_features" type="object">
+  Represents the features configuration for a hosted zone, including the status of various features and any associated failure reasons. Optional.
+  <Expandable title="properties">
+    <ResponseField name="enable_accelerated_recovery" type="bool">
+      Enables accelerated recovery for the hosted zone, which allows Amazon Route 53 Application Recovery Controller to more quickly update DNS records during a failover event. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="hosted_zone_tags" type="list(object)">
+  Adds, edits, or deletes tags for a health check or a hosted zone. For information about using tags for cost allocation, see [Using Cost Allocation Tags](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html) in the *User Guide*. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag assigned to the Route53 hosted zone, used to organize and identify the hosted zone within your AWS environment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag in the HostedZoneTags list, which provides an arbitrary string that, together with the tag key, helps identify and manage the Route 53 hosted zone. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the domain. Specify a fully qualified domain name, for example, *www.example.com*. The trailing dot is optional; Amazon Route 53 assumes that the domain name is fully qualified. This means that Route 53 treats *www.example.com* (without a trailing dot) and *www.example.com.* (with a trailing dot) as identical. If you're creating a public hosted zone, this is the name you have registered with your DNS registrar. If your domain name is registered with a registrar other than Route 53, change the name servers for your domain to the set of ``NameServers`` that are returned by the ``Fn::GetAtt`` intrinsic function. Optional.
+</ResponseField>
+
+<ResponseField name="query_logging_config" type="object">
+  A complex type that contains information about a configuration for DNS query logging. Optional.
+  <Expandable title="properties">
+    <ResponseField name="cloud_watch_logs_log_group_arn" type="string" required>
+      The Amazon Resource Name (ARN) of the CloudWatch Logs log group that Amazon Route 53 is publishing logs to. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vpcs" type="list(object)">
+  *Private hosted zones:* A complex type that contains information about the VPCs that are associated with the specified hosted zone. For public hosted zones, omit ``VPCs``, ``VPCId``, and ``VPCRegion``. Optional.
+  <Expandable title="properties">
+    <ResponseField name="vpcid" type="string">
+      The ID of the VPC that is associated with this private hosted zone, which authorizes the VPC to use the hosted zone for DNS resolution. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="vpcregion" type="string">
+      Specifies the AWS Region where the VPC that you want to associate with this private hosted zone is located, as required when associating a VPC by ID. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The unique identifier assigned by Route 53 to the hosted zone, such as Z1234567890ABCDEF. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name_servers" type="list(string)">
+  The list of four authoritative Route 53 name servers assigned to the hosted zone for DNS resolution. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

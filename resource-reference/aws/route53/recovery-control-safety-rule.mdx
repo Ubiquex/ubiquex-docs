@@ -1,0 +1,163 @@
+---
+title: "aws_route53_recovery_control_safety_rule"
+description: "`aws_route53_recovery_control_safety_rule` defines a real constraint, such as requiring at least one routing control in a group to stay on..."
+---
+
+`aws_route53_recovery_control_safety_rule` defines a real constraint, such as requiring at least one routing control in a group to stay on, that an `aws_route53_recovery_control_control_panel` enforces to prevent an operator from accidentally toggling every control off at once during failover.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	route53 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/route53"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own recovery control safety rule"})
+
+    		ubx.Resource(route53.RecoveryControlSafetyRule, "ci-runner", route53.RecoveryControlSafetyRuleConfig{
+    			Name:            "ci-runner",
+    			AssertionRule:   map[string]any{"asserted_controls": []string{"example"}},
+    			ControlPanelArn: "arn:aws:iam::123456789012:policy/ci",
+    			GatingRule:      map[string]any{"gating_controls": []string{"example"}},
+    			RuleConfig:      map[string]any{"inverted": true},
+    			Tags:            []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { RecoveryControlSafetyRule } from "./local-sdk/aws/sdk/typescript/aws/route53/recovery_control_safety_rule.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own recovery control safety rule" });
+
+      resource(RecoveryControlSafetyRule, "ci-runner", {
+        name: "ci-runner",
+        assertionRule: { assertedControls: ["example"] },
+        controlPanelArn: "arn:aws:iam::123456789012:policy/ci",
+        gatingRule: { gatingControls: ["example"] },
+        ruleConfig: { inverted: true },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.route53 import RecoveryControlSafetyRule, RecoveryControlSafetyRuleConfig
+
+    def describe():
+        ubx.intent("payments own recovery control safety rule")
+
+        ubx.resource(RecoveryControlSafetyRule, "ci-runner", RecoveryControlSafetyRuleConfig(
+            name="ci-runner",
+            assertion_rule={"asserted_controls": ["example"]},
+            control_panel_arn="arn:aws:iam::123456789012:policy/ci",
+            gating_rule={"gating_controls": ["example"]},
+            rule_config={"inverted": True},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_route53_recovery_control_safety_rule called
+    "ci-runner", with assertion rule a set value, control panel arn
+    arn:aws:iam::123456789012:policy/ci, gating rule a set value,
+    rule config a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="assertion_rule" type="object">
+  An assertion rule enforces that, when a routing control state is changed, that the criteria set by the rule configuration is met. Otherwise, the change to the routing control is not accepted. Optional.
+  <Expandable title="properties">
+    <ResponseField name="asserted_controls" type="list(string)" required>
+      The routing controls that are part of transactions that are evaluated to determine if a request to change a routing control state is allowed. For example, you might include three routing controls, one for each of three AWS Regions. Required.
+    </ResponseField>
+    <ResponseField name="wait_period_ms" type="number" required>
+      An evaluation period, in milliseconds (ms), during which any request against the target routing controls will fail. This helps prevent "flapping" of state. The wait period is 5000 ms by default, but you can choose a custom value. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="control_panel_arn" type="string">
+  The Amazon Resource Name (ARN) of the control panel. Optional.
+</ResponseField>
+
+<ResponseField name="gating_rule" type="object">
+  A gating rule verifies that a set of gating controls evaluates as true, based on a rule configuration that you specify. If the gating rule evaluates to true, Amazon Route 53 Application Recovery Controller allows a set of routing control state changes to run and complete against the set of target controls. Optional.
+  <Expandable title="properties">
+    <ResponseField name="gating_controls" type="list(string)" required>
+      The gating controls for the gating rule. That is, routing controls that are evaluated by the rule configuration that you specify. Required.
+    </ResponseField>
+    <ResponseField name="target_controls" type="list(string)" required>
+      Routing controls that can only be set or unset if the specified RuleConfig evaluates to true for the specified GatingControls. For example, say you have three gating controls, one for each of three AWS Regions. Now you specify AtLeast 2 as your RuleConfig. With these settings, you can only change (set or unset) the routing controls that you have specified as TargetControls if that rule evaluates to true. In other words, your ability to change the routing controls that you have specified as TargetControls is gated by the rule that you set for the routing controls in GatingControls. Required.
+    </ResponseField>
+    <ResponseField name="wait_period_ms" type="number" required>
+      An evaluation period, in milliseconds (ms), during which any request against the target routing controls will fail. This helps prevent "flapping" of state. The wait period is 5000 ms by default, but you can choose a custom value. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name for the safety rule. Optional.
+</ResponseField>
+
+<ResponseField name="rule_config" type="object">
+  The rule configuration for an assertion rule or gating rule. This is the criteria that you set for specific assertion controls (routing controls) or gating controls. This configuration specifies how many controls must be enabled after a transaction completes. Optional.
+  <Expandable title="properties">
+    <ResponseField name="inverted" type="bool" required>
+      Logical negation of the rule. If the rule would usually evaluate true, it's evaluated as false, and vice versa. Required.
+    </ResponseField>
+    <ResponseField name="threshold" type="number" required>
+      The value of N, when you specify an ATLEAST rule type. That is, Threshold is the number of controls that must be set when you specify an ATLEAST type. Required.
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      A rule can be one of the following: ATLEAST, AND, or OR. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A collection of tags associated with a resource Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag applied to the Route 53 Recovery Control safety rule, used to categorize and manage the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of an individual tag assigned to the AWS Route53 Recovery Control safety rule, used for metadata-based categorization and management of the rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="safety_rule_arn" type="string">
+  The Amazon Resource Name (ARN) of the safety rule. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The deployment status of the routing control. Status can be one of the following: PENDING, DEPLOYED, PENDING_DELETION. Computed by AWS after `ship`.
+</ResponseField>

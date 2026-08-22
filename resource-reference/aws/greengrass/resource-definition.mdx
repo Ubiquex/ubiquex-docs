@@ -1,0 +1,220 @@
+---
+title: "aws_greengrass_resource_definition"
+description: "`aws_greengrass_resource_definition` gives an `aws_greengrass_group`'s Lambda functions real, controlled access to local resources..."
+---
+
+`aws_greengrass_resource_definition` gives an `aws_greengrass_group`'s Lambda functions real, controlled access to local resources, a machine learning model, a device volume, a secret, that live on the core device itself rather than in the cloud. Part of Greengrass V1's maintenance-only lifecycle since June 2023.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	greengrass "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/greengrass"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own resource definition"})
+
+    		ubx.Resource(greengrass.ResourceDefinition, "ci-runner", greengrass.ResourceDefinitionConfig{
+    			Name:           "ci-runner",
+    			InitialVersion: map[string]any{"resources": []map[string]any{{"name": "example-name"}}},
+    			Tags:           "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ResourceDefinition } from "./local-sdk/aws/sdk/typescript/aws/greengrass/resource_definition.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own resource definition" });
+
+      resource(ResourceDefinition, "ci-runner", {
+        name: "ci-runner",
+        initialVersion: { resources: [{ name: "example-name" }] },
+        tags: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.greengrass import ResourceDefinition, ResourceDefinitionConfig
+
+    def describe():
+        ubx.intent("payments own resource definition")
+
+        ubx.resource(ResourceDefinition, "ci-runner", ResourceDefinitionConfig(
+            name="ci-runner",
+            initial_version={"resources": [{"name": "example-name"}]},
+            tags="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_greengrass_resource_definition called "ci-runner",
+    with initial version a set value, tags example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="initial_version" type="object">
+  Defines the initial version of the Greengrass resource definition, which contains an array of resource instances (such as local volumes or secrets) to be associated with the core when first deployed. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="resources" type="list(object)" required>
+      The `resources` list under `initial_version` defines the set of Greengrass resource instances (such as local device or volume resources) that comprise the initial version of the resource definition. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="id" type="string">
+          A unique identifier for this resource within the Greengrass resource definition version. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The user-defined name that identifies this resource instance within the Greengrass resource definition version. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="resource_data_container" type="object">
+          An object that encapsulates a single Greengrass resource definition, containing a type field that selects exactly one of the five concrete data structures -- local device, local volume, S3 machine learning model, SageMaker machine learning model, or Secrets Manager secret -- and holds the corresponding configuration data for that resource type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="local_device_resource_data" type="object">
+              Specifies the source path of the local device resource on the Greengrass core device, such as a physical device like /dev/ttyAMA0. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="group_owner_setting" type="object">
+                  Specifies the Linux group owner settings for the local device resource, including whether to automatically add the group owner and which group name to use. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="auto_add_group_owner" type="bool">
+                      Indicates whether the Greengrass core (group owner) automatically gains read/write access to the local device, or whether access is manually specified with the GroupOwner property. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="group_owner" type="string">
+                      The name of the Linux group that owns the local device resource, used to control file permissions on the device. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="source_path" type="string">
+                  The absolute path of the local device on the Greengrass core that this resource references, for example /dev/ttyUSB0 or /dev/video0. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="local_volume_resource_data" type="object">
+              Specifies the configuration for a local volume resource, including the source path on the host file system, the destination path in the container, and optional group owner and permission settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="destination_path" type="string">
+                  The absolute path on the Greengrass core device where the local volume is mounted and made available to Lambda functions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="group_owner_setting" type="object">
+                  Configures the OS group owner and its read/write permissions that are applied to a Greengrass local volume resource, controlling how Lambda functions access the volume's file system. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="auto_add_group_owner" type="bool">
+                      Automatically sets the Greengrass group owner as the OS group owner of the local volume, granting the group owner access to the volume without requiring explicit permission settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="group_owner" type="string">
+                      The name of the operating system group that will be set as the owner of the local volume resource, used when auto-inheriting group ownership is disabled. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="source_path" type="string">
+                  The absolute path to the local volume on the Greengrass core device that this resource data represents. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="s3_machine_learning_model_resource_data" type="object">
+              Configures a machine learning model resource hosted in Amazon S3, specifying the model's S3 URI and the local destination path where the Greengrass core will store it. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="destination_path" type="string">
+                  The absolute path on the Greengrass core device where the S3 machine learning model artifact is downloaded and stored. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="owner_setting" type="object">
+                  Sets the Linux group owner and group read/write permissions applied to the S3 machine learning model artifact when it is deployed to a Greengrass core device. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="group_owner" type="string">
+                      The group name or group ID that will be set as the owner of the downloaded S3 machine learning model resource on the Greengrass core device. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="group_permission" type="string">
+                      Specifies the permission level (either 'ro' or 'rw') that the Greengrass group has for the S3 machine learning model resource data in the owner setting. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="s3_uri" type="string">
+                  The S3 URI of the machine learning model artifact that this Greengrass resource points to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="sage_maker_machine_learning_model_resource_data" type="object">
+              This object configures an Amazon SageMaker machine learning model as a resource in the Greengrass group, specifying the model ARN and the local destination path on the core device. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="destination_path" type="string">
+                  The absolute local path on the Greengrass core device where the SageMaker machine learning model artifact is stored or downloaded to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="owner_setting" type="object">
+                  Specifies the Linux group owner and permissions for the SageMaker model resource, controlling access to the model on the Greengrass core device. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="group_owner" type="string">
+                      The operating system group that owns the SageMaker machine learning model resource within the Greengrass group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="group_permission" type="string">
+                      Specifies whether the group owner has read-write ('rw') or read-only ('ro') permission to the SageMaker machine learning model resource in an AWS Greengrass resource definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="sage_maker_job_arn" type="string">
+                  The Amazon Resource Name (ARN) of the SageMaker training job that produced the machine learning model to be deployed to the Greengrass core. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="secrets_manager_secret_resource_data" type="object">
+              Specifies an AWS Secrets Manager secret to be available to the Greengrass group, by providing the secret's ARN and optionally additional staging labels to append for staged secret versions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="additional_staging_labels_to_download" type="list(string)">
+                  Specifies additional AWS Secrets Manager staging labels, beyond the default current version, for the referenced secret in the Greengrass resource definition, so that the core device downloads and exposes those labeled secret versions locally. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="arn" type="string">
+                  The Amazon Resource Name (ARN) of the AWS Secrets Manager secret that provides the secret value for this Greengrass secret resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the resource definition, which provides a user-friendly identifier for this set of local resources in AWS Greengrass. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  Assigns metadata (key-value pairs) to this AWS Greengrass resource definition for identification and cost allocation. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) uniquely identifying this AWS Greengrass resource definition, assigned by AWS upon creation and used to reference the definition in other services. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The unique AWS-assigned identifier of the Greengrass resource definition, used to reference this definition in other Greengrass resources and API calls. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="latest_version_arn" type="string">
+  The ARN of the latest version of the AWS IoT Greengrass resource definition. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

@@ -1,0 +1,139 @@
+---
+title: "aws_lambda_permission"
+description: "`aws_lambda_permission` grants a real resource-based permission on an `aws_lambda_function` or its alias..."
+---
+
+`aws_lambda_permission` grants a real resource-based permission on an `aws_lambda_function` or its alias, allowing a specific AWS service or account to invoke it, the mechanism behind, for example, API Gateway or S3 being allowed to call a function directly.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	lambda "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/lambda"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own permission"})
+
+    		ubx.Resource(lambda.Permission, "ci-runner", lambda.PermissionConfig{
+    			Action:                "example",
+    			FunctionName:          "example-function-name",
+    			Principal:             "example",
+    			EventSourceToken:      "example",
+    			FunctionUrlAuthType:   "example",
+    			InvokedViaFunctionUrl: true,
+    			PrincipalOrgId:        "example",
+    			SourceAccount:         "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Permission } from "./local-sdk/aws/sdk/typescript/aws/lambda/permission.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own permission" });
+
+      resource(Permission, "ci-runner", {
+        action: "example",
+        functionName: "example-function-name",
+        principal: "example",
+        eventSourceToken: "example",
+        functionUrlAuthType: "example",
+        invokedViaFunctionUrl: true,
+        principalOrgId: "example",
+        sourceAccount: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.lambda_ import Permission, PermissionConfig
+
+    def describe():
+        ubx.intent("payments own permission")
+
+        ubx.resource(Permission, "ci-runner", PermissionConfig(
+            action="example",
+            function_name="example-function-name",
+            principal="example",
+            event_source_token="example",
+            function_url_auth_type="example",
+            invoked_via_function_url=True,
+            principal_org_id="example",
+            source_account="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_lambda_permission, with action example, function name
+    example-function-name, principal example, event source token
+    example, function url auth type example, invoked via function url
+    true, principal org id example, source account example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="action" type="string" required>
+  The action that the principal can use on the function. For example, ``lambda:InvokeFunction`` or ``lambda:GetFunction``. Required.
+</ResponseField>
+
+<ResponseField name="event_source_token" type="string">
+  For Alexa Smart Home functions, a token that the invoker must supply. Optional.
+</ResponseField>
+
+<ResponseField name="function_name" type="string" required>
+  The name or ARN of the Lambda function, version, or alias. **Name formats** + *Function name*  --  ``my-function`` (name-only), ``my-function:v1`` (with alias). + *Function ARN*  --  ``arn:aws:lambda:us-west-2:123456789012:function:my-function``. + *Partial ARN*  --  ``123456789012:function:my-function``. You can append a version number or alias to any of the formats. The length constraint applies only to the full ARN. If you specify only the function name, it is limited to 64 characters in length. Required.
+</ResponseField>
+
+<ResponseField name="function_url_auth_type" type="string">
+  The type of authentication that your function URL uses. Set to ``AWS_IAM`` if you want to restrict access to authenticated users only. Set to ``NONE`` if you want to bypass IAM authentication to create a public endpoint. For more information, see [Control access to Lambda function URLs](https://docs.aws.amazon.com/lambda/latest/dg/urls-auth.html). Optional.
+</ResponseField>
+
+<ResponseField name="invoked_via_function_url" type="bool">
+  Indicates whether the permission applies when the function is invoked through a function URL. Optional.
+</ResponseField>
+
+<ResponseField name="principal" type="string" required>
+  The AWS-service, AWS-account, IAM user, or IAM role that invokes the function. If you specify a service, use ``SourceArn`` or ``SourceAccount`` to limit who can invoke the function through that service. Required.
+</ResponseField>
+
+<ResponseField name="principal_org_id" type="string">
+  The identifier for your organization in AOlong. Use this to grant permissions to all the AWS-accounts under this organization. Optional.
+</ResponseField>
+
+<ResponseField name="source_account" type="string">
+  For AWS-service, the ID of the AWS-account that owns the resource. Use this together with ``SourceArn`` to ensure that the specified account owns the resource. It is possible for an Amazon S3 bucket to be deleted by its owner and recreated by another account. Optional.
+</ResponseField>
+
+<ResponseField name="source_arn" type="string">
+  For AWS-services, the ARN of the AWS resource that invokes the function. For example, an Amazon S3 bucket or Amazon SNS topic. Note that Lambda configures the comparison using the ``StringLike`` operator. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The unique identifier for the Lambda permission, typically a combination of the function name and the statement ID. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

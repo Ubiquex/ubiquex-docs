@@ -1,0 +1,165 @@
+---
+title: "aws_ivs_recording_configuration"
+description: "`aws_ivs_recording_configuration` automatically records an `aws_ivs_channel`'s live stream to a real S3 bucket as it broadcasts..."
+---
+
+`aws_ivs_recording_configuration` automatically records an `aws_ivs_channel`'s live stream to a real S3 bucket as it broadcasts, so a stream is available for on-demand playback after it ends without a caller building their own recording pipeline.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ivs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ivs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own recording configuration"})
+
+    		ubx.Resource(ivs.RecordingConfiguration, "ci-runner", ivs.RecordingConfigurationConfig{
+    			DestinationConfiguration:        map[string]any{"s3": map[string]any{"bucket_name": "example-bucket-name"}},
+    			Name:                            "ci-runner",
+    			RecordingReconnectWindowSeconds: 7200,
+    			RenditionConfiguration:          map[string]any{"rendition_selection": "example"},
+    			Tags:                            []map[string]any{{"key": "example"}},
+    			ThumbnailConfiguration:          map[string]any{"recording_mode": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { RecordingConfiguration } from "./local-sdk/aws/sdk/typescript/aws/ivs/recording_configuration.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own recording configuration" });
+
+      resource(RecordingConfiguration, "ci-runner", {
+        destinationConfiguration: { s3: { bucketName: "example-bucket-name" } },
+        name: "ci-runner",
+        recordingReconnectWindowSeconds: 7200,
+        renditionConfiguration: { renditionSelection: "example" },
+        tags: [{ key: "example" }],
+        thumbnailConfiguration: { recordingMode: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ivs import RecordingConfiguration, RecordingConfigurationConfig
+
+    def describe():
+        ubx.intent("payments own recording configuration")
+
+        ubx.resource(RecordingConfiguration, "ci-runner", RecordingConfigurationConfig(
+            destination_configuration={"s3": {"bucket_name": "example-bucket-name"}},
+            name="ci-runner",
+            recording_reconnect_window_seconds=7200,
+            rendition_configuration={"rendition_selection": "example"},
+            tags=[{"key": "example"}],
+            thumbnail_configuration={"recording_mode": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ivs_recording_configuration called "ci-runner", with
+    destination configuration a set value, recording reconnect window
+    seconds 7200, rendition configuration a set value, tags a set
+    value, thumbnail configuration a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="destination_configuration" type="object" required>
+  Recording Destination Configuration. Required.
+  <Expandable title="properties">
+    <ResponseField name="s3" type="object">
+      Recording S3 Destination Configuration. Optional.
+      <Expandable title="properties">
+        <ResponseField name="bucket_name" type="string" required>
+          The name of the Amazon S3 bucket where AWS IVS stores the recorded video segments for this recording configuration. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Recording Configuration Name. Optional.
+</ResponseField>
+
+<ResponseField name="recording_reconnect_window_seconds" type="number">
+  Recording Reconnect Window Seconds. (0 means disabled) Optional.
+</ResponseField>
+
+<ResponseField name="rendition_configuration" type="object">
+  Rendition Configuration describes which renditions should be recorded for a stream. Optional.
+  <Expandable title="properties">
+    <ResponseField name="rendition_selection" type="string">
+      Resolution Selection indicates which set of renditions are recorded for a stream. Optional.
+    </ResponseField>
+    <ResponseField name="renditions" type="list(string)">
+      Renditions indicates which renditions are recorded for a stream. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of key-value pairs that contain metadata for the asset model. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag attached to an AWS IVS recording configuration, used to organize, categorize, and manage the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="thumbnail_configuration" type="object">
+  Recording Thumbnail Configuration. Optional.
+  <Expandable title="properties">
+    <ResponseField name="recording_mode" type="string">
+      Thumbnail Recording Mode, which determines whether thumbnails are recorded at an interval or are disabled. Optional.
+    </ResponseField>
+    <ResponseField name="resolution" type="string">
+      Resolution indicates the desired resolution of recorded thumbnails. Optional.
+    </ResponseField>
+    <ResponseField name="storage" type="list(string)">
+      Storage indicates the format in which thumbnails are recorded. Optional.
+    </ResponseField>
+    <ResponseField name="target_interval_seconds" type="number">
+      Target Interval Seconds defines the interval at which thumbnails are recorded. This field is required if RecordingMode is INTERVAL. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  Recording Configuration ARN is automatically generated on creation and assigned as the unique identifier. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Recording Configuration State. Computed by AWS after `ship`.
+</ResponseField>

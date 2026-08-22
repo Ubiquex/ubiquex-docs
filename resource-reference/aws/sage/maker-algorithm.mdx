@@ -1,0 +1,301 @@
+---
+title: "aws_sage_maker_algorithm"
+description: "`aws_sage_maker_algorithm` registers a real, reusable training algorithm, packaged as a Docker image with defined input channels and hyperparameters..."
+---
+
+`aws_sage_maker_algorithm` registers a real, reusable training algorithm, packaged as a Docker image with defined input channels and hyperparameters, that can be published to AWS Marketplace or reused across SageMaker training jobs without re-specifying the underlying container each time.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	sage "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sage"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own maker algorithm"})
+
+    		ubx.Resource(sage.MakerAlgorithm, "ci-runner", sage.MakerAlgorithmConfig{
+    			AlgorithmName:          "example-algorithm-name",
+    			TrainingSpecification:  map[string]any{"supported_training_instance_types": []string{"example"}},
+    			AlgorithmDescription:   "example",
+    			CertifyForMarketplace:  true,
+    			InferenceSpecification: map[string]any{"containers": []map[string]any{{"container_hostname": "example"}}},
+    			Tags:                   []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MakerAlgorithm } from "./local-sdk/aws/sdk/typescript/aws/sage/maker_algorithm.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own maker algorithm" });
+
+      resource(MakerAlgorithm, "ci-runner", {
+        algorithmName: "example-algorithm-name",
+        trainingSpecification: { supportedTrainingInstanceTypes: ["example"] },
+        algorithmDescription: "example",
+        certifyForMarketplace: true,
+        inferenceSpecification: { containers: [{ containerHostname: "example" }] },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.sage import MakerAlgorithm, MakerAlgorithmConfig
+
+    def describe():
+        ubx.intent("payments own maker algorithm")
+
+        ubx.resource(MakerAlgorithm, "ci-runner", MakerAlgorithmConfig(
+            algorithm_name="example-algorithm-name",
+            training_specification={"supported_training_instance_types": ["example"]},
+            algorithm_description="example",
+            certify_for_marketplace=True,
+            inference_specification={"containers": [{"container_hostname": "example"}]},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_sage_maker_algorithm, with algorithm name
+    example-algorithm-name, training specification a set value,
+    algorithm description example, certify for marketplace true,
+    inference specification a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="algorithm_description" type="string">
+  A description of the algorithm. Optional.
+</ResponseField>
+
+<ResponseField name="algorithm_name" type="string" required>
+  The name of the algorithm. Required.
+</ResponseField>
+
+<ResponseField name="certify_for_marketplace" type="bool">
+  Whether to certify the algorithm so that it can be listed in AWS Marketplace. Optional.
+</ResponseField>
+
+<ResponseField name="inference_specification" type="object">
+  Defines the inference code and container configuration for the algorithm, including the inference image URI and supported input/output content types. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="containers" type="list(object)" required>
+      Defines the list of Docker container specifications, each including image and configuration, that SageMaker uses for inference when deploying the algorithm. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="container_hostname" type="string">
+          Specifies a custom hostname for the container, which other containers in the same SageMaker inference pipeline can use to route requests to it. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="environment" type="any">
+          Sets key-value environment variables that are passed to the inference container when it is deployed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="framework" type="string">
+          The name of the machine learning framework (such as TensorFlow or PyTorch) that the inference container image is built with. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="framework_version" type="string">
+          Specifies the version of the machine learning framework (e.g., TensorFlow, PyTorch, MXNet) that the container image is built with, which SageMaker uses to select compatible instance types and inference behavior, and is required when the Framework property is set. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="image" type="string">
+          The Amazon ECR registry path (URI) of the Docker container image used as the algorithm's inference container. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="image_digest" type="string">
+          Specifies the SHA256 digest of the container image referenced in this inference container definition, enabling you to pin the exact image version for reproducible deployments. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="is_checkpoint" type="bool">
+          A boolean flag that marks this inference container as the checkpoint container for multi-container SageMaker inference, enabling state to be saved and passed between chained containers. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="model_input" type="object">
+          Specifies the model input configuration for the container, which includes the data input config string that defines the expected input tensor shape and data format for inference. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="data_input_config" type="string">
+              Specifies the data input configuration for the model container, provided as a JSON string that defines the expected input format, shape, and other parameters for inference. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="nearest_model_name" type="string">
+          Specifies the default model name to use when the container serves inference in a multi-model configuration, enabling proper routing of inference requests to the intended model. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="supported_content_types" type="list(string)">
+      The list of MIME content types the algorithm supports for inference input requests (e.g., 'text/csv', 'application/json'). Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="supported_realtime_inference_instance_types" type="list(string)">
+      Specifies the list of Amazon EC2 instance types that are supported for real-time inference with this algorithm. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="supported_response_mimetypes" type="list(string)">
+      Specifies the list of MIME types that the algorithm's inference container can return as the response payload, constraining the output formats customers may request when deploying the model. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="supported_transform_instance_types" type="list(string)">
+      Specifies the list of SageMaker instance types that can be used with this algorithm for batch transform jobs. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a user-defined tag attached to the SageMaker Algorithm resource, used for resource categorization, filtering, and access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag associated with the SageMaker algorithm, allowing you to attach custom metadata like cost center or environment to the resource for management and identification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="training_specification" type="object" required>
+  Defines the training configuration for the algorithm, including the training image, input/output channels, hyperparameter ranges, metric definitions, and other settings SageMaker uses to run training jobs. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="metric_definitions" type="list(object)">
+      Defines a list of metric definitions, each with a name and a regex pattern, that extract training metrics from the algorithm's training job logs for monitoring and hyperparameter tuning. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="name" type="string">
+          Specifies the name of the metric that the training algorithm emits, used for monitoring and evaluation during training. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="regex" type="string">
+          The regular expression pattern that SageMaker uses to extract the metric value from the training job's CloudWatch logs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="supported_hyper_parameters" type="list(object)">
+      Specifies the hyperparameters that the algorithm supports for training, including their names, types, allowed ranges, and whether each is required or tunable. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="default_value" type="string">
+          Default value for this hyperparameter, used by training jobs when the user does not explicitly provide a value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="description" type="string">
+          The description of a supported hyperparameter that can be tuned in the SageMaker training job, explaining its purpose, allowed values, or effect on model training. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="is_required" type="bool">
+          Indicates whether a hyperparameter is required for training jobs that use this SageMaker algorithm. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="is_tunable" type="bool">
+          Indicates whether this hyperparameter can be tuned by SageMaker hyperparameter tuning jobs, allowing its value to be optimized during training. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The name of the hyperparameter, such as 'batch_size' or 'learning_rate', that the algorithm accepts in its training configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="range" type="object">
+          Specifies the allowed values for this hyperparameter, either as a minimum and maximum for integer/continuous types or as a list of categories for categorical types. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="categorical_parameter_range_specification" type="object">
+              Specifies the list of allowed categorical values (as strings) for a hyperparameter when its parameter range type is categorical in a SageMaker algorithm's training specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="values" type="list(string)">
+                  Specifies the list of allowed string values for a categorical hyperparameter in the SageMaker algorithm's training specification, defining the set of choices the hyperparameter can take. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="continuous_parameter_range_specification" type="object">
+              In the SageMaker algorithm's training specification, this object defines the allowed minimum and maximum values of the continuous hyperparameter range, using the MaxValue and MinValue properties. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max_value" type="string">
+                  Specifies the maximum value allowed for a continuous hyperparameter in the SageMaker algorithm's training specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min_value" type="string">
+                  The minimum value of the continuous range allowed for the hyperparameter, used to define the lower bound for tuning. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="integer_parameter_range_specification" type="object">
+              Specifies the minimum and maximum values for an integer hyperparameter supported by the training algorithm. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max_value" type="string">
+                  The maximum value of the integer hyperparameter range, representing the upper bound allowed for tuning this parameter. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min_value" type="string">
+                  Specifies the minimum integer value allowed for the hyperparameter range in SageMaker's integer parameter range specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          The data type of the hyperparameter, which can be one of Integer, Continuous, Categorical, or FreeText. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="supported_training_instance_types" type="list(string)" required>
+      Specifies the list of Amazon EC2 instance types on which the algorithm can run training jobs, used by SageMaker to validate and schedule training jobs for this algorithm. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="supported_tuning_job_objective_metrics" type="list(object)">
+      Defines the list of metrics that can be used as the objective metric for hyperparameter tuning jobs when training with this algorithm, where each entry specifies a metric name and the regular expression pattern used to extract its value from training output logs. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="metric_name" type="string">
+          The name of the training metric that SageMaker hyperparameter tuning jobs can optimize for this algorithm, as specified in the algorithm's training specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          Specifies whether the tuning job objective metric should be maximized or minimized (valid values are 'Maximize' or 'Minimize') during hyperparameter tuning. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="supports_distributed_training" type="bool">
+      Indicates whether the algorithm supports distributed training, allowing SageMaker training jobs to use multiple compute instances when enabled. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="training_channels" type="list(object)" required>
+      Defines the list of input channels for training, where each channel specifies its name, whether it is required, supported content types, and supported input modes such as File or Pipe. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="description" type="string">
+          Specifies a human-readable description of a training data channel, clarifying the data's format or purpose for SageMaker. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="is_required" type="bool">
+          Specifies whether the corresponding training channel must be supplied by the user when using this algorithm to create a training job. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Specifies the name of the training channel (e.g., 'train', 'validation') that the algorithm expects in the input data configuration of a training job. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="supported_compression_types" type="list(string)">
+          Specifies the compression types (such as 'None' or 'Gzip') that this training channel supports, so SageMaker can accept input data compressed in one of these formats when launching a training job with the algorithm. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="supported_content_types" type="list(string)">
+          Specifies the list of MIME content types (e.g., 'text/csv', 'application/x-recordio') that the training channel accepts for the algorithm's input data. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="supported_input_modes" type="list(string)">
+          Specifies the list of supported data input modes (such as File or Pipe) for this training channel in the algorithm's training specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="training_image" type="string" required>
+      The URI of the Docker container image used for training the algorithm. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="training_image_digest" type="string">
+      The SHA256 digest of the Docker container image used for training, which uniquely identifies the image version in Amazon ECR. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="algorithm_arn" type="string">
+  The Amazon Resource Name (ARN) of the algorithm. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="creation_time" type="string">
+  A timestamp specifying when the algorithm was created. Computed by AWS after `ship`.
+</ResponseField>

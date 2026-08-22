@@ -1,0 +1,171 @@
+---
+title: "aws_ivs_channel"
+description: "`aws_ivs_channel` is the real, core Amazon IVS resource a broadcaster streams video into and viewers watch from, with its own ingest endpoint..."
+---
+
+`aws_ivs_channel` is the real, core Amazon IVS resource a broadcaster streams video into and viewers watch from, with its own ingest endpoint, playback URL, and configurable latency mode.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ivs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ivs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own channel"})
+
+    		ubx.Resource(ivs.Channel, "ci-runner", ivs.ChannelConfig{
+    			Name:                         "ci-runner",
+    			Authorized:                   true,
+    			ContainerFormat:              "example",
+    			InsecureIngest:               true,
+    			LatencyMode:                  "example",
+    			MultitrackInputConfiguration: map[string]any{"enabled": true},
+    			Preset:                       "example",
+    			RecordingConfigurationArn:    "arn:aws:iam::123456789012:policy/ci",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Channel } from "./local-sdk/aws/sdk/typescript/aws/ivs/channel.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own channel" });
+
+      resource(Channel, "ci-runner", {
+        name: "ci-runner",
+        authorized: true,
+        containerFormat: "example",
+        insecureIngest: true,
+        latencyMode: "example",
+        multitrackInputConfiguration: { enabled: true },
+        preset: "example",
+        recordingConfigurationArn: "arn:aws:iam::123456789012:policy/ci",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ivs import Channel, ChannelConfig
+
+    def describe():
+        ubx.intent("payments own channel")
+
+        ubx.resource(Channel, "ci-runner", ChannelConfig(
+            name="ci-runner",
+            authorized=True,
+            container_format="example",
+            insecure_ingest=True,
+            latency_mode="example",
+            multitrack_input_configuration={"enabled": True},
+            preset="example",
+            recording_configuration_arn="arn:aws:iam::123456789012:policy/ci",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ivs_channel called "ci-runner", with authorized true,
+    container format example, insecure ingest true, latency mode
+    example, multitrack input configuration a set value, preset
+    example, recording configuration arn
+    arn:aws:iam::123456789012:policy/ci.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="authorized" type="bool">
+  Whether the channel is authorized. Optional.
+</ResponseField>
+
+<ResponseField name="container_format" type="string">
+  Indicates which content-packaging format is used (MPEG-TS or fMP4). If multitrackInputConfiguration is specified and enabled is true, then containerFormat is required and must be set to FRAGMENTED_MP4. Otherwise, containerFormat may be set to TS or FRAGMENTED_MP4. Default: TS. Optional.
+</ResponseField>
+
+<ResponseField name="insecure_ingest" type="bool">
+  Whether the channel allows insecure ingest. Optional.
+</ResponseField>
+
+<ResponseField name="latency_mode" type="string">
+  Channel latency mode. Optional.
+</ResponseField>
+
+<ResponseField name="multitrack_input_configuration" type="object">
+  Configures multitrack input for the IVS channel, including whether multitrack input is enabled and the maximum resolution allowed for the input. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="enabled" type="bool">
+      Indicates whether multitrack input is enabled. Can be set to true only if channel type is STANDARD. Setting enabled to true with any other channel type will cause an exception. If true, then policy, maximumResolution, and containerFormat are required, and containerFormat must be set to FRAGMENTED_MP4. Default: false. Optional.
+    </ResponseField>
+    <ResponseField name="maximum_resolution" type="string">
+      Maximum resolution for multitrack input. Required if enabled is true. Optional.
+    </ResponseField>
+    <ResponseField name="policy" type="string">
+      Indicates whether multitrack input is allowed or required. Required if enabled is true. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Channel Optional.
+</ResponseField>
+
+<ResponseField name="preset" type="string">
+  Optional transcode preset for the channel. This is selectable only for ADVANCED_HD and ADVANCED_SD channel types. For those channel types, the default preset is HIGHER_BANDWIDTH_DELIVERY. For other channel types (BASIC and STANDARD), preset is the empty string (""). Optional.
+</ResponseField>
+
+<ResponseField name="recording_configuration_arn" type="string">
+  Recording Configuration ARN. A value other than an empty string indicates that recording is enabled. Default: "" (recording is disabled). Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of key-value pairs that contain metadata for the asset model. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the IVS channel, enabling you to categorize and manage the resource by custom metadata. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The string value of a tag attached to the AWS IVS channel, used to store arbitrary metadata such as environment, project, or owner information. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="type" type="string">
+  Channel type, which determines the allowable resolution and bitrate. If you exceed the allowable resolution or bitrate, the stream probably will disconnect immediately. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  Channel ARN is automatically generated on creation and assigned as the unique identifier. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="ingest_endpoint" type="string">
+  Channel ingest endpoint, part of the definition of an ingest server, used when you set up streaming software. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="playback_url" type="string">
+  Channel Playback URL. Computed by AWS after `ship`.
+</ResponseField>

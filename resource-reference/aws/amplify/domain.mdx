@@ -1,0 +1,176 @@
+---
+title: "aws_amplify_domain"
+description: "`aws_amplify_domain` attaches a custom domain to an `aws_amplify_app` and maps its subdomains to specific branches..."
+---
+
+`aws_amplify_domain` attaches a custom domain to an `aws_amplify_app` and maps its subdomains to specific branches, real DNS and SSL provisioning included, rather than leaving the app reachable only at its default `amplifyapp.com` URL.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	amplify "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/amplify"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own domain"})
+
+    		ubx.Resource(amplify.Domain, "ci-runner", amplify.DomainConfig{
+    			AppId:                         "example",
+    			DomainName:                    "example-domain-name",
+    			SubDomainSettings:             []map[string]any{{"branch_name": "example-branch-name"}},
+    			AutoSubDomainCreationPatterns: []string{"example"},
+    			AutoSubDomainIamrole:          "example",
+    			CertificateSettings:           map[string]any{"certificate_type": "example"},
+    			EnableAutoSubDomain:           true,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Domain } from "./local-sdk/aws/sdk/typescript/aws/amplify/domain.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own domain" });
+
+      resource(Domain, "ci-runner", {
+        appId: "example",
+        domainName: "example-domain-name",
+        subDomainSettings: [{ branchName: "example-branch-name" }],
+        autoSubDomainCreationPatterns: ["example"],
+        autoSubDomainIamrole: "example",
+        certificateSettings: { certificateType: "example" },
+        enableAutoSubDomain: true,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.amplify import Domain, DomainConfig
+
+    def describe():
+        ubx.intent("payments own domain")
+
+        ubx.resource(Domain, "ci-runner", DomainConfig(
+            app_id="example",
+            domain_name="example-domain-name",
+            sub_domain_settings=[{"branch_name": "example-branch-name"}],
+            auto_sub_domain_creation_patterns=["example"],
+            auto_sub_domain_iamrole="example",
+            certificate_settings={"certificate_type": "example"},
+            enable_auto_sub_domain=True,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_amplify_domain, with app id example, domain name
+    example-domain-name, sub domain settings a set value, auto sub
+    domain creation patterns a set value, auto sub domain iamrole
+    example, certificate settings a set value, enable auto sub domain
+    true.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="app_id" type="string" required>
+  The unique ID of the Amplify app to which this domain association belongs. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="auto_sub_domain_creation_patterns" type="list(string)">
+  Specifies the list of branch name patterns that automatically create subdomains for the Amplify app's domain, such as wildcard patterns like '*' to cover all branches. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="auto_sub_domain_iamrole" type="string">
+  The IAM service role that AWS Amplify assumes to automatically manage the Route 53 records for subdomains associated with this domain. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="certificate_settings" type="object">
+  Configures the SSL/TLS certificate for the domain association, including whether to use an Amplify-managed certificate or a custom certificate ARN. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="certificate_type" type="string">
+      Specifies the type of certificate used for the domain's HTTPS connection, either 'amazon-issued' for an AWS-issued ACM certificate or 'custom' to use a custom certificate via a provided ARN. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="custom_certificate_arn" type="string">
+      The ARN of the custom SSL/TLS certificate that Amplify uses to serve HTTPS for the domain when you choose to use your own certificate instead of the Amplify-managed one. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="domain_name" type="string" required>
+  The custom root domain name (for example, example.com) that you associate with the Amplify application, serving as the base for the subdomains configured in this domain association. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="enable_auto_sub_domain" type="bool">
+  Determines whether Amplify automatically creates subdomains for all branches in the app associated with this domain. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="sub_domain_settings" type="list(object)" required>
+  Configures the subdomains for this domain, where each item maps a subdomain prefix (like 'www' or 'app') to a specific Amplify branch, controlling how requests to that subdomain are served. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="branch_name" type="string">
+      The name of the Amplify app branch that this subdomain setting points to, serving the app content from that branch. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="prefix" type="string">
+      Defines the subdomain prefix (for example, `www` or `api`) that routes traffic to a specific branch of the Amplify application, creating a subdomain like `www.example.com` when combined with the domain name. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies this Amplify custom domain association in AWS. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="certificate" type="object">
+  Contains the details of the SSL/TLS certificate associated with the Amplify domain, including the certificate Amazon Resource Name (ARN), certificate type (e.g., AMPLIFY_MANAGED or CUSTOM), and the certificate's current status (such as ISSUED or PENDING_VERIFICATION). Computed by AWS after `ship`. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="certificate_arn" type="string">
+      The Amazon Resource Name (ARN) of the custom SSL/TLS certificate to use for the domain association, typically from AWS Certificate Manager (ACM) or IAM. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="certificate_type" type="string">
+      Specifies the type of SSL/TLS certificate for the custom domain, such as AMPLIFY_MANAGED for Amplify's managed certificate or CUSTOM for a certificate you import or supply. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="certificate_verification_dnsrecord" type="string">
+      The DNS record value that must be added to the domain's DNS configuration to verify ownership and enable certificate issuance for the Amplify domain. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="certificate_record" type="string">
+  The DNS CNAME record that you must add to your domain's DNS settings to verify domain ownership and issue the SSL certificate for the Amplify domain association. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="domain_status" type="string">
+  The status of the domain association, which indicates the current lifecycle state of the domain in Amplify, such as CREATING, VERIFYING, AVAILABLE, UPDATING, or PENDING_DEPLOYMENT. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="status_reason" type="string">
+  Provides the reason associated with the current status of the Amplify domain association, such as a failed domain verification or certificate issuance failure. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="update_status" type="string">
+  The current update status of the Amplify domain association, such as 'REQUESTING_CERTIFICATE' or 'UPDATING', indicating the progress of an in-progress operation. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

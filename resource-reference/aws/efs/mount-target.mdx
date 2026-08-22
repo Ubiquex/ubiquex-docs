@@ -1,0 +1,120 @@
+---
+title: "aws_efs_mount_target"
+description: "`aws_efs_mount_target` is the real, actual network endpoint, one per Availability Zone..."
+---
+
+`aws_efs_mount_target` is the real, actual network endpoint, one per Availability Zone, that an EC2 instance or container in a specific subnet mounts an `aws_efs_file_system` through. A file system with no mount target in a given AZ can't be reached from resources there.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	efs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/efs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own mount target"})
+
+    		ubx.Resource(efs.MountTarget, "ci-runner", efs.MountTargetConfig{
+    			FileSystemId:   "example",
+    			SecurityGroups: []string{"example"},
+    			SubnetId:       "example",
+    			IpAddress:      "example",
+    			IpAddressType:  "example",
+    			Ipv6Address:    "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MountTarget } from "./local-sdk/aws/sdk/typescript/aws/efs/mount_target.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own mount target" });
+
+      resource(MountTarget, "ci-runner", {
+        fileSystemId: "example",
+        securityGroups: ["example"],
+        subnetId: "example",
+        ipAddress: "example",
+        ipAddressType: "example",
+        ipv6Address: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.efs import MountTarget, MountTargetConfig
+
+    def describe():
+        ubx.intent("payments own mount target")
+
+        ubx.resource(MountTarget, "ci-runner", MountTargetConfig(
+            file_system_id="example",
+            security_groups=["example"],
+            subnet_id="example",
+            ip_address="example",
+            ip_address_type="example",
+            ipv6_address="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_efs_mount_target, with file system id example,
+    security groups a set value, subnet id example, ip address
+    example, ip address type example, ipv6 address example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="file_system_id" type="string" required>
+  The ID of the file system for which to create the mount target. Required.
+</ResponseField>
+
+<ResponseField name="ip_address" type="string">
+  If the ``IpAddressType`` for the mount target is IPv4 ( ``IPV4_ONLY`` or ``DUAL_STACK``), then specify the IPv4 address to use. If you do not specify an ``IpAddress``, then Amazon EFS selects an unused IP address from the subnet specified for ``SubnetId``. Optional.
+</ResponseField>
+
+<ResponseField name="ip_address_type" type="string">
+  The IP address type for the mount target. The possible values are ``IPV4_ONLY`` (only IPv4 addresses), ``IPV6_ONLY`` (only IPv6 addresses), and ``DUAL_STACK`` (dual-stack, both IPv4 and IPv6 addresses). If you don’t specify an ``IpAddressType``, then ``IPV4_ONLY`` is used. The ``IPAddressType`` must match the IP type of the subnet. Additionally, the ``IPAddressType`` parameter overrides the value set as the default IP address for the subnet in the VPC. For example, if the ``IPAddressType`` is ``IPV4_ONLY`` and ``AssignIpv6AddressOnCreation`` is ``true``, then IPv4 is used for the mount target. For more information, see [Modify the IP addressing attributes of your subnet](https://docs.aws.amazon.com/vpc/latest/userguide/subnet-public-ip.html). Optional.
+</ResponseField>
+
+<ResponseField name="ipv6_address" type="string">
+  If the ``IPAddressType`` for the mount target is IPv6 (``IPV6_ONLY`` or ``DUAL_STACK``), then specify the IPv6 address to use. If you do not specify an ``Ipv6Address``, then Amazon EFS selects an unused IP address from the subnet specified for ``SubnetId``. Optional.
+</ResponseField>
+
+<ResponseField name="security_groups" type="list(string)" required>
+  VPC security group IDs, of the form ``sg-xxxxxxxx``. These must be for the same VPC as the subnet specified. The maximum number of security groups depends on account quota. For more information, see [Amazon VPC Quotas](https://docs.aws.amazon.com/vpc/latest/userguide/amazon-vpc-limits.html) in the *Amazon VPC User Guide* (see the *Security Groups* table). If you don't specify a security group, then Amazon EFS uses the default security group for the subnet's VPC. Required.
+</ResponseField>
+
+<ResponseField name="subnet_id" type="string" required>
+  The ID of the subnet to add the mount target in. For One Zone file systems, use the subnet that is associated with the file system's Availability Zone. The subnet type must be the same type as the ``IpAddressType``. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The unique identifier of the EFS mount target, typically the mount target ID (e.g., fsmt-12345678), used to reference the mount target in other resources. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

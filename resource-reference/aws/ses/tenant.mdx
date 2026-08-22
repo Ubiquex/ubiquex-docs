@@ -1,0 +1,111 @@
+---
+title: "aws_ses_tenant"
+description: "`aws_ses_tenant` creates a real, isolated tenant within an SES account..."
+---
+
+`aws_ses_tenant` creates a real, isolated tenant within an SES account, giving a SaaS platform sending on behalf of many customers its own separated sending identities, reputation, and metrics per tenant rather than one shared pool for the whole account.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ses "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ses"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own tenant"})
+
+    		ubx.Resource(ses.Tenant, "ci-runner", ses.TenantConfig{
+    			TenantName:           "example-tenant-name",
+    			ResourceAssociations: []map[string]any{{"resource_arn": "example"}},
+    			Tags:                 []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Tenant } from "./local-sdk/aws/sdk/typescript/aws/ses/tenant.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own tenant" });
+
+      resource(Tenant, "ci-runner", {
+        tenantName: "example-tenant-name",
+        resourceAssociations: [{ resourceArn: "example" }],
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ses import Tenant, TenantConfig
+
+    def describe():
+        ubx.intent("payments own tenant")
+
+        ubx.resource(Tenant, "ci-runner", TenantConfig(
+            tenant_name="example-tenant-name",
+            resource_associations=[{"resource_arn": "example"}],
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ses_tenant, with tenant name example-tenant-name,
+    resource associations a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="resource_associations" type="list(object)">
+  The list of resources to associate with the tenant. Optional.
+  <Expandable title="properties">
+    <ResponseField name="resource_arn" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags (keys and values) associated with the tenant. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tenant_name" type="string" required>
+  The name of the tenant. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  Amazon Resource Name (ARN) of the tenant. Computed by AWS after `ship`.
+</ResponseField>

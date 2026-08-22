@@ -1,0 +1,123 @@
+---
+title: "aws_code_connections_connection"
+description: "`aws_code_connections_connection` links AWS to an external source provider, GitHub, GitLab, Bitbucket, once authorized..."
+---
+
+`aws_code_connections_connection` links AWS to an external source provider, GitHub, GitLab, Bitbucket, once authorized, so a real `aws_code_pipeline_pipeline` or other AWS service can pull code without re-authenticating per use. AWS CodeConnections is the March 2024 rename of AWS CodeStar Connections; the older `aws_code_star_connections_connection` resource type continues to work.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	code "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/code"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own connections connection"})
+
+    		ubx.Resource(code.ConnectionsConnection, "ci-runner", code.ConnectionsConnectionConfig{
+    			ConnectionName: "example-connection-name",
+    			HostArn:        "arn:aws:iam::123456789012:policy/ci",
+    			ProviderType:   "example",
+    			Tags:           []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ConnectionsConnection } from "./local-sdk/aws/sdk/typescript/aws/code/connections_connection.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own connections connection" });
+
+      resource(ConnectionsConnection, "ci-runner", {
+        connectionName: "example-connection-name",
+        hostArn: "arn:aws:iam::123456789012:policy/ci",
+        providerType: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.code import ConnectionsConnection, ConnectionsConnectionConfig
+
+    def describe():
+        ubx.intent("payments own connections connection")
+
+        ubx.resource(ConnectionsConnection, "ci-runner", ConnectionsConnectionConfig(
+            connection_name="example-connection-name",
+            host_arn="arn:aws:iam::123456789012:policy/ci",
+            provider_type="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_code_connections_connection, with connection name
+    example-connection-name, host arn
+    arn:aws:iam::123456789012:policy/ci, provider type example, tags
+    a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="connection_name" type="string" required>
+  The name of the connection. Connection names must be unique in an AWS user account. Required.
+</ResponseField>
+
+<ResponseField name="host_arn" type="string">
+  The host arn configured to represent the infrastructure where your third-party provider is installed. You must specify either a ProviderType or a HostArn. Optional.
+</ResponseField>
+
+<ResponseField name="provider_type" type="string">
+  The name of the external provider where your third-party code repository is configured. You must specify either a ProviderType or a HostArn. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Specifies the tags applied to a connection. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a user-defined tag assigned to an AWS CodeConnections Connection, used to store arbitrary metadata for identifying and organizing the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="connection_arn" type="string">
+  The Amazon Resource Name (ARN) of the connection. The ARN is used as the connection reference when the connection is shared between AWS services. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="connection_status" type="string">
+  The current status of the connection. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="owner_account_id" type="string">
+  The name of the external provider where your third-party code repository is configured. For Bitbucket, this is the account ID of the owner of the Bitbucket repository. Computed by AWS after `ship`.
+</ResponseField>

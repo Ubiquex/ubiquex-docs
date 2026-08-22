@@ -1,0 +1,115 @@
+---
+title: "aws_kinesis_stream_consumer"
+description: "`aws_kinesis_stream_consumer` registers a real dedicated-throughput consumer on an `aws_kinesis_stream` using enhanced fan-out..."
+---
+
+`aws_kinesis_stream_consumer` registers a real dedicated-throughput consumer on an `aws_kinesis_stream` using enhanced fan-out, so this one consumer gets its own 2 MB/sec-per-shard read pipe instead of sharing the stream's default throughput with every other reader.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	kinesis "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/kinesis"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own stream consumer"})
+
+    		ubx.Resource(kinesis.StreamConsumer, "ci-runner", kinesis.StreamConsumerConfig{
+    			ConsumerName: "example-consumer-name",
+    			StreamArn:    "arn:aws:iam::123456789012:policy/ci",
+    			Tags:         []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { StreamConsumer } from "./local-sdk/aws/sdk/typescript/aws/kinesis/stream_consumer.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own stream consumer" });
+
+      resource(StreamConsumer, "ci-runner", {
+        consumerName: "example-consumer-name",
+        streamArn: "arn:aws:iam::123456789012:policy/ci",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.kinesis import StreamConsumer, StreamConsumerConfig
+
+    def describe():
+        ubx.intent("payments own stream consumer")
+
+        ubx.resource(StreamConsumer, "ci-runner", StreamConsumerConfig(
+            consumer_name="example-consumer-name",
+            stream_arn="arn:aws:iam::123456789012:policy/ci",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_kinesis_stream_consumer, with consumer name
+    example-consumer-name, stream arn
+    arn:aws:iam::123456789012:policy/ci, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="consumer_name" type="string" required>
+  The name of the Kinesis Stream Consumer. For a given Kinesis data stream, each consumer must have a unique name. However, consumer names don't have to be unique across data streams. Required.
+</ResponseField>
+
+<ResponseField name="stream_arn" type="string" required>
+  The Amazon resource name (ARN) of the Kinesis data stream that you want to register the consumer with. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An arbitrary set of tags (key -- value pairs) to associate with the Kinesis consumer. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag applied to the Kinesis stream consumer, enabling resource identification and attribute-based access control for the consumer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Specifies the value for a tag assigned to the Kinesis stream consumer, used for cost allocation, access control, and metadata organization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="consumer_arn" type="string">
+  The ARN returned by Kinesis Data Streams when you registered the consumer. If you don't know the ARN of the consumer that you want to deregister, you can use the ListStreamConsumers operation to get a list of the descriptions of all the consumers that are currently registered with a given data stream. The description of a consumer contains its ARN. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="consumer_creation_timestamp" type="string">
+  Timestamp when the consumer was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="consumer_status" type="string">
+  A consumer can't read data while in the CREATING or DELETING states. Valid Values: CREATING | DELETING | ACTIVE Computed by AWS after `ship`.
+</ResponseField>

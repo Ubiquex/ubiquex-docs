@@ -1,0 +1,173 @@
+---
+title: "aws_ssm_resource_data_sync"
+description: "`aws_ssm_resource_data_sync` configures a real, continuous sync of Systems Manager inventory data, from one or more accounts and Regions..."
+---
+
+`aws_ssm_resource_data_sync` configures a real, continuous sync of Systems Manager inventory data, from one or more accounts and Regions, into a central S3 bucket, so fleet-wide inventory can be queried in one place with Athena or QuickSight rather than account by account.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ssm "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ssm"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own resource data sync"})
+
+    		ubx.Resource(ssm.ResourceDataSync, "ci-runner", ssm.ResourceDataSyncConfig{
+    			SyncName:      "example-sync-name",
+    			BucketName:    "example-bucket-name",
+    			BucketPrefix:  "example",
+    			BucketRegion:  "example",
+    			KmskeyArn:     "arn:aws:iam::123456789012:policy/ci",
+    			S3Destination: map[string]any{"bucket_name": "example-bucket-name"},
+    			SyncFormat:    "example",
+    			SyncSource:    map[string]any{"source_regions": []string{"example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ResourceDataSync } from "./local-sdk/aws/sdk/typescript/aws/ssm/resource_data_sync.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own resource data sync" });
+
+      resource(ResourceDataSync, "ci-runner", {
+        syncName: "example-sync-name",
+        bucketName: "example-bucket-name",
+        bucketPrefix: "example",
+        bucketRegion: "example",
+        kmskeyArn: "arn:aws:iam::123456789012:policy/ci",
+        s3Destination: { bucketName: "example-bucket-name" },
+        syncFormat: "example",
+        syncSource: { sourceRegions: ["example"] },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ssm import ResourceDataSync, ResourceDataSyncConfig
+
+    def describe():
+        ubx.intent("payments own resource data sync")
+
+        ubx.resource(ResourceDataSync, "ci-runner", ResourceDataSyncConfig(
+            sync_name="example-sync-name",
+            bucket_name="example-bucket-name",
+            bucket_prefix="example",
+            bucket_region="example",
+            kmskey_arn="arn:aws:iam::123456789012:policy/ci",
+            s3_destination={"bucket_name": "example-bucket-name"},
+            sync_format="example",
+            sync_source={"source_regions": ["example"]},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ssm_resource_data_sync, with sync name
+    example-sync-name, bucket name example-bucket-name, bucket prefix
+    example, bucket region example, kmskey arn
+    arn:aws:iam::123456789012:policy/ci, s3 destination a set value,
+    sync format example, sync source a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="bucket_name" type="string">
+  The name of the S3 bucket used as the destination for the resource data sync, where Systems Manager delivers the synced configuration and inventory data. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="bucket_prefix" type="string">
+  The prefix (folder path) within the S3 bucket where Systems Manager Inventory data is delivered by this data sync. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="bucket_region" type="string">
+  The AWS Region where the S3 bucket specified as the destination for the resource data sync is located. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="kmskey_arn" type="string">
+  The ARN of an AWS KMS key that encrypts the synced data stored in the destination Amazon S3 bucket. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="s3_destination" type="object">
+  Configuration for the S3 bucket where the resource data sync stores synced operational data, including bucket name, region, optional prefix, KMS key, and sync format. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="bucket_name" type="string" required>
+      The name of the S3 bucket where Systems Manager Resource Data Sync stores the synced resource data. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="bucket_prefix" type="string">
+      Specifies the S3 object key prefix (path) within the destination bucket where the SSM resource data sync stores its synchronized data. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="bucket_region" type="string" required>
+      Specifies the AWS Region in which the S3 bucket that receives the synchronized SSM inventory data is located. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="kmskey_arn" type="string">
+      The ARN of the AWS KMS key used to encrypt data in the S3 destination bucket for the resource data sync. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="sync_format" type="string" required>
+      Specifies the format for the System Manager data written to the S3 destination, with valid values of JsonSerDe or Incremental. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="sync_format" type="string">
+  Specifies the serialization format (either JsonSerDe or DelimitedText) used when writing Systems Manager data to the Amazon S3 destination for the resource data sync. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="sync_name" type="string" required>
+  The name of the resource data sync configuration, which must be unique within the AWS account and Region and is used to identify the sync. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="sync_source" type="object">
+  The sync_source field defines the configuration for the source of the resource data sync, specifying the source type (e.g., 'AwsOrganizations' or 'SingleAccount'), the source regions, and optionally AWS Organizations details to determine where inventory and configuration data is collected from. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="aws_organizations_source" type="object">
+      The AWS Organizations source configuration for the resource data sync, specifying the organization source type and the organizational units whose resource data will be synchronized. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="organization_source_type" type="string" required>
+          For the AWS Organizations source of an SSM Resource Data Sync, this required string specifies whether the sync applies to all accounts in the organization ('EntireOrganization') or only to accounts within specified organizational units ('OrganizationalUnits'). Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="organizational_units" type="list(string)">
+          Limits the data sync to only the specified organizational units (OUs) in the AWS Organization, so resources from accounts within those OUs are included in the sync. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="include_future_regions" type="bool">
+      Indicates whether the resource data sync automatically includes new AWS Regions as they become available, allowing it to begin collecting data from those regions without additional configuration. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="source_regions" type="list(string)" required>
+      Specifies the list of AWS Regions from which Systems Manager collects data for the resource data sync. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="source_type" type="string" required>
+      Specifies the type of source that the resource data sync aggregates data from, such as S3, a single account across multiple regions, or all accounts in an AWS organization. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="sync_type" type="string">
+  Determines the type of AWS Systems Manager Resource Data Sync, either 'SyncFromSource' to aggregate data from multiple AWS accounts and Regions or 'SyncToDestination' to sync data to an S3 bucket, and controls whether the configuration uses a sync source or an S3 destination. Optional. **(AI-inferred)**
+</ResponseField>

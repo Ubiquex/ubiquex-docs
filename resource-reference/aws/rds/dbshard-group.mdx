@@ -1,0 +1,139 @@
+---
+title: "aws_rds_dbshard_group"
+description: "`aws_rds_dbshard_group` creates a real DB shard group for Aurora PostgreSQL Limitless Database..."
+---
+
+`aws_rds_dbshard_group` creates a real DB shard group for Aurora PostgreSQL Limitless Database, distributing a single logical database's write workload across multiple Aurora writer instances contained in the shard group while it's still queried as one database. Aurora Limitless Database reached general availability in 2024, and requires it to already be enabled on the target `aws_rds_dbcluster` before a shard group can be created; only one shard group is allowed per cluster.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	rds "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/rds"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own dbshard group"})
+
+    		ubx.Resource(rds.DbshardGroup, "ci-runner", rds.DbshardGroupConfig{
+    			DbclusterIdentifier:    "example",
+    			MaxAcu:                 1,
+    			ComputeRedundancy:      1,
+    			DbshardGroupIdentifier: "example",
+    			MinAcu:                 1,
+    			PubliclyAccessible:     true,
+    			Tags:                   []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { DbshardGroup } from "./local-sdk/aws/sdk/typescript/aws/rds/dbshard_group.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own dbshard group" });
+
+      resource(DbshardGroup, "ci-runner", {
+        dbclusterIdentifier: "example",
+        maxAcu: 1,
+        computeRedundancy: 1,
+        dbshardGroupIdentifier: "example",
+        minAcu: 1,
+        publiclyAccessible: true,
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.rds import DbshardGroup, DbshardGroupConfig
+
+    def describe():
+        ubx.intent("payments own dbshard group")
+
+        ubx.resource(DbshardGroup, "ci-runner", DbshardGroupConfig(
+            dbcluster_identifier="example",
+            max_acu=1,
+            compute_redundancy=1,
+            dbshard_group_identifier="example",
+            min_acu=1,
+            publicly_accessible=True,
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_rds_dbshard_group, with dbcluster identifier example,
+    max acu 1, compute redundancy 1, dbshard group identifier
+    example, min acu 1, publicly accessible true, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="compute_redundancy" type="number">
+  Specifies whether to create standby standby DB data access shard for the DB shard group. Valid values are the following: + 0 - Creates a DB shard group without a standby DB data access shard. This is the default value. + 1 - Creates a DB shard group with a standby DB data access shard in a different Availability Zone (AZ). + 2 - Creates a DB shard group with two standby DB data access shard in two different AZs. Optional.
+</ResponseField>
+
+<ResponseField name="dbcluster_identifier" type="string" required>
+  The name of the primary DB cluster for the DB shard group. Required.
+</ResponseField>
+
+<ResponseField name="dbshard_group_identifier" type="string">
+  The name of the DB shard group. Optional.
+</ResponseField>
+
+<ResponseField name="max_acu" type="number" required>
+  The maximum capacity of the DB shard group in Aurora capacity units (ACUs). Required.
+</ResponseField>
+
+<ResponseField name="min_acu" type="number">
+  The minimum capacity of the DB shard group in Aurora capacity units (ACUs). Optional.
+</ResponseField>
+
+<ResponseField name="publicly_accessible" type="bool">
+  Specifies whether the DB shard group is publicly accessible. When the DB shard group is publicly accessible, its Domain Name System (DNS) endpoint resolves to the private IP address from within the DB shard group's virtual private cloud (VPC). It resolves to the public IP address from outside of the DB shard group's VPC. Access to the DB shard group is ultimately controlled by the security group it uses. That public access is not permitted if the security group assigned to the DB shard group doesn't permit it. When the DB shard group isn't publicly accessible, it is an internal DB shard group with a DNS name that resolves to a private IP address. Default: The default behavior varies depending on whether ``DBSubnetGroupName`` is specified. If ``DBSubnetGroupName`` isn't specified, and ``PubliclyAccessible`` isn't specified, the following applies: + If the default VPC in the target Region doesn’t have an internet gateway attached to it, the DB shard group is private. + If the default VPC in the target Region has an internet gateway attached to it, the DB shard group is public. If ``DBSubnetGroupName`` is specified, and ``PubliclyAccessible`` isn't specified, the following applies: + If the subnets are part of a VPC that doesn’t have an internet gateway attached to it, the DB shard group is private. + If the subnets are part of a VPC that has an internet gateway attached to it, the DB shard group is public. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An optional set of key-value pairs to associate arbitrary data of your choosing with the DB shard group. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key part of a tag that can be applied to the DB shard group for resource organization and cost allocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a key-value tag applied to the DB shard group, used for metadata and resource identification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="dbshard_group_resource_id" type="string">
+  The immutable AWS-assigned unique identifier for the DB shard group. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="endpoint" type="string">
+  The connection endpoint of the DB shard group, a DNS hostname that applications use to connect to the shard group's primary writer instance. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

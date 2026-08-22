@@ -1,0 +1,155 @@
+---
+title: "aws_ivs_stage"
+description: "`aws_ivs_stage` is Amazon IVS's real, low-latency, multi-participant video collaboration resource..."
+---
+
+`aws_ivs_stage` is Amazon IVS's real, low-latency, multi-participant video collaboration resource, up to several hosts and guests interacting live together, distinct from an `aws_ivs_channel`'s own single-broadcaster-to-many-viewers model.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ivs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ivs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own stage"})
+
+    		ubx.Resource(ivs.Stage, "ci-runner", ivs.StageConfig{
+    			Name:                                  "ci-runner",
+    			AutoParticipantRecordingConfiguration: map[string]any{"storage_configuration_arn": "example"},
+    			Tags:                                  []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Stage } from "./local-sdk/aws/sdk/typescript/aws/ivs/stage.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own stage" });
+
+      resource(Stage, "ci-runner", {
+        name: "ci-runner",
+        autoParticipantRecordingConfiguration: {
+          storageConfigurationArn: "example",
+        },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ivs import Stage, StageConfig
+
+    def describe():
+        ubx.intent("payments own stage")
+
+        ubx.resource(Stage, "ci-runner", StageConfig(
+            name="ci-runner",
+            auto_participant_recording_configuration={"storage_configuration_arn": "example"},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ivs_stage called "ci-runner", with auto participant
+    recording configuration a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="auto_participant_recording_configuration" type="object">
+  Configuration object for individual participant recording, to attach to the new stage. Optional.
+  <Expandable title="properties">
+    <ResponseField name="hls_configuration" type="object">
+      HLS configuration object for individual participant recording. Optional.
+      <Expandable title="properties">
+        <ResponseField name="participant_recording_hls_configuration" type="object">
+          An object representing a configuration of participant HLS recordings for individual participant recording. Optional.
+          <Expandable title="properties">
+            <ResponseField name="target_segment_duration_seconds" type="number">
+              Defines the target duration for recorded segments generated when recording a stage participant. Segments may have durations longer than the specified value when needed to ensure each segment begins with a keyframe. Default: 6. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="media_types" type="list(string)">
+      Types of media to be recorded. Default: AUDIO_VIDEO. Optional.
+    </ResponseField>
+    <ResponseField name="recording_reconnect_window_seconds" type="number">
+      If a stage publisher disconnects and then reconnects within the specified interval, the multiple recordings will be considered a single recording and merged together. The default value is 0, which disables merging. Optional.
+    </ResponseField>
+    <ResponseField name="storage_configuration_arn" type="string" required>
+      ARN of the StorageConfiguration resource to use for individual participant recording. Required.
+    </ResponseField>
+    <ResponseField name="thumbnail_configuration" type="object">
+      A complex type that allows you to enable/disable the recording of thumbnails for individual participant recording and modify the interval at which thumbnails are generated for the live session. Optional.
+      <Expandable title="properties">
+        <ResponseField name="participant_thumbnail_configuration" type="object">
+          An object representing a configuration of thumbnails for recorded video from an individual participant. Optional.
+          <Expandable title="properties">
+            <ResponseField name="recording_mode" type="string">
+              Thumbnail recording mode. Default: DISABLED. Optional.
+            </ResponseField>
+            <ResponseField name="storage" type="list(string)">
+              Indicates the format in which thumbnails are recorded. SEQUENTIAL records all generated thumbnails in a serial manner, to the media/thumbnails/high directory. LATEST saves the latest thumbnail in media/latest_thumbnail/high/thumb.jpg and overwrites it at the interval specified by targetIntervalSeconds. You can enable both SEQUENTIAL and LATEST. Default: SEQUENTIAL. Optional.
+            </ResponseField>
+            <ResponseField name="target_interval_seconds" type="number">
+              The targeted thumbnail-generation interval in seconds. This is configurable only if recordingMode is INTERVAL. Default: 60. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Stage name Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      A key for a metadata tag that you assign to an Amazon IVS Stage resource, enabling you to organize, filter, and control access to the stage for purposes such as cost allocation and resource management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a user-defined tag applied to the Amazon IVS stage resource, used for metadata, identification, and cost tracking. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="active_session_id" type="string">
+  ID of the active session within the stage. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="arn" type="string">
+  Stage ARN is automatically generated on creation and assigned as the unique identifier. Computed by AWS after `ship`.
+</ResponseField>

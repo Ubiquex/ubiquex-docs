@@ -1,0 +1,167 @@
+---
+title: "aws_code_pipeline_webhook"
+description: "`aws_code_pipeline_webhook` triggers an `aws_code_pipeline_pipeline` execution the moment a real external event happens, a GitHub push, for instance..."
+---
+
+`aws_code_pipeline_webhook` triggers an `aws_code_pipeline_pipeline` execution the moment a real external event happens, a GitHub push, for instance, rather than the pipeline polling its source on an interval to notice a change.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	code "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/code"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own pipeline webhook"})
+
+    		ubx.Resource(code.PipelineWebhook, "ci-runner", code.PipelineWebhookConfig{
+    			Authentication:              "example",
+    			AuthenticationConfiguration: map[string]any{"allowed_iprange": "example"},
+    			Filters:                     []map[string]any{{"json_path": "example"}},
+    			TargetAction:                "example",
+    			TargetPipeline:              "example",
+    			Name:                        "ci-runner",
+    			RegisterWithThirdParty:      true,
+    			Tags:                        []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { PipelineWebhook } from "./local-sdk/aws/sdk/typescript/aws/code/pipeline_webhook.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own pipeline webhook" });
+
+      resource(PipelineWebhook, "ci-runner", {
+        authentication: "example",
+        authenticationConfiguration: { allowedIprange: "example" },
+        filters: [{ jsonPath: "example" }],
+        targetAction: "example",
+        targetPipeline: "example",
+        name: "ci-runner",
+        registerWithThirdParty: true,
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.code import PipelineWebhook, PipelineWebhookConfig
+
+    def describe():
+        ubx.intent("payments own pipeline webhook")
+
+        ubx.resource(PipelineWebhook, "ci-runner", PipelineWebhookConfig(
+            authentication="example",
+            authentication_configuration={"allowed_iprange": "example"},
+            filters=[{"json_path": "example"}],
+            target_action="example",
+            target_pipeline="example",
+            name="ci-runner",
+            register_with_third_party=True,
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_code_pipeline_webhook called "ci-runner", with
+    authentication example, authentication configuration a set value,
+    filters a set value, target action example, target pipeline
+    example, register with third party true, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="authentication" type="string" required>
+  Supported options are GITHUB_HMAC, IP, and UNAUTHENTICATED. Required.
+</ResponseField>
+
+<ResponseField name="authentication_configuration" type="object" required>
+  Properties that configure the authentication applied to incoming webhook trigger requests Required.
+  <Expandable title="properties">
+    <ResponseField name="allowed_iprange" type="string">
+      The property used to configure acceptance of webhooks in an IP address range. For IP, only the AllowedIPRange property must be set. This property must be set to a valid CIDR range. Optional.
+    </ResponseField>
+    <ResponseField name="secret_token" type="string">
+      The property used to configure GitHub authentication. For GITHUB_HMAC, only the SecretToken property must be set. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="filters" type="list(object)" required>
+  A list of rules applied to the body/payload sent in the POST request to a webhook URL Required.
+  <Expandable title="properties">
+    <ResponseField name="json_path" type="string">
+      The JSON path in the event payload that this webhook filter rule uses to determine which events should trigger the pipeline. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="match_equals" type="string">
+      The exact string value that the extracted payload at the filter's JSON path must match for the webhook to trigger the pipeline. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the webhook Optional.
+</ResponseField>
+
+<ResponseField name="register_with_third_party" type="bool">
+  Configures a connection between the webhook that was created and the external tool with events to be detected. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a user-defined tag attached to the AWS CodePipeline webhook, which acts as a custom label to identify, organize, and control access to the webhook resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a tag attached to the CodePipeline webhook, providing user-defined metadata that can be used to organize and filter webhook resources. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="target_action" type="string" required>
+  The name of the action in a pipeline you want to connect to the webhook. Required.
+</ResponseField>
+
+<ResponseField name="target_pipeline" type="string" required>
+  The name of the pipeline you want to connect to the webhook. Required.
+</ResponseField>
+
+<ResponseField name="target_pipeline_version" type="number">
+  The version number of the pipeline to be connected to the trigger request. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  logical id of the webhook Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="url" type="string">
+  The webhook URL generated by AWS CodePipeline Computed by AWS after `ship`.
+</ResponseField>

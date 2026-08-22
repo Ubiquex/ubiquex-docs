@@ -1,0 +1,166 @@
+---
+title: "aws_rds_custom_dbengine_version"
+description: "`aws_rds_custom_dbengine_version` registers a real custom database engine version, a customer-provided installation image, for use with RDS Custom..."
+---
+
+`aws_rds_custom_dbengine_version` registers a real custom database engine version, a customer-provided installation image, for use with RDS Custom, letting an `aws_rds_dbinstance` run a specific, customer-controlled engine build rather than only AWS's own standard RDS engine versions.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	rds "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/rds"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own custom dbengine version"})
+
+    		ubx.Resource(rds.CustomDbengineVersion, "ci-runner", rds.CustomDbengineVersionConfig{
+    			Engine:                                "example",
+    			EngineVersion:                         "example",
+    			DatabaseInstallationFiles:             []string{"example"},
+    			DatabaseInstallationFilesS3BucketName: "example-database-installation-files-s3-bucket-name",
+    			DatabaseInstallationFilesS3Prefix:     "example",
+    			Description:                           "Managed by ubx.",
+    			ImageId:                               "example",
+    			KmskeyId:                              "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { CustomDbengineVersion } from "./local-sdk/aws/sdk/typescript/aws/rds/custom_dbengine_version.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own custom dbengine version" });
+
+      resource(CustomDbengineVersion, "ci-runner", {
+        engine: "example",
+        engineVersion: "example",
+        databaseInstallationFiles: ["example"],
+        databaseInstallationFilesS3BucketName:
+          "example-database-installation-files-s3-bucket-name",
+        databaseInstallationFilesS3Prefix: "example",
+        description: "Managed by ubx.",
+        imageId: "example",
+        kmskeyId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.rds import CustomDbengineVersion, CustomDbengineVersionConfig
+
+    def describe():
+        ubx.intent("payments own custom dbengine version")
+
+        ubx.resource(CustomDbengineVersion, "ci-runner", CustomDbengineVersionConfig(
+            engine="example",
+            engine_version="example",
+            database_installation_files=["example"],
+            database_installation_files_s3_bucket_name="example-database-installation-files-s3-bucket-name",
+            database_installation_files_s3_prefix="example",
+            description="Managed by ubx.",
+            image_id="example",
+            kmskey_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_rds_custom_dbengine_version, with engine example,
+    engine version example, database installation files a set value,
+    database installation files s3 bucket name
+    example-database-installation-files-s3-bucket-name, database
+    installation files s3 prefix example, description Managed by
+    ubx., image id example, kmskey id example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="database_installation_files" type="list(string)">
+  The S3 object keys of the database installation files located in the specified S3 bucket (and optional prefix) that define the installation files for this custom DB engine version. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="database_installation_files_s3_bucket_name" type="string">
+  The name of an Amazon S3 bucket that contains database installation files for your CEV. For example, a valid bucket name is ``my-custom-installation-files``. Optional.
+</ResponseField>
+
+<ResponseField name="database_installation_files_s3_prefix" type="string">
+  The Amazon S3 directory that contains the database installation files for your CEV. For example, a valid bucket name is ``123456789012/cev1``. If this setting isn't specified, no prefix is assumed. Optional.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  An optional description of your CEV. Optional.
+</ResponseField>
+
+<ResponseField name="engine" type="string" required>
+  The database engine to use for your custom engine version (CEV). Valid values: + ``custom-oracle-ee`` + ``custom-oracle-ee-cdb`` + ``sqlserver-dev-ee`` + ``sqlserver-ee`` + ``sqlserver-se`` Required.
+</ResponseField>
+
+<ResponseField name="engine_version" type="string" required>
+  The name of your CEV. The name format is ``major version.customized_string``. For example, a valid CEV name is ``19.my_cev1``. This setting is required for RDS Custom for Oracle, but optional for Amazon RDS. The combination of ``Engine`` and ``EngineVersion`` is unique per customer per Region. *Constraints:* Minimum length is 1. Maximum length is 60. *Pattern:*``^[a-z0-9_.-]&#123;1,60$``&#125; Required.
+</ResponseField>
+
+<ResponseField name="image_id" type="string">
+  A value that indicates the ID of the AMI. Optional.
+</ResponseField>
+
+<ResponseField name="kmskey_id" type="string">
+  The AWS KMS key identifier for an encrypted CEV. A symmetric encryption KMS key is required for RDS Custom, but optional for Amazon RDS. If you have an existing symmetric encryption KMS key in your account, you can use it with RDS Custom. No further action is necessary. If you don't already have a symmetric encryption KMS key in your account, follow the instructions in [Creating a symmetric encryption KMS key](https://docs.aws.amazon.com/kms/latest/developerguide/create-keys.html#create-symmetric-cmk) in the *Key Management Service Developer Guide*. You can choose the same symmetric encryption key when you create a CEV and a DB instance, or choose different keys. Optional.
+</ResponseField>
+
+<ResponseField name="manifest" type="string">
+  The CEV manifest, which is a JSON document that describes the installation .zip files stored in Amazon S3. Specify the name/value pairs in a file or a quoted string. RDS Custom applies the patches in the order in which they are listed. The following JSON fields are valid: + MediaImportTemplateVersion Version of the CEV manifest. The date is in the format YYYY-MM-DD. + databaseInstallationFileNames Ordered list of installation files for the CEV. + opatchFileNames Ordered list of OPatch installers used for the Oracle DB engine. + psuRuPatchFileNames The PSU and RU patches for this CEV. + OtherPatchFileNames The patches that are not in the list of PSU and RU patches. Amazon RDS applies these patches after applying the PSU and RU patches. For more information, see [Creating the CEV manifest](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/custom-cev.html#custom-cev.preparing.manifest) in the *Amazon RDS User Guide*. Optional.
+</ResponseField>
+
+<ResponseField name="source_custom_db_engine_version_identifier" type="string">
+  The ARN of a CEV to use as a source for creating a new CEV. You can specify a different Amazon Machine Imagine (AMI) by using either ``Source`` or ``UseAwsProvidedLatestImage``. You can't specify a different JSON manifest when you specify ``SourceCustomDbEngineVersionIdentifier``. Optional.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  A value that indicates the status of a custom engine version (CEV). Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of tags. For more information, see [Tagging Amazon RDS Resources](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.html) in the *Amazon RDS User Guide.* Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to this AWS RDS Custom DB engine version, used to organize and identify the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="use_aws_provided_latest_image" type="bool">
+  Specifies whether to use the latest service-provided Amazon Machine Image (AMI) for the CEV. If you specify ``UseAwsProvidedLatestImage``, you can't also specify ``ImageId``. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="dbengine_version_arn" type="string">
+  The Amazon Resource Name (ARN) assigned to this custom DB engine version by AWS, used to reference the resource in IAM policies and other AWS services. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

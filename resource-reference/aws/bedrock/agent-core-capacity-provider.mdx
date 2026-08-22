@@ -1,0 +1,340 @@
+---
+title: "aws_bedrock_agent_core_capacity_provider"
+description: "`aws_bedrock_agent_core_capacity_provider` defines the EC2 infrastructure, operating system, instance types, VPC and subnets, storage, IAM roles..."
+---
+
+`aws_bedrock_agent_core_capacity_provider` defines the EC2 infrastructure, operating system, instance types, VPC and subnets, storage, IAM roles, that AgentCore Runtime instances provision on, patch, and scale automatically, an alternative to the microVM-based runtime for agents that need persistent, dedicated compute.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	bedrock "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/bedrock"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own agent core capacity provider"})
+
+    		ubx.Resource(bedrock.AgentCoreCapacityProvider, "ci-runner", bedrock.AgentCoreCapacityProviderConfig{
+    			ComputeConfiguration:     map[string]any{"ec2_configuration": map[string]any{"launch_template_source": map[string]any{"launch_parameters": map[string]any{"instance_requirements": map[string]any{"allowed_instance_types": []string{"example"}}}}}},
+    			Name:                     "ci-runner",
+    			PermissionsConfiguration: map[string]any{"capacity_provider_operator_role_arn": "example"},
+    			Description:              "Managed by ubx.",
+    			Tags:                     []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AgentCoreCapacityProvider } from "./local-sdk/aws/sdk/typescript/aws/bedrock/agent_core_capacity_provider.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own agent core capacity provider" });
+
+      resource(AgentCoreCapacityProvider, "ci-runner", {
+        computeConfiguration: {
+          ec2Configuration: {
+            launchTemplateSource: {
+              launchParameters: {
+                instanceRequirements: { allowedInstanceTypes: ["example"] },
+              },
+            },
+          },
+        },
+        name: "ci-runner",
+        permissionsConfiguration: { capacityProviderOperatorRoleArn: "example" },
+        description: "Managed by ubx.",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.bedrock import AgentCoreCapacityProvider, AgentCoreCapacityProviderConfig
+
+    def describe():
+        ubx.intent("payments own agent core capacity provider")
+
+        ubx.resource(AgentCoreCapacityProvider, "ci-runner", AgentCoreCapacityProviderConfig(
+            compute_configuration={"ec2_configuration": {"launch_template_source": {"launch_parameters": {"instance_requirements": {"allowed_instance_types": ["example"]}}}}},
+            name="ci-runner",
+            permissions_configuration={"capacity_provider_operator_role_arn": "example"},
+            description="Managed by ubx.",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_bedrock_agent_core_capacity_provider called
+    "ci-runner", with compute configuration a set value, permissions
+    configuration a set value, description Managed by ubx., tags a
+    set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="compute_configuration" type="object" required>
+  The capacity configuration for the capacity provider. Defines the compute resources for this capacity provider. Required.
+  <Expandable title="properties">
+    <ResponseField name="ec2_configuration" type="object" required>
+      Configuration for EC2-based capacity. Required.
+      <Expandable title="properties">
+        <ResponseField name="launch_template_source" type="object" required>
+          How the launch template is specified. Required.
+          <Expandable title="properties">
+            <ResponseField name="launch_parameters" type="object" required>
+              Parameters for launching EC2 instances. Required.
+              <Expandable title="properties">
+                <ResponseField name="capacity_reservation_specification" type="object">
+                  The Capacity Reservation targeting option. Optional.
+                  <Expandable title="properties">
+                    <ResponseField name="capacity_reservation_preference" type="string">
+                      Indicates the instance's Capacity Reservation preferences. Optional.
+                    </ResponseField>
+                    <ResponseField name="capacity_reservation_target" type="object">
+                      Information about the target Capacity Reservation or Capacity Reservation group. Optional.
+                      <Expandable title="properties">
+                        <ResponseField name="capacity_reservation_id" type="string">
+                          The ID of the Capacity Reservation in which to run the instance. Optional.
+                        </ResponseField>
+                        <ResponseField name="capacity_reservation_resource_group_arn" type="string">
+                          The ARN of the Capacity Reservation resource group in which to run the instance. Optional.
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="ephemeral_volumes" type="list(object)">
+                  The block device mapping for ephemeral (instance store) volumes. Optional.
+                  <Expandable title="properties">
+                    <ResponseField name="device_name" type="string">
+                      Specifies the device name (e.g., /dev/sdb) for an ephemeral volume in the EC2 launch template configuration used by the Bedrock agent core capacity provider. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="ebs" type="object">
+                      Configures the Amazon EBS volume settings (such as size, volume type, and encryption) for an ephemeral volume attached to EC2 instances launched using the launch template in the Bedrock agent core capacity provider's compute configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="ebs_card_index" type="number">
+                          Optional; if omitted, computed by AWS.
+                        </ResponseField>
+                        <ResponseField name="encrypted" type="bool">
+                          Indicates whether the EBS volume is encrypted at rest; when true, the volume is encrypted using an AWS KMS key. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="iops" type="number">
+                          Specifies the provisioned IOPS (input/output operations per second) for the EBS volume defined in the launch template's block device mapping. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="kms_key_id" type="string">
+                          The KMS key ID used to encrypt the ephemeral EBS volumes attached to the EC2 instances launched for the Bedrock agent's compute capacity, enabling customer-managed encryption for these temporary storage volumes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="snapshot_id" type="string">
+                          Specifies the EBS snapshot ID used to initialize the ephemeral EBS volume attached to EC2 instances launched for this Bedrock agent core capacity provider. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="throughput" type="number">
+                          The throughput (in MiB/s) for the EBS volume attached as an ephemeral volume to the compute instances launched by the capacity provider's launch template, determining the sustained I/O performance of that volume. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="volume_initialization_rate" type="number">
+                          Optional; if omitted, computed by AWS.
+                        </ResponseField>
+                        <ResponseField name="volume_size" type="number">
+                          Specifies the size of the EBS ephemeral volume in GiB within the EC2 launch parameters for the core capacity provider's compute configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="volume_type" type="string">
+                          Optional; if omitted, computed by AWS.
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="virtual_name" type="string">
+                      Sets the virtual device name (e.g., 'ephemeral0') for an ephemeral instance-store volume in the EC2 launch template's block device mapping used by the Bedrock agent core capacity provider's compute configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="instance_profile_arn" type="string">
+                  The ARN of the IAM instance profile to associate with launched instances. Optional.
+                </ResponseField>
+                <ResponseField name="instance_requirements" type="object" required>
+                  Requirements for EC2 instance types. Required.
+                  <Expandable title="properties">
+                    <ResponseField name="allowed_instance_types" type="list(string)" required>
+                      List of allowed instance types. Required.
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="license_specifications" type="list(object)">
+                  The license configurations. Optional.
+                  <Expandable title="properties">
+                    <ResponseField name="license_configuration_arn" type="string">
+                      The ARN of an AWS License Manager license configuration that is applied to EC2 instances launched from this launch template. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="monitoring" type="string">
+                  The monitoring level for the instance. Optional.
+                </ResponseField>
+                <ResponseField name="operating_system" type="string" required>
+                  The operating system and CPU architecture for the instances. Required.
+                </ResponseField>
+                <ResponseField name="propagated_tags" type="any">
+                  Tags to apply to all EC2 resources (instances, volumes, and network interfaces) created by this capacity provider. Optional.
+                </ResponseField>
+                <ResponseField name="ssh_key_name" type="string">
+                  The name of the SSH key pair to configure on instances for SSH connectivity. Optional.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="lifecycle_configuration" type="object">
+          Configuration for managing the lifecycle of instances in a capacity provider. Optional.
+          <Expandable title="properties">
+            <ResponseField name="idle_instance_timeout" type="number">
+              The number of seconds an instance can remain idle before it is stopped. Optional.
+            </ResponseField>
+            <ResponseField name="max_lifetime" type="number">
+              Maximum lifetime for the instance in seconds. Once reached, instances will be automatically terminated regardless of activity. Default: 28800 seconds (8 hours). Maximum: 1209600 seconds (14 days). Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="root_volume" type="object">
+          Customer-facing configuration for the (service-managed) root volume. The service provisions the root volume at its own AMI size estimate plus FreeSpaceGiB, and pins the visible free space to FreeSpaceGiB with a filler file, so the space you are guaranteed does not change as the underlying AMI grows. The device name and the delete-on-termination behavior are service-owned and are not configurable. Optional.
+          <Expandable title="properties">
+            <ResponseField name="encrypted" type="bool">
+              Indicates whether the EBS volume is encrypted. Encrypted volumes can only be attached to instances that support Amazon EBS encryption. If you are creating a volume from a snapshot, you can't specify an encryption value. Optional.
+            </ResponseField>
+            <ResponseField name="free_space_gi_b" type="number">
+              The free space guaranteed on the root volume, in GiB. The service adds the operating system overhead on top of this value. Defaults to 8 GiB. The maximum is below the 65,536 GiB gp3 ceiling because the service adds the AMI size bucket on top of this value, and the resulting total must still be a provisionable gp3 volume. Optional.
+            </ResponseField>
+            <ResponseField name="iops" type="number">
+              The number of IOPS to provision. Only valid for gp3, io1, and io2 volumes. Optional.
+            </ResponseField>
+            <ResponseField name="kms_key_id" type="string">
+              Identifier of the customer managed KMS key to use for EBS encryption. Optional.
+            </ResponseField>
+            <ResponseField name="throughput" type="number">
+              The throughput to provision for a gp3 volume, in MiB/s. Valid range: 125-2000 MiB/s. Optional.
+            </ResponseField>
+            <ResponseField name="volume_type" type="string">
+              The EBS volume type. Defaults to gp3 if not specified. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="volumes" type="list(object)">
+          Named persistent EBS volumes for this capacity provider. Optional.
+          <Expandable title="properties">
+            <ResponseField name="ebs_configuration" type="object">
+              Specifies the Amazon Elastic Block Store (EBS) volume configuration, including settings like volume size, volume type, and IOPS, for a volume attached to the EC2 instances in the capacity provider's compute configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="encrypted" type="bool">
+                  Optional; if omitted, computed by AWS.
+                </ResponseField>
+                <ResponseField name="iops" type="number">
+                  The provisioned IOPS (input/output operations per second) for the EBS volume defined in the EC2 compute configuration of the Bedrock agent core capacity provider. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="kms_key_id" type="string">
+                  Specifies the ID of the AWS KMS key used to encrypt the EBS volume defined in the EC2 configuration of the Bedrock Agent Core capacity provider's compute configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="name" type="string">
+                  The name field provides a unique logical identifier for the EBS volume within the compute configuration, which is used to reference the volume when attaching or mounting it to the EC2 instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="size_gi_b" type="number">
+                  The size of the Amazon Elastic Block Store (EBS) volume, in GiB, used by the EC2 compute configuration for this Bedrock agent core capacity provider. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="snapshot_id" type="string">
+                  The ID of the EBS snapshot from which the volume is created, used to initialize the volume with data when configuring the EC2 compute resources for the Bedrock agent capacity provider. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="throughput" type="number">
+                  Specifies the throughput (in MiB/s) for the EBS volumes attached to the EC2 instances in the compute configuration of the Bedrock agent core capacity provider, controlling the I/O performance of the storage. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="volume_type" type="string">
+                  Specifies the EBS volume type (e.g., gp3, io2) to use for the volumes attached to the EC2 instances in the compute configuration of the Bedrock agent core capacity provider. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="vpc_configuration" type="object" required>
+          VPC configuration for launching EC2 instances. Required.
+          <Expandable title="properties">
+            <ResponseField name="security_groups" type="list(string)" required>
+              The IDs of the security groups to associate with the instances. Required.
+            </ResponseField>
+            <ResponseField name="subnets" type="list(string)" required>
+              The IDs of the subnets in which to launch instances. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  An optional description of the capacity provider. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the capacity provider. Required.
+</ResponseField>
+
+<ResponseField name="permissions_configuration" type="object" required>
+  Configuration for permissions associated with a capacity provider. Required.
+  <Expandable title="properties">
+    <ResponseField name="capacity_provider_operator_role_arn" type="string" required>
+      The ARN of the IAM role that operators use to manage the capacity provider. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to the capacity provider. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The ARN of the capacity provider. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="capacity_provider_id" type="string">
+  The unique identifier of the capacity provider. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  The timestamp when the capacity provider was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="last_updated_at" type="string">
+  The timestamp when the capacity provider was last updated. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The current status of the capacity provider. Computed by AWS after `ship`.
+</ResponseField>

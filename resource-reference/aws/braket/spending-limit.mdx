@@ -1,0 +1,138 @@
+---
+title: "aws_braket_spending_limit"
+description: "`aws_braket_spending_limit` caps real, cumulative spend on Amazon Braket's on-demand and hybrid-job quantum processing unit tasks..."
+---
+
+`aws_braket_spending_limit` caps real, cumulative spend on Amazon Braket's on-demand and hybrid-job quantum processing unit tasks, validating every task creation request against the configured limit and rejecting it outright if its estimated cost would exceed what remains, with an optional time window scoping when submissions are even allowed.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	braket "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/braket"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own spending limit"})
+
+    		ubx.Resource(braket.SpendingLimit, "ci-runner", braket.SpendingLimitConfig{
+    			DeviceArn:     "arn:aws:iam::123456789012:policy/ci",
+    			SpendingLimit: "example",
+    			Tags:          []map[string]any{{"key": "example"}},
+    			TimePeriod:    map[string]any{"end_at": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { SpendingLimit } from "./local-sdk/aws/sdk/typescript/aws/braket/spending_limit.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own spending limit" });
+
+      resource(SpendingLimit, "ci-runner", {
+        deviceArn: "arn:aws:iam::123456789012:policy/ci",
+        spendingLimit: "example",
+        tags: [{ key: "example" }],
+        timePeriod: { endAt: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.braket import SpendingLimit, SpendingLimitConfig
+
+    def describe():
+        ubx.intent("payments own spending limit")
+
+        ubx.resource(SpendingLimit, "ci-runner", SpendingLimitConfig(
+            device_arn="arn:aws:iam::123456789012:policy/ci",
+            spending_limit="example",
+            tags=[{"key": "example"}],
+            time_period={"end_at": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_braket_spending_limit, with device arn
+    arn:aws:iam::123456789012:policy/ci, spending limit example, tags
+    a set value, time period a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="device_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the quantum device to apply the spending limit to. Required.
+</ResponseField>
+
+<ResponseField name="spending_limit" type="string" required>
+  The maximum amount that can be spent on the specified device, in USD. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags to apply to the spending limit. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value part of a tag key-value pair attached to the AWS::Braket::SpendingLimit resource, used to categorize and manage the spending limit with arbitrary metadata. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="time_period" type="object">
+  Defines a time range for spending limits, specifying when the limit is active. Optional.
+  <Expandable title="properties">
+    <ResponseField name="end_at" type="string" required>
+      The end date and time for the spending limit period, in ISO 8601 format. Required.
+    </ResponseField>
+    <ResponseField name="start_at" type="string" required>
+      The start date and time for the spending limit period, in ISO 8601 format. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="created_at" type="string">
+  The date and time when the spending limit was created, in ISO 8601 format. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="queued_spend" type="string">
+  The amount currently queued for spending on the device, in USD. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="spending_limit_arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies the spending limit. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="total_spend" type="string">
+  The total amount spent on the device so far during the current time period, in USD. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  The date and time when the spending limit was last modified, in ISO 8601 format. Computed by AWS after `ship`.
+</ResponseField>

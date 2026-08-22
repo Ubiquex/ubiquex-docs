@@ -1,0 +1,130 @@
+---
+title: "aws_ssmcontacts_plan"
+description: "`aws_ssmcontacts_plan` defines a real sequence of engagement stages and channels, SMS then voice then email, for an `aws_ssmcontacts_contact`..."
+---
+
+`aws_ssmcontacts_plan` defines a real sequence of engagement stages and channels, SMS then voice then email, for an `aws_ssmcontacts_contact`, controlling how and when that contact is actually notified during an incident.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	ssmcontacts "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/ssmcontacts"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own plan"})
+
+    		ubx.Resource(ssmcontacts.Plan, "ci-runner", ssmcontacts.PlanConfig{
+    			ContactId:   "example",
+    			RotationIds: []string{"example"},
+    			Stages:      []map[string]any{{"duration_in_minutes": 1}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Plan } from "./local-sdk/aws/sdk/typescript/aws/ssmcontacts/plan.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own plan" });
+
+      resource(Plan, "ci-runner", {
+        contactId: "example",
+        rotationIds: ["example"],
+        stages: [{ durationInMinutes: 1 }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.ssmcontacts import Plan, PlanConfig
+
+    def describe():
+        ubx.intent("payments own plan")
+
+        ubx.resource(Plan, "ci-runner", PlanConfig(
+            contact_id="example",
+            rotation_ids=["example"],
+            stages=[{"duration_in_minutes": 1}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ssmcontacts_plan, with contact id example, rotation
+    ids a set value, stages a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="contact_id" type="string">
+  Contact ID for the AWS SSM Incident Manager Contact to associate the plan. Optional.
+</ResponseField>
+
+<ResponseField name="rotation_ids" type="list(string)">
+  Rotation Ids to associate with Oncall Contact for engagement. Optional.
+</ResponseField>
+
+<ResponseField name="stages" type="list(object)">
+  The stages that an escalation plan or engagement plan engages contacts and contact methods in. Optional.
+  <Expandable title="properties">
+    <ResponseField name="duration_in_minutes" type="number">
+      The duration, in minutes, for which this stage of the engagement runs before moving to the next stage or ending the engagement. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="targets" type="list(object)">
+      Specifies the contacts or contact channels that are notified when this stage of the on-call escalation plan is reached, based on the escalation time. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="channel_target_info" type="object">
+          Specifies the target as a contact channel rather than a contact, detailing the contact channel's identifier and the retry interval in minutes to wait before re-contacting it during the escalation stage. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="channel_id" type="string">
+              The Amazon Resource Name (ARN) of the contact channel to notify when this stage is triggered. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="retry_interval_in_minutes" type="number">
+              The number of minutes to wait before retrying the contact channel if the previous attempt fails, as part of the channel target configuration in an SSM Contacts plan stage. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="contact_target_info" type="object">
+          Identifies an SSM Contacts contact as a target for the stage, using its contact ID and an IsEssential flag that determines whether the contact must be reached for the on-call handoff to continue. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="contact_id" type="string">
+              The Amazon Resource Name (ARN) of the AWS SSM Contacts contact that this stage targets when the escalation plan is executed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="is_essential" type="bool">
+              A boolean that, when true, marks this contact as essential so that if the contact cannot be reached during an incident, the escalation plan stops and does not continue to subsequent targets. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the contact. Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,116 @@
+---
+title: "aws_app_flow_connector"
+description: "`aws_app_flow_connector` registers a real custom connector, backed by a Lambda function..."
+---
+
+`aws_app_flow_connector` registers a real custom connector, backed by a Lambda function, that an `aws_app_flow_flow` can use as a source or destination beyond AppFlow's own built-in SaaS connectors.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	app "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/app"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own flow connector"})
+
+    		ubx.Resource(app.FlowConnector, "ci-runner", app.FlowConnectorConfig{
+    			ConnectorProvisioningConfig: map[string]any{"lambda": map[string]any{"lambda_arn": "example"}},
+    			ConnectorProvisioningType:   "example",
+    			ConnectorLabel:              "example",
+    			Description:                 "Managed by ubx.",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { FlowConnector } from "./local-sdk/aws/sdk/typescript/aws/app/flow_connector.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own flow connector" });
+
+      resource(FlowConnector, "ci-runner", {
+        connectorProvisioningConfig: { lambda: { lambdaArn: "example" } },
+        connectorProvisioningType: "example",
+        connectorLabel: "example",
+        description: "Managed by ubx.",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.app import FlowConnector, FlowConnectorConfig
+
+    def describe():
+        ubx.intent("payments own flow connector")
+
+        ubx.resource(FlowConnector, "ci-runner", FlowConnectorConfig(
+            connector_provisioning_config={"lambda": {"lambda_arn": "example"}},
+            connector_provisioning_type="example",
+            connector_label="example",
+            description="Managed by ubx.",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_app_flow_connector, with connector provisioning config
+    a set value, connector provisioning type example, connector label
+    example, description Managed by ubx..
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="connector_label" type="string">
+  The name of the connector. The name is unique for each ConnectorRegistration in your AWS account. Optional.
+</ResponseField>
+
+<ResponseField name="connector_provisioning_config" type="object" required>
+  Contains information about the configuration of the connector being registered. Required.
+  <Expandable title="properties">
+    <ResponseField name="lambda" type="object">
+      Contains information about the configuration of the lambda which is being registered as the connector. Optional.
+      <Expandable title="properties">
+        <ResponseField name="lambda_arn" type="string" required>
+          Lambda ARN of the connector being registered. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="connector_provisioning_type" type="string" required>
+  The provisioning type of the connector. Currently the only supported value is LAMBDA. Required.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A description about the connector that's being registered. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="connector_arn" type="string">
+  The arn of the connector. The arn is unique for each ConnectorRegistration in your AWS account. Computed by AWS after `ship`.
+</ResponseField>

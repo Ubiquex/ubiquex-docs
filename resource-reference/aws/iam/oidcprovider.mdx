@@ -1,0 +1,113 @@
+---
+title: "aws_iam_oidcprovider"
+description: "`aws_iam_oidcprovider` establishes real trust between IAM and an external OpenID Connect identity provider..."
+---
+
+`aws_iam_oidcprovider` establishes real trust between IAM and an external OpenID Connect identity provider, GitHub Actions or an EKS cluster's own OIDC issuer among common ones, so an `aws_iam_role` can be assumed directly using that provider's tokens instead of a long-lived IAM credential.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	iam "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/iam"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own oidcprovider"})
+
+    		ubx.Resource(iam.Oidcprovider, "ci-runner", iam.OidcproviderConfig{
+    			ClientIdList:   []string{"example"},
+    			Tags:           []map[string]any{{"key": "example"}},
+    			ThumbprintList: []string{"example"},
+    			Url:            "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Oidcprovider } from "./local-sdk/aws/sdk/typescript/aws/iam/oidcprovider.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own oidcprovider" });
+
+      resource(Oidcprovider, "ci-runner", {
+        clientIdList: ["example"],
+        tags: [{ key: "example" }],
+        thumbprintList: ["example"],
+        url: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.iam import Oidcprovider, OidcproviderConfig
+
+    def describe():
+        ubx.intent("payments own oidcprovider")
+
+        ubx.resource(Oidcprovider, "ci-runner", OidcproviderConfig(
+            client_id_list=["example"],
+            tags=[{"key": "example"}],
+            thumbprint_list=["example"],
+            url="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_iam_oidcprovider, with client id list a set value,
+    tags a set value, thumbprint list a set value, url example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="client_id_list" type="list(string)">
+  The list of client IDs (also known as audiences) that are allowed to use the OIDC provider to authenticate to AWS. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Defines one or more custom tag key-value pairs to attach to the IAM OIDC provider, which can be used for cost allocation, access control, and metadata management. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Specifies the key (name) of a tag assigned to the AWS IAM OIDC provider, allowing you to filter, control access, and track costs for the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag attached to the IAM OIDC provider, used to manage, identify, and categorize the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="thumbprint_list" type="list(string)">
+  The list of server certificate thumbprints used to identify the OIDC identity provider's server certificate. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="url" type="string">
+  Specifies the URL of the OIDC identity provider (IdP), which must be a valid HTTPS URL that matches the issuer in the OIDC tokens issued by the provider. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  Amazon Resource Name (ARN) of the OIDC provider Computed by AWS after `ship`.
+</ResponseField>

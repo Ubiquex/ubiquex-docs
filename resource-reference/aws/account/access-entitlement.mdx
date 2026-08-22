@@ -1,0 +1,121 @@
+---
+title: "aws_account_access_entitlement"
+description: "`aws_account_access_entitlement` is the entitlement half of IAM Identity Center's account access manager..."
+---
+
+`aws_account_access_entitlement` is the entitlement half of IAM Identity Center's account access manager, the specific permission grant attached to an `aws_account_access_application`. It is what actually authorizes a principal to assume the application's target role, real, revocable access rather than an implicit side effect of the application existing.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	account "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/account"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own access entitlement"})
+
+    		ubx.Resource(account.AccessEntitlement, "ci-runner", account.AccessEntitlementConfig{
+    			ApplicationArn: "arn:aws:iam::123456789012:policy/ci",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AccessEntitlement } from "./local-sdk/aws/sdk/typescript/aws/account/access_entitlement.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own access entitlement" });
+
+      resource(AccessEntitlement, "ci-runner", {
+        applicationArn: "arn:aws:iam::123456789012:policy/ci",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.account import AccessEntitlement, AccessEntitlementConfig
+
+    def describe():
+        ubx.intent("payments own access entitlement")
+
+        ubx.resource(AccessEntitlement, "ci-runner", AccessEntitlementConfig(
+            application_arn="arn:aws:iam::123456789012:policy/ci",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_account_access_entitlement, with application arn
+    arn:aws:iam::123456789012:policy/ci.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="application_arn" type="string" required>
+  The ARN of the application Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="created_at" type="string">
+  The timestamp when the entitlement was created Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="entitlement" type="object">
+  Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="principal_role" type="object" required>
+      Defines the IAM role principal, including its role name and optional organizational unit, that is granted the access entitlement to the specified target accounts. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="account" type="string">
+          The AWS account ID Optional.
+        </ResponseField>
+        <ResponseField name="principal" type="object" required>
+          The IAM user, role, or AWS account that is granted the account access entitlement and assumes the specified principal role in the target AWS account. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="identity_center" type="object" required>
+              Specifies the AWS IAM Identity Center (successor to AWS SSO) user or group that acts as the principal for the access entitlement, granting that identity access to the target account. Required. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="group_id" type="string">
+                  The ID of the group Optional.
+                </ResponseField>
+                <ResponseField name="user_id" type="string">
+                  The ID of the user Optional.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="role_arn" type="string" required>
+          The ARN of the IAM role Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="entitlement_id" type="string">
+  The ID of the entitlement Computed by AWS after `ship`.
+</ResponseField>

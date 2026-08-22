@@ -1,0 +1,235 @@
+---
+title: "aws_sage_maker_endpoint"
+description: "`aws_sage_maker_endpoint` deploys a real, hosted inference endpoint from an `aws_sage_maker_endpoint_config`..."
+---
+
+`aws_sage_maker_endpoint` deploys a real, hosted inference endpoint from an `aws_sage_maker_endpoint_config`, the resource that actually serves live predictions from a deployed `aws_sage_maker_model`.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	sage "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sage"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own maker endpoint"})
+
+    		ubx.Resource(sage.MakerEndpoint, "ci-runner", sage.MakerEndpointConfig_{
+    			EndpointConfigName:               "example-endpoint-config-name",
+    			DeploymentConfig:                 map[string]any{"auto_rollback_configuration": map[string]any{"alarms": []map[string]any{{"alarm_name": "example-alarm-name"}}}},
+    			ExcludeRetainedVariantProperties: []map[string]any{{"variant_property_type": "example"}},
+    			RetainAllVariantProperties:       true,
+    			RetainDeploymentConfig:           true,
+    			Tags:                             []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MakerEndpoint } from "./local-sdk/aws/sdk/typescript/aws/sage/maker_endpoint.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own maker endpoint" });
+
+      resource(MakerEndpoint, "ci-runner", {
+        endpointConfigName: "example-endpoint-config-name",
+        deploymentConfig: {
+          autoRollbackConfiguration: {
+            alarms: [{ alarmName: "example-alarm-name" }],
+          },
+        },
+        excludeRetainedVariantProperties: [{ variantPropertyType: "example" }],
+        retainAllVariantProperties: true,
+        retainDeploymentConfig: true,
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.sage import MakerEndpoint, MakerEndpointConfig_
+
+    def describe():
+        ubx.intent("payments own maker endpoint")
+
+        ubx.resource(MakerEndpoint, "ci-runner", MakerEndpointConfig_(
+            endpoint_config_name="example-endpoint-config-name",
+            deployment_config={"auto_rollback_configuration": {"alarms": [{"alarm_name": "example-alarm-name"}]}},
+            exclude_retained_variant_properties=[{"variant_property_type": "example"}],
+            retain_all_variant_properties=True,
+            retain_deployment_config=True,
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_sage_maker_endpoint, with endpoint config name
+    example-endpoint-config-name, deployment config a set value,
+    exclude retained variant properties a set value, retain all
+    variant properties true, retain deployment config true, tags a
+    set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="deployment_config" type="object">
+  Configures how the SageMaker endpoint is deployed or updated, including rolling update policies such as blue/green or canary deployments. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="auto_rollback_configuration" type="object">
+      Defines the CloudWatch alarms that, when triggered during a SageMaker endpoint deployment, automatically roll back the deployment to the previous endpoint configuration. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="alarms" type="list(object)" required>
+          List of CloudWatch alarms to monitor during the deployment. If any alarm goes off, the deployment is rolled back. Required.
+          <Expandable title="properties">
+            <ResponseField name="alarm_name" type="string">
+              The name of the CloudWatch alarm that SageMaker monitors during a deployment to trigger an automatic rollback of the endpoint to the previous configuration if the alarm enters an alarm state. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="blue_green_update_policy" type="object">
+      Defines the blue/green deployment strategy for updating the SageMaker endpoint, controlling how traffic gradually or immediately shifts from the previous model variant to the new one during an endpoint update. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="maximum_execution_timeout_in_seconds" type="number">
+          The maximum time allowed for the blue/green update, in seconds. Optional.
+        </ResponseField>
+        <ResponseField name="termination_wait_in_seconds" type="number">
+          The wait time before terminating the old endpoint during a blue/green deployment. Optional.
+        </ResponseField>
+        <ResponseField name="traffic_routing_configuration" type="object" required>
+          Specifies the traffic routing strategy (such as canary or linear) and timing parameters that control how SageMaker shifts traffic from the previous endpoint variant to the new one during a blue-green deployment. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="canary_size" type="object">
+              Defines the initial canary step size for shifting traffic to the new endpoint variant during a blue/green deployment, expressed as either an instance count or a capacity percentage. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="type" type="string" required>
+                  Specifies whether the `Value` is an instance count or a capacity unit. Required.
+                </ResponseField>
+                <ResponseField name="value" type="number" required>
+                  The value representing either the number of instances or the number of capacity units. Required.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="linear_step_size" type="object">
+              Specifies the step size for the linear traffic routing strategy in the blue/green deployment, defined as a capacity size (type and value) that determines how much additional traffic is shifted to the new variant at each step. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="type" type="string" required>
+                  Specifies whether the `Value` is an instance count or a capacity unit. Required.
+                </ResponseField>
+                <ResponseField name="value" type="number" required>
+                  The value representing either the number of instances or the number of capacity units. Required.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="type" type="string" required>
+              Specifies the type of traffic routing (e.g., 'AllAtOnce', 'Canary', 'Linear'). Required.
+            </ResponseField>
+            <ResponseField name="wait_interval_in_seconds" type="number">
+              Specifies the wait interval between traffic shifts, in seconds. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="rolling_update_policy" type="object">
+      Defines the rolling update policy for a SageMaker endpoint deployment, specifying parameters like maximum batch size and wait interval that control how instances are updated during a rollout. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="maximum_batch_size" type="object" required>
+          Defines the maximum capacity (number of instances or percentage) that SageMaker updates in a single batch during a rolling update of the endpoint's variant configuration. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="type" type="string" required>
+              Specifies whether the `Value` is an instance count or a capacity unit. Required.
+            </ResponseField>
+            <ResponseField name="value" type="number" required>
+              The value representing either the number of instances or the number of capacity units. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="maximum_execution_timeout_in_seconds" type="number">
+          The maximum time allowed for the rolling update, in seconds. Optional.
+        </ResponseField>
+        <ResponseField name="rollback_maximum_batch_size" type="object">
+          Specifies the maximum batch size (as a CapacitySize object with type and value) that SageMaker uses when rolling back instances during a rolling update deployment of the endpoint. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="type" type="string" required>
+              Specifies whether the `Value` is an instance count or a capacity unit. Required.
+            </ResponseField>
+            <ResponseField name="value" type="number" required>
+              The value representing either the number of instances or the number of capacity units. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="wait_interval_in_seconds" type="number" required>
+          The time to wait between steps during the rolling update, in seconds. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="endpoint_config_name" type="string" required>
+  The name of the endpoint configuration for the SageMaker endpoint. This is a required property. Required.
+</ResponseField>
+
+<ResponseField name="exclude_retained_variant_properties" type="list(object)">
+  Specifies a list of variant properties that you want to exclude when updating an endpoint. Optional.
+  <Expandable title="properties">
+    <ResponseField name="variant_property_type" type="string">
+      Specifies the type of variant property ('Desktop' or 'Host') to exclude for a retained variant when updating the SageMaker endpoint. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="retain_all_variant_properties" type="bool">
+  When set to true, retains all variant properties for an endpoint when it is updated. Optional.
+</ResponseField>
+
+<ResponseField name="retain_deployment_config" type="bool">
+  When set to true, retains the deployment configuration during endpoint updates. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag attached to the SageMaker endpoint, used to organize and identify the resource within AWS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag assigned to the SageMaker endpoint, used to organize and identify the endpoint for cost allocation and access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="endpoint_arn" type="string">
+  The Amazon Resource Name (ARN) of the endpoint. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="endpoint_name" type="string">
+  The name of the SageMaker endpoint. This name must be unique within an AWS Region. Computed by AWS after `ship`.
+</ResponseField>

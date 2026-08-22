@@ -1,0 +1,128 @@
+---
+title: "aws_rds_dbsecurity_group"
+description: "`aws_rds_dbsecurity_group` was a real access-control mechanism for RDS instances running on the original EC2-Classic network model."
+---
+
+EC2-Classic itself was fully retired on August 15, 2023 (AWS's original target date of August 2022 slipped by about a year), so this resource has no functioning target left to attach to; modern RDS deployments use standard VPC security groups instead. This resource describes infrastructure that no longer has anything to provision against, rather than a current option.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	rds "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/rds"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own dbsecurity group"})
+
+    		ubx.Resource(rds.DbsecurityGroup, "ci-runner", rds.DbsecurityGroupConfig{
+    			DbsecurityGroupIngress: []map[string]any{{"cidrip": "example"}},
+    			GroupDescription:       "example",
+    			Ec2VpcId:               "example",
+    			Tags:                   []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { DbsecurityGroup } from "./local-sdk/aws/sdk/typescript/aws/rds/dbsecurity_group.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own dbsecurity group" });
+
+      resource(DbsecurityGroup, "ci-runner", {
+        dbsecurityGroupIngress: [{ cidrip: "example" }],
+        groupDescription: "example",
+        ec2VpcId: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.rds import DbsecurityGroup, DbsecurityGroupConfig
+
+    def describe():
+        ubx.intent("payments own dbsecurity group")
+
+        ubx.resource(DbsecurityGroup, "ci-runner", DbsecurityGroupConfig(
+            dbsecurity_group_ingress=[{"cidrip": "example"}],
+            group_description="example",
+            ec2_vpc_id="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_rds_dbsecurity_group, with dbsecurity group ingress a
+    set value, group description example, ec2 vpc id example, tags a
+    set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="dbsecurity_group_ingress" type="list(object)" required>
+  Specifies the ingress rules (CIDR IP ranges or EC2 security groups) that are granted network access to the DB instances associated with this DB security group. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="cidrip" type="string">
+      The CIDR-format IPv4 address range (e.g., 10.0.0.0/24) authorized by this ingress rule to access the associated RDS DB security group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="ec2_security_group_id" type="string">
+      Specifies the ID of the EC2 security group whose instances are allowed to access the DB instances associated with this DB security group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="ec2_security_group_name" type="string">
+      The name of the EC2 security group that is allowed to access the RDS database, used in an ingress rule for the DB security group. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="ec2_security_group_owner_id" type="string">
+      Specifies the AWS account ID of the owner of the EC2 security group referenced in the ingress rule, which is required when that security group belongs to a different AWS account. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="ec2_vpc_id" type="string">
+  Specifies the ID of the Amazon VPC in which to create the RDS DB security group, allowing the group to control network access to DB instances inside that VPC. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="group_description" type="string" required>
+  A user-supplied description for the DB security group, which is required and helps identify the group's purpose. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of key-value tags to assign to the DB security group for metadata and cost allocation. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The unique identifier for the DB security group, which is the security group name. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

@@ -1,0 +1,165 @@
+---
+title: "aws_s3_vectors_index"
+description: "`aws_s3_vectors_index` creates a real vector index within an S3 vector bucket..."
+---
+
+`aws_s3_vectors_index` creates a real vector index within an S3 vector bucket, storing and querying up to two billion embeddings per index natively in S3 for similarity search, commonly used as the storage layer behind a Bedrock knowledge base rather than a separate vector database. Amazon S3 Vectors reached general availability in December 2025, roughly eight months ago, so behavior here is verified live rather than assumed from general knowledge.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	s3 "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/s3"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own vectors index"})
+
+    		ubx.Resource(s3.VectorsIndex, "ci-runner", s3.VectorsIndexConfig{
+    			DataType:                "example",
+    			Dimension:               1,
+    			DistanceMetric:          "example",
+    			EncryptionConfiguration: map[string]any{"kms_key_arn": "example"},
+    			IndexName:               "example-index-name",
+    			MetadataConfiguration:   map[string]any{"non_filterable_metadata_keys": []string{"example"}},
+    			Tags:                    []map[string]any{{"key": "example"}},
+    			VectorBucketArn:         "arn:aws:iam::123456789012:policy/ci",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { VectorsIndex } from "./local-sdk/aws/sdk/typescript/aws/s3/vectors_index.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own vectors index" });
+
+      resource(VectorsIndex, "ci-runner", {
+        dataType: "example",
+        dimension: 1,
+        distanceMetric: "example",
+        encryptionConfiguration: { kmsKeyArn: "example" },
+        indexName: "example-index-name",
+        metadataConfiguration: { nonFilterableMetadataKeys: ["example"] },
+        tags: [{ key: "example" }],
+        vectorBucketArn: "arn:aws:iam::123456789012:policy/ci",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.s3 import VectorsIndex, VectorsIndexConfig
+
+    def describe():
+        ubx.intent("payments own vectors index")
+
+        ubx.resource(VectorsIndex, "ci-runner", VectorsIndexConfig(
+            data_type="example",
+            dimension=1,
+            distance_metric="example",
+            encryption_configuration={"kms_key_arn": "example"},
+            index_name="example-index-name",
+            metadata_configuration={"non_filterable_metadata_keys": ["example"]},
+            tags=[{"key": "example"}],
+            vector_bucket_arn="arn:aws:iam::123456789012:policy/ci",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_s3_vectors_index, with data type example, dimension 1,
+    distance metric example, encryption configuration a set value,
+    index name example-index-name, metadata configuration a set
+    value, tags a set value, vector bucket arn
+    arn:aws:iam::123456789012:policy/ci.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="data_type" type="string" required>
+  The data type of the vectors to be inserted into the vector index. Required.
+</ResponseField>
+
+<ResponseField name="dimension" type="number" required>
+  The dimensions of the vectors to be inserted into the vector index. Required.
+</ResponseField>
+
+<ResponseField name="distance_metric" type="string" required>
+  The distance metric to be used for similarity search. Required.
+</ResponseField>
+
+<ResponseField name="encryption_configuration" type="object">
+  The encryption configuration for the index. Optional.
+  <Expandable title="properties">
+    <ResponseField name="kms_key_arn" type="string">
+      AWS Key Management Service (KMS) customer managed key ID to use for the encryption configuration. This parameter is allowed if and only if sseType is set to aws:kms Optional.
+    </ResponseField>
+    <ResponseField name="sse_type" type="string">
+      Defines the server-side encryption type for index encryption configuration. Defaults to the parent vector bucket's encryption settings when unspecified. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="index_name" type="string">
+  The name of the vector index to create. Optional.
+</ResponseField>
+
+<ResponseField name="metadata_configuration" type="object">
+  The metadata configuration for the vector index. Optional.
+  <Expandable title="properties">
+    <ResponseField name="non_filterable_metadata_keys" type="list(string)">
+      Non-filterable metadata keys allow you to enrich vectors with additional context during storage and retrieval. Unlike default metadata keys, these keys cannot be used as query filters. Non-filterable metadata keys can be retrieved but cannot be searched, queried, or filtered. You can access non-filterable metadata keys of your vectors after finding the vectors. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  User tags (key-value pairs) to associate with the index. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Defines the user-supplied key of a tag attached to the S3 Vectors Index resource, which is used to organize and identify the index through metadata and cost-allocation tags. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vector_bucket_arn" type="string">
+  The Amazon Resource Name (ARN) of the vector bucket. Optional.
+</ResponseField>
+
+<ResponseField name="vector_bucket_name" type="string">
+  The name of the vector bucket that contains the vector index. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="creation_time" type="string">
+  Date and time when the vector index was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="index_arn" type="string">
+  The Amazon Resource Name (ARN) of the index Computed by AWS after `ship`.
+</ResponseField>

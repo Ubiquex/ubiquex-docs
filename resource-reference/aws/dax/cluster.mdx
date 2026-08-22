@@ -1,0 +1,182 @@
+---
+title: "aws_dax_cluster"
+description: "`aws_dax_cluster` creates a real, in-memory caching cluster in front of DynamoDB, Amazon DynamoDB Accelerator..."
+---
+
+`aws_dax_cluster` creates a real, in-memory caching cluster in front of DynamoDB, Amazon DynamoDB Accelerator, that can cut microsecond-latency DynamoDB reads down to microseconds further still, transparent to the application beyond pointing its SDK client at the DAX cluster's own endpoint instead of DynamoDB directly.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	dax "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/dax"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own cluster"})
+
+    		ubx.Resource(dax.Cluster, "ci-runner", dax.ClusterConfig{
+    			IamroleArn:                    "arn:aws:iam::123456789012:policy/ci",
+    			NodeType:                      "example",
+    			ReplicationFactor:             1,
+    			AvailabilityZones:             []string{"example"},
+    			ClusterEndpointEncryptionType: "example",
+    			ClusterName:                   "example-cluster-name",
+    			Description:                   "Managed by ubx.",
+    			NetworkType:                   "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Cluster } from "./local-sdk/aws/sdk/typescript/aws/dax/cluster.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own cluster" });
+
+      resource(Cluster, "ci-runner", {
+        iamroleArn: "arn:aws:iam::123456789012:policy/ci",
+        nodeType: "example",
+        replicationFactor: 1,
+        availabilityZones: ["example"],
+        clusterEndpointEncryptionType: "example",
+        clusterName: "example-cluster-name",
+        description: "Managed by ubx.",
+        networkType: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.dax import Cluster, ClusterConfig
+
+    def describe():
+        ubx.intent("payments own cluster")
+
+        ubx.resource(Cluster, "ci-runner", ClusterConfig(
+            iamrole_arn="arn:aws:iam::123456789012:policy/ci",
+            node_type="example",
+            replication_factor=1,
+            availability_zones=["example"],
+            cluster_endpoint_encryption_type="example",
+            cluster_name="example-cluster-name",
+            description="Managed by ubx.",
+            network_type="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_dax_cluster, with iamrole arn
+    arn:aws:iam::123456789012:policy/ci, node type example,
+    replication factor 1, availability zones a set value, cluster
+    endpoint encryption type example, cluster name
+    example-cluster-name, description Managed by ubx., network type
+    example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="availability_zones" type="list(string)">
+  Specifies the Availability Zones in which the DAX cluster's nodes are placed, allowing you to distribute nodes across multiple AZs for high availability. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="cluster_endpoint_encryption_type" type="string">
+  Specifies whether client traffic to the DAX cluster endpoint is encrypted with TLS (valid values: TLS or NONE). Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="cluster_name" type="string">
+  The name of the DAX cluster, which is used as the cluster identifier; if not provided, AWS CloudFormation generates a unique name. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Provides a description of the DAX cluster. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="iamrole_arn" type="string" required>
+  Specifies the Amazon Resource Name (ARN) of the IAM role that the DAX cluster uses to access DynamoDB and other required AWS services. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="network_type" type="string">
+  Specifies the network type for the DAX cluster, such as IPV4 or DUALSTACK, determining whether the cluster uses IPv4 only or supports both IPv4 and IPv6 addressing. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="node_type" type="string" required>
+  The compute instance type (e.g., dax.r4.large) used for each node in the DAX cluster, determining the memory and CPU capacity of the cluster's cache nodes. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="notification_topic_arn" type="string">
+  The ARN of an Amazon SNS topic to which DAX cluster notifications (such as maintenance events) are sent. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="parameter_group_name" type="string">
+  The name of the DAX parameter group that applies cluster-wide settings such as query caching and TTL behavior for this DynamoDB Accelerator cluster. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="preferred_maintenance_window" type="string">
+  Specifies the daily time range in UTC during which AWS DAX performs maintenance on the cluster, using the format ddd:hh24:mi-ddd:hh24:mi. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="replication_factor" type="number" required>
+  The total number of nodes (including the primary node) in the DAX cluster, which determines the cluster's read capacity and high availability. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="security_group_ids" type="list(string)">
+  The list of VPC security group IDs to associate with the DAX cluster, controlling network access to the cluster. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="ssespecification" type="object">
+  Specifies whether server-side encryption is enabled for the DAX cluster by setting an Enabled flag in the SSESpecification object. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="sseenabled" type="bool">
+      Enables or disables server-side encryption (SSE) for the DAX cluster, using AWS KMS to protect data at rest when enabled. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="subnet_group_name" type="string">
+  The name of the subnet group that defines the VPC subnets in which the DAX cluster nodes are launched. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The ARN (Amazon Resource Name) of the DynamoDB Accelerator (DAX) cluster. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="cluster_discovery_endpoint" type="string">
+  The endpoint URL (ClusterDiscoveryEndpoint) that DAX client applications use to connect to the cluster, automatically assigned by AWS when the DAX cluster is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="cluster_discovery_endpoint_url" type="string">
+  The URL of the cluster discovery endpoint that DAX clients use to connect to the cluster. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The unique identifier for the DAX cluster, set to the cluster name. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

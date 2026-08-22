@@ -1,0 +1,152 @@
+---
+title: "aws_config_remediation_configuration"
+description: "`aws_config_remediation_configuration` defines the real, automated action, typically an SSM Automation document..."
+---
+
+`aws_config_remediation_configuration` defines the real, automated action, typically an SSM Automation document, AWS Config runs against a resource an `aws_config_config_rule` has flagged noncompliant, closing the loop from detection to an actual fix rather than only alerting on drift.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	config "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/config"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own remediation configuration"})
+
+    		ubx.Resource(config.RemediationConfiguration, "ci-runner", config.RemediationConfigurationConfig{
+    			ConfigRuleName:           "example-config-rule-name",
+    			TargetId:                 "example",
+    			TargetType:               "example",
+    			Automatic:                true,
+    			ExecutionControls:        map[string]any{"ssm_controls": map[string]any{"concurrent_execution_rate_percentage": 1}},
+    			MaximumAutomaticAttempts: 1,
+    			Parameters:               "example",
+    			ResourceType:             "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { RemediationConfiguration } from "./local-sdk/aws/sdk/typescript/aws/config/remediation_configuration.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own remediation configuration" });
+
+      resource(RemediationConfiguration, "ci-runner", {
+        configRuleName: "example-config-rule-name",
+        targetId: "example",
+        targetType: "example",
+        automatic: true,
+        executionControls: {
+          ssmControls: { concurrentExecutionRatePercentage: 1 },
+        },
+        maximumAutomaticAttempts: 1,
+        parameters: "example",
+        resourceType: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.config import RemediationConfiguration, RemediationConfigurationConfig
+
+    def describe():
+        ubx.intent("payments own remediation configuration")
+
+        ubx.resource(RemediationConfiguration, "ci-runner", RemediationConfigurationConfig(
+            config_rule_name="example-config-rule-name",
+            target_id="example",
+            target_type="example",
+            automatic=True,
+            execution_controls={"ssm_controls": {"concurrent_execution_rate_percentage": 1}},
+            maximum_automatic_attempts=1,
+            parameters="example",
+            resource_type="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_config_remediation_configuration, with config rule
+    name example-config-rule-name, target id example, target type
+    example, automatic true, execution controls a set value, maximum
+    automatic attempts 1, parameters example, resource type example.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="automatic" type="bool">
+  When set to true, AWS Config automatically executes the remediation action on noncompliant resources associated with the rule; when false, remediation must be invoked manually. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="config_rule_name" type="string" required>
+  The name of the AWS Config rule for which this remediation configuration is defined, associating the remediation actions with that rule. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="execution_controls" type="object">
+  Configures the SSM execution controls for the remediation, including the concurrent execution rate percentage and error percentage that limit how many concurrent remediation executions are allowed and the acceptable error rate. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="ssm_controls" type="object">
+      Configures the Systems Manager automation controls for the remediation, specifically the concurrent execution rate and error rate percentages that determine how SSM documents are run. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="concurrent_execution_rate_percentage" type="number">
+          Specifies the maximum percentage of remediation actions that can run in parallel for the rule's SSM document, throttling concurrent executions (default is 100). Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="error_percentage" type="number">
+          The maximum percentage of remediation actions that are allowed to fail before the remediation action is stopped. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="maximum_automatic_attempts" type="number">
+  Determines the maximum number of times AWS Config automatically retries the remediation action on a non-compliant resource, with a valid value between 1 and 5. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="parameters" type="any">
+  Specifies the set of parameters passed to the AWS Systems Manager automation document that performs the remediation, mapping each parameter name to a static value or a dynamic value derived from the evaluated resource. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="resource_type" type="string">
+  The type of AWS resource (e.g., 'AWS::EC2::Instance') that this Config remediation configuration applies to for automatic remediation actions. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="retry_attempt_seconds" type="number">
+  The maximum time, in seconds, during which AWS Config will make automatic remediation attempts for a noncompliant resource before giving up. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="target_id" type="string" required>
+  The identifier of the remediation target, which is the name of the SSM document or the ARN of the custom action that remediates the noncompliant resource. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="target_type" type="string" required>
+  The type of target for the remediation action, which must be set to SSM_DOCUMENT because AWS Config currently supports only SSM Automation documents as remediation targets. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="target_version" type="string">
+  Specifies the version of the AWS Systems Manager automation document to use for the remediation action; if not provided, the default version of the document is used. Optional. **(AI-inferred)**
+</ResponseField>

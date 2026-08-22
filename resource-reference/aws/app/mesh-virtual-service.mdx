@@ -1,0 +1,161 @@
+---
+title: "aws_app_mesh_virtual_service"
+description: "`aws_app_mesh_virtual_service` is an abstraction of a real service..."
+---
+
+`aws_app_mesh_virtual_service` is an abstraction of a real service, backed either directly by an `aws_app_mesh_virtual_node` or indirectly through an `aws_app_mesh_virtual_router`, named to match the real service's own discoverable name so other services can keep addressing it exactly as they did before App Mesh was introduced.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	app "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/app"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own mesh virtual service"})
+
+    		ubx.Resource(app.MeshVirtualService, "ci-runner", app.MeshVirtualServiceConfig{
+    			MeshName:           "example-mesh-name",
+    			Spec:               map[string]any{"provider": map[string]any{"virtual_node": map[string]any{"virtual_node_name": "example-virtual-node-name"}}},
+    			VirtualServiceName: "example-virtual-service-name",
+    			MeshOwner:          "example",
+    			Tags:               []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MeshVirtualService } from "./local-sdk/aws/sdk/typescript/aws/app/mesh_virtual_service.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own mesh virtual service" });
+
+      resource(MeshVirtualService, "ci-runner", {
+        meshName: "example-mesh-name",
+        spec: {
+          provider: {
+            virtualNode: { virtualNodeName: "example-virtual-node-name" },
+          },
+        },
+        virtualServiceName: "example-virtual-service-name",
+        meshOwner: "example",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.app import MeshVirtualService, MeshVirtualServiceConfig
+
+    def describe():
+        ubx.intent("payments own mesh virtual service")
+
+        ubx.resource(MeshVirtualService, "ci-runner", MeshVirtualServiceConfig(
+            mesh_name="example-mesh-name",
+            spec={"provider": {"virtual_node": {"virtual_node_name": "example-virtual-node-name"}}},
+            virtual_service_name="example-virtual-service-name",
+            mesh_owner="example",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_app_mesh_virtual_service, with mesh name
+    example-mesh-name, spec a set value, virtual service name
+    example-virtual-service-name, mesh owner example, tags a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="mesh_name" type="string" required>
+  The name of the App Mesh service mesh in which this virtual service is defined. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="mesh_owner" type="string">
+  The AWS account ID of the mesh owner, used when creating a virtual service in a shared mesh owned by another account. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="spec" type="object" required>
+  Defines the service discovery and routing configuration for the virtual service, specifying either a virtual node or virtual router as the provider. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="provider" type="object">
+      Specifies the virtual node or virtual router provider that the virtual service routes traffic to, defining how the service is realized in the mesh. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="virtual_node" type="object">
+          Specifies the virtual node that backs this virtual service, enabling traffic routing to that node's endpoints. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="virtual_node_name" type="string" required>
+              Specifies the name of the virtual node that acts as the service provider for this virtual service, to which the virtual service routes traffic. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="virtual_router" type="object">
+          Configures this virtual service to use a specific virtual router as its provider, directing traffic to the named virtual router within the mesh. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="virtual_router_name" type="string" required>
+              Specifies the name of the virtual router that acts as the provider for this App Mesh virtual service, routing traffic to the chosen virtual router. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A list of custom key-value tags to apply to the App Mesh virtual service, enabling cost tracking, resource grouping, and tag-based access control with IAM. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a tag (key-value pair) attached to the App Mesh virtual service, used for metadata and resource categorization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="virtual_service_name" type="string" required>
+  The DNS-compliant name of the virtual service, which acts as the service discovery identifier used within the App Mesh for routing traffic. Required. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the virtual service, generated by AWS App Mesh and used to uniquely identify this resource. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The ARN of the App Mesh virtual service. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="resource_owner" type="string">
+  The AWS account ID that owns the App Mesh virtual service, returned as a computed read-only attribute. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="uid" type="string">
+  The unique identifier (UUID) that AWS App Mesh assigns to the virtual service when it is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

@@ -1,0 +1,301 @@
+---
+title: "aws_elastic_load_balancing_load_balancer"
+description: "`aws_elastic_load_balancing_load_balancer` creates a Classic Load Balancer, ELB's original, legacy load balancing resource..."
+---
+
+`aws_elastic_load_balancing_load_balancer` creates a Classic Load Balancer, ELB's original, legacy load balancing resource, layer 4 and basic layer 7 routing, superseded for new deployments by `aws_elastic_load_balancing_v2_load_balancer`'s own Application and Network Load Balancer types.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	elastic "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/elastic"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own load balancing load balancer"})
+
+    		ubx.Resource(elastic.LoadBalancingLoadBalancer, "ci-runner", elastic.LoadBalancingLoadBalancerConfig{
+    			Listeners:                 []map[string]any{{"instance_port": "example"}},
+    			AccessLoggingPolicy:       map[string]any{"enabled": true},
+    			AppCookieStickinessPolicy: []map[string]any{{"cookie_name": "example-cookie-name"}},
+    			AvailabilityZones:         []string{"example"},
+    			ConnectionDrainingPolicy:  map[string]any{"enabled": true},
+    			ConnectionSettings:        map[string]any{"idle_timeout": 1},
+    			CrossZone:                 true,
+    			HealthCheck:               map[string]any{"healthy_threshold": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { LoadBalancingLoadBalancer } from "./local-sdk/aws/sdk/typescript/aws/elastic/load_balancing_load_balancer.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own load balancing load balancer" });
+
+      resource(LoadBalancingLoadBalancer, "ci-runner", {
+        listeners: [{ instancePort: "example" }],
+        accessLoggingPolicy: { enabled: true },
+        appCookieStickinessPolicy: [{ cookieName: "example-cookie-name" }],
+        availabilityZones: ["example"],
+        connectionDrainingPolicy: { enabled: true },
+        connectionSettings: { idleTimeout: 1 },
+        crossZone: true,
+        healthCheck: { healthyThreshold: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.elastic import LoadBalancingLoadBalancer, LoadBalancingLoadBalancerConfig
+
+    def describe():
+        ubx.intent("payments own load balancing load balancer")
+
+        ubx.resource(LoadBalancingLoadBalancer, "ci-runner", LoadBalancingLoadBalancerConfig(
+            listeners=[{"instance_port": "example"}],
+            access_logging_policy={"enabled": True},
+            app_cookie_stickiness_policy=[{"cookie_name": "example-cookie-name"}],
+            availability_zones=["example"],
+            connection_draining_policy={"enabled": True},
+            connection_settings={"idle_timeout": 1},
+            cross_zone=True,
+            health_check={"healthy_threshold": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_elastic_load_balancing_load_balancer, with listeners a
+    set value, access logging policy a set value, app cookie
+    stickiness policy a set value, availability zones a set value,
+    connection draining policy a set value, connection settings a set
+    value, cross zone true, health check a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="access_logging_policy" type="object">
+  Information about where and how access logs are stored for the load balancer. Optional.
+  <Expandable title="properties">
+    <ResponseField name="emit_interval" type="number">
+      The interval for publishing the access logs. You can specify an interval of either 5 minutes or 60 minutes. Default: 60 minutes Optional.
+    </ResponseField>
+    <ResponseField name="enabled" type="bool" required>
+      Specifies whether access logs are enabled for the load balancer. Required.
+    </ResponseField>
+    <ResponseField name="s3_bucket_name" type="string" required>
+      The name of the Amazon S3 bucket where the access logs are stored. Required.
+    </ResponseField>
+    <ResponseField name="s3_bucket_prefix" type="string">
+      The logical hierarchy you created for your Amazon S3 bucket, for example `my-bucket-prefix/prod`. If the prefix is not provided, the log is placed at the root level of the bucket. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="app_cookie_stickiness_policy" type="list(object)">
+  Information about a policy for application-controlled session stickiness. Optional.
+  <Expandable title="properties">
+    <ResponseField name="cookie_name" type="string">
+      The name of the application cookie that the classic load balancer uses to route a user's subsequent requests to the same registered instance for session stickiness. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="policy_name" type="string">
+      The name to assign to this application-controlled cookie stickiness policy, which is created for the Classic Load Balancer and can be referenced in a listener's policy list to enable session affinity based on a custom application cookie. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="availability_zones" type="list(string)">
+  The Availability Zones for a load balancer in a default VPC. For a load balancer in a nondefault VPC, specify Subnets instead. Optional.
+</ResponseField>
+
+<ResponseField name="connection_draining_policy" type="object">
+  If enabled, the load balancer allows existing requests to complete before the load balancer shifts traffic away from a deregistered or unhealthy instance. Optional.
+  <Expandable title="properties">
+    <ResponseField name="enabled" type="bool" required>
+      Specifies whether connection draining is enabled for the load balancer. Required.
+    </ResponseField>
+    <ResponseField name="timeout" type="number">
+      The maximum time, in seconds, to keep the existing connections open before deregistering the instances. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="connection_settings" type="object">
+  If enabled, the load balancer allows the connections to remain idle (no data is sent over the connection) for the specified duration. Optional.
+  <Expandable title="properties">
+    <ResponseField name="idle_timeout" type="number" required>
+      The time, in seconds, that the connection is allowed to be idle (no data has been sent over the connection) before it is closed by the load balancer. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="cross_zone" type="bool">
+  If enabled, the load balancer routes the request traffic evenly across all instances regardless of the Availability Zones. Optional.
+</ResponseField>
+
+<ResponseField name="health_check" type="object">
+  The health check settings to use when evaluating the health of your EC2 instances. Update requires replacement if you did not previously specify health check settings or if you are removing the health check settings. Otherwise, update requires no interruption. Optional.
+  <Expandable title="properties">
+    <ResponseField name="healthy_threshold" type="string" required>
+      The number of consecutive health checks successes required before moving the instance to the `Healthy` state. Required.
+    </ResponseField>
+    <ResponseField name="interval" type="string" required>
+      The approximate interval, in seconds, between health checks of an individual instance. Required.
+    </ResponseField>
+    <ResponseField name="target" type="string" required>
+      The instance being checked. Required.
+    </ResponseField>
+    <ResponseField name="timeout" type="string" required>
+      The amount of time, in seconds, during which no response means a failed health check. This value must be less than the `Interval` value. Required.
+    </ResponseField>
+    <ResponseField name="unhealthy_threshold" type="string" required>
+      The number of consecutive health check failures required before moving the instance to the `Unhealthy` state. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="instances" type="list(string)">
+  The IDs of the instances for the load balancer. Optional.
+</ResponseField>
+
+<ResponseField name="lbcookie_stickiness_policy" type="list(object)">
+  Information about a policy for duration-based session stickiness. Optional.
+  <Expandable title="properties">
+    <ResponseField name="cookie_expiration_period" type="string">
+      Specifies the time period in seconds after which the load balancer's sticky cookie expires, where omitting it makes the cookie last only for the duration of the browser session. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="policy_name" type="string">
+      The name assigned to the LBCookieStickinessPolicy for a Classic Load Balancer, used to identify and reference this policy when configuring listener stickiness. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="listeners" type="list(object)" required>
+  The Listeners for the load balancer. You can specify at most one listener per port. Required.
+  <Expandable title="properties">
+    <ResponseField name="instance_port" type="string">
+      The TCP port on the registered EC2 instances to which the Classic Load Balancer forwards traffic, as defined for each listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="instance_protocol" type="string">
+      Specifies the protocol (e.g., HTTP, HTTPS, TCP, SSL) that the Classic Load Balancer uses to communicate with backend instances, which defaults to the listener's protocol if not set. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="load_balancer_port" type="string">
+      The external port on which the load balancer listens for incoming client traffic, such as 80 for HTTP or 443 for HTTPS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="policy_names" type="list(string)">
+      Specifies the list of load balancer policy names to apply to this listener, enabling features like SSL negotiation or backend authentication for traffic on the listener's port. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="protocol" type="string">
+      Specifies the client-facing protocol for a classic load balancer listener (e.g., HTTP, HTTPS, TCP, or SSL), which must match the port and determines how incoming traffic is handled. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="sslcertificate_id" type="string">
+      The ARN of the IAM server certificate (or ACM certificate) used for SSL/TLS termination on this listener, required when the listener protocol is HTTPS or SSL. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="load_balancer_name" type="string">
+  The name of the load balancer. This name must be unique within your set of load balancers for the region. Optional.
+</ResponseField>
+
+<ResponseField name="policies" type="list(object)">
+  The policies defined for your Classic Load Balancer. Specify only back-end server policies. Optional.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="list(object)">
+      Specifies the list of key-value attribute pairs (each with a Key and Value) that define the configuration settings for the associated Elastic Load Balancing policy, such as stickiness expiration periods or other policy-specific parameters. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="name" type="string">
+          The name of a policy attribute within a classic load balancer policy, paired with its value to define settings such as session stickiness or cookie behavior. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value" type="string">
+          The value string for a load balancer policy attribute, paired with its Key, such as a cookie expiration period or stickiness setting. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="instance_ports" type="list(string)">
+      Specifies the list of instance ports to which the classic load balancer policy is applied, commonly used with proxy protocol or other policy types that target specific ports. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="load_balancer_ports" type="list(string)">
+      Specifies the load balancer (front-end) ports to which this classic Elastic Load Balancing policy (e.g., a stickiness or SSL negotiation policy) is applied. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="policy_name" type="string">
+      The name of the load balancer policy, which must be unique within the load balancer and is used to reference the policy in listener configurations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="policy_type" type="string">
+      The type of the classic load balancer policy, such as SSLNegotiationPolicyType or ProxyProtocolPolicyType, which determines the policy's behavior and the set of attributes it supports. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="scheme" type="string">
+  The type of load balancer. Valid only for load balancers in a VPC. Optional.
+</ResponseField>
+
+<ResponseField name="security_groups" type="list(string)">
+  The security groups for the load balancer. Valid only for load balancers in a VPC. Optional.
+</ResponseField>
+
+<ResponseField name="subnets" type="list(string)">
+  The IDs of the subnets for the load balancer. You can specify at most one subnet per Availability Zone. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags associated with a load balancer. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag assigned to the Classic Load Balancer, used to identify and categorize the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag attached to a Classic Load Balancer, which together with the tag key forms a key-value pair used for organizing and identifying AWS resources. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="canonical_hosted_zone_name" type="string">
+  The name of the Route 53 hosted zone that is associated with the load balancer. Internal-facing load balancers. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="canonical_hosted_zone_name_id" type="string">
+  The ID of the Route 53 hosted zone name that is associated with the load balancer. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="dnsname" type="string">
+  The DNS name for the load balancer Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="source_security_group" type="object">
+  Computed read-only object holding the group name and owner alias of the automatically created source security group for the classic load balancer, used to authorize inbound traffic to backend instances in security group rules. Computed by AWS after `ship`. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="group_name" type="string">
+      The name of the security group that you can use as part of your inbound rules for your load balancer's back-end instances. Optional.
+    </ResponseField>
+    <ResponseField name="owner_alias" type="string">
+      The owner of the source security group. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>

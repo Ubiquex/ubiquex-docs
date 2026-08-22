@@ -1,0 +1,195 @@
+---
+title: "aws_cognito_identity_pool"
+description: "`aws_cognito_identity_pool` issues real, temporary AWS credentials, via AWS STS, to authenticated or guest users..."
+---
+
+`aws_cognito_identity_pool` issues real, temporary AWS credentials, via AWS STS, to authenticated or guest users, accepting claims from an `aws_cognito_user_pool`, a SAML 2.0 provider, or a social identity provider, independent of whether a user pool is used alongside it.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	cognito "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/cognito"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own identity pool"})
+
+    		ubx.Resource(cognito.IdentityPool, "ci-runner", cognito.IdentityPoolConfig{
+    			AllowUnauthenticatedIdentities: true,
+    			AllowClassicFlow:               true,
+    			CognitoEvents:                  "example",
+    			CognitoIdentityProviders:       []map[string]any{{"client_id": "example"}},
+    			CognitoStreams:                 map[string]any{"role_arn": "example"},
+    			DeveloperProviderName:          "example-developer-provider-name",
+    			IdentityPoolName:               "example-identity-pool-name",
+    			IdentityPoolTags:               []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { IdentityPool } from "./local-sdk/aws/sdk/typescript/aws/cognito/identity_pool.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own identity pool" });
+
+      resource(IdentityPool, "ci-runner", {
+        allowUnauthenticatedIdentities: true,
+        allowClassicFlow: true,
+        cognitoEvents: "example",
+        cognitoIdentityProviders: [{ clientId: "example" }],
+        cognitoStreams: { roleArn: "example" },
+        developerProviderName: "example-developer-provider-name",
+        identityPoolName: "example-identity-pool-name",
+        identityPoolTags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.cognito import IdentityPool, IdentityPoolConfig
+
+    def describe():
+        ubx.intent("payments own identity pool")
+
+        ubx.resource(IdentityPool, "ci-runner", IdentityPoolConfig(
+            allow_unauthenticated_identities=True,
+            allow_classic_flow=True,
+            cognito_events="example",
+            cognito_identity_providers=[{"client_id": "example"}],
+            cognito_streams={"role_arn": "example"},
+            developer_provider_name="example-developer-provider-name",
+            identity_pool_name="example-identity-pool-name",
+            identity_pool_tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_cognito_identity_pool, with allow unauthenticated
+    identities true, allow classic flow true, cognito events example,
+    cognito identity providers a set value, cognito streams a set
+    value, developer provider name example-developer-provider-name,
+    identity pool name example-identity-pool-name, identity pool tags
+    a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="allow_classic_flow" type="bool">
+  Determines whether the identity pool permits the classic authentication flow for unauthenticated identities, distinct from the enhanced flow; when false, only the enhanced flow is allowed. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="allow_unauthenticated_identities" type="bool" required>
+  Indicates whether the identity pool allows unauthenticated identities to authenticate, enabling guest access for users not signed in to an identity provider. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="cognito_events" type="any">
+  Maps Amazon Cognito event names (such as SyncTrigger) to Lambda function ARNs that invoke when those events occur for the identity pool. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="cognito_identity_providers" type="list(object)">
+  Defines the list of external identity providers (such as Amazon Cognito user pools, social providers like Facebook/Google, or Amazon) that are enabled for the identity pool, including their client IDs and token-check settings. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="client_id" type="string">
+      The app client ID of the user pool that is configured as an identity provider for the Cognito identity pool. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="provider_name" type="string">
+      The provider_name uniquely identifies the external identity provider (e.g., 'graph.facebook.com', 'accounts.google.com', or a Cognito user pool provider name) used in the identity pool's authentication flow. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="server_side_token_check" type="bool">
+      Specifies whether the identity pool performs a server-side check of the token from the associated Cognito user pool provider, which validates the token with the user pool independently. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="cognito_streams" type="object">
+  Configures Amazon Cognito event streaming to Amazon Kinesis for the identity pool, including the Kinesis stream name, IAM role ARN, and streaming status. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="role_arn" type="string">
+      The ARN of the IAM role that Amazon Cognito assumes to publish identity pool events to the specified Kinesis stream. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="stream_name" type="string">
+      The name of the Amazon Kinesis Firehose delivery stream that Cognito uses to deliver identity pool event data when streaming is enabled. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="streaming_status" type="string">
+      Indicates whether delivery of stream events from the Cognito identity pool to Amazon Kinesis is enabled (ENABLED) or disabled (DISABLED). Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="developer_provider_name" type="string">
+  Sets the developer provider name (a custom domain string) used to authenticate users via developer authenticated identities, enabling your backend to exchange its own tokens for AWS credentials through the Cognito Identity Pool. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="identity_pool_name" type="string">
+  The name of the Amazon Cognito identity pool, which must be unique within the AWS region and account, and is used to identify the pool in the Cognito console and API. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="identity_pool_tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The tag key part of a key-value pair used to label an Amazon Cognito identity pool for resource management, cost tracking, and IAM-based access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Specifies the value of a tag attached to the Amazon Cognito identity pool. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="open_id_connect_provider_arns" type="list(string)">
+  Specifies the list of Amazon Resource Names (ARNs) for the OpenID Connect (OIDC) identity providers that are trusted to authenticate users for the identity pool. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="push_sync" type="object">
+  Defines the push synchronization settings for the identity pool, including the IAM role ARN (RoleArn) and SNS platform application ARNs (SnsPlatformApplicationARNs) that enable sending push notifications to client devices. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="application_arns" type="list(string)">
+      A list of Amazon Resource Names (ARNs) of the SNS platform applications that can be used to send push notifications to devices for Cognito Sync in the identity pool. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="role_arn" type="string">
+      The ARN of the IAM role that Amazon Cognito assumes to send push notifications to the app endpoints configured for the identity pool's push synchronization settings. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="saml_provider_arns" type="list(string)">
+  Sets the Amazon Resource Names (ARNs) of SAML identity providers that the Cognito identity pool trusts for authenticating users and issuing AWS credentials. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="supported_login_providers" type="any">
+  Specifies the mapping of external identity provider names (such as Facebook, Google, or Amazon) to their respective application IDs, enabling those providers as login mechanisms for the Cognito identity pool. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The unique identifier for the identity pool, a region-prefixed UUID string (e.g., 'us-east-1:12345678-1234-1234-1234-123456789012') assigned by AWS. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the Cognito Identity Pool, which either reflects the user-specified name or is automatically generated by AWS when the resource is created without one. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

@@ -1,0 +1,125 @@
+---
+title: "aws_awsexternal_anthropic_workspace"
+description: "`aws_awsexternal_anthropic_workspace` creates a real workspace under Claude Platform on AWS..."
+---
+
+`aws_awsexternal_anthropic_workspace` creates a real workspace under Claude Platform on AWS, Anthropic's native Claude Platform experience accessed directly through an AWS account without separate Anthropic credentials, contracts, or billing. A workspace is the primary IAM resource for the platform, separating projects, environments, or teams under centralized AWS billing and administration. Claude Platform on AWS is a genuinely new service, launched in 2026, so behavior here is verified live rather than assumed from general knowledge.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	awsexternal "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/awsexternal"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own anthropic workspace"})
+
+    		ubx.Resource(awsexternal.AnthropicWorkspace, "ci-runner", awsexternal.AnthropicWorkspaceConfig{
+    			Name:          "ci-runner",
+    			DataResidency: map[string]any{"allowed_inference_geos": []string{"example"}},
+    			Tags:          []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AnthropicWorkspace } from "./local-sdk/aws/sdk/typescript/aws/awsexternal/anthropic_workspace.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own anthropic workspace" });
+
+      resource(AnthropicWorkspace, "ci-runner", {
+        name: "ci-runner",
+        dataResidency: { allowedInferenceGeos: ["example"] },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.awsexternal import AnthropicWorkspace, AnthropicWorkspaceConfig
+
+    def describe():
+        ubx.intent("payments own anthropic workspace")
+
+        ubx.resource(AnthropicWorkspace, "ci-runner", AnthropicWorkspaceConfig(
+            name="ci-runner",
+            data_residency={"allowed_inference_geos": ["example"]},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_awsexternal_anthropic_workspace called "ci-runner",
+    with data residency a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="data_residency" type="object">
+  Data residency configuration for the workspace. WorkspaceGeo is immutable after creation. Optional.
+  <Expandable title="properties">
+    <ResponseField name="allowed_inference_geos" type="list(string)">
+      Permitted inference geo values. Omit to allow all geos (the service default of 'unrestricted'); otherwise list specific geos. Optional.
+    </ResponseField>
+    <ResponseField name="default_inference_geo" type="string">
+      Default inference geo applied when requests omit the parameter. Defaults to 'global' if omitted. Must be a member of AllowedInferenceGeos unless AllowedInferenceGeos is omitted. Optional.
+    </ResponseField>
+    <ResponseField name="workspace_geo" type="string">
+      Geographic region for workspace data storage. Immutable after creation. Defaults to 'us' if omitted. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the workspace. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The ARN of the workspace. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  The timestamp when the workspace was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The unique identifier of the workspace. Computed by AWS after `ship`.
+</ResponseField>

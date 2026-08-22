@@ -1,0 +1,365 @@
+---
+title: "aws_game_lift_fleet"
+description: "`aws_game_lift_fleet` provisions real EC2 instances running an `aws_game_lift_build`'s game server executable, GameLift's original..."
+---
+
+`aws_game_lift_fleet` provisions real EC2 instances running an `aws_game_lift_build`'s game server executable, GameLift's original, EC2-based compute model for hosting multiplayer game sessions at scale.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	game "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/game"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own lift fleet"})
+
+    		ubx.Resource(game.LiftFleet, "ci-runner", game.LiftFleetConfig{
+    			Name:                     "ci-runner",
+    			AnywhereConfiguration:    "example",
+    			ApplyCapacity:            "example",
+    			BuildId:                  "example",
+    			CertificateConfiguration: map[string]any{"certificate_type": "example"},
+    			ComputeType:              "example",
+    			Description:              "Managed by ubx.",
+    			DesiredEc2Instances:      1,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { LiftFleet } from "./local-sdk/aws/sdk/typescript/aws/game/lift_fleet.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own lift fleet" });
+
+      resource(LiftFleet, "ci-runner", {
+        name: "ci-runner",
+        anywhereConfiguration: "example",
+        applyCapacity: "example",
+        buildId: "example",
+        certificateConfiguration: { certificateType: "example" },
+        computeType: "example",
+        description: "Managed by ubx.",
+        desiredEc2Instances: 1,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.game import LiftFleet, LiftFleetConfig
+
+    def describe():
+        ubx.intent("payments own lift fleet")
+
+        ubx.resource(LiftFleet, "ci-runner", LiftFleetConfig(
+            name="ci-runner",
+            anywhere_configuration="example",
+            apply_capacity="example",
+            build_id="example",
+            certificate_configuration={"certificate_type": "example"},
+            compute_type="example",
+            description="Managed by ubx.",
+            desired_ec2_instances=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_game_lift_fleet called "ci-runner", with anywhere
+    configuration example, apply capacity example, build id example,
+    certificate configuration a set value, compute type example,
+    description Managed by ubx., desired ec2 instances 1.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="anywhere_configuration" type="any">
+  Configuration for Anywhere fleet. Optional.
+</ResponseField>
+
+<ResponseField name="apply_capacity" type="string">
+  Determines when and how to apply fleet or location capacities. Allowed options are ON_UPDATE (default), ON_CREATE_AND_UPDATE and ON_CREATE_AND_UPDATE_WITH_AUTOSCALING. If you choose ON_CREATE_AND_UPDATE_WITH_AUTOSCALING, MinSize and MaxSize will still be applied on creation and on updates, but DesiredEC2Instances will only be applied once on fleet creation and will be ignored during updates to prevent conflicts with auto-scaling. During updates with ON_CREATE_AND_UPDATE_WITH_AUTOSCALING chosen, if current desired instance is lower than the new MinSize, it will be increased to the new MinSize; if current desired instance is larger than the new MaxSize, it will be decreased to the new MaxSize. Optional.
+</ResponseField>
+
+<ResponseField name="build_id" type="string">
+  A unique identifier for a build to be deployed on the new fleet. If you are deploying the fleet with a custom game build, you must specify this property. The build must have been successfully uploaded to Amazon GameLift and be in a READY status. This fleet setting cannot be changed once the fleet is created. Optional.
+</ResponseField>
+
+<ResponseField name="certificate_configuration" type="object">
+  Information about the use of a TLS/SSL certificate for a fleet. TLS certificate generation is enabled at the fleet level, with one certificate generated for the fleet. When this feature is enabled, the certificate can be retrieved using the GameLift Server SDK call GetInstanceCertificate. All instances in a fleet share the same certificate. Optional.
+  <Expandable title="properties">
+    <ResponseField name="certificate_type" type="string" required>
+      Determines whether an AWS GameLift fleet uses a generated TLS certificate, with valid values DISABLED (no certificate) or CERTIFICATE_GENERATED (automatically generated by GameLift). Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="compute_type" type="string">
+  ComputeType to differentiate EC2 hardware managed by GameLift and Anywhere hardware managed by the customer. Optional.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A human-readable description of a fleet. Optional.
+</ResponseField>
+
+<ResponseField name="desired_ec2_instances" type="number">
+  [DEPRECATED] The number of EC2 instances that you want this fleet to host. When creating a new fleet, GameLift automatically sets this value to "1" and initiates a single instance. Once the fleet is active, update this value to trigger GameLift to add or remove instances from the fleet. Optional.
+</ResponseField>
+
+<ResponseField name="ec2_inbound_permissions" type="list(object)">
+  A range of IP addresses and port settings that allow inbound traffic to connect to server processes on an Amazon GameLift server. Optional.
+  <Expandable title="properties">
+    <ResponseField name="from_port" type="number">
+      The lower bound of the port range for inbound traffic allowed to the fleet's EC2 instances from the specified IP range. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="ip_range" type="string">
+      The IP address range, in CIDR notation, that is allowed to connect to the fleet's EC2 instances for the specified protocol and port. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="protocol" type="string">
+      The IP protocol (TCP or UDP) allowed for inbound traffic on the specified port range for the fleet's EC2 instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="to_port" type="number">
+      The upper bound of the port range that is allowed for inbound traffic to the fleet's EC2 instances, used with `from_port` to define the permitted range. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="ec2_instance_type" type="string">
+  The name of an EC2 instance type that is supported in Amazon GameLift. A fleet instance type determines the computing resources of each instance in the fleet, including CPU, memory, storage, and networking capacity. Amazon GameLift supports the following EC2 instance types. See Amazon EC2 Instance Types for detailed descriptions. Optional.
+</ResponseField>
+
+<ResponseField name="fleet_type" type="string">
+  Indicates whether to use On-Demand instances or Spot instances for this fleet. If empty, the default is ON_DEMAND. Both categories of instances use identical hardware and configurations based on the instance type selected for this fleet. Optional.
+</ResponseField>
+
+<ResponseField name="instance_role_arn" type="string">
+  A unique identifier for an AWS IAM role that manages access to your AWS services. With an instance role ARN set, any application that runs on an instance in this fleet can assume the role, including install scripts, server processes, and daemons (background processes). Create a role or look up a role's ARN from the IAM dashboard in the AWS Management Console. Optional.
+</ResponseField>
+
+<ResponseField name="instance_role_credentials_provider" type="string">
+  Credentials provider implementation that loads credentials from the Amazon EC2 Instance Metadata Service. Optional.
+</ResponseField>
+
+<ResponseField name="log_paths" type="list(string)">
+  This parameter is no longer used. When hosting a custom game build, specify where Amazon GameLift should store log files using the Amazon GameLift server API call ProcessReady() Optional.
+</ResponseField>
+
+<ResponseField name="max_size" type="number">
+  [DEPRECATED] The maximum value that is allowed for the fleet's instance count. When creating a new fleet, GameLift automatically sets this value to "1". Once the fleet is active, you can change this value. Optional.
+</ResponseField>
+
+<ResponseField name="metric_groups" type="list(string)">
+  The name of an Amazon CloudWatch metric group. A metric group aggregates the metrics for all fleets in the group. Specify a string containing the metric group name. You can use an existing name or use a new name to create a new metric group. Currently, this parameter can have only one string. Optional.
+</ResponseField>
+
+<ResponseField name="min_size" type="number">
+  [DEPRECATED] The minimum value allowed for the fleet's instance count. When creating a new fleet, GameLift automatically sets this value to "0". After the fleet is active, you can change this value. Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  A descriptive label that is associated with a fleet. Fleet names do not need to be unique. Required.
+</ResponseField>
+
+<ResponseField name="new_game_session_protection_policy" type="string">
+  A game session protection policy to apply to all game sessions hosted on instances in this fleet. When protected, active game sessions cannot be terminated during a scale-down event. If this parameter is not set, instances in this fleet default to no protection. You can change a fleet's protection policy to affect future game sessions on the fleet. You can also set protection for individual game sessions. Optional.
+</ResponseField>
+
+<ResponseField name="peer_vpc_aws_account_id" type="string">
+  A unique identifier for the AWS account with the VPC that you want to peer your Amazon GameLift fleet with. You can find your account ID in the AWS Management Console under account settings. Optional.
+</ResponseField>
+
+<ResponseField name="peer_vpc_id" type="string">
+  A unique identifier for a VPC with resources to be accessed by your Amazon GameLift fleet. The VPC must be in the same Region as your fleet. To look up a VPC ID, use the VPC Dashboard in the AWS Management Console. Optional.
+</ResponseField>
+
+<ResponseField name="player_gateway_configuration" type="object">
+  Configuration for player gateway. Optional.
+  <Expandable title="properties">
+    <ResponseField name="game_server_ip_protocol_supported" type="string">
+      The IP protocol supported by the game server. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="player_gateway_mode" type="string">
+  The player gateway mode for the fleet. Optional.
+</ResponseField>
+
+<ResponseField name="resource_creation_limit_policy" type="object">
+  A policy that limits the number of game sessions a player can create on the same fleet. This optional policy gives game owners control over how players can consume available game server resources. A resource creation policy makes the following statement: "An individual player can create a maximum number of new game sessions within a specified time period". The policy is evaluated when a player tries to create a new game session. For example, assume you have a policy of 10 new game sessions and a time period of 60 minutes. On receiving a CreateGameSession request, Amazon GameLift checks that the player (identified by CreatorId) has created fewer than 10 game sessions in the past 60 minutes. Optional.
+  <Expandable title="properties">
+    <ResponseField name="new_game_sessions_per_creator" type="number">
+      The maximum number of game sessions that an individual can create during the policy period. Optional.
+    </ResponseField>
+    <ResponseField name="policy_period_in_minutes" type="number">
+      The time span used in evaluating the resource creation limit policy. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="runtime_configuration" type="object">
+  A collection of server process configurations that describe the processes to run on each instance in a fleet. All fleets must have a runtime configuration. Each instance in the fleet maintains server processes as specified in the runtime configuration, launching new ones as existing processes end. Each instance regularly checks for an updated runtime configuration makes adjustments as called for. The runtime configuration enables the instances in a fleet to run multiple processes simultaneously. Potential scenarios are as follows: (1) Run multiple processes of a single game server executable to maximize usage of your hosting resources. (2) Run one or more processes of different executables, such as your game server and a metrics tracking program. (3) Run multiple processes of a single game server but with different launch parameters, for example to run one process on each instance in debug mode. An Amazon GameLift instance is limited to 50 processes running simultaneously. A runtime configuration must specify fewer than this limit. To calculate the total number of processes specified in a runtime configuration, add the values of the ConcurrentExecutions parameter for each ServerProcess object in the runtime configuration. Optional.
+  <Expandable title="properties">
+    <ResponseField name="game_session_activation_timeout_seconds" type="number">
+      The maximum amount of time (in seconds) that a game session can remain in status ACTIVATING. If the game session is not active before the timeout, activation is terminated and the game session status is changed to TERMINATED. Optional.
+    </ResponseField>
+    <ResponseField name="max_concurrent_game_session_activations" type="number">
+      The maximum number of game sessions with status ACTIVATING to allow on an instance simultaneously. This setting limits the amount of instance resources that can be used for new game activations at any one time. Optional.
+    </ResponseField>
+    <ResponseField name="server_processes" type="list(object)">
+      A collection of server process configurations that describe which server processes to run on each instance in a fleet. Optional.
+      <Expandable title="properties">
+        <ResponseField name="concurrent_executions" type="number">
+          The number of game server processes to launch concurrently on each instance for this server process configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="launch_path" type="string">
+          Specifies the file path to the server executable within the game build that GameLift launches to host game sessions for this fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="parameters" type="string">
+          The parameters string supplies command-line arguments that Amazon GameLift passes to the server executable when launching the server process, as defined within the runtime configuration's server process definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="scaling_policies" type="list(object)">
+  A list of rules that control how a fleet is scaled. Optional.
+  <Expandable title="properties">
+    <ResponseField name="comparison_operator" type="string">
+      Specifies the comparison operator used to evaluate the scaling metric against the threshold in a GameLift fleet scaling policy, such as GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, or LessThanOrEqualToThreshold. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="evaluation_periods" type="number">
+      Determines how many recent metric evaluation periods are considered when deciding whether to trigger a scaling adjustment for the fleet based on the associated CloudWatch metric. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="location" type="string">
+      Specifies the name of the location (such as an AWS Region or custom location) where this scaling policy is applied, enabling per-location autoscaling in a multi-location GameLift fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="metric_name" type="string">
+      The name of the GameLift metric (such as ActivatingGameSessions, ActiveInstances, or IdleInstances) that this scaling policy uses to trigger scaling actions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      The unique, descriptive name that identifies this scaling policy within the fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="policy_type" type="string">
+      Determines the type of scaling policy for the GameLift fleet, either 'TargetTracking' for dynamic scaling based on a target metric value or 'RuleBased' for policies defined by custom scaling rules. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="scaling_adjustment" type="number">
+      The numeric value applied to the fleet's desired instance count when the scaling policy's conditions are met, interpreted as a change, exact capacity, or percentage according to the ScalingAdjustmentType property. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="scaling_adjustment_type" type="string">
+      Specifies how the scaling adjustment value in the policy is applied, with valid values including ChangeInCapacity (adjust by a set number of instances), ExactCapacity (set capacity to an exact number), and PercentChangeInCapacity (adjust by a percentage of current capacity). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="status" type="string">
+      The current lifecycle state of the scaling policy, such as ACTIVE, UPDATE_REQUESTED, UPDATING, DELETE_REQUESTED, DELETING, DELETED, or ERROR. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="target_configuration" type="object">
+      Provides the target value for the metric used in a target-based scaling policy, determining the desired instance capacity for the GameLift fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="target_value" type="number">
+          Specifies the target value of the metric used by a target-based scaling policy to decide when to adjust fleet capacity for an Amazon GameLift fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="threshold" type="number">
+      The numeric value that the scaling policy's specified metric is compared against using the comparison operator to trigger a fleet capacity adjustment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="update_status" type="string">
+      The update status of the scaling policy, indicating whether the latest requested update has been successfully applied (e.g., PENDING, SUCCESS, FAILED). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="script_id" type="string">
+  A unique identifier for a Realtime script to be deployed on a new Realtime Servers fleet. The script must have been successfully uploaded to Amazon GameLift. This fleet setting cannot be changed once the fleet is created. Note: It is not currently possible to use the !Ref command to reference a script created with a CloudFormation template for the fleet property ScriptId. Instead, use Fn::GetAtt Script.Arn or Fn::GetAtt Script.Id to retrieve either of these properties as input for ScriptId. Alternatively, enter a ScriptId string manually. Optional.
+</ResponseField>
+
+<ResponseField name="server_launch_parameters" type="string">
+  This parameter is no longer used but is retained for backward compatibility. Instead, specify server launch parameters in the RuntimeConfiguration parameter. A request must specify either a runtime configuration or values for both ServerLaunchParameters and ServerLaunchPath. Optional.
+</ResponseField>
+
+<ResponseField name="server_launch_path" type="string">
+  This parameter is no longer used. Instead, specify a server launch path using the RuntimeConfiguration parameter. Requests that specify a server launch path and launch parameters instead of a runtime configuration will continue to work. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="fleet_arn" type="string">
+  The Amazon Resource Name (ARN) that is assigned to a Amazon GameLift Servers Fleet resource and uniquely identifies it. ARNs are unique across all Regions. In a GameLift Fleet ARN, the resource ID matches the FleetId value. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="fleet_id" type="string">
+  Unique fleet ID Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="locations" type="list(object)">
+  The locations attribute lists the AWS Regions (locations) where the GameLift fleet has deployed instances, returned as a computed list of location objects. Computed by AWS after `ship`. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="location" type="string">
+      The AWS Region code (e.g., 'us-east-1') that identifies where this GameLift fleet location is deployed for hosting game servers. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="location_capacity" type="object">
+      Defines the desired, minimum, and maximum instance counts for the fleet in a specific location (region). Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="desired_ec2_instances" type="number">
+          Sets the desired number of EC2 instances for a given fleet location, which GameLift uses as the scaling target for that location's capacity within its configured minimum and maximum limits. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="managed_capacity_configuration" type="object">
+          Optional; if omitted, computed by AWS.
+          <Expandable title="properties">
+            <ResponseField name="scale_in_after_inactivity_minutes" type="number">
+              Specifies how many minutes an instance in a managed GameLift fleet location can remain idle before it is targeted for scale-in (termination) as part of the location's managed capacity configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="zero_capacity_strategy" type="string">
+              Determines the managed capacity strategy for a GameLift fleet location when there is no demand, specifying whether the fleet can scale down to zero instances or must maintain a minimum capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="max_size" type="number">
+          The maximum number of EC2 instances that can be active for this fleet location, setting the upper bound for auto-scaling capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="min_size" type="number">
+          Specifies the minimum number of EC2 instances that must be maintained for the fleet in the associated location as part of its capacity configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="player_gateway_status" type="string">
+      The player gateway status for each fleet location, representing the operational state of the gateway that routes player connections to game sessions in that location. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>

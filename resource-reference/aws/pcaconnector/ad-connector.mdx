@@ -1,0 +1,114 @@
+---
+title: "aws_pcaconnector_ad_connector"
+description: "`aws_pcaconnector_ad_connector` creates a real connector between an `aws_acmpca_certificate_authority` and an Active Directory domain..."
+---
+
+`aws_pcaconnector_ad_connector` creates a real connector between an `aws_acmpca_certificate_authority` and an Active Directory domain, letting AWS Private CA act as a drop-in replacement for a self-managed enterprise CA and issue certificates to domain-joined objects through AD's own auto-enrollment and group policy features, without deploying or patching local agents.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	pcaconnector "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/pcaconnector"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own ad connector"})
+
+    		ubx.Resource(pcaconnector.AdConnector, "ci-runner", pcaconnector.AdConnectorConfig{
+    			CertificateAuthorityArn: "arn:aws:iam::123456789012:policy/ci",
+    			DirectoryId:             "example",
+    			VpcInformation:          map[string]any{"security_group_ids": []string{"example"}},
+    			Tags:                    "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AdConnector } from "./local-sdk/aws/sdk/typescript/aws/pcaconnector/ad_connector.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own ad connector" });
+
+      resource(AdConnector, "ci-runner", {
+        certificateAuthorityArn: "arn:aws:iam::123456789012:policy/ci",
+        directoryId: "example",
+        vpcInformation: { securityGroupIds: ["example"] },
+        tags: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.pcaconnector import AdConnector, AdConnectorConfig
+
+    def describe():
+        ubx.intent("payments own ad connector")
+
+        ubx.resource(AdConnector, "ci-runner", AdConnectorConfig(
+            certificate_authority_arn="arn:aws:iam::123456789012:policy/ci",
+            directory_id="example",
+            vpc_information={"security_group_ids": ["example"]},
+            tags="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_pcaconnector_ad_connector, with certificate authority
+    arn arn:aws:iam::123456789012:policy/ci, directory id example,
+    vpc information a set value, tags example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="certificate_authority_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the AWS Private CA certificate authority that will issue certificates for the Active Directory connector. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="directory_id" type="string" required>
+  The identifier of the AWS Managed Microsoft AD directory that this connector is associated with. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  Tags (key-value pairs) to associate with the PCA Connector for Active Directory resource, used for identifying, organizing, and managing the connector. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="vpc_information" type="object" required>
+  The VPC information for the connector, specifying the security groups that allow the connector to communicate with the Active Directory in your VPC. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="ip_address_type" type="string">
+      Specifies whether the connector uses only IPv4 addresses or both IPv4 and IPv6 (dual-stack) addresses within the VPC, with allowed values IPV4 and DUALSTACK. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="security_group_ids" type="list(string)" required>
+      Specifies the IDs of the security groups that AWS Private CA Connector for Active Directory uses to securely communicate with your directory in the VPC. Required. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="connector_arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies the connector created by this resource. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

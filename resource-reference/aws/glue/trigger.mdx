@@ -1,0 +1,195 @@
+---
+title: "aws_glue_trigger"
+description: "`aws_glue_trigger` starts an `aws_glue_job` or `aws_glue_crawler` on a real, defined schedule, on demand, or when another job or crawler completes..."
+---
+
+`aws_glue_trigger` starts an `aws_glue_job` or `aws_glue_crawler` on a real, defined schedule, on demand, or when another job or crawler completes, the actual mechanism that turns standalone Glue resources into a chained pipeline.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	glue "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/glue"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own trigger"})
+
+    		ubx.Resource(glue.Trigger, "ci-runner", glue.TriggerConfig{
+    			Actions:                []map[string]any{{"arguments": "example"}},
+    			Type:                   "example",
+    			Name:                   "ci-runner",
+    			Description:            "Managed by ubx.",
+    			EventBatchingCondition: map[string]any{"batch_size": 1},
+    			Predicate:              map[string]any{"conditions": []map[string]any{{"crawl_state": "example"}}},
+    			Schedule:               "example",
+    			StartOnCreation:        true,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Trigger } from "./local-sdk/aws/sdk/typescript/aws/glue/trigger.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own trigger" });
+
+      resource(Trigger, "ci-runner", {
+        actions: [{ arguments: "example" }],
+        type: "example",
+        name: "ci-runner",
+        description: "Managed by ubx.",
+        eventBatchingCondition: { batchSize: 1 },
+        predicate: { conditions: [{ crawlState: "example" }] },
+        schedule: "example",
+        startOnCreation: true,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.glue import Trigger, TriggerConfig
+
+    def describe():
+        ubx.intent("payments own trigger")
+
+        ubx.resource(Trigger, "ci-runner", TriggerConfig(
+            actions=[{"arguments": "example"}],
+            type="example",
+            name="ci-runner",
+            description="Managed by ubx.",
+            event_batching_condition={"batch_size": 1},
+            predicate={"conditions": [{"crawl_state": "example"}]},
+            schedule="example",
+            start_on_creation=True,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_glue_trigger called "ci-runner", with actions a set
+    value, type example, description Managed by ubx., event batching
+    condition a set value, predicate a set value, schedule example,
+    start on creation true.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="actions" type="list(object)" required>
+  The actions initiated by this trigger. Required.
+  <Expandable title="properties">
+    <ResponseField name="arguments" type="any">
+      The set of key-value pairs that are passed as arguments to the referenced Glue job when this trigger action runs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="crawler_name" type="string">
+      The name of the AWS Glue crawler to start when this trigger action is invoked, used for crawler-based trigger actions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="job_name" type="string">
+      The name of the AWS Glue job that will be started when the trigger fires, as defined in the Actions property of the Glue trigger. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="notification_property" type="object">
+      Defines the notification settings for a Glue trigger action, specifically the number of minutes after a job run starts before a job run delay notification is sent (NotifyDelayAfter). Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="notify_delay_after" type="number">
+          Specifies the number of minutes to wait after a job run completes before sending a notification for this Glue trigger action. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="security_configuration" type="string">
+      The name of the AWS Glue security configuration that encrypts the job run's data and connections when this trigger action starts a job. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="timeout" type="number">
+      The job run timeout in minutes for the action, overriding the timeout value of the associated job. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A description of this trigger. Optional.
+</ResponseField>
+
+<ResponseField name="event_batching_condition" type="object">
+  Batch condition that must be met (specified number of events received or batch time window expired) before EventBridge event trigger fires. Optional.
+  <Expandable title="properties">
+    <ResponseField name="batch_size" type="number" required>
+      Number of events that must be received from Amazon EventBridge before EventBridge event trigger fires. Required.
+    </ResponseField>
+    <ResponseField name="batch_window" type="number">
+      Window of time in seconds after which EventBridge event trigger fires. Window starts when first event is received. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The name of the trigger. Optional.
+</ResponseField>
+
+<ResponseField name="predicate" type="object">
+  The predicate of this trigger, which defines when it will fire. Optional.
+  <Expandable title="properties">
+    <ResponseField name="conditions" type="list(object)">
+      A list of the conditions that determine when the trigger will fire. Optional.
+      <Expandable title="properties">
+        <ResponseField name="crawl_state" type="string">
+          The crawl state (e.g., SUCCEEDED, FAILED, RUNNING) that the crawler referenced in this condition must reach for the trigger predicate to evaluate as true. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="crawler_name" type="string">
+          The name of the AWS Glue crawler that must reach the specified crawl state (e.g., COMPLETED) to satisfy the trigger condition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="job_name" type="string">
+          The name of the AWS Glue job whose run state (e.g., SUCCEEDED, FAILED, TIMEOUT) this predicate condition evaluates to determine whether the trigger fires. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="logical_operator" type="string">
+          Specifies the logical operator (AND or OR) that combines this condition with the previous condition in the trigger's predicate, defaulting to AND when not specified. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="state" type="string">
+          The state (e.g., SUCCEEDED, FAILED) that the referenced job or crawler must be in for this condition to be met within the trigger's predicate. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="logical" type="string">
+      An optional field if only one condition is listed. If multiple conditions are listed, then this field is required. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="schedule" type="string">
+  A cron expression used to specify the schedule. Optional.
+</ResponseField>
+
+<ResponseField name="start_on_creation" type="bool">
+  Set to true to start SCHEDULED and CONDITIONAL triggers when created. True is not supported for ON_DEMAND triggers. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  The tags to use with this trigger. Optional.
+</ResponseField>
+
+<ResponseField name="type" type="string" required>
+  The type of trigger that this is. Required.
+</ResponseField>
+
+<ResponseField name="workflow_name" type="string">
+  The name of the workflow associated with the trigger. Optional.
+</ResponseField>

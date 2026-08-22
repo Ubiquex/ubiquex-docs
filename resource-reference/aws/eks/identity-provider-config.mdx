@@ -1,0 +1,153 @@
+---
+title: "aws_eks_identity_provider_config"
+description: "`aws_eks_identity_provider_config` federates an `aws_eks_cluster`'s Kubernetes API with an external OIDC identity provider..."
+---
+
+`aws_eks_identity_provider_config` federates an `aws_eks_cluster`'s Kubernetes API with an external OIDC identity provider, letting a caller authenticate to the cluster with their own organization's existing identity system instead of only IAM.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	eks "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/eks"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own identity provider config"})
+
+    		ubx.Resource(eks.IdentityProviderConfig, "ci-runner", eks.IdentityProviderConfigConfig{
+    			ClusterName:                "example-cluster-name",
+    			Type:                       "example",
+    			IdentityProviderConfigName: "example-identity-provider-config-name",
+    			Oidc:                       map[string]any{"client_id": "example"},
+    			Tags:                       []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { IdentityProviderConfig } from "./local-sdk/aws/sdk/typescript/aws/eks/identity_provider_config.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own identity provider config" });
+
+      resource(IdentityProviderConfig, "ci-runner", {
+        clusterName: "example-cluster-name",
+        type: "example",
+        identityProviderConfigName: "example-identity-provider-config-name",
+        oidc: { clientId: "example" },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.eks import IdentityProviderConfig, IdentityProviderConfigConfig
+
+    def describe():
+        ubx.intent("payments own identity provider config")
+
+        ubx.resource(IdentityProviderConfig, "ci-runner", IdentityProviderConfigConfig(
+            cluster_name="example-cluster-name",
+            type="example",
+            identity_provider_config_name="example-identity-provider-config-name",
+            oidc={"client_id": "example"},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_eks_identity_provider_config, with cluster name
+    example-cluster-name, type example, identity provider config name
+    example-identity-provider-config-name, oidc a set value, tags a
+    set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="cluster_name" type="string" required>
+  The name of the identity provider configuration. Required.
+</ResponseField>
+
+<ResponseField name="identity_provider_config_name" type="string">
+  The name of the OIDC provider configuration. Optional.
+</ResponseField>
+
+<ResponseField name="oidc" type="object">
+  An object representing an OpenID Connect (OIDC) configuration. Optional.
+  <Expandable title="properties">
+    <ResponseField name="client_id" type="string" required>
+      This is also known as audience. The ID for the client application that makes authentication requests to the OpenID identity provider. Required.
+    </ResponseField>
+    <ResponseField name="groups_claim" type="string">
+      The JWT claim that the provider uses to return your groups. Optional.
+    </ResponseField>
+    <ResponseField name="groups_prefix" type="string">
+      The prefix that is prepended to group claims to prevent clashes with existing names (such as system: groups). Optional.
+    </ResponseField>
+    <ResponseField name="issuer_url" type="string" required>
+      The URL of the OpenID identity provider that allows the API server to discover public signing keys for verifying tokens. Required.
+    </ResponseField>
+    <ResponseField name="required_claims" type="list(object)">
+      Specifies the list of required claims (each a key-value pair) that must be present in the OIDC identity token with matching values for authentication to succeed. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          Specifies the name of an OIDC claim that must be present in the token issued by the identity provider for authentication to be considered valid. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value" type="string">
+          The expected value for a required claim in the OIDC identity provider's token, where the map key is the claim name and this value must match the claim's value in the token for authentication to succeed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="username_claim" type="string">
+      The JSON Web Token (JWT) claim to use as the username. The default is sub, which is expected to be a unique identifier of the end user. You can choose other claims, such as email or name, depending on the OpenID identity provider. Claims other than email are prefixed with the issuer URL to prevent naming clashes with other plug-ins. Optional.
+    </ResponseField>
+    <ResponseField name="username_prefix" type="string">
+      The prefix that is prepended to username claims to prevent clashes with existing names. If you do not provide this field, and username is a value other than email, the prefix defaults to issuerurl#. You can use the value - to disable all prefixing. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag assigned to the Amazon EKS identity provider configuration resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag key-value pair applied to the Amazon EKS identity provider configuration, used for metadata management such as cost allocation and resource identification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="type" type="string" required>
+  The type of the identity provider configuration. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="identity_provider_config_arn" type="string">
+  The ARN of the configuration. Computed by AWS after `ship`.
+</ResponseField>

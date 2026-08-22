@@ -1,0 +1,123 @@
+---
+title: "aws_logs_integration"
+description: "`aws_logs_integration` creates a real, zero-ETL integration between CloudWatch Logs and Amazon OpenSearch Service..."
+---
+
+`aws_logs_integration` creates a real, zero-ETL integration between CloudWatch Logs and Amazon OpenSearch Service, currently the only supported integration type, enabling curated vended-log dashboards powered by OpenSearch analytics without a separate ingestion pipeline. Only one integration is currently supported per account, and an existing integration cannot be modified in place.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	logs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/logs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own integration"})
+
+    		ubx.Resource(logs.Integration, "ci-runner", logs.IntegrationConfig{
+    			IntegrationName: "example-integration-name",
+    			IntegrationType: "example",
+    			ResourceConfig:  map[string]any{"open_search_resource_config": map[string]any{"dashboard_viewer_principals": []string{"example"}}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Integration } from "./local-sdk/aws/sdk/typescript/aws/logs/integration.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own integration" });
+
+      resource(Integration, "ci-runner", {
+        integrationName: "example-integration-name",
+        integrationType: "example",
+        resourceConfig: {
+          openSearchResourceConfig: { dashboardViewerPrincipals: ["example"] },
+        },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.logs import Integration, IntegrationConfig
+
+    def describe():
+        ubx.intent("payments own integration")
+
+        ubx.resource(Integration, "ci-runner", IntegrationConfig(
+            integration_name="example-integration-name",
+            integration_type="example",
+            resource_config={"open_search_resource_config": {"dashboard_viewer_principals": ["example"]}},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_logs_integration, with integration name
+    example-integration-name, integration type example, resource
+    config a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="integration_name" type="string" required>
+  User provided identifier for integration, unique to the user account. Required.
+</ResponseField>
+
+<ResponseField name="integration_type" type="string" required>
+  The type of the Integration. Required.
+</ResponseField>
+
+<ResponseField name="resource_config" type="object" required>
+  OpenSearchResourceConfig for the given Integration Required.
+  <Expandable title="properties">
+    <ResponseField name="open_search_resource_config" type="object">
+      This object defines the Amazon OpenSearch Service resource configuration for the CloudWatch Logs integration, including the target OpenSearch collection, application, index prefix, and time-to-live (TTL) for the imported log data. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="application_arn" type="string">
+          The ARN of the OpenSearch Serverless application that this CloudWatch Logs integration delivers logs to. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="dashboard_viewer_principals" type="list(string)" required>
+          Specifies the IAM principals (e.g., user ARNs, role ARNs) that are granted permission to view the OpenSearch dashboards provisioned for this logs integration. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="data_source_role_arn" type="string" required>
+          The ARN of the IAM role that CloudWatch Logs assumes to access the configured OpenSearch data source for the integration. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="kms_key_arn" type="string">
+          The ARN of an AWS KMS customer managed key used to encrypt the Amazon OpenSearch Service domain or data source associated with this CloudWatch Logs integration, enabling customer-controlled encryption at rest. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="retention_days" type="number">
+          Specifies the number of days that log data is retained in the associated OpenSearch index for this CloudWatch Logs integration. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="integration_status" type="string">
+  Status of creation for the Integration and its resources Computed by AWS after `ship`.
+</ResponseField>

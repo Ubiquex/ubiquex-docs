@@ -1,0 +1,714 @@
+---
+title: "aws_app_mesh_virtual_node"
+description: "`aws_app_mesh_virtual_node` is a logical pointer to one real, discoverable service (an ECS service, a Kubernetes deployment) inside an `aws_app_mesh_mesh`."
+---
+
+The proxy deployed alongside that real service reads its virtual node's configuration to decide how to route outbound traffic.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	app "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/app"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own mesh virtual node"})
+
+    		ubx.Resource(app.MeshVirtualNode, "ci-runner", app.MeshVirtualNodeConfig{
+    			MeshName:        "example-mesh-name",
+    			Spec:            map[string]any{"backend_defaults": map[string]any{"client_policy": map[string]any{"tls": map[string]any{"validation": map[string]any{"trust": map[string]any{"acm": map[string]any{"certificate_authority_arns": []string{"example"}}}}}}}},
+    			MeshOwner:       "example",
+    			Tags:            []map[string]any{{"key": "example"}},
+    			VirtualNodeName: "example-virtual-node-name",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MeshVirtualNode } from "./local-sdk/aws/sdk/typescript/aws/app/mesh_virtual_node.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own mesh virtual node" });
+
+      resource(MeshVirtualNode, "ci-runner", {
+        meshName: "example-mesh-name",
+        spec: {
+          backendDefaults: {
+            clientPolicy: {
+              tls: {
+                validation: {
+                  trust: { acm: { certificateAuthorityArns: ["example"] } },
+                },
+              },
+            },
+          },
+        },
+        meshOwner: "example",
+        tags: [{ key: "example" }],
+        virtualNodeName: "example-virtual-node-name",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.app import MeshVirtualNode, MeshVirtualNodeConfig
+
+    def describe():
+        ubx.intent("payments own mesh virtual node")
+
+        ubx.resource(MeshVirtualNode, "ci-runner", MeshVirtualNodeConfig(
+            mesh_name="example-mesh-name",
+            spec={"backend_defaults": {"client_policy": {"tls": {"validation": {"trust": {"acm": {"certificate_authority_arns": ["example"]}}}}}}},
+            mesh_owner="example",
+            tags=[{"key": "example"}],
+            virtual_node_name="example-virtual-node-name",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_app_mesh_virtual_node, with mesh name
+    example-mesh-name, spec a set value, mesh owner example, tags a
+    set value, virtual node name example-virtual-node-name.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="mesh_name" type="string" required>
+  The name of the App Mesh service mesh that this virtual node belongs to, scoping the virtual node within the specified mesh. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="mesh_owner" type="string">
+  The AWS account ID of the service mesh owner, used when the mesh belongs to a different account than the virtual node. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="spec" type="object" required>
+  The desired configuration for the virtual node, defining its listeners, service discovery, backends, and logging settings. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="backend_defaults" type="object">
+      Defines default client policy settings (such as TLS validation) that apply to all backends of the virtual node unless a backend explicitly overrides them. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="client_policy" type="object">
+          Defines the default client policy, including TLS encryption and certificate validation settings, applied to outbound traffic from the virtual node to all backends that do not have their own explicit client policy. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="tls" type="object">
+              Specifies the TLS settings for the client policy that applies to all backends of the virtual node by default, including certificate validation trust configuration. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="certificate" type="object">
+                  The default client TLS certificate presented by this virtual node when establishing TLS connections to backend services, which can be defined as either a file-based certificate or an SDS (secret discovery service) certificate. Optional. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="file" type="object">
+                      The file-based client TLS certificate configuration, providing the file paths for the certificate chain and private key used for mutual TLS authentication with backend services. Optional. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="certificate_chain" type="string" required>
+                          Specifies the file path to the certificate chain used for TLS client authentication when the certificate is provided as a file in the virtual node's backend default client policy. Required. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="private_key" type="string" required>
+                          The file path to the PEM-encoded private key used by the client policy's TLS certificate when validating traffic to backend defaults. Required. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="sds" type="object">
+                      Specifies that the TLS certificate is sourced dynamically through Envoy's Secret Discovery Service (SDS), enabling delivery and rotation of secrets without restarting the Envoy proxy. Optional. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="secret_name" type="string" required>
+                          The name of the secret that Envoy retrieves from the Secret Discovery Service (SDS) to obtain the TLS client certificate for the virtual node's backend defaults. Required. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="enforce" type="bool">
+                  Determines whether TLS is strictly enforced for connections from this virtual node to its backends when a backend TLS client policy is configured; when false, TLS is offered but not required. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="ports" type="list(number)">
+                  Specifies the list of destination port numbers for which the TLS client policy is enforced when the virtual node communicates with backend services. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="validation" type="object" required>
+                  Configures how the Envoy proxy validates the TLS certificate presented by backend services for this virtual node's default client policy, specifying a trusted certificate authority (via AWS Certificate Manager or a local file) and optional subject alternative name checks. Required. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="subject_alternative_names" type="object">
+                      Specifies the subject alternative names (SANs) that the peer certificate must match for TLS validation of backend defaults. Optional. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="match" type="object" required>
+                          Specifies the exact or wildcard subject alternative names that must match the peer certificate's SANs for TLS validation to succeed in the backend defaults client policy. Required. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="exact" type="list(string)">
+                              Specifies the exact subject alternative names (SANs) that the presented certificate must contain for TLS validation of backend traffic to succeed. Optional. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="trust" type="object" required>
+                      Defines the trust source used to validate the TLS certificate from the backend service, such as an AWS Certificate Manager (ACM) certificate, a local file, or the Envoy proxy's built-in trust store. Required. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="acm" type="object">
+                          Specifies the AWS Certificate Manager (ACM) Private Certificate Authority ARNs used to validate client certificates for TLS against backend defaults in the virtual node. Optional. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="certificate_authority_arns" type="list(string)" required>
+                              Specifies the ARNs of ACM Private Certificate Authority certificates used to validate the peer certificate for TLS when the trust is configured with ACM. Required. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                        <ResponseField name="file" type="object">
+                          An object representing a file-based trust store that specifies the file path to the certificate chain used to validate peer certificates for TLS. Optional. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="certificate_chain" type="string" required>
+                              The file path to the certificate chain on the virtual node's filesystem that the backend defaults client policy uses to validate peer certificates when the TLS trust type is 'file'. Required. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                        <ResponseField name="sds" type="object">
+                          Configures the TLS validation trust for backend defaults to use a secret from AWS App Mesh's Secret Discovery Service (SDS), defining the secret name and optional subject alternative names used to validate peer certificates. Optional. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="secret_name" type="string" required>
+                              The name of the secret in AWS Secrets Manager (used by the Envoy Secret Discovery Service) that contains the trusted CA certificate for validating peer TLS certificates in backend defaults. Required. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="backends" type="list(object)">
+      Specifies the list of virtual services (backends) that this virtual node can communicate with, defining the services to which traffic from the node can be routed. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="virtual_service" type="object">
+          Identifies the App Mesh virtual service used as a backend for this virtual node, including the required name of the virtual service and an optional client policy for outbound traffic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="client_policy" type="object">
+              Specifies the TLS client policy, including certificate validation and enforcement, used when the virtual node communicates with the backend virtual service. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="tls" type="object">
+                  TLS configuration for the client policy applied when this virtual node communicates with the specified virtual service backend, controlling enforcement mode, ports, client certificate, and validation of the backend's TLS certificate. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="certificate" type="object">
+                      Specifies the client certificate (from a file or SDS) that the virtual node presents to the backend virtual service for mutual TLS authentication. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="file" type="object">
+                          The file object in the TLS client policy certificate specifies the local file paths to the certificate chain and private key that the virtual node uses to present a client certificate during mutual TLS handshakes with the backend virtual service. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="certificate_chain" type="string">
+                              The filesystem path to the certificate chain file used by the client policy for TLS when the virtual node communicates with the specified virtual service backend. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                            <ResponseField name="private_key" type="string">
+                              The file path to the private key used for the TLS client certificate presented to the backend virtual service in AWS App Mesh. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                        <ResponseField name="sds" type="object">
+                          This object defines the Secret Discovery Service (SDS) configuration for the TLS certificate used by the virtual node's client policy, specifying the secret name from which Envoy retrieves the certificate. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="secret_name" type="string">
+                              Sets the name of the secret stored in the Secret Discovery Service (SDS) that Envoy uses to obtain the TLS client certificate for the virtual node's backend virtual service connection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="enforce" type="bool">
+                      If true, the virtual node enforces TLS for traffic to the backend virtual service, requiring the connection to use TLS; if false, TLS is used if available but not required. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="ports" type="list(number)">
+                      The ports field in a TLS client policy of an App Mesh virtual node backend specifies the destination ports over which the TLS settings are applied, allowing the policy to be scoped to specific ports on the virtual service. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="validation" type="object">
+                      Defines the TLS validation context, including the trust chain and subject alternative names, used by the virtual node when establishing a TLS connection to the specified virtual service backend. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="subject_alternative_names" type="object">
+                          Specifies the subject alternative names (SANs) that the server certificate must contain for TLS validation to succeed when the virtual node connects to the backend virtual service. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="match" type="object">
+                              Specifies the exact or prefix values that the subject alternative names (SANs) on the server certificate must match for the TLS client policy validation to succeed when the virtual node connects to this virtual service backend. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                              <Expandable title="properties">
+                                <ResponseField name="exact" type="list(string)">
+                                  Specifies the exact subject alternative names (SANs) that must be present in the peer certificate for the backend virtual service's TLS client policy validation to succeed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                                </ResponseField>
+                              </Expandable>
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                        <ResponseField name="trust" type="object">
+                          Specifies the source of trust (ACM, file, or SDS) used to validate the TLS certificate presented by the backend virtual service during client policy TLS validation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="acm" type="object">
+                              Configures TLS validation trust for backend virtual service client policies using AWS Certificate Manager (ACM) private certificate authority ARNs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                              <Expandable title="properties">
+                                <ResponseField name="certificate_authority_arns" type="list(string)">
+                                  The list of ARNs of AWS Certificate Manager Private Certificate Authorities that are trusted to validate the TLS certificate presented by the backend virtual service, as configured in the client policy's TLS validation trust for ACM. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                                </ResponseField>
+                              </Expandable>
+                            </ResponseField>
+                            <ResponseField name="file" type="object">
+                              Specifies the file-based TLS validation trust for a virtual node's client policy, which provides the path to a certificate chain file (certificateChain) used to validate the TLS certificate of a backend virtual service. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                              <Expandable title="properties">
+                                <ResponseField name="certificate_chain" type="string">
+                                  The file path to the certificate chain used to validate the TLS certificate presented by the backend virtual service when using file-based trust for TLS validation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                                </ResponseField>
+                              </Expandable>
+                            </ResponseField>
+                            <ResponseField name="sds" type="object">
+                              Specifies the Secret Discovery Service (SDS) trust configuration for TLS validation, including the secret name used by the proxy to obtain trusted certificates from Envoy's SDS server. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                              <Expandable title="properties">
+                                <ResponseField name="secret_name" type="string">
+                                  The name of the secret in the Secret Discovery Service (SDS) from which the trusted CA certificate is retrieved to validate the TLS certificate presented by the backend virtual service. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                                </ResponseField>
+                              </Expandable>
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="virtual_service_name" type="string">
+              Specifies the name of the virtual service to which this virtual node's backend routes traffic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="listeners" type="list(object)">
+      Specifies the list of inbound listeners for the virtual node, each defining the port and protocol (HTTP, HTTP/2, gRPC, or TCP) along with optional health-check settings used to determine if the listener is healthy. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="connection_pool" type="object">
+          Defines the connection pool settings for the virtual node's listener, specifying protocol-specific limits such as maximum connections, pending requests, and idle timeouts for HTTP, HTTP/2, gRPC, or TCP traffic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="grpc" type="object">
+              Configures the gRPC connection pool for the virtual node listener, allowing you to set the maximum number of concurrent requests (maxRequests) that the connection pool can handle. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max_requests" type="number">
+                  The maximum number of simultaneous in-flight gRPC requests allowed in the connection pool for this virtual node listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="http" type="object">
+              Defines HTTP connection pool settings for the listener, including the maximum number of outbound connections and maximum pending requests. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max_connections" type="number">
+                  The maximum number of outbound TCP connections that the virtual node can establish to the backend from this HTTP connection pool. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="max_pending_requests" type="number">
+                  Sets the maximum number of pending requests allowed in the HTTP connection pool for the virtual node's listener, controlling how many requests can wait for an available connection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="http2" type="object">
+              Specifies the HTTP/2 connection pool limits for the virtual node listener, including the maximum number of concurrent requests, pending requests, and connections to the backend. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max_requests" type="number">
+                  Specifies the maximum number of in-flight HTTP/2 requests allowed in the connection pool before App Mesh rejects new requests. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="tcp" type="object">
+              Defines the TCP connection pool settings for a listener using the TCP protocol, controlling the maximum number of open connections and the connection timeout for TCP traffic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max_connections" type="number">
+                  Defines the maximum number of concurrent TCP connections that a virtual node's listener will accept, capping the connection load to the backend. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="health_check" type="object">
+          Specifies the health check policy for the virtual node's listener, defining the protocol, port, path, healthy/unhealthy thresholds, timeout, and interval used by AWS App Mesh to determine target health. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="healthy_threshold" type="number">
+              The number of consecutive successful health check responses required before the virtual node listener is marked as healthy in AWS App Mesh. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="interval_millis" type="number">
+              The time interval in milliseconds between each health check performed on the virtual node's listeners. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="path" type="string">
+              The destination path for the health check request, used only when the health check protocol is HTTP or HTTP2, where the mesh endpoint will probe this path to determine the virtual node's health. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="port" type="number">
+              The port number the health check uses to communicate with the virtual node, which defaults to the listener's traffic port if not specified. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="protocol" type="string">
+              Sets the protocol (http, http2, grpc, or tcp) used by the health check to determine the health of the virtual node listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="timeout_millis" type="number">
+              Specifies the amount of time in milliseconds that the health check waits for a response before considering the target unhealthy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="unhealthy_threshold" type="number">
+              Specifies the number of consecutive failed health checks that must occur before the virtual node listener is marked unhealthy and removed from traffic routing. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="outlier_detection" type="object">
+          Configures outlier detection for a virtual node listener, defining thresholds and durations for ejecting unhealthy hosts from the load balancing pool (e.g., max errors, base ejection duration, and interval). Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="base_ejection_duration" type="object">
+              The base ejection duration sets the base amount of time a host is ejected from the load balancing set before being re-included, as part of outlier detection for the virtual node listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="unit" type="string">
+                  The unit of time for the base ejection duration, either 'ms' (milliseconds) or 's' (seconds), used by App Mesh outlier detection to determine how long a host is ejected before retrying. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="value" type="number">
+                  Specifies the numeric value of the base ejection duration, combined with a companion unit field, that determines how long an unhealthy host is ejected before being retried in App Mesh outlier detection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="interval" type="object">
+              Specifies the time interval, in duration format such as '10s', between ejection sweeps where the proxy evaluates consecutive 5xx errors to decide whether to eject hosts from the load balancer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="unit" type="string">
+                  The unit of time for the outlier detection interval, which is either 'ms' (milliseconds) or 's' (seconds). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="value" type="number">
+                  Specifies the numeric value of the time interval (with the unit defined by the sibling 'unit' field) between outlier detection ejection sweeps for this listener of the virtual node. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="max_ejection_percent" type="number">
+              Sets the maximum percentage of healthy virtual node hosts that can be ejected from the load balancing pool during outlier detection, helping to prevent excessive removal of replicas. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="max_server_errors" type="number">
+              Specifies the maximum number of HTTP 5xx server error responses that the virtual node listener will tolerate from an endpoint before the endpoint is ejected as unhealthy by App Mesh outlier detection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="port_mapping" type="object">
+          Specifies the port and protocol (such as HTTP, TCP, or gRPC) that the virtual node listener uses to accept incoming traffic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="port" type="number">
+              The port number (1-65535) that the virtual node listener uses to receive traffic, as part of the listener's port mapping. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="protocol" type="string">
+              Specifies the protocol (grpc, http, http2, or tcp) used for the listener's port mapping, determining how traffic is routed to the virtual node. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="timeout" type="object">
+          Configures the idle and per-request timeout settings for the virtual node's listener traffic, which apply to the protocols (e.g., HTTP, HTTP/2, gRPC, TCP) supported by the listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="grpc" type="object">
+              Defines the idle and per-request timeout values for gRPC traffic on the listener, controlling how long connections and requests may remain active before being terminated. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="idle" type="object">
+                  Specifies the idle timeout configuration for gRPC connections on the virtual node listener, setting the maximum duration a connection can remain idle before being terminated. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="unit" type="string">
+                      Specifies the time unit (such as ms or s) for the idle timeout duration of a gRPC listener on the virtual node. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="value" type="number">
+                      Specifies the numerical value of the idle timeout for gRPC connections on this virtual node listener, interpreted according to the accompanying `unit` field. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="per_request" type="object">
+                  Configures the maximum time a gRPC request is allowed to complete on the virtual node listener before it is terminated, as part of the gRPC timeout settings. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="unit" type="string">
+                      Specifies the unit of time (e.g., 'ms' for milliseconds or 's' for seconds) for the per-request timeout on gRPC listeners of the virtual node. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="value" type="number">
+                      Specifies the numeric duration for the per-request timeout on gRPC connections to this virtual node's listener, after which an individual request is terminated. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="http" type="object">
+              Specifies the idle and per-request timeout settings for HTTP traffic on this listener, controlling how long connections or requests can remain idle or pending before termination. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="idle" type="object">
+                  The idle timeout for HTTP connections on the virtual node's listener, specifying the maximum amount of time a connection can remain idle (no data sent or received) before being terminated. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="unit" type="string">
+                      Specifies the unit of time (milliseconds or seconds) used for the idle timeout of an HTTP listener on the virtual node. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="value" type="number">
+                      Specifies the numeric value of the idle timeout duration for HTTP listeners on this virtual node, interpreted according to the sibling unit (e.g., ms or s) to determine how long a connection can remain idle before it is timed out. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="per_request" type="object">
+                  Defines the maximum duration allowed for a single HTTP request to complete on the virtual node's HTTP listener, configured as a numeric value with an associated time unit (e.g., seconds or milliseconds). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="unit" type="string">
+                      The unit of time for the per-request HTTP timeout duration (e.g., 'ms' or 's'), used to specify how the timeout value is interpreted. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="value" type="number">
+                      The numeric magnitude of the per-request timeout for HTTP listeners on the virtual node, interpreted with the sibling `unit` field (e.g., seconds) that determines the actual duration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="http2" type="object">
+              Specifies the HTTP/2 protocol-specific timeout settings for the virtual node listener, including idle timeout and per-request timeout durations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="idle" type="object">
+                  Specifies the idle timeout for HTTP/2 connections on the virtual node listener, configured as a duration object that controls how long a connection can remain idle before it is terminated. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="unit" type="string">
+                      The unit of time (e.g., 'ms' or 's') for the HTTP/2 idle timeout duration specified for the virtual node listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="value" type="number">
+                      The numeric amount of the idle timeout for HTTP/2 connections on the virtual node listener, interpreted together with the sibling `unit` field to define how long a connection may remain idle before being closed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="per_request" type="object">
+                  Defines the per-request timeout for HTTP/2 traffic on the App Mesh virtual node listener, specifying a duration value and its unit (e.g., seconds or milliseconds). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="unit" type="string">
+                      The unit of measure (milliseconds or seconds) for the HTTP/2 per-request timeout on a virtual node's listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="value" type="number">
+                      Specifies the per-request timeout in milliseconds for HTTP/2 traffic on this virtual node's listener, defining the maximum duration allowed for a single request to complete before the connection is closed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="tcp" type="object">
+              Specifies the TCP-specific timeout settings for a listener in AWS App Mesh, including the idle timeout for TCP connections. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="idle" type="object">
+                  Configures the idle timeout duration for TCP traffic on this virtual node listener, using a Duration object that defines how long the connection may remain idle before App Mesh closes it. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="unit" type="string">
+                      Specifies the unit of measurement (e.g., 'ms' or 's') for the idle timeout duration of a TCP listener on the virtual node, controlling how long a connection may remain idle before being terminated. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="value" type="number">
+                      The numeric value of the idle timeout duration for TCP connections to the virtual node listener, which is paired with the unit field (e.g., 'ms' or 's') to set how long a connection may sit idle before being closed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="tls" type="object">
+          The TLS configuration for a listener on the virtual node, defining the certificate and mode (DISABLED, PERMISSIVE, or STRICT) for securing traffic. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="certificate" type="object">
+              Specifies the TLS certificate used by the virtual node listener to terminate TLS, either a certificate from AWS Certificate Manager (ACM) or a local file containing the certificate chain and private key. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="acm" type="object">
+                  The ACM certificate reference containing the ARN of the certificate to use for TLS termination on the virtual node listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="certificate_arn" type="string">
+                      ARN of an AWS Certificate Manager (ACM) certificate used to provide TLS certificates for the virtual node's listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="file" type="object">
+                  Specifies the local file paths for the TLS certificate chain and private key used to terminate TLS connections on the virtual node listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="certificate_chain" type="string">
+                      Specifies the path to the certificate chain file used for the TLS certificate when the certificate is provided from a file on the virtual node. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="private_key" type="string">
+                      The file path to the private key of the TLS certificate stored on the virtual node's file system, used by the listener for TLS termination. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="sds" type="object">
+                  Configures the TLS listener to use a certificate obtained from a Secret Discovery Service (SDS), specifying the secret name Envoy will reference. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="secret_name" type="string">
+                      Specifies the name of the secret retrieved from the Secrets Discovery Service (SDS) that contains the TLS certificate and private key for the virtual node's listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="mode" type="string">
+              Specifies the TLS mode for the virtual node's listener, which controls whether the listener enforces encrypted connections (ENFORCED), permits both encrypted and plaintext traffic (PERMISSIVE), or disables TLS (DISABLED). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="validation" type="object">
+              Defines the TLS certificate validation settings for the listener, specifying the trust chain (from a file or AWS Certificate Manager) and optional subject alternative names used to verify the peer certificate during TLS handshake. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="subject_alternative_names" type="object">
+                  Specifies the subject alternative names (SANs) that must match the certificate presented by the peer for TLS validation to succeed in the virtual node's TLS listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="match" type="object">
+                      The match object defines the exact or suffix matching criteria for the subject alternative names (SANs) that the virtual node's TLS listener validation will accept for peer certificates. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="exact" type="list(string)">
+                          Specifies the exact subject alternative names (SANs) that must match the certificate presented by the backend for the TLS validation to succeed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="trust" type="object">
+                  Specifies the source of trust (an AWS Certificate Manager Private Certificate Authority or a local file containing the certificate chain) used to validate the peer certificate during TLS handshakes for the virtual node's listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="file" type="object">
+                      This object defines the file-based trust configuration for TLS certificate validation, specifying the path to a file containing the trusted certificate chain in its `path` property. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="certificate_chain" type="string">
+                          The path to the certificate chain file on the file system that is used to validate the peer certificate for TLS in the virtual node listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="sds" type="object">
+                      Specifies the SDS (Secret Discovery Service) configuration used by the TLS validation trust, including the name of the secret that holds the certificate chain to validate the client. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="secret_name" type="string">
+                          The name of the secret in the Secret Discovery Service (SDS) server that provides the validation context for verifying the client certificate presented during TLS handshake on the virtual node's listener. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="logging" type="object">
+      Defines the access logging configuration for the virtual node, including the file path or format for Envoy access logs. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="access_log" type="object">
+          The access log configuration for the virtual node, specifying how Envoy access logs are recorded, such as through a file path. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="file" type="object">
+              Configuration for sending virtual node access logs to a file, specifying the destination path and optional log format. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="format" type="object">
+                  Configures the format of the access log written to the file, choosing between a structured JSON format with defined fields or a simple text format. Optional. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="json" type="list(object)">
+                      Specifies the list of key-value pairs that define the structured JSON fields for the virtual node's access log file, where each object contains a 'key' and 'value' to include in the log entry. Optional. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="key" type="string">
+                          Defines the key name in a key-value pair within the JSON-formatted access log file configuration, specifying the field label emitted in the App Mesh virtual node's access log output. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="value" type="string">
+                          The value to associate with the corresponding key in a JSON-formatted access log entry, typically an HTTP header name or a supported predefined value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="text" type="string">
+                      Specifies the text format string for the access log file, allowing you to define custom log output using variables such as %START_TIME%, %HOSTNAME%, and %REQUEST_ID% to include request metadata. Optional. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="path" type="string" required>
+                  The file path on the Envoy container where the virtual node's access logs are written. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="service_discovery" type="object">
+      Configures how the virtual node's service endpoints are discovered in App Mesh, either via AWS Cloud Map (with namespace name, service name, and optional attributes) or via DNS (with a hostname). Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="awscloud_map" type="object">
+          Defines AWS Cloud Map-based service discovery for the virtual node by specifying the Cloud Map namespace name, service name, and optional attributes used to register and discover the virtual node's endpoints. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="attributes" type="list(object)">
+              A list of key-value pairs (attributes) used to filter the AWS Cloud Map service instances that this virtual node discovers during service discovery. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="key" type="string">
+                  The attribute key that, together with the corresponding value, is used to filter AWS Cloud Map service instances for service discovery of the virtual node. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="value" type="string">
+                  Specifies the value of the key-value pair that AWS Cloud Map uses to match service instances for the virtual node's service discovery. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="ip_preference" type="string">
+              Specifies the IP version preference for AWS Cloud Map service discovery (IPv4_PREFERRED, IPv6_PREFERRED, IPv4_ONLY, or IPv6_ONLY), controlling whether the virtual node resolves service endpoints using IPv4, IPv6, or both with a preferred order. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="namespace_name" type="string" required>
+              The name of the AWS Cloud Map namespace that the virtual node uses for service discovery to locate backend service instances. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="service_name" type="string" required>
+              The name of the AWS Cloud Map service that the virtual node uses for service discovery. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="dns" type="object">
+          Specifies the DNS-based service discovery method for the virtual node, including the DNS hostname that App Mesh resolves to locate the service and an optional response type that controls whether the proxy returns endpoints or a load balancer address. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="hostname" type="string" required>
+              The fully qualified DNS hostname (e.g., my-service.namespace.svc.cluster.local) that App Mesh uses for DNS-based service discovery to resolve the virtual node's endpoints. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="ip_preference" type="string">
+              Specifies the IP version preference (IPv4 or IPv6) used when resolving the DNS hostname for service discovery, with allowed values such as IPv4_PREFERRED, IPv6_PREFERRED, IPv4_ONLY, or IPv6_ONLY. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="response_type" type="string">
+              Specifies the DNS response type for the virtual node's DNS service discovery, where `ENDPOINTS` returns the IP addresses of the virtual node's tasks and `LOAD_BALANCER` returns the DNS name of the associated load balancer. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Specifies a tag key for the AWS App Mesh virtual node, used to categorize and manage the resource in AWS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag attached to the AWS App Mesh virtual node, used for resource organization and identification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="virtual_node_name" type="string">
+  Specifies the name of the virtual node, which must be unique within the service mesh and is used to identify the virtual node in App Mesh APIs and configuration. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the virtual node, uniquely identifying it within AWS App Mesh. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="resource_owner" type="string">
+  The AWS account ID that owns this virtual node, used for access control and resource ownership tracking. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="uid" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>

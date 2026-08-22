@@ -1,0 +1,109 @@
+---
+title: "aws_waf_rule"
+description: "`aws_waf_rule` combines real match conditions, byte, IP set, size constraint, SQL injection, XSS..."
+---
+
+`aws_waf_rule` combines real match conditions, byte, IP set, size constraint, SQL injection, XSS, into a single rule that an `aws_waf_web_acl` evaluates against incoming requests, under AWS WAF Classic (global, for CloudFront). AWS WAF Classic support ended September 30, 2025, roughly eleven months in the past; AWS's current, actively developed offering is AWS WAFv2.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	waf "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/waf"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own rule"})
+
+    		ubx.Resource(waf.Rule, "ci-runner", waf.RuleConfig{
+    			MetricName: "example-metric-name",
+    			Name:       "ci-runner",
+    			Predicates: []map[string]any{{"data_id": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Rule } from "./local-sdk/aws/sdk/typescript/aws/waf/rule.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own rule" });
+
+      resource(Rule, "ci-runner", {
+        metricName: "example-metric-name",
+        name: "ci-runner",
+        predicates: [{ dataId: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.waf import Rule, RuleConfig
+
+    def describe():
+        ubx.intent("payments own rule")
+
+        ubx.resource(Rule, "ci-runner", RuleConfig(
+            metric_name="example-metric-name",
+            name="ci-runner",
+            predicates=[{"data_id": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_waf_rule called "ci-runner", with metric name
+    example-metric-name, predicates a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="metric_name" type="string" required>
+  The name of the CloudWatch metric that AWS WAF publishes for this rule, used for monitoring and setting CloudWatch alarms. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  A friendly name for the WAF rule, which must be unique within the account and is used to identify the rule when it is created and referenced by WebACLs. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="predicates" type="list(object)">
+  Specifies the set of conditions (e.g., IP matches, string matches, SQL injection match) and whether each condition is negated, which together determine the requests that this AWS WAF Classic rule will match. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="data_id" type="string">
+      The unique identifier of the AWS WAF entity (such as an IP set, byte match set, SQL injection match set, or XSS match set) that this predicate references, matching the predicate's Type. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="negated" type="bool">
+      Whether to invert the match result for this predicate, making the rule match when the specified WAF condition does NOT match. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      The type of the predicate in an AWS WAF rule, indicating which kind of match condition (such as IPMatch, ByteMatch, or SqlInjectionMatch) the rule uses to block or allow requests. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The unique identifier (RuleId) assigned by AWS WAF when the rule is created, used to reference the rule in other resources. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

@@ -1,0 +1,300 @@
+---
+title: "aws_emrserverless_application"
+description: "`aws_emrserverless_application` runs real Spark or Hive jobs with automatically provisioned and scaled compute, no `aws_emr_cluster` to size, launch..."
+---
+
+`aws_emrserverless_application` runs real Spark or Hive jobs with automatically provisioned and scaled compute, no `aws_emr_cluster` to size, launch, or terminate, EMR's serverless alternative for workloads that don't need persistent cluster infrastructure.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	emrserverless "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/emrserverless"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own application"})
+
+    		ubx.Resource(emrserverless.Application, "ci-runner", emrserverless.ApplicationConfig{
+    			ReleaseLabel:                "example",
+    			Type:                        "example",
+    			Name:                        "ci-runner",
+    			Architecture:                "example",
+    			AutoStartConfiguration:      map[string]any{"enabled": true},
+    			AutoStopConfiguration:       map[string]any{"enabled": true},
+    			IdentityCenterConfiguration: map[string]any{"identity_center_instance_arn": "example"},
+    			ImageConfiguration:          map[string]any{"image_uri": "example"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Application } from "./local-sdk/aws/sdk/typescript/aws/emrserverless/application.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own application" });
+
+      resource(Application, "ci-runner", {
+        releaseLabel: "example",
+        type: "example",
+        name: "ci-runner",
+        architecture: "example",
+        autoStartConfiguration: { enabled: true },
+        autoStopConfiguration: { enabled: true },
+        identityCenterConfiguration: { identityCenterInstanceArn: "example" },
+        imageConfiguration: { imageUri: "example" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.emrserverless import Application, ApplicationConfig
+
+    def describe():
+        ubx.intent("payments own application")
+
+        ubx.resource(Application, "ci-runner", ApplicationConfig(
+            release_label="example",
+            type="example",
+            name="ci-runner",
+            architecture="example",
+            auto_start_configuration={"enabled": True},
+            auto_stop_configuration={"enabled": True},
+            identity_center_configuration={"identity_center_instance_arn": "example"},
+            image_configuration={"image_uri": "example"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_emrserverless_application called "ci-runner", with
+    release label example, type example, architecture example, auto
+    start configuration a set value, auto stop configuration a set
+    value, identity center configuration a set value, image
+    configuration a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="architecture" type="string">
+  The cpu architecture of an application. Optional.
+</ResponseField>
+
+<ResponseField name="auto_start_configuration" type="object">
+  Configuration for Auto Start of Application Optional.
+  <Expandable title="properties">
+    <ResponseField name="enabled" type="bool">
+      If set to true, the Application will automatically start. Defaults to true. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="auto_stop_configuration" type="object">
+  Configuration for Auto Stop of Application Optional.
+  <Expandable title="properties">
+    <ResponseField name="enabled" type="bool">
+      If set to true, the Application will automatically stop after being idle. Defaults to true. Optional.
+    </ResponseField>
+    <ResponseField name="idle_timeout_minutes" type="number">
+      The amount of time [in minutes] to wait before auto stopping the Application when idle. Defaults to 15 minutes. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="identity_center_configuration" type="object">
+  The IAM IdentityCenter configuration for trusted-identity-propagation on this application. Supported with release labels emr-7.8.0 and above. Optional.
+  <Expandable title="properties">
+    <ResponseField name="identity_center_instance_arn" type="string">
+      The IAM IdentityCenter instance arn Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="image_configuration" type="object">
+  The image configuration. Optional.
+  <Expandable title="properties">
+    <ResponseField name="image_uri" type="string">
+      The URI of an image in the Amazon ECR registry. This field is required when you create a new application. If you leave this field blank in an update, Amazon EMR will remove the image configuration. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="initial_capacity" type="list(object)">
+  Configures the initial capacity for each worker type (e.g., driver, executor) of the EMR Serverless application, specifying the worker count and the CPU/memory allocated for that type. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Specifies the name of the worker type (for example, driver or executor) for which to define the initial capacity configuration in an AWS EMR Serverless application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="object">
+      Defines the initial capacity configuration for a given worker type (e.g., Driver or Executor) in the serverless application, specifying the number of workers and their CPU/memory resources via the workerCount and workerConfiguration properties. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="worker_configuration" type="object">
+          Specifies the CPU, memory, and disk configuration for workers allocated as the initial capacity of the EMR Serverless application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="cpu" type="string">
+              The number of vCPUs allocated to each worker in the initial capacity configuration of the EMR Serverless application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="disk" type="string">
+              Specifies the disk size in GB for the worker in the initial capacity configuration of the EMR Serverless application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="disk_type" type="string">
+              The disk type (e.g., SSD or HDD) for the storage attached to each worker instance in the initial capacity configuration of the EMR Serverless application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="memory" type="string">
+              Defines the memory size (in MB) allocated per worker for the initial capacity of the EMR Serverless application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="worker_count" type="number">
+          The number of workers of the specified worker type (the key in the initial capacity map) to provision for the EMR Serverless application at startup. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="interactive_configuration" type="object">
+  Configures interactive capabilities for the EMR Serverless application, including enabling the Livy endpoint and EMR Studio integration. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="livy_endpoint_enabled" type="bool">
+      Enables an Apache Livy endpoint that you can connect to and run interactive jobs Optional.
+    </ResponseField>
+    <ResponseField name="session_enabled" type="bool">
+      Enables interactive sessions on the application Optional.
+    </ResponseField>
+    <ResponseField name="studio_enabled" type="bool">
+      Enabled you to connect an Application to Amazon EMR Studio to run interactive workloads in a notebook Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="maximum_capacity" type="object">
+  The maximum capacity limits (CPU, memory, and optional disk) that the EMR Serverless application is allowed to use, defined as a MaximumAllowedResources object that caps the application's total resource usage. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="cpu" type="string" required>
+      Per worker CPU resource. vCPU is the only supported unit and specifying vCPU is optional. Required.
+    </ResponseField>
+    <ResponseField name="disk" type="string">
+      Per worker Disk resource. GB is the only supported unit and specifying GB is optional Optional.
+    </ResponseField>
+    <ResponseField name="memory" type="string" required>
+      Per worker memory resource. GB is the only supported unit and specifying GB is optional. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="monitoring_configuration" type="object">
+  Monitoring configuration for batch and interactive JobRun. Optional.
+  <Expandable title="properties">
+    <ResponseField name="cloud_watch_logging_configuration" type="any">
+      Specifies the CloudWatch Logs group, log stream name prefix, and optional encryption key ARN that the EMR Serverless application uses to deliver its runtime logs to Amazon CloudWatch. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="managed_persistence_monitoring_configuration" type="any">
+      This field specifies the managed persistence monitoring configuration, controlling whether Spark event logs are persisted and the S3 location where they are stored for the EMR Serverless application. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="prometheus_monitoring_configuration" type="any">
+      Configures the Prometheus monitoring endpoint for the EMR Serverless application by specifying the remote write URL where application metrics are sent. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="s3_monitoring_configuration" type="any">
+      This nested block configures the S3 monitoring destination for the EMR Serverless application, specifying the S3 URI (log_uri) where logs are delivered and optionally a KMS key ARN (encryption_key_arn) for encrypting the logs. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  User friendly Application name. Optional.
+</ResponseField>
+
+<ResponseField name="network_configuration" type="object">
+  Specifies the VPC subnets and security group IDs that the EMR Serverless application uses to run jobs within a private network. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="security_group_ids" type="list(string)">
+      The ID of the security groups in the VPC to which you want to connect your job or application. Optional.
+    </ResponseField>
+    <ResponseField name="subnet_ids" type="list(string)">
+      The ID of the subnets in the VPC to which you want to connect your job or application. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="release_label" type="string" required>
+  EMR release label. Required.
+</ResponseField>
+
+<ResponseField name="runtime_configuration" type="list(object)">
+  Runtime configuration for batch and interactive JobRun. Optional.
+  <Expandable title="properties">
+    <ResponseField name="classification" type="string">
+      Specifies the classification name (e.g., spark-defaults) for the runtime configuration, which defines the set of properties that apply to the EMR Serverless application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="configurations" type="list(any)">
+      Specifies a list of sub-configurations for a given runtime configuration classification, allowing nested engine-specific settings (such as Spark or Hive properties) to be applied to the EMR Serverless application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="properties" type="any">
+      Specifies a map of additional key-value pairs to apply as runtime configuration settings for the EMR Serverless application, extending the configuration defined by the parent runtime configuration's key and value fields. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="scheduler_configuration" type="object">
+  The scheduler configuration for batch and streaming jobs running on this application. Supported with release labels emr-7.0.0 and above. Optional.
+  <Expandable title="properties">
+    <ResponseField name="max_concurrent_runs" type="number">
+      The maximum concurrent job runs on this application. If scheduler configuration is enabled on your application, the default value is 15. The valid range is 1 to 1000. Optional.
+    </ResponseField>
+    <ResponseField name="queue_timeout_minutes" type="number">
+      The maximum duration in minutes for the job in QUEUED state. If scheduler configuration is enabled on your application, the default value is 360 minutes (6 hours). The valid range is from 15 to 720. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Tag map with key and value Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value component of a key-value tag applied to the EMR Serverless application, which can be any string and is used for resource metadata, filtering, and cost allocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="type" type="string" required>
+  The type of the application Required.
+</ResponseField>
+
+<ResponseField name="worker_type_specifications" type="any">
+  Defines CPU and memory specifications for each worker type (e.g., Driver or Executor) in the EMR Serverless application, allowing per-worker-type resource overrides. Optional. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="application_id" type="string">
+  The ID of the EMR Serverless Application. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the EMR Serverless Application. Computed by AWS after `ship`.
+</ResponseField>

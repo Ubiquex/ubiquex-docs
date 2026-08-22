@@ -1,0 +1,122 @@
+---
+title: "aws_event_schemas_discoverer"
+description: "`aws_event_schemas_discoverer` automatically infers real event schemas from an `aws_events_event_bus`'s own live traffic and adds them to a registry..."
+---
+
+`aws_event_schemas_discoverer` automatically infers real event schemas from an `aws_events_event_bus`'s own live traffic and adds them to a registry, so a caller doesn't have to write every event schema by hand from a sample payload.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	event "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/event"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own schemas discoverer"})
+
+    		ubx.Resource(event.SchemasDiscoverer, "ci-runner", event.SchemasDiscovererConfig{
+    			SourceArn:    "arn:aws:iam::123456789012:policy/ci",
+    			CrossAccount: true,
+    			Description:  "Managed by ubx.",
+    			Tags:         []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { SchemasDiscoverer } from "./local-sdk/aws/sdk/typescript/aws/event/schemas_discoverer.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own schemas discoverer" });
+
+      resource(SchemasDiscoverer, "ci-runner", {
+        sourceArn: "arn:aws:iam::123456789012:policy/ci",
+        crossAccount: true,
+        description: "Managed by ubx.",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.event import SchemasDiscoverer, SchemasDiscovererConfig
+
+    def describe():
+        ubx.intent("payments own schemas discoverer")
+
+        ubx.resource(SchemasDiscoverer, "ci-runner", SchemasDiscovererConfig(
+            source_arn="arn:aws:iam::123456789012:policy/ci",
+            cross_account=True,
+            description="Managed by ubx.",
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_event_schemas_discoverer, with source arn
+    arn:aws:iam::123456789012:policy/ci, cross account true,
+    description Managed by ubx., tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="cross_account" type="bool">
+  Defines whether event schemas from other accounts are discovered. Default is True. Optional.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A description for the discoverer. Optional.
+</ResponseField>
+
+<ResponseField name="source_arn" type="string" required>
+  The ARN of the event bus. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Tags associated with the resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Specifies a tag key to associate with the EventBridge Schema Discoverer, enabling you to categorize, filter, and control access to the resource via resource-level policies or cost allocation tags. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The tag value for the EventBridge Schema Discoverer, paired with a tag key to assign custom metadata such as environment, project, or cost-allocation labels to the discoverer resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="discoverer_arn" type="string">
+  The ARN of the discoverer. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="discoverer_id" type="string">
+  The Id of the discoverer. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Defines the current state of the discoverer. Computed by AWS after `ship`.
+</ResponseField>

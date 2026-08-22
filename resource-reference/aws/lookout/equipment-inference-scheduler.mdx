@@ -1,0 +1,192 @@
+---
+title: "aws_lookout_equipment_inference_scheduler"
+description: "`aws_lookout_equipment_inference_scheduler` schedules real, recurring inference runs against a trained Amazon Lookout for Equipment model..."
+---
+
+`aws_lookout_equipment_inference_scheduler` schedules real, recurring inference runs against a trained Amazon Lookout for Equipment model, feeding it fresh sensor data on a cadence and surfacing predicted anomalies. Lookout for Equipment closed to new customers on October 7, 2025, and AWS has stated it will be fully discontinued on October 7, 2026, a date roughly six weeks from now; existing customers can keep using it as normal until then, with AWS continuing security, availability, and performance investment but no new features.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	lookout "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/lookout"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own equipment inference scheduler"})
+
+    		ubx.Resource(lookout.EquipmentInferenceScheduler, "ci-runner", lookout.EquipmentInferenceSchedulerConfig{
+    			DataInputConfiguration:   map[string]any{"s3_input_configuration": map[string]any{"bucket": "example"}},
+    			DataOutputConfiguration:  map[string]any{"s3_output_configuration": map[string]any{"bucket": "example"}},
+    			DataUploadFrequency:      "example",
+    			ModelName:                "example-model-name",
+    			RoleArn:                  "arn:aws:iam::123456789012:policy/ci",
+    			DataDelayOffsetInMinutes: 1,
+    			InferenceSchedulerName:   "example-inference-scheduler-name",
+    			ServerSideKmsKeyId:       "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { EquipmentInferenceScheduler } from "./local-sdk/aws/sdk/typescript/aws/lookout/equipment_inference_scheduler.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own equipment inference scheduler" });
+
+      resource(EquipmentInferenceScheduler, "ci-runner", {
+        dataInputConfiguration: { s3InputConfiguration: { bucket: "example" } },
+        dataOutputConfiguration: { s3OutputConfiguration: { bucket: "example" } },
+        dataUploadFrequency: "example",
+        modelName: "example-model-name",
+        roleArn: "arn:aws:iam::123456789012:policy/ci",
+        dataDelayOffsetInMinutes: 1,
+        inferenceSchedulerName: "example-inference-scheduler-name",
+        serverSideKmsKeyId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.lookout import EquipmentInferenceScheduler, EquipmentInferenceSchedulerConfig
+
+    def describe():
+        ubx.intent("payments own equipment inference scheduler")
+
+        ubx.resource(EquipmentInferenceScheduler, "ci-runner", EquipmentInferenceSchedulerConfig(
+            data_input_configuration={"s3_input_configuration": {"bucket": "example"}},
+            data_output_configuration={"s3_output_configuration": {"bucket": "example"}},
+            data_upload_frequency="example",
+            model_name="example-model-name",
+            role_arn="arn:aws:iam::123456789012:policy/ci",
+            data_delay_offset_in_minutes=1,
+            inference_scheduler_name="example-inference-scheduler-name",
+            server_side_kms_key_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_lookout_equipment_inference_scheduler, with data input
+    configuration a set value, data output configuration a set value,
+    data upload frequency example, model name example-model-name,
+    role arn arn:aws:iam::123456789012:policy/ci, data delay offset
+    in minutes 1, inference scheduler name
+    example-inference-scheduler-name, server side kms key id example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="data_delay_offset_in_minutes" type="number">
+  A period of time (in minutes) by which inference on the data is delayed after the data starts. Optional.
+</ResponseField>
+
+<ResponseField name="data_input_configuration" type="object" required>
+  Specifies configuration information for the input data for the inference scheduler, including delimiter, format, and dataset location. Required.
+  <Expandable title="properties">
+    <ResponseField name="inference_input_name_configuration" type="object">
+      Specifies configuration information for the input data for the inference, including timestamp format and delimiter. Optional.
+      <Expandable title="properties">
+        <ResponseField name="component_timestamp_delimiter" type="string">
+          Indicates the delimiter character used between items in the data. Optional.
+        </ResponseField>
+        <ResponseField name="timestamp_format" type="string">
+          The format of the timestamp, whether Epoch time, or standard, with or without hyphens (-). Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="input_time_zone_offset" type="string">
+      Indicates the difference between your time zone and Greenwich Mean Time (GMT). Optional.
+    </ResponseField>
+    <ResponseField name="s3_input_configuration" type="object" required>
+      Specifies configuration information for the input data for the inference, including input data S3 location. Required.
+      <Expandable title="properties">
+        <ResponseField name="bucket" type="string" required>
+          The name of the S3 bucket that contains the sensor or equipment data used as input for the inference scheduler. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="prefix" type="string">
+          The S3 key prefix under the input bucket that identifies the sensor data files used by the inference scheduler for running model inferences. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="data_output_configuration" type="object" required>
+  Specifies configuration information for the output results for the inference scheduler, including the S3 location for the output. Required.
+  <Expandable title="properties">
+    <ResponseField name="kms_key_id" type="string">
+      The ID number for the AWS KMS key used to encrypt the inference output. Optional.
+    </ResponseField>
+    <ResponseField name="s3_output_configuration" type="object" required>
+      Specifies configuration information for the output results from the inference, including output S3 location. Required.
+      <Expandable title="properties">
+        <ResponseField name="bucket" type="string" required>
+          The name of the S3 bucket where the inference scheduler outputs its inference results and monitoring data. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="prefix" type="string">
+          The S3 key prefix (folder path) under the specified S3 bucket where the inference scheduler stores its inference output files (results). Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="data_upload_frequency" type="string" required>
+  How often data is uploaded to the source S3 bucket for the input data. Required.
+</ResponseField>
+
+<ResponseField name="inference_scheduler_name" type="string">
+  The name of the inference scheduler being created. Optional.
+</ResponseField>
+
+<ResponseField name="model_name" type="string" required>
+  The name of the previously trained ML model being used to create the inference scheduler. Required.
+</ResponseField>
+
+<ResponseField name="role_arn" type="string" required>
+  The Amazon Resource Name (ARN) of a role with permission to access the data source being used for the inference. Required.
+</ResponseField>
+
+<ResponseField name="server_side_kms_key_id" type="string">
+  Provides the identifier of the AWS KMS customer master key (CMK) used to encrypt inference scheduler data by Amazon Lookout for Equipment. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Any tags associated with the inference scheduler. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key portion of a tag attached to the inference scheduler. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value portion of a tag key-value pair that can be attached to the Lookout for Equipment inference scheduler, used for custom metadata, resource grouping, and cost allocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="inference_scheduler_arn" type="string">
+  The Amazon Resource Name (ARN) of the inference scheduler being created. Computed by AWS after `ship`.
+</ResponseField>

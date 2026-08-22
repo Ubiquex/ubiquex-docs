@@ -1,0 +1,328 @@
+---
+title: "aws_msk_replicator"
+description: "`aws_msk_replicator` creates a real, managed replication pipeline that continuously copies topics and their data between two MSK clusters..."
+---
+
+`aws_msk_replicator` creates a real, managed replication pipeline that continuously copies topics and their data between two MSK clusters, provisioned or serverless, in any combination, used to build cross-Region resilient Kafka applications with identical topic names on both sides.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only aws --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-aws/sdk/go => ./local-sdk/aws/sdk/go
+    package main
+
+    import (
+    	msk "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/msk"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own replicator"})
+
+    		ubx.Resource(msk.Replicator, "ci-runner", msk.ReplicatorConfig{
+    			KafkaClusters:           []map[string]any{{"amazon_msk_cluster": map[string]any{"msk_cluster_arn": "example"}}},
+    			ReplicationInfoList:     []map[string]any{{"consumer_group_replication": map[string]any{"consumer_group_offset_sync_mode": "example"}}},
+    			ReplicatorName:          "example-replicator-name",
+    			ServiceExecutionRoleArn: "arn:aws:iam::123456789012:policy/ci",
+    			Description:             "Managed by ubx.",
+    			LogDelivery:             map[string]any{"replicator_log_delivery": map[string]any{"cloud_watch_logs": map[string]any{"enabled": true}}},
+    			Tags:                    []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only aws --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Replicator } from "./local-sdk/aws/sdk/typescript/aws/msk/replicator.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own replicator" });
+
+      resource(Replicator, "ci-runner", {
+        kafkaClusters: [{ amazonMskCluster: { mskClusterArn: "example" } }],
+        replicationInfoList: [{
+          consumerGroupReplication: { consumerGroupOffsetSyncMode: "example" },
+        }],
+        replicatorName: "example-replicator-name",
+        serviceExecutionRoleArn: "arn:aws:iam::123456789012:policy/ci",
+        description: "Managed by ubx.",
+        logDelivery: {
+          replicatorLogDelivery: { cloudWatchLogs: { enabled: true } },
+        },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only aws --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/aws/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.aws.msk import Replicator, ReplicatorConfig
+
+    def describe():
+        ubx.intent("payments own replicator")
+
+        ubx.resource(Replicator, "ci-runner", ReplicatorConfig(
+            kafka_clusters=[{"amazon_msk_cluster": {"msk_cluster_arn": "example"}}],
+            replication_info_list=[{"consumer_group_replication": {"consumer_group_offset_sync_mode": "example"}}],
+            replicator_name="example-replicator-name",
+            service_execution_role_arn="arn:aws:iam::123456789012:policy/ci",
+            description="Managed by ubx.",
+            log_delivery={"replicator_log_delivery": {"cloud_watch_logs": {"enabled": True}}},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_msk_replicator, with kafka clusters a set value,
+    replication info list a set value, replicator name
+    example-replicator-name, service execution role arn
+    arn:aws:iam::123456789012:policy/ci, description Managed by ubx.,
+    log delivery a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="description" type="string">
+  A summary description of the replicator. Optional.
+</ResponseField>
+
+<ResponseField name="kafka_clusters" type="list(object)" required>
+  Specifies a list of Kafka clusters which are targets of the replicator. Required.
+  <Expandable title="properties">
+    <ResponseField name="amazon_msk_cluster" type="object">
+      Defines the Amazon MSK cluster details (containing the MSK cluster ARN) for a source or destination Kafka cluster in the replicator. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="msk_cluster_arn" type="string">
+          The ARN of an Amazon MSK cluster that is included in the replicator's set of Kafka clusters, serving as a source or target for replication. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="apache_kafka_cluster" type="object">
+      Configuration for a self-managed Apache Kafka cluster used as a source or target in the MSK replicator, specifying the bootstrap broker string and VPC settings for network connectivity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="apache_kafka_cluster_id" type="string">
+          A unique user-supplied string that identifies the self-managed Apache Kafka cluster so the MSK replicator can reference it in the replication info. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="bootstrap_broker_string" type="string">
+          The bootstrap broker string (comma-separated list of host:port pairs) of the self-managed Apache Kafka cluster used as a source or target for replication. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="client_authentication" type="object">
+      The client_authentication property specifies the authentication mechanism (such as IAM, TLS, or SASL/SCRAM) used by the replicator to securely connect to this Kafka cluster during replication. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="mtls" type="object">
+          Optional; if omitted, computed by AWS.
+          <Expandable title="properties">
+            <ResponseField name="secret_arn" type="string">
+              The ARN of the AWS Secrets Manager secret containing the client certificate and private key used for mutual TLS authentication when connecting to this Kafka cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="sasl_scram" type="object">
+          Specifies SASL/SCRAM authentication settings for the associated Kafka cluster, including an 'Enabled' flag that determines whether the replicator uses SASL/SCRAM authentication when connecting to the cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="mechanism" type="string">
+              Specifies the SASL/SCRAM authentication mechanism (e.g., SCRAM-SHA-512) used by the replicator to connect to the Kafka cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="secret_arn" type="string">
+              The ARN of the AWS Secrets Manager secret that stores the SASL/SCRAM credentials used to authenticate to the Kafka cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="encryption_in_transit" type="object">
+      Configures encryption-in-transit settings for the connection to this Kafka cluster, specifying whether TLS is used (e.g., TLS or PLAINTEXT). Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="encryption_type" type="string">
+          Sets the encryption-in-transit type (either 'TLS' or 'PLAINTEXT') that the MSK replicator uses when communicating with this Kafka cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="root_ca_certificate" type="string">
+          The root CA certificate (in PEM format) used to validate the Kafka broker's certificate when establishing an encrypted TLS connection to the source or target Kafka cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="vpc_config" type="object">
+      Specifies the VPC configuration for the Kafka cluster, including the subnets and security groups used for network access to the cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="security_group_ids" type="list(string)">
+          Specifies the security groups that the MSK replicator uses to access the Kafka cluster in its VPC. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="subnet_ids" type="list(string)">
+          Specifies the list of subnet IDs in the VPC where the Kafka cluster's network interfaces are deployed for the replicator to communicate with the cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="log_delivery" type="object">
+  Configuration for log delivery for the replicator. Optional.
+  <Expandable title="properties">
+    <ResponseField name="replicator_log_delivery" type="object">
+      Details of the log delivery for the replicator. Optional.
+      <Expandable title="properties">
+        <ResponseField name="cloud_watch_logs" type="object">
+          Details about delivering logs to CloudWatch Logs. Optional.
+          <Expandable title="properties">
+            <ResponseField name="enabled" type="bool" required>
+              Whether log delivery to CloudWatch Logs is enabled. Required.
+            </ResponseField>
+            <ResponseField name="log_group" type="string">
+              The CloudWatch log group that is the destination for log delivery. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="firehose" type="object">
+          Details about delivering logs to Firehose. Optional.
+          <Expandable title="properties">
+            <ResponseField name="delivery_stream" type="string">
+              The Firehose delivery stream that is the destination for log delivery. Optional.
+            </ResponseField>
+            <ResponseField name="enabled" type="bool" required>
+              Whether log delivery to Firehose is enabled. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="s3" type="object">
+          Details about delivering logs to S3. Optional.
+          <Expandable title="properties">
+            <ResponseField name="bucket" type="string">
+              The S3 bucket that is the destination for log delivery. Optional.
+            </ResponseField>
+            <ResponseField name="enabled" type="bool" required>
+              Whether log delivery to S3 is enabled. Required.
+            </ResponseField>
+            <ResponseField name="prefix" type="string">
+              The S3 prefix that is the destination for log delivery. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="replication_info_list" type="list(object)" required>
+  A list of replication configurations, where each configuration targets a given source cluster to target cluster replication flow. Required.
+  <Expandable title="properties">
+    <ResponseField name="consumer_group_replication" type="object">
+      Defines the configuration for replicating consumer groups between the source and target Kafka clusters, including the list of consumer group names to replicate and whether to synchronize their offsets. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="consumer_group_offset_sync_mode" type="string">
+          Determines how consumer group offsets are synchronized from the source Kafka cluster to the target Kafka cluster during replication. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="consumer_groups_to_exclude" type="list(string)">
+          The list of consumer group names to exclude from being replicated by the MSK Replicator for this replication pair, meaning their offsets will not be copied between clusters. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="consumer_groups_to_replicate" type="list(string)">
+          A list of consumer group names whose offsets will be replicated from the source Kafka cluster to the target cluster as part of the MSK Replicator's consumer group replication. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="detect_and_copy_new_consumer_groups" type="bool">
+          Indicates whether to automatically detect and replicate newly created consumer groups to the target cluster during ongoing replication. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="synchronise_consumer_group_offsets" type="bool">
+          Specifies whether to periodically synchronize consumer group offsets from the source Kafka cluster to the target cluster, ensuring that consumer group positions are kept in sync for failover or migration scenarios. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="source_kafka_cluster_arn" type="string">
+      The ARN of the source Kafka cluster from which the replicator replicates data, specified within each replication info entry. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="source_kafka_cluster_id" type="string">
+      The identifier of the source Apache Kafka cluster from which data is replicated within a replication configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="target_compression_type" type="string">
+      Defines the compression type (e.g., NONE, GZIP, SNAPPY, LZ4, ZSTD) applied to the topic data as it is replicated from the source cluster to the target cluster in the MSK Replicator. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="target_kafka_cluster_arn" type="string">
+      In each replication info entry, the ARN of the target Kafka cluster to which the replicator replicates data. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="target_kafka_cluster_id" type="string">
+      The identifier (typically the ARN) of the target Kafka cluster that this replication entry replicates topics and consumer group data to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="topic_replication" type="object">
+      Specifies the topic replication configuration for a given replication pair, including which topics to replicate, the starting position for reading records, and how topic names are handled. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="copy_access_control_lists_for_topics" type="bool">
+          Whether to copy access control lists (ACLs) for topics from the source cluster to the target cluster in the MSK replicator. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="copy_topic_configurations" type="bool">
+          Indicates whether topic configurations (such as topic-level settings) are copied from the source cluster to the target cluster during replication. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="detect_and_copy_new_topics" type="bool">
+          When enabled, the replicator automatically detects newly created topics in the source cluster and begins replicating them to the target cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="starting_position" type="object">
+          Specifies where the replicator starts reading topics from in the source cluster, using either the latest or earliest offset to determine the initial synchronization point. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="type" type="string">
+              Determines whether topic replication starts from the latest offset (LATEST) or the earliest available offset (EARLIEST) in the source cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="topic_name_configuration" type="object">
+          Specifies the configuration for how replicated topic names are derived, such as using the same name or prefixing with the source alias. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="type" type="string">
+              Specifies whether replicated topic names are kept identical to the source topics (SAME_AS_SOURCE) or prefixed with the replication prefix (PREFIXED_WITH_SOURCE). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="topics_to_exclude" type="list(string)">
+          Specifies the list of Kafka topic names that are excluded from replication, meaning these topics will not be replicated to the destination cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="topics_to_replicate" type="list(string)">
+          A list of Kafka topic names to replicate from the source cluster to the target cluster. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="replicator_name" type="string" required>
+  The name of the replicator. Required.
+</ResponseField>
+
+<ResponseField name="service_execution_role_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the IAM role used by the replicator to access external resources. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A collection of tags associated with a resource Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="current_version" type="string">
+  The current version of the MSK replicator. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="replicator_arn" type="string">
+  Amazon Resource Name for the created replicator. Computed by AWS after `ship`.
+</ResponseField>
