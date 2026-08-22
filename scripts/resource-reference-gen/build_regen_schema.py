@@ -58,6 +58,80 @@ def gcp_corrected_local(raw_local, api_name):
     return raw_local
 
 
+def _collapse_first_adjacent_repeat(tokens):
+    """Finds the leftmost, longest run of tokens that repeats
+    immediately after itself (tokens[i:i+N] == tokens[i+N:i+2N]) and
+    collapses it to a single occurrence, leaving everything before and
+    after untouched. Returns (new_tokens, changed).
+
+    Same root cause as GCP's gcp_corrected_key/gcp_corrected_local
+    (ubx-provider-dynamic's own typeName synthesis doubles a name
+    segment when a declared family/config key duplicates the real API
+    name), found here in a live audit after the founder caught two live
+    URLs showing it (azure_azure_kusto_kusto_cluster_principal_
+    assignment, azure_analysisservices_analysisservices_analysis_
+    services_server) -- Azure never got GCP's correction applied.
+    Unlike GCP, the doubling isn't confined to a fixed "prefix+prefix+"
+    shape: it shows up in 54 DECLARED FAMILY NAMES (azure_dns_dns,
+    azure_paloaltonetworks_paloaltonetworks_cloudngfw, ...) *and*, found
+    only by scanning every wire/localName in the full corpus rather than
+    trusting the visually-scanned family list, in 5 more families where
+    only one specific resource's own trailing segment happens to
+    coincide with its family's own trailing token (azure_hdinsight_
+    cluster_cluster -> the family's own "cluster" root resource,
+    azure_synapse_workspace_workspace, and 3 others) -- a real,
+    adjacent-token exact match is the only thing this function looks
+    for, so it does not false-fire on same-looking-but-different words
+    (digitaltwins_digital_twins_description is left untouched: "digital"
+    != "digitaltwins")."""
+    n = len(tokens)
+    for i in range(n):
+        max_block = (n - i) // 2
+        for size in range(max_block, 0, -1):
+            if tokens[i:i + size] == tokens[i + size:i + 2 * size]:
+                return tokens[:i] + tokens[i:i + size] + tokens[i + 2 * size:], True
+    return tokens, False
+
+
+def azure_corrected_wire(raw_wire):
+    """Returns (corrected_wire, changed). See
+    _collapse_first_adjacent_repeat's own docstring for the general
+    rule; azure_azure_kusto_kusto is a confirmed one-off on top of it
+    (the only one of 287 declared families with this shape) -- its real
+    spec-repo folder is literally named "azure-kusto" (see .ubx/config's
+    own schema_url), so the declared family name carries an extra,
+    spurious leading "azure" token that is NOT the real API name (the
+    real Azure Resource Manager namespace is plain Microsoft.Kusto --
+    confirmed because localName never carries an "azure" token at all,
+    only ever "kusto_kusto_..."), stripped here before the general
+    collapse runs so the result reads azure_kusto_... rather than
+    azure_azure_kusto_...."""
+    assert raw_wire.startswith("azure_")
+    tokens = raw_wire[len("azure_"):].split("_")
+    changed = False
+    if tokens[:1] == ["azure"]:
+        tokens = tokens[1:]
+        changed = True
+    tokens, collapsed = _collapse_first_adjacent_repeat(tokens)
+    return "azure_" + "_".join(tokens), changed or collapsed
+
+
+def azure_corrected_local(raw_local):
+    tokens, changed = _collapse_first_adjacent_repeat(raw_local.split("_"))
+    return "_".join(tokens), changed
+
+
+def azure_corrected_service(raw_service, family):
+    # the one real, confirmed service-field bug alongside the wire/local
+    # doubling: azure_azure_kusto_kusto's own dump-ir "service" field
+    # reads "azure" (the spurious leading token explained above), not
+    # the real "kusto" -- every one of the other 61 affected families'
+    # own "service" field was already correct and is left untouched.
+    if family == "azure_azure_kusto_kusto" and raw_service == "azure":
+        return "kusto"
+    return raw_service
+
+
 def inject_description(fields, wire, desc_by_key):
     """Walks fields (a real []ir.Field list, possibly nested via
     Type.Object/Type.Element.Object) and fills any field whose own

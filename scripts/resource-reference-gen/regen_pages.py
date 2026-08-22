@@ -38,7 +38,10 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_regen_schema import gcp_corrected_key, gcp_corrected_local, inject_description
+from build_regen_schema import (
+    gcp_corrected_key, gcp_corrected_local, inject_description,
+    azure_corrected_wire, azure_corrected_local, azure_corrected_service,
+)
 from extract_idents import scan_go, scan_py, scan_ts
 import gen_provider_docs
 from gen_provider_docs import generate_richer_provider
@@ -65,6 +68,26 @@ def main():
     # instead be {wire: {"text": ...}} depending on which Phase C batch
     # wrote them -- normalize once here rather than at every call site.
     intros = {k: (v if isinstance(v, str) else v.get("text", v.get("intro"))) for k, v in intros_raw.items()}
+
+    # Azure's intros.json/descriptions.json were authored entirely
+    # against the RAW (uncorrected) wire -- Azure never had a doubling
+    # correction before this session, so real_intro_for's own lookup
+    # (called deep inside generate_richer_provider, keyed by the
+    # CORRECTED wire the schema dict now carries) would silently miss
+    # every one of the ~282 wires this session's azure_corrected_wire
+    # actually changes, falling back to the boilerplate intro. Alias the
+    # raw entry onto its corrected key too, for exactly those wires --
+    # inject_description (called locally, below) is fixed the same way
+    # by injecting under the raw wire directly rather than aliasing.
+    if provider == "azure":
+        aliased = 0
+        for raw_wire in list(intros.keys()):
+            corrected_wire, changed = azure_corrected_wire(raw_wire)
+            if changed and corrected_wire not in intros:
+                intros[corrected_wire] = intros[raw_wire]
+                aliased += 1
+        print(f"aliased {aliased} azure intros from raw to corrected wire")
+
     intros_by_provider = {provider: intros}
     print(f"loaded {len(intros)} real intros for {provider}")
 
@@ -88,6 +111,7 @@ def main():
     wire_to_page = {}
     skipped_no_sdk = []
     per_family_counts = {}
+    renamed_wires = []
 
     for i, family in enumerate(families, 1):
         schema_path = os.path.join(dump_dir, family, "schema.json")
@@ -104,11 +128,24 @@ def main():
             if provider == "gcp":
                 wire = gcp_corrected_key(raw_wire, api_name)
                 local = gcp_corrected_local(rec["localName"], api_name)
+                service = rec["service"]
+                # GCP's descriptions.json was already authored against
+                # the corrected key (an established Phase B rule), so
+                # injection uses the corrected wire, same as before.
+                inject_description(fields, wire, desc_by_key)
             else:
-                wire = raw_wire
-                local = rec["localName"]
-            inject_description(fields, wire, desc_by_key)
-            corrected[wire] = {"service": rec["service"], "localName": local, "ir": {"Fields": fields}}
+                wire, wire_changed = azure_corrected_wire(raw_wire)
+                local, local_changed = azure_corrected_local(rec["localName"])
+                service = azure_corrected_service(rec["service"], family)
+                if wire_changed or local_changed:
+                    renamed_wires.append((raw_wire, wire))
+                # Azure's descriptions.json was authored against the RAW
+                # wire (no correction existed before this session) --
+                # inject under raw_wire here, matching that, rather than
+                # under the newly-corrected wire (which would silently
+                # miss every changed entry).
+                inject_description(fields, raw_wire, desc_by_key)
+            corrected[wire] = {"service": service, "localName": local, "ir": {"Fields": fields}}
             wire_to_raw[wire] = raw_wire
 
         family_schema_path = os.path.join(SCRATCH_DIR, f"{family}.schema.json")
@@ -174,9 +211,14 @@ def main():
     print(f"\n{provider}: {total_resources} resource pages written across {len(total_services)} service dirs")
     if skipped_no_sdk:
         print(f"{provider}: {len(skipped_no_sdk)} families skipped entirely: {skipped_no_sdk}")
+    if renamed_wires:
+        print(f"{provider}: {len(renamed_wires)} wire/local names corrected for doubling")
 
     json.dump(
-        {"wire_to_page": wire_to_page, "per_family_counts": per_family_counts, "skipped": skipped_no_sdk},
+        {
+            "wire_to_page": wire_to_page, "per_family_counts": per_family_counts,
+            "skipped": skipped_no_sdk, "renamed_wires": renamed_wires,
+        },
         open(os.path.join(SCRATCH_DIR, f"{provider}_regen_result.json"), "w"),
         indent=2,
     )
