@@ -184,3 +184,44 @@ block NOT contained by a scroll wrapper, is not.
   genuinely long AWS field/service names, e.g. `secretsmanager`,
   `ApplicationFailureFeedbackRoleArn`). Tracked separately as UBI-150,
   not blocking rollout.
+
+## UBI-175 Phase B: gap-fill description dictionaries
+
+Real, tracked tooling for filling `artifacts/<provider>/descriptions.json`'s
+own gap -- fields Phase A's schema mirror found no vendor description for
+at all. Two pieces:
+
+- **`common_gcp_fields.py` / `common_azure_fields.py`**: live-verified
+  (`google.aip.dev`'s own AIP-122/132/148/154/155/216/217, `learn.microsoft.com`'s
+  own ARM docs) dictionaries of field descriptions keyed by leaf field name
+  (a dotted path's last segment) -- both providers' schemas repeat the SAME
+  real, standardized vocabulary thousands of times over (Google's AIP
+  conventions; Azure's ARM resource envelope, plus the Microsoft.Network
+  resource provider's own deeply cross-referential object graph, the same
+  pathology already `describe_exclude`'d once for `azure_network_virtualnetwork`).
+  `FAMILY_LEAF`/`ARM_NETWORK` hold per-family dictionaries for the
+  single largest, most repetitive families (GCP's aiplatform/dlp/dialogflow/
+  bigquery/run; Azure's shared Network vocabulary) -- extend these, not the
+  cross-provider dicts, when a specific family's own remaining fields share
+  a real, recurring concept the shared dict doesn't cover.
+- **`gap_fill_apply.py`**: applies a provider's own dictionary against a
+  real `ubx sdk gen --list-undescribed` gap dump (see the script's own
+  docstring for the exact prerequisite command), producing one merge-ready
+  batch file per family, source tagged `ai-dictionary`. Never invents
+  text -- a field whose leaf name isn't in the dictionary is reported as
+  needing individual authorship (`ai-individual`, written by hand, two-
+  search minimum against the real API's own reference docs, same
+  discipline as the AWS intros), not guessed at.
+- **`gap_fill_merge.py`**: merges a batch (from `gap_fill_apply.py` or
+  hand-authored) into `artifacts/<provider>/descriptions.json`, skipping
+  (never overwriting) any key already present.
+
+`source=ai-dictionary` and `source=ai-individual` are real, different
+provenance -- a dictionary entry is grounded in the concept's own
+documented, stable meaning but applied mechanically wherever the field
+name matches, without per-occurrence verification that the specific
+nested context agrees; an individual entry was verified against that
+exact field's own real context. Kept as separate `source` values (not
+folded into one `ai`) so a future reviewer can tell which is which.
+See each provider's own `manifest.json` `last_migration` note for the
+real, current per-family remainder.
