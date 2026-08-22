@@ -1,0 +1,489 @@
+---
+title: "google_vmmigration_cutover_job"
+description: "`google_vmmigration_cutover_job` is a real VM Migration cutover job: it shuts down the source VM, performs a final data sync..."
+---
+
+`google_vmmigration_cutover_job` is a real VM Migration cutover job: it shuts down the source VM, performs a final data sync, and instantiates the migrated VM in Google Cloud, completing the migration.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only google_vmmigration --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_vmmigration/sdk/go
+    package main
+
+    import (
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    	vmmigration "github.com/ubiquex/ubx-sdk-google/sdk/go/google_vmmigration/vmmigration"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own cutover job"})
+
+    		ubx.Resource(vmmigration.VmmigrationCutoverJob, "ci-runner", vmmigration.VmmigrationCutoverJobConfig{
+    			Name: "ci-runner",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only google_vmmigration --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { VmmigrationCutoverJob } from "./local-sdk/google_vmmigration/sdk/typescript/google_vmmigration/vmmigration/vmmigration_cutover_job.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own cutover job" });
+
+      resource(VmmigrationCutoverJob, "ci-runner", {
+        name: "ci-runner",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only google_vmmigration --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_vmmigration/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.google_vmmigration.vmmigration import VmmigrationCutoverJob, VmmigrationCutoverJobConfig
+
+    def describe():
+        ubx.intent("payments own cutover job")
+
+        ubx.resource(VmmigrationCutoverJob, "ci-runner", VmmigrationCutoverJobConfig(
+            name="ci-runner",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create google_vmmigration_cutover_job called "ci-runner", with .
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="compute_engine_disks_target_details" type="object">
+  ComputeEngineDisksTargetDetails is a collection of created Persistent Disks details. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="disks" type="list(object)">
+      The details of each created Persistent Disk. Optional.
+      <Expandable title="properties">
+        <ResponseField name="disk_uri" type="string">
+          The real Compute Engine resource URI of one disk involved in this migration job. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="source_disk_number" type="number">
+          The real, source-side index identifying which of the source VM's own disks a target disk or job status corresponds to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="disks_target_details" type="any">
+      Details for a disks-only migration. Optional.
+    </ResponseField>
+    <ResponseField name="vm_target_details" type="object">
+      Details for the VM created VM as part of disks migration. Optional.
+      <Expandable title="properties">
+        <ResponseField name="vm_uri" type="string">
+          Output only. The URI of the Compute Engine VM. Computed by Google Cloud after `ship`.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="compute_engine_target_details" type="object">
+  ComputeEngineTargetDetails is a collection of details for creating a VM in a target Compute Engine project. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="adaptation_modifiers" type="list(object)">
+      Optional. Modifiers to be used as configuration of the OS adaptation process. Optional.
+      <Expandable title="properties">
+        <ResponseField name="modifier" type="string">
+          A real, single OS-adaptation adjustment (paired with an `operator`) applied during migration for a specific detected guest-OS condition. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value" type="string">
+          The real value of this key/value adaptation modifier or node affinity entry. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="additional_licenses" type="list(string)">
+      Additional licenses to assign to the VM. Optional.
+    </ResponseField>
+    <ResponseField name="applied_license" type="object">
+      AppliedLicense holds the license data returned by adaptation module report. Optional.
+      <Expandable title="properties">
+        <ResponseField name="os_license" type="string">
+          The OS license returned from the adaptation module's report. Optional.
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          The license type that was used in OS adaptation. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="boot_conversion" type="string">
+      Optional. By default the virtual machine will keep its existing boot option. Setting this property will trigger an internal process which will convert the virtual machine from using the existing boot option to another. Optional.
+    </ResponseField>
+    <ResponseField name="boot_option" type="string">
+      The VM Boot Option, as set in the source VM. Optional.
+    </ResponseField>
+    <ResponseField name="compute_scheduling" type="object">
+      Scheduling information for VM on maintenance/restart behaviour and node allocation in sole tenant nodes. Options for instance behavior when the host machine undergoes maintenance that may temporarily impact instance performance. Optional.
+      <Expandable title="properties">
+        <ResponseField name="min_node_cpus" type="number">
+          The minimum number of virtual CPUs this instance will consume when running on a sole-tenant node. Ignored if no node_affinites are configured. Optional.
+        </ResponseField>
+        <ResponseField name="node_affinities" type="list(object)">
+          A set of node affinity and anti-affinity configurations for sole tenant nodes. Optional.
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The real Compute Engine node affinity label key this scheduling rule matches against. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="operator" type="string">
+              The real comparison or matching rule an `adaptation_modifiers` entry's own `modifier` is applied under. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="values" type="list(string)">
+              The real, allowed label value(s) this node affinity rule matches against its own `key`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="on_host_maintenance" type="string">
+          How the instance should behave when the host machine undergoes maintenance that may temporarily impact instance performance. Optional.
+        </ResponseField>
+        <ResponseField name="restart_type" type="string">
+          Whether the Instance should be automatically restarted whenever it is terminated by Compute Engine (not terminated by user). This configuration is identical to `automaticRestart` field in Compute Engine create instance under scheduling. It was changed to an enum (instead of a boolean) to match the default value in Compute Engine which is automatic restart. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="disk_replica_zones" type="list(string)">
+      Optional. Additional replica zones of the target regional disks. If this list is not empty a regional disk will be created. The first supported zone would be the one stated in the zone field. The rest are taken from this list. Please refer to the [regional disk creation API](https://cloud.google.com/compute/docs/regions-zones/global-regional-zonal-resources) for further details about regional vs zonal disks. If not specified, a zonal disk will be created in the same zone the VM is created. Optional.
+    </ResponseField>
+    <ResponseField name="disk_type" type="string">
+      The disk type to use in the VM. Optional.
+    </ResponseField>
+    <ResponseField name="enable_integrity_monitoring" type="bool">
+      Optional. Defines whether the instance has integrity monitoring enabled. Optional.
+    </ResponseField>
+    <ResponseField name="enable_vtpm" type="bool">
+      Optional. Defines whether the instance has vTPM enabled. Optional.
+    </ResponseField>
+    <ResponseField name="encryption" type="object">
+      Encryption message describes the details of the applied encryption. Optional.
+      <Expandable title="properties">
+        <ResponseField name="kms_key" type="string">
+          Required. The name of the encryption key that is stored in Google Cloud KMS. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="hostname" type="string">
+      The hostname to assign to the VM. Optional.
+    </ResponseField>
+    <ResponseField name="labels" type="map(string)">
+      A map of labels to associate with the VM. Optional.
+    </ResponseField>
+    <ResponseField name="license_type" type="string">
+      The license type to use in OS adaptation. Optional.
+    </ResponseField>
+    <ResponseField name="machine_type" type="string">
+      The machine type to create the VM with. Optional.
+    </ResponseField>
+    <ResponseField name="machine_type_series" type="string">
+      The machine type series to create the VM with. Optional.
+    </ResponseField>
+    <ResponseField name="metadata" type="map(string)">
+      The metadata key/value pairs to assign to the VM. Optional.
+    </ResponseField>
+    <ResponseField name="network_interfaces" type="list(object)">
+      List of NICs connected to this VM. Optional.
+      <Expandable title="properties">
+        <ResponseField name="external_ip" type="string">
+          The real external (public) IP address configuration for a migrated VM's network interface. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="internal_ip" type="string">
+          The real internal (private) IP address configuration for a migrated VM's network interface. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="network" type="string">
+          The VPC network this resource is attached to, in the form `projects/&#123;project&#125;/global/networks/&#123;network&#125;`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="network_tier" type="string">
+          The real Google Cloud network service tier (`PREMIUM` or `STANDARD`) assigned to a migrated VM's network interface. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="subnetwork" type="string">
+          The VPC subnetwork this resource is attached to, in the form `projects/&#123;project&#125;/regions/&#123;region&#125;/subnetworks/&#123;subnetwork&#125;`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="network_tags" type="list(string)">
+      A list of network tags to associate with the VM. Optional.
+    </ResponseField>
+    <ResponseField name="project" type="string">
+      The Google Cloud target project ID or project name. Optional.
+    </ResponseField>
+    <ResponseField name="secure_boot" type="bool">
+      Defines whether the instance has Secure Boot enabled. This can be set to true only if the VM boot option is EFI. Optional.
+    </ResponseField>
+    <ResponseField name="service_account" type="string">
+      The service account to associate the VM with. Optional.
+    </ResponseField>
+    <ResponseField name="storage_pool" type="string">
+      Optional. The storage pool used for the VM disks. If specified this will be the storage pool in which the disk is created. This is the full path of the storage pool resource, for example: "projects/my-project/zones/us-central1-a/storagePools/my-storage-pool". The storage pool must be in the same project and zone as the target disks. The storage pool's type must match the disk type. Optional.
+    </ResponseField>
+    <ResponseField name="vm_name" type="string">
+      The name of the VM to create. Optional.
+    </ResponseField>
+    <ResponseField name="zone" type="string">
+      The zone in which to create the VM. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="create_time" type="string">
+  Output only. The time the cutover job was created (as an API call, not when it was actually created in the target). Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="end_time" type="string">
+  Output only. The time the cutover job had finished. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="error" type="object">
+  The `Status` type defines a logical error model that is suitable for different programming environments, including REST APIs and RPC APIs. It is used by [gRPC](https://github.com/grpc). Each `Status` message contains three pieces of data: error code, error message, and error details. You can find out more about this error model and how to work with it in the [API Design Guide](https://cloud.google.com/apis/design/errors). Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="code" type="number">
+      The status code, which should be an enum value of google.rpc.Code. Optional.
+    </ResponseField>
+    <ResponseField name="details" type="list(map(any))">
+      A list of messages that carry the error details. There is a common set of message types for APIs to use. Optional.
+    </ResponseField>
+    <ResponseField name="message" type="string">
+      A developer-facing error message, which should be in English. Any user-facing error message should be localized and sent in the google.rpc.Status.details field, or localized by the client. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Output only. The name of the cutover job. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="progress_percent" type="number">
+  Output only. The current progress in percentage of the cutover job. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Output only. State of the cutover job. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="state_message" type="string">
+  Output only. A message providing possible extra details about the current state. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="state_time" type="string">
+  Output only. The time the state was last updated. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="steps" type="list(object)">
+  Output only. The cutover steps list representing its progress. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="end_time" type="string">
+      The real timestamp when this migration step or cycle finished, successfully or not. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="final_sync" type="object">
+      Real, detailed progress for VM Migration's own final-sync step, the last data sync performed immediately before cutover. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="cycle_number" type="number">
+          The real, sequential number of the current replication cycle for this migrating VM, incrementing each time a new sync cycle starts. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="end_time" type="string">
+          The real timestamp when this migration step or cycle finished, successfully or not. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="error" type="object">
+          The real error, if any, that caused this migration step or job to fail. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="code" type="number">
+              The `google.rpc.Code` enum value identifying this error's real category, following the same status-code semantics gRPC and most Google APIs share. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="details" type="list(map(any))">
+              Real, structured detail data attached to a migration error, giving more specific context than its own `message` alone. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="message" type="string">
+              A real, human-readable status or error message for this migration step. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The real, target-side name given to this migration step, sync, or final-sync entry. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="progress_percent" type="number">
+          Output only. The real, measured completion percentage (0-100) of the current migration step. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="start_time" type="string">
+          The real timestamp when this migration step or cycle started. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="state" type="string">
+          The real, current state of this migration job, step, or resource. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="steps" type="list(object)">
+          The real, ordered sequence of steps (such as `initializing_replication`, `replicating`, `post_processing`) this migration cycle progresses through. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+          <Expandable title="properties">
+            <Note>`steps` recurs here (its own type contains itself); see the `steps` field's own properties above for the repeating pattern.</Note>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="total_pause_duration" type="string">
+          The real total time this migration job has spent paused, across every pause since it started. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="warnings" type="list(object)">
+          Real, non-fatal warnings raised during this migration job, each with its own `warning_message`, severity, and `action_item`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="action_item" type="object">
+              Real, recommended remediation steps for a migration warning or error, telling the operator what to do about it. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="locale" type="string">
+                  The real, detected or configured locale (language and region) of the source VM's own guest operating system. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="message" type="string">
+                  A real, human-readable status or error message for this migration step. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="code" type="string">
+              The `google.rpc.Code` enum value identifying this error's real category, following the same status-code semantics gRPC and most Google APIs share. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="help_links" type="list(object)">
+              Real documentation links attached to a migration warning or error, pointing to more detail on the issue and how to resolve it. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="description" type="string">
+                  A human-readable explanation of this schema's own meaning and intended use. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="url" type="string">
+                  A real URL pointing to more information about this migration warning or error. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="warning_message" type="object">
+              The real, human-readable text of one migration warning. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="locale" type="string">
+                  The real, detected or configured locale (language and region) of the source VM's own guest operating system. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="message" type="string">
+                  A real, human-readable status or error message for this migration step. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="warning_time" type="string">
+              The real timestamp when this migration warning was raised. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="instantiating_migrated_vm" type="any">
+      Real, detailed progress for VM Migration's own step creating the actual Compute Engine VM instance from the migrated disks. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="preparing_vm_disks" type="any">
+      Real, detailed progress for VM Migration's own step preparing the migrated VM's disks in Google Cloud ahead of instantiation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="previous_replication_cycle" type="object">
+      The real, previous replication cycle for this migrating VM, kept for reference alongside the current one. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="cycle_number" type="number">
+          The real, sequential number of the current replication cycle for this migrating VM, incrementing each time a new sync cycle starts. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="end_time" type="string">
+          The real timestamp when this migration step or cycle finished, successfully or not. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="error" type="object">
+          The real error, if any, that caused this migration step or job to fail. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="code" type="number">
+              The `google.rpc.Code` enum value identifying this error's real category, following the same status-code semantics gRPC and most Google APIs share. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="details" type="list(map(any))">
+              Real, structured detail data attached to a migration error, giving more specific context than its own `message` alone. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="message" type="string">
+              A real, human-readable status or error message for this migration step. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          The real, target-side name given to this migration step, sync, or final-sync entry. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="progress_percent" type="number">
+          Output only. The real, measured completion percentage (0-100) of the current migration step. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="start_time" type="string">
+          The real timestamp when this migration step or cycle started. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="state" type="string">
+          The real, current state of this migration job, step, or resource. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="steps" type="list(object)">
+          The real, ordered sequence of steps (such as `initializing_replication`, `replicating`, `post_processing`) this migration cycle progresses through. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+          <Expandable title="properties">
+            <Note>`steps` recurs here (its own type contains itself); see the `steps` field's own properties above for the repeating pattern.</Note>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="total_pause_duration" type="string">
+          The real total time this migration job has spent paused, across every pause since it started. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="warnings" type="list(object)">
+          Real, non-fatal warnings raised during this migration job, each with its own `warning_message`, severity, and `action_item`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="action_item" type="object">
+              Real, recommended remediation steps for a migration warning or error, telling the operator what to do about it. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="locale" type="string">
+                  The real, detected or configured locale (language and region) of the source VM's own guest operating system. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="message" type="string">
+                  A real, human-readable status or error message for this migration step. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="code" type="string">
+              The `google.rpc.Code` enum value identifying this error's real category, following the same status-code semantics gRPC and most Google APIs share. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="help_links" type="list(object)">
+              Real documentation links attached to a migration warning or error, pointing to more detail on the issue and how to resolve it. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="description" type="string">
+                  A human-readable explanation of this schema's own meaning and intended use. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="url" type="string">
+                  A real URL pointing to more information about this migration warning or error. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="warning_message" type="object">
+              The real, human-readable text of one migration warning. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="locale" type="string">
+                  The real, detected or configured locale (language and region) of the source VM's own guest operating system. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="message" type="string">
+                  A real, human-readable status or error message for this migration step. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="warning_time" type="string">
+              The real timestamp when this migration warning was raised. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="shutting_down_source_vm" type="any">
+      Real, detailed progress for VM Migration's own step shutting down the source VM as part of a cutover. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="start_time" type="string">
+      The real timestamp when this migration step or cycle started. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
