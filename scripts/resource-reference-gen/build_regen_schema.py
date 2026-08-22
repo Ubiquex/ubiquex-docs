@@ -45,15 +45,26 @@ import sys
 
 
 def gcp_corrected_key(raw_wire, api_name):
-    prefix = f"google_{api_name}_{api_name}_"
+    # Case-insensitive match on the doubled segment: found live
+    # (google_siteverification_siteVerification_web_resource) --
+    # ubx-provider-dynamic's own typeName synthesis doesn't always
+    # lowercase the doubled segment, so a case-sensitive prefix check
+    # silently missed this one real resource, leaving it uncorrected
+    # forever (no intro, no page -- intros.json/descriptions.json were
+    # authored against the corrected key this function never produced
+    # for it). A full scan of the live 782-resource GCP corpus found
+    # exactly one wire affected.
+    prefix = f"google_{api_name}_"
     if raw_wire.startswith(prefix):
-        return f"google_{api_name}_" + raw_wire[len(prefix):]
+        rest = raw_wire[len(prefix):]
+        if rest.lower().startswith(api_name.lower() + "_"):
+            return prefix + rest[len(api_name) + 1:]
     return raw_wire
 
 
 def gcp_corrected_local(raw_local, api_name):
     prefix = f"{api_name}_"
-    if raw_local.startswith(prefix) and len(raw_local) > len(prefix):
+    if raw_local.lower().startswith(prefix.lower()) and len(raw_local) > len(prefix):
         return raw_local[len(prefix):]
     return raw_local
 

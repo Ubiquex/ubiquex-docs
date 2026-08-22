@@ -41,8 +41,16 @@ def scan_go(root, provider):
         # -- a blanket "_test.go" skip silently drops real resources. The
         # WireType-match requirement below is what actually distinguishes
         # a real generated file from anything else.
-        if f.endswith("doc.go"):
-            continue
+        #
+        # Same reasoning applies to a real "doc.go" filter, found-in-
+        # review: `f.endswith("doc.go")` is a substring-suffix check, not
+        # an exact-filename check, so it also matched real resource files
+        # like "apigee_apidoc.go" (google_apigee_apidoc, confirmed real,
+        # confirmed to have a real WireType), silently dropping them from
+        # idents extraction and from every downstream page that resource
+        # was ever supposed to get. The genuine package-doc-comment file
+        # has no WireType at all, so the match check below already skips
+        # it correctly -- the filter was both wrong and redundant.
         text = open(f).read()
         m = re.search(r'WireType:\s*"([^"]+)"', text)
         if not m:
@@ -96,8 +104,11 @@ def scan_py(root, provider):
 def scan_ts(root, provider):
     out = {}
     for f in glob.glob(root + f"/{provider}/**/*.ts", recursive=True):
-        if f.endswith("doc.ts"):
-            continue
+        # Same real "doc.ts" bug as scan_go's own "doc.go" filter above
+        # (a substring-suffix check, not an exact-filename check) --
+        # removed for the same reason: the wireType-match requirement
+        # below already correctly excludes the genuine doc-comment file,
+        # which carries no wireType at all.
         text = open(f).read()
         m = re.search(r'wireType:\s*"([^"]+)"', text)
         if not m:
