@@ -34,7 +34,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common_gcp_fields import COMMON_LEAF, COMMON_LEAF_TYPE_GUARD, JSON_SCHEMA_LEAF, FAMILY_LEAF as GCP_FAMILY_LEAF
-from common_azure_fields import ARM_COMMON, ARM_NETWORK
+from common_azure_fields import ARM_COMMON, ARM_NETWORK, ARM_FAMILY_LEAF
 
 
 def gcp_corrected_key(raw_wire, api_name):
@@ -78,6 +78,7 @@ def apply_azure(family, gap):
     # founder's own explicit config-expansion decision to defer that
     # cleanup (see manifest.json's own last_migration note, Phase A).
     is_network = family.startswith("azure_network_")
+    family_dict = ARM_FAMILY_LEAF.get(family, {})
     matched, unmatched = {}, []
     for wire, fields in gap.items():
         for path, info in fields.items():
@@ -87,6 +88,8 @@ def apply_azure(family, gap):
                 matched[full_key] = {"source": "ai-dictionary", "text": ARM_COMMON[leaf]}
             elif is_network and leaf in ARM_NETWORK:
                 matched[full_key] = {"source": "ai-dictionary", "text": ARM_NETWORK[leaf]}
+            elif leaf in family_dict:
+                matched[full_key] = {"source": "ai-dictionary", "text": family_dict[leaf]}
             else:
                 unmatched.append(full_key)
     return matched, unmatched
