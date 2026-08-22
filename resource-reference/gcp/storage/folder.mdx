@@ -1,34 +1,30 @@
 ---
 title: "google_storage_folder"
-description: "Real, generated bindings for `google_storage_folder`."
+description: "`google_storage_folder` is a real, hierarchical folder within a Cloud Storage bucket that has hierarchical namespace enabled, distinct from the flat..."
 ---
 
-`google_storage_folder` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
+`google_storage_folder` is a real, hierarchical folder within a Cloud Storage bucket that has hierarchical namespace enabled, distinct from the flat, prefix-simulated "folders" of a standard bucket.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_storage --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_storage/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	storage "github.com/ubiquex/ubx-sdk-google/sdk/go/google/storage"
+    	storage "github.com/ubiquex/ubx-sdk-google/sdk/go/google_storage/storage"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own folder"})
 
-    		ubx.Resource(storage.Folder, "ci-runner", storage.FolderConfig{
-    			Bucket:       "example",
-    			Name:         "ci-runner",
-    			ForceDestroy: true,
+    		ubx.Resource(storage.StorageFolder, "ci-runner", storage.StorageFolderConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -36,32 +32,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_storage --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { Folder } from "jsr:@ubx/sdk-google/google/storage/folder";
+    import { StorageFolder } from "./local-sdk/google_storage/sdk/typescript/google_storage/storage/storage_folder.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own folder" });
 
-      resource(Folder, "ci-runner", {
-        bucket: "example",
+      resource(StorageFolder, "ci-runner", {
         name: "ci-runner",
-        forceDestroy: true,
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_storage --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_storage/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.storage import Folder, FolderConfig
+    from ubx.google_storage.storage import StorageFolder, StorageFolderConfig
 
     def describe():
         ubx.intent("payments own folder")
 
-        ubx.resource(Folder, "ci-runner", FolderConfig(
-            bucket="example",
+        ubx.resource(StorageFolder, "ci-runner", StorageFolderConfig(
             name="ci-runner",
-            force_destroy=True,
         ))
 
     if __name__ == "__main__":
@@ -70,80 +65,50 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_storage_folder called "ci-runner", with bucket
-    example, force destroy true.
+    Create google_storage_folder called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
-<ResponseField name="bucket" type="string" required>
-  The name of the bucket that contains the folder. Required.
+<ResponseField name="bucket" type="string">
+  The name of the bucket containing this folder. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="force_destroy" type="bool">
-  If set to true, items within folder if any will be force destroyed. Optional.
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="name" type="string" required>
-  The name of the folder expressed as a path. Must include trailing '/'. For example, 'example_dir/example_dir2/', 'example@#/', 'a-b/d-f/'. Required.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-## Output properties
 
 <ResponseField name="create_time" type="string">
-  The timestamp at which this folder was created. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
+  The creation time of the folder in RFC 3339 format. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
+  The ID of the folder, including the bucket name, folder name. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="kind" type="string">
+  The kind of item this is. For folders, this is always storage#folder. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="metageneration" type="string">
-  The metadata generation of the folder. Computed by GCP after `ship`.
+  The version of the metadata for this folder. Used for preconditions and for detecting changes in metadata. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="self_link" type="string">
-  Computed by GCP after `ship`.
+<ResponseField name="name" type="string">
+  The name of the folder. Required if not specified by URL parameter. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="pending_rename_info" type="object">
+  Only present if the folder is part of an ongoing rename folder operation. Contains information which can be used to query the operation status. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
+    <ResponseField name="operation_id" type="string">
+      The ID of the rename folder operation. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
+<ResponseField name="self_link" type="string">
+  The link to this folder. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
 <ResponseField name="update_time" type="string">
-  The timestamp at which this folder was most recently updated. Computed by GCP after `ship`.
+  The modification time of the folder metadata in RFC 3339 format. Optional; if omitted, computed by Google Cloud.
 </ResponseField>

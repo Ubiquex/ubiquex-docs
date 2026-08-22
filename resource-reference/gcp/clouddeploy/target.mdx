@@ -1,38 +1,30 @@
 ---
 title: "google_clouddeploy_target"
-description: "Real, generated bindings for `google_clouddeploy_target`."
+description: "`google_clouddeploy_target` defines a single deployment destination (a GKE cluster, Cloud Run service..."
 ---
 
-`google_clouddeploy_target` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
+`google_clouddeploy_target` defines a single deployment destination (a GKE cluster, Cloud Run service, or custom target) a Cloud Deploy delivery pipeline can roll out a release to.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_clouddeploy --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_clouddeploy/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	clouddeploy "github.com/ubiquex/ubx-sdk-google/sdk/go/google/clouddeploy"
+    	clouddeploy "github.com/ubiquex/ubx-sdk-google/sdk/go/google_clouddeploy/clouddeploy"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own target"})
 
-    		ubx.Resource(clouddeploy.Target, "ci-runner", clouddeploy.TargetConfig{
-    			Location:         "example",
-    			Name:             "ci-runner",
-    			Annotations:      map[string]string{"managed-by": "ubx"},
-    			DeployParameters: map[string]string{"managed-by": "ubx"},
-    			Description:      "Managed by ubx.",
-    			Labels:           map[string]string{"managed-by": "ubx"},
-    			RequireApproval:  true,
+    		ubx.Resource(clouddeploy.ClouddeployTarget, "ci-runner", clouddeploy.ClouddeployTargetConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -40,40 +32,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_clouddeploy --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { Target } from "jsr:@ubx/sdk-google/google/clouddeploy/target";
+    import { ClouddeployTarget } from "./local-sdk/google_clouddeploy/sdk/typescript/google_clouddeploy/clouddeploy/clouddeploy_target.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own target" });
 
-      resource(Target, "ci-runner", {
-        location: "example",
+      resource(ClouddeployTarget, "ci-runner", {
         name: "ci-runner",
-        annotations: { "managed-by": "ubx" },
-        deployParameters: { "managed-by": "ubx" },
-        description: "Managed by ubx.",
-        labels: { "managed-by": "ubx" },
-        requireApproval: true,
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_clouddeploy --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_clouddeploy/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.clouddeploy import Target, TargetConfig
+    from ubx.google_clouddeploy.clouddeploy import ClouddeployTarget, ClouddeployTargetConfig
 
     def describe():
         ubx.intent("payments own target")
 
-        ubx.resource(Target, "ci-runner", TargetConfig(
-            location="example",
+        ubx.resource(ClouddeployTarget, "ci-runner", ClouddeployTargetConfig(
             name="ci-runner",
-            annotations={"managed-by": "ubx"},
-            deploy_parameters={"managed-by": "ubx"},
-            description="Managed by ubx.",
-            labels={"managed-by": "ubx"},
-            require_approval=True,
         ))
 
     if __name__ == "__main__":
@@ -82,202 +65,51 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_clouddeploy_target called "ci-runner", with
-    location example, annotations a set value, deploy parameters a
-    set value, description Managed by ubx., labels a set value,
-    require approval true.
+    Create google_clouddeploy_target called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
 <ResponseField name="annotations" type="map(string)">
-  Optional. User annotations. These attributes can only be set and used by the user, and not by Google Cloud Deploy. See https://google.aip.dev/128#annotations for more details such as format and size limitations. **Note**: This field is non-authoritative, and will only manage the annotations present in your configuration. Please refer to the field `effective_annotations` for all of the annotations present on the resource. Optional.
+  Optional. User annotations. These attributes can only be set and used by the user, and not by Cloud Deploy. See https://google.aip.dev/128#annotations for more details such as format and size limitations. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="anthos_cluster" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="anthos_cluster" type="object">
+  Information specifying an Anthos Cluster. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="membership" type="string">
+      Optional. Membership of the GKE Hub-registered cluster to which to apply the Skaffold configuration. Format is `projects/&#123;project&#125;/locations/&#123;location&#125;/memberships/&#123;membership_name&#125;`. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="associated_entities" type="set(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="associated_entities" type="map(object)">
+  Optional. Map of entity IDs to their associated entities. Associated entities allows specifying places other than the deployment target for specific features. For example, the Gateway API canary can be configured to deploy the HTTPRoute to a different cluster(s) than the deployment cluster using associated entities. An entity ID must consist of lower-case letters, numbers, and hyphens, start with a letter and end with a letter or a number, and have a max length of 63 characters. In other words, it must match the following regex: `^[a-z]([a-z0-9-]&#123;0,61&#125;[a-z0-9])?$`. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="anthos_clusters" type="list(object)">
+      The Anthos-registered cluster(s) this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
         <ResponseField name="membership" type="string">
+          A reference to the GKE Hub / Fleet membership this target deploys to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
-    </ResponseField>
-    <ResponseField name="entity_id" type="string" required>
     </ResponseField>
     <ResponseField name="gke_clusters" type="list(object)">
+      The GKE cluster(s) this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
         <ResponseField name="cluster" type="string">
+          A reference to the GKE cluster this target deploys to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="dns_endpoint" type="bool">
+          Uses a DNS-resolvable endpoint to reach this cluster, rather than a direct IP address. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="internal_ip" type="bool">
+          Whether this cluster is reached over its own internal (private) IP address, rather than a public one. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="proxy_url" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="custom_target" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="custom_target_type" type="string" required>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="deploy_parameters" type="map(string)">
-  Optional. The deploy parameters to use for this target. Optional.
-</ResponseField>
-
-<ResponseField name="description" type="string">
-  Optional. Description of the `Target`. Max length is 255 characters. Optional.
-</ResponseField>
-
-<ResponseField name="execution_configs" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="artifact_storage" type="string">
-    </ResponseField>
-    <ResponseField name="default_pool" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="artifact_storage" type="string">
-        </ResponseField>
-        <ResponseField name="service_account" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="execution_timeout" type="string">
-    </ResponseField>
-    <ResponseField name="private_pool" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="artifact_storage" type="string">
-        </ResponseField>
-        <ResponseField name="service_account" type="string">
-        </ResponseField>
-        <ResponseField name="worker_pool" type="string" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="service_account" type="string">
-    </ResponseField>
-    <ResponseField name="usages" type="list(string)" required>
-    </ResponseField>
-    <ResponseField name="verbose" type="bool">
-    </ResponseField>
-    <ResponseField name="worker_pool" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="gke" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="cluster" type="string">
-    </ResponseField>
-    <ResponseField name="dns_endpoint" type="bool">
-    </ResponseField>
-    <ResponseField name="internal_ip" type="bool">
-    </ResponseField>
-    <ResponseField name="proxy_url" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="labels" type="map(string)">
-  Optional. Labels are attributes that can be set and used by both the user and by Google Cloud Deploy. Labels must meet the following constraints: * Keys and values can contain only lowercase letters, numeric characters, underscores, and dashes. * All characters must use UTF-8 encoding, and international characters are allowed. * Keys must start with a lowercase letter or international character. * Each resource is limited to a maximum of 64 labels. Both keys and values are additionally constrained to be &lt;= 128 bytes. **Note**: This field is non-authoritative, and will only manage the labels present in your configuration. Please refer to the field `effective_labels` for all of the labels present on the resource. Optional.
-</ResponseField>
-
-<ResponseField name="location" type="string" required>
-  The location for the resource Required.
-</ResponseField>
-
-<ResponseField name="multi_target" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="target_ids" type="list(string)" required>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="name" type="string" required>
-  Name of the `Target`. Format is `[a-z]([a-z0-9-]&#123;0,61&#125;[a-z0-9])?`. Required.
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  The project for the resource Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="require_approval" type="bool">
-  Optional. Whether or not the `Target` requires approval. Optional.
-</ResponseField>
-
-<ResponseField name="run" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="location" type="string" required>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="anthos_cluster" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="membership" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="associated_entities" type="set(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="anthos_clusters" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="membership" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="entity_id" type="string" required>
-    </ResponseField>
-    <ResponseField name="gke_clusters" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="cluster" type="string">
-        </ResponseField>
-        <ResponseField name="internal_ip" type="bool">
-        </ResponseField>
-        <ResponseField name="proxy_url" type="string">
+          The URL of a proxy used to reach this cluster. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
@@ -285,131 +117,135 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="create_time" type="string">
-  Output only. Time at which the `Target` was created. Computed by GCP after `ship`.
+  Output only. Time at which the `Target` was created. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="custom_target" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="custom_target" type="object">
+  Information specifying a Custom Target. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="custom_target_type" type="string" required>
+    <ResponseField name="custom_target_type" type="string">
+      Required. The name of the CustomTargetType. Format must be `projects/&#123;project&#125;/locations/&#123;location&#125;/customTargetTypes/&#123;custom_target_type&#125;`. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
+<ResponseField name="deploy_parameters" type="map(string)">
+  Optional. The deploy parameters to use for this target. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="effective_annotations" type="map(string)">
-  All of annotations (key/value pairs) present on the resource in GCP, including the annotations configured through Terraform, other clients and services. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="effective_labels" type="map(string)">
-  All of labels (key/value pairs) present on the resource in GCP, including the labels configured through Terraform, other clients and services. Computed by GCP after `ship`.
+<ResponseField name="description" type="string">
+  Optional. Description of the `Target`. Max length is 255 characters. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="etag" type="string">
-  Optional. This checksum is computed by the server based on the value of other fields, and may be sent on update and delete requests to ensure the client has an up-to-date value before proceeding. Computed by GCP after `ship`.
+  Optional. This checksum is computed by the server based on the value of other fields, and may be sent on update and delete requests to ensure the client has an up-to-date value before proceeding. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="execution_configs" type="list(object)">
-  Optional; if omitted, computed by GCP.
+  Optional. Configurations for all execution that relates to this `Target`. Each `ExecutionEnvironmentUsage` value may only be used in a single configuration; using the same value multiple times is an error. When one or more configurations are specified, they must include the `RENDER` and `DEPLOY` `ExecutionEnvironmentUsage` values. When no configurations are specified, execution will use the default specified in `DefaultPool`. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="artifact_storage" type="string">
+      The Cloud Storage location build artifacts and release configuration are stored under. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
-    <ResponseField name="default_pool" type="list(object)">
+    <ResponseField name="default_pool" type="object">
+      Configuration for running jobs on Cloud Build's own default worker pool, rather than a private one. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
         <ResponseField name="artifact_storage" type="string">
+          The Cloud Storage location build artifacts and release configuration are stored under. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="service_account" type="string">
+          The service account this resource acts as (or is managed by) when calling other Google Cloud APIs. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="execution_timeout" type="string">
+      How long a job is allowed to run before being considered timed out. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
-    <ResponseField name="private_pool" type="list(object)">
+    <ResponseField name="private_pool" type="object">
+      Configuration for running jobs on a private Cloud Build worker pool, rather than the default shared one. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
         <ResponseField name="artifact_storage" type="string">
+          The Cloud Storage location build artifacts and release configuration are stored under. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="service_account" type="string">
+          The service account this resource acts as (or is managed by) when calling other Google Cloud APIs. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="worker_pool" type="string" required>
+        <ResponseField name="worker_pool" type="string">
+          A reference to the private Cloud Build worker pool used to execute this pipeline's own jobs. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="service_account" type="string">
+      The service account this resource acts as (or is managed by) when calling other Google Cloud APIs. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
-    <ResponseField name="usages" type="list(string)" required>
+    <ResponseField name="usages" type="list(string)">
+      Which purpose(s) (render, deploy, verify) this execution environment configuration applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
     <ResponseField name="verbose" type="bool">
+      Whether detailed, verbose output is produced for this operation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
     <ResponseField name="worker_pool" type="string">
+      A reference to the private Cloud Build worker pool used to execute this pipeline's own jobs. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="gke" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="gke" type="object">
+  Information specifying a GKE Cluster. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="cluster" type="string">
+      Optional. Information specifying a GKE Cluster. Format is `projects/&#123;project_id&#125;/locations/&#123;location_id&#125;/clusters/&#123;cluster_id&#125;`. Optional.
     </ResponseField>
     <ResponseField name="dns_endpoint" type="bool">
+      Optional. If set, the cluster will be accessed using the DNS endpoint. Note that both `dns_endpoint` and `internal_ip` cannot be set to true. Optional.
     </ResponseField>
     <ResponseField name="internal_ip" type="bool">
+      Optional. If true, `cluster` is accessed using the private IP address of the control plane endpoint. Otherwise, the default IP address of the control plane endpoint is used. The default IP address is the private IP address for clusters with private control-plane endpoints and the public IP address otherwise. Only specify this option when `cluster` is a [private GKE cluster](https://cloud.google.com/kubernetes-engine/docs/concepts/private-cluster-concept). Note that `internal_ip` and `dns_endpoint` cannot both be set to true. Optional.
     </ResponseField>
     <ResponseField name="proxy_url" type="string">
+      Optional. If set, used to configure a [proxy](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/#proxy) to the Kubernetes server. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="labels" type="map(string)">
+  Optional. Labels are attributes that can be set and used by both the user and by Cloud Deploy. Labels must meet the following constraints: * Keys and values can contain only lowercase letters, numeric characters, underscores, and dashes. * All characters must use UTF-8 encoding, and international characters are allowed. * Keys must start with a lowercase letter or international character. * Each resource is limited to a maximum of 64 labels. Both keys and values are additionally constrained to be &lt;= 128 bytes. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="multi_target" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="multi_target" type="object">
+  Information specifying a multiTarget. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="target_ids" type="list(string)" required>
+    <ResponseField name="target_ids" type="list(string)">
+      Required. The target_ids of this multiTarget. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="project" type="string">
-  The project for the resource Optional; if omitted, computed by GCP.
+<ResponseField name="name" type="string">
+  Identifier. Name of the `Target`. Format is `projects/&#123;project&#125;/locations/&#123;location&#125;/targets/&#123;target&#125;`. The `target` component must match `[a-z]([a-z0-9-]&#123;0,61&#125;[a-z0-9])?` Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="run" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="require_approval" type="bool">
+  Optional. Whether or not the `Target` requires approval. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="run" type="object">
+  Information specifying where to deploy a Cloud Run Service. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="location" type="string" required>
+    <ResponseField name="location" type="string">
+      Required. The location for the Cloud Run Service. Format must be `projects/&#123;project&#125;/locations/&#123;location&#125;`. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="target_id" type="string">
-  Output only. Resource id of the `Target`. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="terraform_labels" type="map(string)">
-  The combination of labels configured directly on the resource and default labels configured on the provider. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
+  Output only. Resource id of the `Target`. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="uid" type="string">
-  Output only. Unique identifier of the `Target`. Computed by GCP after `ship`.
+  Output only. Unique identifier of the `Target`. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="update_time" type="string">
-  Output only. Most recent time at which the `Target` was updated. Computed by GCP after `ship`.
+  Output only. Most recent time at which the `Target` was updated. Optional; if omitted, computed by Google Cloud.
 </ResponseField>

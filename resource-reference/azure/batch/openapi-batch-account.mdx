@@ -1,0 +1,215 @@
+---
+title: "azure_batch_openapi_batch_account"
+description: "`azure_batch_openapi_batch_account` is the top-level Azure Batch resource that pool(s), job(s), and application(s) are created within..."
+---
+
+`azure_batch_openapi_batch_account` is the top-level Azure Batch resource that pool(s), job(s), and application(s) are created within, for large-scale parallel and HPC batch job execution.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only azure_batch_openapi --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-azure/sdk/go => ./local-sdk/azure_batch_openapi/sdk/go
+    package main
+
+    import (
+    	batch "github.com/ubiquex/ubx-sdk-azure/sdk/go/azure_batch_openapi/batch"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own openapi batch account"})
+
+    		ubx.Resource(batch.OpenapiBatchAccount, "ci-runner", batch.OpenapiBatchAccountConfig{
+    			Location: "example",
+    			Tags:     map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only azure_batch_openapi --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { OpenapiBatchAccount } from "./local-sdk/azure_batch_openapi/sdk/typescript/azure_batch_openapi/batch/openapi_batch_account.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own openapi batch account" });
+
+      resource(OpenapiBatchAccount, "ci-runner", {
+        location: "example",
+        tags: { "managed-by": "ubx" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only azure_batch_openapi --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/azure_batch_openapi/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.azure_batch_openapi.batch import OpenapiBatchAccount, OpenapiBatchAccountConfig
+
+    def describe():
+        ubx.intent("payments own openapi batch account")
+
+        ubx.resource(OpenapiBatchAccount, "ci-runner", OpenapiBatchAccountConfig(
+            location="example",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create azure_batch_openapi_batch_account, with location example,
+    tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="identity" type="object">
+  The identity of the Batch account, if configured. This is used when the user specifies 'Microsoft.KeyVault' as their Batch account encryption configuration or when `ManagedIdentity` is selected as the auto-storage authentication mode. Optional; if omitted, computed by Microsoft Azure.
+  <Expandable title="properties">
+    <ResponseField name="principal_id" type="string">
+      The principal id of the Batch account. This property will only be provided for a system assigned identity. Computed by Microsoft Azure after `ship`.
+    </ResponseField>
+    <ResponseField name="tenant_id" type="string">
+      The tenant id associated with the Batch account. This property will only be provided for a system assigned identity. Computed by Microsoft Azure after `ship`.
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      The type of identity used for the Batch account. Required.
+    </ResponseField>
+    <ResponseField name="user_assigned_identities" type="map(object)">
+      The list of user identities associated with the Batch account. Optional.
+      <Expandable title="properties">
+        <ResponseField name="client_id" type="string">
+          The client (application) ID of the user-assigned managed identity to use. Optional; if omitted, computed by Microsoft Azure. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="principal_id" type="string">
+          Output only. The Microsoft Entra ID object ID of this resource's own managed identity or service principal. Optional; if omitted, computed by Microsoft Azure. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="location" type="string" required>
+  The region in which to create the account. Required.
+</ResponseField>
+
+<ResponseField name="properties" type="object">
+  The properties of a Batch account. Optional; if omitted, computed by Microsoft Azure.
+  <Expandable title="properties">
+    <ResponseField name="allowed_authentication_modes" type="list(string)">
+      List of allowed authentication modes for the Batch account that can be used to authenticate with the data plane. This does not affect authentication with the control plane. Optional.
+    </ResponseField>
+    <ResponseField name="auto_storage" type="object">
+      The properties related to the auto-storage account. Optional.
+      <Expandable title="properties">
+        <ResponseField name="authentication_mode" type="string">
+          The authentication mode which the Batch service will use to manage the auto-storage account. Optional.
+        </ResponseField>
+        <ResponseField name="node_identity_reference" type="object">
+          The reference to a user assigned identity associated with the Batch pool which a compute node will use. Optional.
+          <Expandable title="properties">
+            <ResponseField name="resource_id" type="string">
+              The ARM resource id of the user assigned identity. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="storage_account_id" type="string" required>
+          The resource ID of the storage account to be used for auto-storage account. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="encryption" type="object">
+      Configures how customer data is encrypted inside the Batch account. By default, accounts are encrypted using a Microsoft managed key. For additional control, a customer-managed key can be used instead. Optional.
+      <Expandable title="properties">
+        <ResponseField name="key_source" type="string">
+          Type of the key source. Optional.
+        </ResponseField>
+        <ResponseField name="key_vault_properties" type="object">
+          KeyVault configuration when using an encryption KeySource of Microsoft.KeyVault. Optional.
+          <Expandable title="properties">
+            <ResponseField name="key_identifier" type="string">
+              Full path to the secret with or without version. Example https://mykeyvault.vault.azure.net/keys/testkey/6e34a81fef704045975661e297a4c053. or https://mykeyvault.vault.azure.net/keys/testkey. To be usable the following prerequisites must be met: The Batch Account has a System Assigned identity The account identity has been granted Key/Get, Key/Unwrap and Key/Wrap permissions The KeyVault has soft-delete and purge protection enabled Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="key_vault_reference" type="object">
+      Identifies the Azure key vault associated with a Batch account. Optional.
+      <Expandable title="properties">
+        <ResponseField name="id" type="string" required>
+          The resource ID of the Azure key vault associated with the Batch account. Required.
+        </ResponseField>
+        <ResponseField name="url" type="string" required>
+          The URL of the Azure key vault associated with the Batch account. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="network_profile" type="object">
+      Network profile for Batch account, which contains network rule settings for each endpoint. Optional.
+      <Expandable title="properties">
+        <ResponseField name="account_access" type="object">
+          Network access profile for Batch endpoint. Optional.
+          <Expandable title="properties">
+            <ResponseField name="default_action" type="string" required>
+              Default action for endpoint access. It is only applicable when publicNetworkAccess is enabled. Required.
+            </ResponseField>
+            <ResponseField name="ip_rules" type="list(object)">
+              Array of IP ranges to filter client IP address. Optional.
+              <Expandable title="properties">
+                <ResponseField name="action" type="string">
+                  The action to perform. Optional; if omitted, computed by Microsoft Azure. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="value" type="string">
+                  The literal value of this field. Optional; if omitted, computed by Microsoft Azure. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="node_management_access" type="object">
+          Network access profile for Batch endpoint. Optional.
+          <Expandable title="properties">
+            <ResponseField name="default_action" type="string" required>
+              Default action for endpoint access. It is only applicable when publicNetworkAccess is enabled. Required.
+            </ResponseField>
+            <ResponseField name="ip_rules" type="list(object)">
+              Array of IP ranges to filter client IP address. Optional.
+              <Expandable title="properties">
+                <ResponseField name="action" type="string">
+                  The action to perform. Optional; if omitted, computed by Microsoft Azure. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="value" type="string">
+                  The literal value of this field. Optional; if omitted, computed by Microsoft Azure. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="pool_allocation_mode" type="string">
+      The allocation mode for creating pools in the Batch account. Optional.
+    </ResponseField>
+    <ResponseField name="public_network_access" type="string">
+      The network access type for operating on the resources in the Batch account. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="map(string)">
+  The user-specified tags associated with the account. Optional.
+</ResponseField>

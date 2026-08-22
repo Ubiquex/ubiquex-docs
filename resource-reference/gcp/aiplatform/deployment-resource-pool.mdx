@@ -1,0 +1,274 @@
+---
+title: "google_aiplatform_deployment_resource_pool"
+description: "`google_aiplatform_deployment_resource_pool` is a shared pool of compute nodes that more than one model deployment can be co-located on..."
+---
+
+`google_aiplatform_deployment_resource_pool` is a shared pool of compute nodes that more than one model deployment can be co-located on, so several models can share the same underlying machines instead of each needing its own dedicated endpoint capacity.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only google_aiplatform --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_aiplatform/sdk/go
+    package main
+
+    import (
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    	aiplatform "github.com/ubiquex/ubx-sdk-google/sdk/go/google_aiplatform/aiplatform"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own deployment resource pool"})
+
+    		ubx.Resource(aiplatform.AiplatformDeploymentResourcePool, "ci-runner", aiplatform.AiplatformDeploymentResourcePoolConfig{
+    			DeploymentResourcePool:   map[string]any{"name": "example-name"},
+    			DeploymentResourcePoolId: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only google_aiplatform --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AiplatformDeploymentResourcePool } from "./local-sdk/google_aiplatform/sdk/typescript/google_aiplatform/aiplatform/aiplatform_deployment_resource_pool.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own deployment resource pool" });
+
+      resource(AiplatformDeploymentResourcePool, "ci-runner", {
+        deploymentResourcePool: { name: "example-name" },
+        deploymentResourcePoolId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only google_aiplatform --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_aiplatform/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.google_aiplatform.aiplatform import AiplatformDeploymentResourcePool, AiplatformDeploymentResourcePoolConfig
+
+    def describe():
+        ubx.intent("payments own deployment resource pool")
+
+        ubx.resource(AiplatformDeploymentResourcePool, "ci-runner", AiplatformDeploymentResourcePoolConfig(
+            deployment_resource_pool={"name": "example-name"},
+            deployment_resource_pool_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create google_aiplatform_deployment_resource_pool, with
+    deployment resource pool a set value, deployment resource pool id
+    example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="deployment_resource_pool" type="object">
+  A description of resources that can be shared by multiple DeployedModels, whose underlying specification consists of a DedicatedResources. Optional.
+  <Expandable title="properties">
+    <ResponseField name="create_time" type="string">
+      Output only. Timestamp when this DeploymentResourcePool was created. Computed by Google Cloud after `ship`.
+    </ResponseField>
+    <ResponseField name="dedicated_resources" type="object">
+      A description of resources that are dedicated to a DeployedModel or DeployedIndex, and that need a higher degree of manual configuration. Optional.
+      <Expandable title="properties">
+        <ResponseField name="autoscaling_metric_specs" type="list(object)">
+          Immutable. The metric specifications that overrides a resource utilization metric (CPU utilization, accelerator's duty cycle, and so on) target value (default to 60 if not set). At most one entry is allowed per metric. If machine_spec.accelerator_count is above 0, the autoscaling will be based on both CPU utilization and accelerator's duty cycle metrics and scale up when either metrics exceeds its target value while scale down if both metrics are under their target value. The default target value is 60 for both metrics. If machine_spec.accelerator_count is 0, the autoscaling will be based on CPU utilization metric only with default target value 60 if not explicitly set. For example, in the case of Online Prediction, if you want to override target CPU utilization to 80, you should set autoscaling_metric_specs.metric_name to `aiplatform.googleapis.com/prediction/online/cpu/utilization` and autoscaling_metric_specs.target to `80`. Optional.
+          <Expandable title="properties">
+            <ResponseField name="metric_name" type="string">
+              The name of the metric this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="target" type="number">
+              The target value autoscaling tries to maintain for this metric. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="machine_spec" type="object">
+          Specification of a single machine. Optional.
+          <Expandable title="properties">
+            <ResponseField name="accelerator_count" type="number">
+              The number of accelerators to attach to the machine. For [accelerator optimized machine types](https://cloud.google.com/compute/docs/accelerator-optimized-machines), One may set the accelerator_count from 1 to N for machine with N GPUs. If accelerator_count is less than or equal to N / 2, Agent Platform co-schedules the replicas of the model into the same VM to save cost. For example, if the machine type is a3-highgpu-8g, which has 8 H100 GPUs, one can set accelerator_count to 1 to 8. If accelerator_count is 1, 2, 3, or 4, Agent Platform co-schedules 8, 4, 2, or 2 replicas of the model into the same VM to save cost. When co-scheduling, CPU, memory and storage on the VM will be distributed to replicas on the VM. For example, one can expect a co-scheduled replica requesting 2 GPUs out of a 8-GPU VM will receive 25% of the CPU, memory and storage of the VM. Note that the feature is not compatible with multihost_gpu_node_count. When multihost_gpu_node_count is set, the co-scheduling will not be enabled. Optional.
+            </ResponseField>
+            <ResponseField name="accelerator_type" type="string">
+              Immutable. The type of accelerator(s) that may be attached to the machine as per accelerator_count. Optional.
+            </ResponseField>
+            <ResponseField name="gpu_partition_size" type="string">
+              Optional. Immutable. The Nvidia GPU partition size. When specified, the requested accelerators will be partitioned into smaller GPU partitions. For example, if the request is for 8 units of NVIDIA A100 GPUs, and gpu_partition_size="1g.10gb", the service will create 8 * 7 = 56 partitioned MIG instances. The partition size must be a value supported by the requested accelerator. Refer to [Nvidia GPU Partitioning](https://cloud.google.com/kubernetes-engine/docs/how-to/gpus-multi#multi-instance_gpu_partitions) for the available partition sizes. If set, the accelerator_count should be set to 1. Optional.
+            </ResponseField>
+            <ResponseField name="machine_type" type="string">
+              Immutable. The type of the machine. See the [list of machine types supported for prediction](https://cloud.google.com/gemini-enterprise-agent-platform/machine-learning/predictions/configure-compute#machine-types) See the [list of machine types supported for custom training](https://cloud.google.com/gemini-enterprise-agent-platform/machine-learning/training/configure-compute#machine-types). For DeployedModel this field is optional, and the default value is `n1-standard-2`. For BatchPredictionJob or as part of WorkerPoolSpec this field is required. Optional.
+            </ResponseField>
+            <ResponseField name="reservation_affinity" type="object">
+              A ReservationAffinity can be used to configure a Vertex AI resource (e.g., a DeployedModel) to draw its Compute Engine resources from a Shared Reservation, or exclusively from on-demand capacity. Optional.
+              <Expandable title="properties">
+                <ResponseField name="key" type="string">
+                  Optional. Corresponds to the label key of a reservation resource. To target a SPECIFIC_RESERVATION by name, use `compute.googleapis.com/reservation-name` as the key and specify the name of your reservation as its value. Optional.
+                </ResponseField>
+                <ResponseField name="reservation_affinity_type" type="string">
+                  Required. Specifies the reservation affinity type. Optional.
+                </ResponseField>
+                <ResponseField name="values" type="list(string)">
+                  Optional. Corresponds to the label values of a reservation resource. This must be the resource name of the reservation, reservation block, or reservation sub- block. Optional.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="tpu_topology" type="string">
+              Immutable. The topology of the TPUs. Corresponds to the TPU topologies available from GKE. (Example: tpu_topology: "2x2x1"). Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="max_replica_count" type="number">
+          Immutable. The maximum number of replicas that may be deployed on when the traffic against it increases. If the requested value is too large, the deployment will error, but if deployment succeeds then the ability to scale to that many replicas is guaranteed (barring service outages). If traffic increases beyond what its replicas at maximum may handle, a portion of the traffic will be dropped. If this value is not provided, will use min_replica_count as the default value. The value of this field impacts the charge against Agent Platform CPU and GPU quotas. Specifically, you will be charged for (max_replica_count * number of cores in the selected machine type) and (max_replica_count * number of GPUs per replica in the selected machine type). Optional.
+        </ResponseField>
+        <ResponseField name="min_replica_count" type="number">
+          Required. Immutable. The minimum number of machine replicas that will be always deployed on. This value must be greater than or equal to 1. If traffic increases, it may dynamically be deployed onto more replicas, and as traffic decreases, some of these extra replicas may be freed. Optional.
+        </ResponseField>
+        <ResponseField name="required_replica_count" type="number">
+          Optional. Number of required available replicas for the deployment to succeed. This field is only needed when partial deployment/mutation is desired. If set, the deploy/mutate operation will succeed once available_replica_count reaches required_replica_count, and the rest of the replicas will be retried. If not set, the default required_replica_count will be min_replica_count. Optional.
+        </ResponseField>
+        <ResponseField name="spot" type="bool">
+          Optional. If true, schedule the deployment workload on [spot VMs](https://cloud.google.com/kubernetes-engine/docs/concepts/spot-vms). Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="disable_container_logging" type="bool">
+      If the DeploymentResourcePool is deployed with custom-trained Models or AutoML Tabular Models, the container(s) of the DeploymentResourcePool will send `stderr` and `stdout` streams to Cloud Logging by default. Please note that the logs incur cost, which are subject to [Cloud Logging pricing](https://cloud.google.com/logging/pricing). User can disable container logging by setting this flag to true. Optional.
+    </ResponseField>
+    <ResponseField name="encryption_spec" type="object">
+      Represents a customer-managed encryption key specification that can be applied to a Vertex AI resource. Optional.
+      <Expandable title="properties">
+        <ResponseField name="kms_key_name" type="string">
+          Required. Resource name of the Cloud KMS key used to protect the resource. The Cloud KMS key must be in the same region as the resource. It must have the format `projects/&#123;project&#125;/locations/&#123;location&#125;/keyRings/&#123;key_ring&#125;/cryptoKeys/&#123;crypto_key&#125;`. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Immutable. The resource name of the DeploymentResourcePool. Format: `projects/&#123;project&#125;/locations/&#123;location&#125;/deploymentResourcePools/&#123;deployment_resource_pool&#125;` Optional.
+    </ResponseField>
+    <ResponseField name="satisfies_pzi" type="bool">
+      Output only. Reserved for future use. Computed by Google Cloud after `ship`.
+    </ResponseField>
+    <ResponseField name="satisfies_pzs" type="bool">
+      Output only. Reserved for future use. Computed by Google Cloud after `ship`.
+    </ResponseField>
+    <ResponseField name="service_account" type="string">
+      The service account that the DeploymentResourcePool's container(s) run as. Specify the email address of the service account. If this service account is not specified, the container(s) run as a service account that doesn't have access to the resource project. Users deploying the Models to this DeploymentResourcePool must have the `iam.serviceAccounts.actAs` permission on this service account. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="deployment_resource_pool_id" type="string">
+  Required. The ID to use for the DeploymentResourcePool, which will become the final component of the DeploymentResourcePool's resource name. The maximum length is 63 characters, and valid characters are `/^[a-z]([a-z0-9-]&#123;0,61&#125;[a-z0-9])?$/`. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="create_time" type="string">
+  Output only. Timestamp when this DeploymentResourcePool was created. Computed by Google Cloud after `ship`.
+</ResponseField>
+
+<ResponseField name="dedicated_resources" type="object">
+  A description of resources that are dedicated to a DeployedModel or DeployedIndex, and that need a higher degree of manual configuration. Computed by Google Cloud after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="autoscaling_metric_specs" type="list(object)">
+      Immutable. The metric specifications that overrides a resource utilization metric (CPU utilization, accelerator's duty cycle, and so on) target value (default to 60 if not set). At most one entry is allowed per metric. If machine_spec.accelerator_count is above 0, the autoscaling will be based on both CPU utilization and accelerator's duty cycle metrics and scale up when either metrics exceeds its target value while scale down if both metrics are under their target value. The default target value is 60 for both metrics. If machine_spec.accelerator_count is 0, the autoscaling will be based on CPU utilization metric only with default target value 60 if not explicitly set. For example, in the case of Online Prediction, if you want to override target CPU utilization to 80, you should set autoscaling_metric_specs.metric_name to `aiplatform.googleapis.com/prediction/online/cpu/utilization` and autoscaling_metric_specs.target to `80`. Optional.
+      <Expandable title="properties">
+        <ResponseField name="metric_name" type="string">
+          The name of the metric this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="target" type="number">
+          The target value autoscaling tries to maintain for this metric. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="machine_spec" type="object">
+      Specification of a single machine. Optional.
+      <Expandable title="properties">
+        <ResponseField name="accelerator_count" type="number">
+          The number of accelerators to attach to the machine. For [accelerator optimized machine types](https://cloud.google.com/compute/docs/accelerator-optimized-machines), One may set the accelerator_count from 1 to N for machine with N GPUs. If accelerator_count is less than or equal to N / 2, Agent Platform co-schedules the replicas of the model into the same VM to save cost. For example, if the machine type is a3-highgpu-8g, which has 8 H100 GPUs, one can set accelerator_count to 1 to 8. If accelerator_count is 1, 2, 3, or 4, Agent Platform co-schedules 8, 4, 2, or 2 replicas of the model into the same VM to save cost. When co-scheduling, CPU, memory and storage on the VM will be distributed to replicas on the VM. For example, one can expect a co-scheduled replica requesting 2 GPUs out of a 8-GPU VM will receive 25% of the CPU, memory and storage of the VM. Note that the feature is not compatible with multihost_gpu_node_count. When multihost_gpu_node_count is set, the co-scheduling will not be enabled. Optional.
+        </ResponseField>
+        <ResponseField name="accelerator_type" type="string">
+          Immutable. The type of accelerator(s) that may be attached to the machine as per accelerator_count. Optional.
+        </ResponseField>
+        <ResponseField name="gpu_partition_size" type="string">
+          Optional. Immutable. The Nvidia GPU partition size. When specified, the requested accelerators will be partitioned into smaller GPU partitions. For example, if the request is for 8 units of NVIDIA A100 GPUs, and gpu_partition_size="1g.10gb", the service will create 8 * 7 = 56 partitioned MIG instances. The partition size must be a value supported by the requested accelerator. Refer to [Nvidia GPU Partitioning](https://cloud.google.com/kubernetes-engine/docs/how-to/gpus-multi#multi-instance_gpu_partitions) for the available partition sizes. If set, the accelerator_count should be set to 1. Optional.
+        </ResponseField>
+        <ResponseField name="machine_type" type="string">
+          Immutable. The type of the machine. See the [list of machine types supported for prediction](https://cloud.google.com/gemini-enterprise-agent-platform/machine-learning/predictions/configure-compute#machine-types) See the [list of machine types supported for custom training](https://cloud.google.com/gemini-enterprise-agent-platform/machine-learning/training/configure-compute#machine-types). For DeployedModel this field is optional, and the default value is `n1-standard-2`. For BatchPredictionJob or as part of WorkerPoolSpec this field is required. Optional.
+        </ResponseField>
+        <ResponseField name="reservation_affinity" type="object">
+          A ReservationAffinity can be used to configure a Vertex AI resource (e.g., a DeployedModel) to draw its Compute Engine resources from a Shared Reservation, or exclusively from on-demand capacity. Optional.
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              Optional. Corresponds to the label key of a reservation resource. To target a SPECIFIC_RESERVATION by name, use `compute.googleapis.com/reservation-name` as the key and specify the name of your reservation as its value. Optional.
+            </ResponseField>
+            <ResponseField name="reservation_affinity_type" type="string">
+              Required. Specifies the reservation affinity type. Optional.
+            </ResponseField>
+            <ResponseField name="values" type="list(string)">
+              Optional. Corresponds to the label values of a reservation resource. This must be the resource name of the reservation, reservation block, or reservation sub- block. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="tpu_topology" type="string">
+          Immutable. The topology of the TPUs. Corresponds to the TPU topologies available from GKE. (Example: tpu_topology: "2x2x1"). Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="max_replica_count" type="number">
+      Immutable. The maximum number of replicas that may be deployed on when the traffic against it increases. If the requested value is too large, the deployment will error, but if deployment succeeds then the ability to scale to that many replicas is guaranteed (barring service outages). If traffic increases beyond what its replicas at maximum may handle, a portion of the traffic will be dropped. If this value is not provided, will use min_replica_count as the default value. The value of this field impacts the charge against Agent Platform CPU and GPU quotas. Specifically, you will be charged for (max_replica_count * number of cores in the selected machine type) and (max_replica_count * number of GPUs per replica in the selected machine type). Optional.
+    </ResponseField>
+    <ResponseField name="min_replica_count" type="number">
+      Required. Immutable. The minimum number of machine replicas that will be always deployed on. This value must be greater than or equal to 1. If traffic increases, it may dynamically be deployed onto more replicas, and as traffic decreases, some of these extra replicas may be freed. Optional.
+    </ResponseField>
+    <ResponseField name="required_replica_count" type="number">
+      Optional. Number of required available replicas for the deployment to succeed. This field is only needed when partial deployment/mutation is desired. If set, the deploy/mutate operation will succeed once available_replica_count reaches required_replica_count, and the rest of the replicas will be retried. If not set, the default required_replica_count will be min_replica_count. Optional.
+    </ResponseField>
+    <ResponseField name="spot" type="bool">
+      Optional. If true, schedule the deployment workload on [spot VMs](https://cloud.google.com/kubernetes-engine/docs/concepts/spot-vms). Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="disable_container_logging" type="bool">
+  If the DeploymentResourcePool is deployed with custom-trained Models or AutoML Tabular Models, the container(s) of the DeploymentResourcePool will send `stderr` and `stdout` streams to Cloud Logging by default. Please note that the logs incur cost, which are subject to [Cloud Logging pricing](https://cloud.google.com/logging/pricing). User can disable container logging by setting this flag to true. Computed by Google Cloud after `ship`.
+</ResponseField>
+
+<ResponseField name="encryption_spec" type="object">
+  Represents a customer-managed encryption key specification that can be applied to a Vertex AI resource. Computed by Google Cloud after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="kms_key_name" type="string">
+      Required. Resource name of the Cloud KMS key used to protect the resource. The Cloud KMS key must be in the same region as the resource. It must have the format `projects/&#123;project&#125;/locations/&#123;location&#125;/keyRings/&#123;key_ring&#125;/cryptoKeys/&#123;crypto_key&#125;`. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Immutable. The resource name of the DeploymentResourcePool. Format: `projects/&#123;project&#125;/locations/&#123;location&#125;/deploymentResourcePools/&#123;deployment_resource_pool&#125;` Computed by Google Cloud after `ship`.
+</ResponseField>
+
+<ResponseField name="satisfies_pzi" type="bool">
+  Output only. Reserved for future use. Computed by Google Cloud after `ship`.
+</ResponseField>
+
+<ResponseField name="satisfies_pzs" type="bool">
+  Output only. Reserved for future use. Computed by Google Cloud after `ship`.
+</ResponseField>
+
+<ResponseField name="service_account" type="string">
+  The service account that the DeploymentResourcePool's container(s) run as. Specify the email address of the service account. If this service account is not specified, the container(s) run as a service account that doesn't have access to the resource project. Users deploying the Models to this DeploymentResourcePool must have the `iam.serviceAccounts.actAs` permission on this service account. Computed by Google Cloud after `ship`.
+</ResponseField>

@@ -1,37 +1,30 @@
 ---
 title: "google_monitoring_alert_policy"
-description: "Real, generated bindings for `google_monitoring_alert_policy`."
+description: "`google_monitoring_alert_policy` defines the condition(s) Cloud Monitoring evaluates against incoming metric, log, or uptime data..."
 ---
 
-`google_monitoring_alert_policy` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
+`google_monitoring_alert_policy` defines the condition(s) Cloud Monitoring evaluates against incoming metric, log, or uptime data, firing an alert and notifying configured channel(s) when they're met.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_monitoring --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_monitoring/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	monitoring "github.com/ubiquex/ubx-sdk-google/sdk/go/google/monitoring"
+    	monitoring "github.com/ubiquex/ubx-sdk-google/sdk/go/google_monitoring/monitoring"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own alert policy"})
 
-    		ubx.Resource(monitoring.AlertPolicy, "ci-runner", monitoring.AlertPolicyConfig{
-    			Combiner:             "example",
-    			DisplayName:          "example-display-name",
-    			Enabled:              true,
-    			NotificationChannels: []string{"example"},
-    			Severity:             "example",
-    			UserLabels:           map[string]string{"managed-by": "ubx"},
+    		ubx.Resource(monitoring.MonitoringAlertPolicy, "ci-runner", monitoring.MonitoringAlertPolicyConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -39,38 +32,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_monitoring --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { AlertPolicy } from "jsr:@ubx/sdk-google/google/monitoring/alert_policy";
+    import { MonitoringAlertPolicy } from "./local-sdk/google_monitoring/sdk/typescript/google_monitoring/monitoring/monitoring_alert_policy.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own alert policy" });
 
-      resource(AlertPolicy, "ci-runner", {
-        combiner: "example",
-        displayName: "example-display-name",
-        enabled: true,
-        notificationChannels: ["example"],
-        severity: "example",
-        userLabels: { "managed-by": "ubx" },
+      resource(MonitoringAlertPolicy, "ci-runner", {
+        name: "ci-runner",
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_monitoring --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_monitoring/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.monitoring import AlertPolicy, AlertPolicyConfig
+    from ubx.google_monitoring.monitoring import MonitoringAlertPolicy, MonitoringAlertPolicyConfig
 
     def describe():
         ubx.intent("payments own alert policy")
 
-        ubx.resource(AlertPolicy, "ci-runner", AlertPolicyConfig(
-            combiner="example",
-            display_name="example-display-name",
-            enabled=True,
-            notification_channels=["example"],
-            severity="example",
-            user_labels={"managed-by": "ubx"},
+        ubx.resource(MonitoringAlertPolicy, "ci-runner", MonitoringAlertPolicyConfig(
+            name="ci-runner",
         ))
 
     if __name__ == "__main__":
@@ -79,563 +65,393 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_monitoring_alert_policy, with combiner example,
-    display name example-display-name, enabled true, notification
-    channels a set value, severity example, user labels a set value.
+    Create google_monitoring_alert_policy called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
-<ResponseField name="alert_strategy" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="alert_strategy" type="object">
+  Control over how the notification channels in notification_channels are notified when this alert fires. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="auto_close" type="string">
+      If an alerting policy that was active has no data for this long, any open incidents will close Optional.
     </ResponseField>
     <ResponseField name="notification_channel_strategy" type="list(object)">
+      Control how notifications will be sent out, on a per-channel basis. Optional.
       <Expandable title="properties">
         <ResponseField name="notification_channel_names" type="list(string)">
+          The notification channel(s) alerted when this policy fires. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="renotify_interval" type="string">
+          How often notifications are re-sent while this alert remains open. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="notification_prompts" type="list(string)">
+      For log-based alert policies, the notification prompts is always OPENED. For non log-based alert policies, the notification prompts can be OPENED or OPENED, CLOSED. Optional.
     </ResponseField>
-    <ResponseField name="notification_rate_limit" type="list(object)">
+    <ResponseField name="notification_rate_limit" type="object">
+      Control over the rate of notifications sent to this alerting policy's notification channels. Optional.
       <Expandable title="properties">
         <ResponseField name="period" type="string">
+          Not more than one notification per period. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="combiner" type="string" required>
-  How to combine the results of multiple conditions to determine if an incident should be opened. Possible values: ["AND", "OR", "AND_WITH_MATCHING_RESOURCE"] Required.
+<ResponseField name="combiner" type="string">
+  How to combine the results of multiple conditions to determine if an incident should be opened. If condition_time_series_query_language is present, this must be COMBINE_UNSPECIFIED. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="conditions" type="list(object)">
-  Optional; if omitted, computed by GCP.
+  A list of conditions for the policy. The conditions are combined by AND or OR according to the combiner field. If the combined conditions evaluate to true, then an incident is created. A policy can have from one to six conditions. If condition_time_series_query_language is present, it must be the only condition. If condition_monitoring_query_language is present, it must be the only condition. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="condition_absent" type="list(object)">
+    <ResponseField name="condition_absent" type="object">
+      A condition that triggers when expected data stops arriving. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
         <ResponseField name="aggregations" type="list(object)">
+          The aggregation step(s) applied to the queried time series data. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
             <ResponseField name="alignment_period" type="string">
+              The time interval time series data points are grouped into before aggregation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="cross_series_reducer" type="string">
+              How values are combined across multiple time series. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="group_by_fields" type="list(string)">
+              The field(s) time series data is grouped by before aggregation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="per_series_aligner" type="string">
+              How data points within each individual time series are aligned. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
-        </ResponseField>
-        <ResponseField name="duration" type="string" required>
-        </ResponseField>
-        <ResponseField name="filter" type="string">
-        </ResponseField>
-        <ResponseField name="trigger" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="count" type="number">
-            </ResponseField>
-            <ResponseField name="percent" type="number">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="condition_matched_log" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="filter" type="string" required>
-        </ResponseField>
-        <ResponseField name="label_extractors" type="map(string)">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="condition_monitoring_query_language" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="duration" type="string" required>
-        </ResponseField>
-        <ResponseField name="evaluation_missing_data" type="string">
-        </ResponseField>
-        <ResponseField name="query" type="string" required>
-        </ResponseField>
-        <ResponseField name="trigger" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="count" type="number">
-            </ResponseField>
-            <ResponseField name="percent" type="number">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="condition_prometheus_query_language" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="alert_rule" type="string">
-        </ResponseField>
-        <ResponseField name="disable_metric_validation" type="bool">
         </ResponseField>
         <ResponseField name="duration" type="string">
+          How long a condition must remain true before this alert fires. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="evaluation_interval" type="string">
+        <ResponseField name="filter" type="string">
+          Optional. An expression restricting which resources are returned, using this API's own filter syntax. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="labels" type="map(string)">
-        </ResponseField>
-        <ResponseField name="query" type="string" required>
-        </ResponseField>
-        <ResponseField name="rule_group" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="condition_sql" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="boolean_test" type="list(object)">
+        <ResponseField name="trigger" type="object">
+          The condition that must be satisfied across time series for this alert to fire. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
-            <ResponseField name="column" type="string" required>
+            <ResponseField name="count" type="number">
+              How many of this item there are. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="percent" type="number">
+              A percentage value. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="daily" type="list(object)">
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="condition_matched_log" type="object">
+      A condition that triggers when a log entry matches a specified filter. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="filter" type="string">
+          Optional. An expression restricting which resources are returned, using this API's own filter syntax. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="label_extractors" type="map(string)">
+          Rule(s) extracting label values from matching log entries. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="condition_monitoring_query_language" type="object">
+      A condition defined using Monitoring Query Language (MQL). Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="duration" type="string">
+          How long a condition must remain true before this alert fires. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="evaluation_missing_data" type="string">
+          How missing data is treated when evaluating this condition. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="query" type="string">
+          The query evaluated to produce this result. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="trigger" type="object">
+          The condition that must be satisfied across time series for this alert to fire. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
-            <ResponseField name="execution_time" type="list(object)">
+            <ResponseField name="count" type="number">
+              How many of this item there are. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="percent" type="number">
+              A percentage value. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="condition_prometheus_query_language" type="object">
+      A condition defined using PromQL. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="alert_rule" type="string">
+          The name of the alert rule this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="disable_metric_validation" type="bool">
+          Whether validation of the referenced metric is skipped. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="duration" type="string">
+          How long a condition must remain true before this alert fires. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="evaluation_interval" type="string">
+          How often this SQL condition is evaluated. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="labels" type="map(string)">
+          Optional. User-provided key/value labels on this resource, usable for organizing and filtering resources in Cloud Billing and the console. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="query" type="string">
+          The query evaluated to produce this result. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="rule_group" type="string">
+          The rule group this alert rule belongs to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="condition_sql" type="object">
+      A condition defined using a SQL query. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="boolean_test" type="object">
+          A condition that evaluates a boolean-valued log query. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="column" type="string">
+              A reference to a specific column. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="daily" type="object">
+          Runs this schedule once per day. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="execution_time" type="object">
+              How long this query is allowed to run before timing out. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
               <Expandable title="properties">
                 <ResponseField name="hours" type="number">
+                  The hour component of a time value. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
                 </ResponseField>
                 <ResponseField name="minutes" type="number">
+                  The minute component of a time value. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
                 </ResponseField>
                 <ResponseField name="nanos" type="number">
+                  The sub-second, nanosecond component of a time value. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
                 </ResponseField>
                 <ResponseField name="seconds" type="number">
+                  The second component of a time value. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
                 </ResponseField>
               </Expandable>
             </ResponseField>
-            <ResponseField name="periodicity" type="number" required>
+            <ResponseField name="periodicity" type="number">
+              How often this schedule recurs. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="hourly" type="list(object)">
+        <ResponseField name="hourly" type="object">
+          Runs this schedule once per hour. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
             <ResponseField name="minute_offset" type="number">
+              The number of minutes past the hour this schedule runs at. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
-            <ResponseField name="periodicity" type="number" required>
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="minutes" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="periodicity" type="number" required>
+            <ResponseField name="periodicity" type="number">
+              How often this schedule recurs. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="query" type="string" required>
-        </ResponseField>
-        <ResponseField name="row_count_test" type="list(object)">
+        <ResponseField name="minutes" type="object">
+          The minute component of a time value. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
-            <ResponseField name="comparison" type="string" required>
+            <ResponseField name="periodicity" type="number">
+              How often this schedule recurs. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
-            <ResponseField name="threshold" type="number" required>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="query" type="string">
+          The query evaluated to produce this result. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="row_count_test" type="object">
+          A condition that evaluates the number of rows returned by a SQL query. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="comparison" type="string">
+              The comparison operator used to evaluate this threshold, e.g. `COMPARISON_GT`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="threshold" type="string">
+              The value that must be crossed for this condition to trigger. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="condition_threshold" type="list(object)">
+    <ResponseField name="condition_threshold" type="object">
+      A condition that triggers when a metric crosses a defined threshold. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
         <ResponseField name="aggregations" type="list(object)">
+          The aggregation step(s) applied to the queried time series data. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
             <ResponseField name="alignment_period" type="string">
+              The time interval time series data points are grouped into before aggregation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="cross_series_reducer" type="string">
+              How values are combined across multiple time series. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="group_by_fields" type="list(string)">
+              The field(s) time series data is grouped by before aggregation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="per_series_aligner" type="string">
+              How data points within each individual time series are aligned. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="comparison" type="string" required>
+        <ResponseField name="comparison" type="string">
+          The comparison operator used to evaluate this threshold, e.g. `COMPARISON_GT`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="denominator_aggregations" type="list(object)">
+          The aggregation step(s) applied to the denominator time series, when computing a ratio. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
             <ResponseField name="alignment_period" type="string">
+              The time interval time series data points are grouped into before aggregation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="cross_series_reducer" type="string">
+              How values are combined across multiple time series. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="group_by_fields" type="list(string)">
+              The field(s) time series data is grouped by before aggregation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="per_series_aligner" type="string">
+              How data points within each individual time series are aligned. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
         <ResponseField name="denominator_filter" type="string">
+          The filter selecting the denominator time series, when computing a ratio. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="duration" type="string" required>
+        <ResponseField name="duration" type="string">
+          How long a condition must remain true before this alert fires. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="evaluation_missing_data" type="string">
+          How missing data is treated when evaluating this condition. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="filter" type="string">
+          Optional. An expression restricting which resources are returned, using this API's own filter syntax. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="forecast_options" type="list(object)">
+        <ResponseField name="forecast_options" type="object">
+          Configuration for a forecast-based alerting condition. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
-            <ResponseField name="forecast_horizon" type="string" required>
+            <ResponseField name="forecast_horizon" type="string">
+              How far into the future this forecast condition projects. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
         <ResponseField name="threshold_value" type="number">
+          The value that must be crossed for this condition to trigger. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="trigger" type="list(object)">
+        <ResponseField name="trigger" type="object">
+          The condition that must be satisfied across time series for this alert to fire. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
             <ResponseField name="count" type="number">
+              How many of this item there are. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="percent" type="number">
+              A percentage value. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="display_name" type="string" required>
+    <ResponseField name="display_name" type="string">
+      A mutable, user-settable, human-readable name for this resource, shown in the console UI. Not required to be unique. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
     <ResponseField name="name" type="string">
+      The resource name or identifier of this object. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
+<ResponseField name="creation_record" type="object">
+  Describes a change made to a configuration. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="mutate_time" type="string">
+      When the change occurred. Optional.
+    </ResponseField>
+    <ResponseField name="mutated_by" type="string">
+      The email address of the user making the change. Optional.
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
-<ResponseField name="display_name" type="string" required>
-  A short name or phrase used to identify the policy in dashboards, notifications, and incidents. To avoid confusion, don't use the same display name for multiple policies in the same project. The name is limited to 512 Unicode characters. Required.
+<ResponseField name="display_name" type="string">
+  A short name or phrase used to identify the policy in dashboards, notifications, and incidents. To avoid confusion, don't use the same display name for multiple policies in the same project. The name is limited to 512 Unicode characters.The convention for the display_name of a PrometheusQueryLanguageCondition is "&#123;rule group name&#125;/&#123;alert name&#125;", where the &#123;rule group name&#125; and &#123;alert name&#125; should be taken from the corresponding Prometheus configuration file. This convention is not enforced. In any case the display_name is not a unique key of the AlertPolicy. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="documentation" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="documentation" type="object">
+  Documentation that is included in the notifications and incidents pertaining to this policy. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="content" type="string">
+      The body of the documentation, interpreted according to mime_type. The content may not exceed 8,192 Unicode characters and may not exceed more than 10,240 bytes when encoded in UTF-8 format, whichever is smaller. This text can be templatized by using variables (https://cloud.google.com/monitoring/alerts/doc-variables#doc-vars). Optional.
     </ResponseField>
     <ResponseField name="links" type="list(object)">
+      Optional. Links to content such as playbooks, repositories, and other resources. This field can contain up to 3 entries. Optional.
       <Expandable title="properties">
         <ResponseField name="display_name" type="string">
+          A mutable, user-settable, human-readable name for this resource, shown in the console UI. Not required to be unique. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="url" type="string">
+          A URL this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="mime_type" type="string">
+      The format of the content field. Presently, only the value "text/markdown" is supported. See Markdown (https://en.wikipedia.org/wiki/Markdown) for more information. Optional.
     </ResponseField>
     <ResponseField name="subject" type="string">
+      Optional. The subject line of the notification. The subject line may not exceed 10,240 bytes. In notifications generated by this policy, the contents of the subject line after variable expansion will be truncated to 255 bytes or shorter at the latest UTF-8 character boundary. The 255-byte limit is recommended by this thread (https://stackoverflow.com/questions/1592291/what-is-the-email-subject-length-limit). It is both the limit imposed by some third-party ticketing products and it is common to define textual fields in databases as VARCHAR(255).The contents of the subject line can be templatized by using variables (https://cloud.google.com/monitoring/alerts/doc-variables#doc-vars). If this field is missing or empty, a default subject line will be generated. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="enabled" type="bool">
-  Whether or not the policy is enabled. The default is true. Optional.
+  Whether or not the policy is enabled. On write, the default interpretation if unset is that the policy is enabled. On read, clients should not make any assumption about the state if it has not been populated. The field should always be populated on List and Get operations, unless a field projection has been specified that strips it out. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="notification_channels" type="list(string)">
-  Identifies the notification channels to which notifications should be sent when incidents are opened or closed or when new violations occur on an already opened incident. Each element of this array corresponds to the name field in each of the NotificationChannel objects that are returned from the notificationChannels.list method. The syntax of the entries in this field is 'projects/[PROJECT_ID]/notificationChannels/[CHANNEL_ID]' Optional.
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="severity" type="string">
-  The severity of an alert policy indicates how important incidents generated by that policy are. The severity level will be displayed on the Incident detail page and in notifications. Possible values: ["CRITICAL", "ERROR", "WARNING"] Optional.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="user_labels" type="map(string)">
-  This field is intended to be used for organizing and identifying the AlertPolicy objects.The field can contain up to 64 entries. Each key and value is limited to 63 Unicode characters or 128 bytes, whichever is smaller. Labels and values can contain only lowercase letters, numerals, underscores, and dashes. Keys must begin with a letter. Optional.
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="alert_strategy" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="auto_close" type="string">
-    </ResponseField>
-    <ResponseField name="notification_channel_strategy" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="notification_channel_names" type="list(string)">
-        </ResponseField>
-        <ResponseField name="renotify_interval" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="notification_prompts" type="list(string)">
-    </ResponseField>
-    <ResponseField name="notification_rate_limit" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="period" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="conditions" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="condition_absent" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="aggregations" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="alignment_period" type="string">
-            </ResponseField>
-            <ResponseField name="cross_series_reducer" type="string">
-            </ResponseField>
-            <ResponseField name="group_by_fields" type="list(string)">
-            </ResponseField>
-            <ResponseField name="per_series_aligner" type="string">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="duration" type="string" required>
-        </ResponseField>
-        <ResponseField name="filter" type="string">
-        </ResponseField>
-        <ResponseField name="trigger" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="count" type="number">
-            </ResponseField>
-            <ResponseField name="percent" type="number">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="condition_matched_log" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="filter" type="string" required>
-        </ResponseField>
-        <ResponseField name="label_extractors" type="map(string)">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="condition_monitoring_query_language" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="duration" type="string" required>
-        </ResponseField>
-        <ResponseField name="evaluation_missing_data" type="string">
-        </ResponseField>
-        <ResponseField name="query" type="string" required>
-        </ResponseField>
-        <ResponseField name="trigger" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="count" type="number">
-            </ResponseField>
-            <ResponseField name="percent" type="number">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="condition_prometheus_query_language" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="alert_rule" type="string">
-        </ResponseField>
-        <ResponseField name="disable_metric_validation" type="bool">
-        </ResponseField>
-        <ResponseField name="duration" type="string">
-        </ResponseField>
-        <ResponseField name="evaluation_interval" type="string">
-        </ResponseField>
-        <ResponseField name="labels" type="map(string)">
-        </ResponseField>
-        <ResponseField name="query" type="string" required>
-        </ResponseField>
-        <ResponseField name="rule_group" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="condition_sql" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="boolean_test" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="column" type="string" required>
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="daily" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="execution_time" type="list(object)">
-              <Expandable title="properties">
-                <ResponseField name="hours" type="number">
-                </ResponseField>
-                <ResponseField name="minutes" type="number">
-                </ResponseField>
-                <ResponseField name="nanos" type="number">
-                </ResponseField>
-                <ResponseField name="seconds" type="number">
-                </ResponseField>
-              </Expandable>
-            </ResponseField>
-            <ResponseField name="periodicity" type="number" required>
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="hourly" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="minute_offset" type="number">
-            </ResponseField>
-            <ResponseField name="periodicity" type="number" required>
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="minutes" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="periodicity" type="number" required>
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="query" type="string" required>
-        </ResponseField>
-        <ResponseField name="row_count_test" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="comparison" type="string" required>
-            </ResponseField>
-            <ResponseField name="threshold" type="number" required>
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="condition_threshold" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="aggregations" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="alignment_period" type="string">
-            </ResponseField>
-            <ResponseField name="cross_series_reducer" type="string">
-            </ResponseField>
-            <ResponseField name="group_by_fields" type="list(string)">
-            </ResponseField>
-            <ResponseField name="per_series_aligner" type="string">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="comparison" type="string" required>
-        </ResponseField>
-        <ResponseField name="denominator_aggregations" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="alignment_period" type="string">
-            </ResponseField>
-            <ResponseField name="cross_series_reducer" type="string">
-            </ResponseField>
-            <ResponseField name="group_by_fields" type="list(string)">
-            </ResponseField>
-            <ResponseField name="per_series_aligner" type="string">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="denominator_filter" type="string">
-        </ResponseField>
-        <ResponseField name="duration" type="string" required>
-        </ResponseField>
-        <ResponseField name="evaluation_missing_data" type="string">
-        </ResponseField>
-        <ResponseField name="filter" type="string">
-        </ResponseField>
-        <ResponseField name="forecast_options" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="forecast_horizon" type="string" required>
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="threshold_value" type="number">
-        </ResponseField>
-        <ResponseField name="trigger" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="count" type="number">
-            </ResponseField>
-            <ResponseField name="percent" type="number">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="display_name" type="string" required>
-    </ResponseField>
-    <ResponseField name="name" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="creation_record" type="list(object)">
-  A read-only record of the creation of the alerting policy. If provided in a call to create or update, this field will be ignored. Computed by GCP after `ship`.
+<ResponseField name="mutation_record" type="object">
+  Describes a change made to a configuration. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="mutate_time" type="string">
+      When the change occurred. Optional.
     </ResponseField>
     <ResponseField name="mutated_by" type="string">
+      The email address of the user making the change. Optional.
     </ResponseField>
   </Expandable>
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="documentation" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="content" type="string">
-    </ResponseField>
-    <ResponseField name="links" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="display_name" type="string">
-        </ResponseField>
-        <ResponseField name="url" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="mime_type" type="string">
-    </ResponseField>
-    <ResponseField name="subject" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
 </ResponseField>
 
 <ResponseField name="name" type="string">
-  The unique resource name for this policy. Its syntax is: projects/[PROJECT_ID]/alertPolicies/[ALERT_POLICY_ID] Computed by GCP after `ship`.
+  Identifier. Required if the policy exists. The resource name for this policy. The format is: projects/[PROJECT_ID_OR_NUMBER]/alertPolicies/[ALERT_POLICY_ID] [ALERT_POLICY_ID] is assigned by Cloud Monitoring when the policy is created. When calling the alertPolicies.create method, do not include the name field in the alerting policy passed as part of the request. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="notification_channels" type="list(string)">
+  Identifies the notification channels to which notifications should be sent when incidents are opened or closed or when new violations occur on an already opened incident. Each element of this array corresponds to the name field in each of the NotificationChannel objects that are returned from the ListNotificationChannels method. The format of the entries in this field is: projects/[PROJECT_ID_OR_NUMBER]/notificationChannels/[CHANNEL_ID] Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="severity" type="string">
+  Optional. The severity of an alerting policy indicates how important incidents generated by that policy are. The severity level will be displayed on the Incident detail page and in notifications. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="user_labels" type="map(string)">
+  User-supplied key/value data to be used for organizing and identifying the AlertPolicy objects.The field can contain up to 64 entries. Each key and value is limited to 63 Unicode characters or 128 bytes, whichever is smaller. Labels and values can contain only lowercase letters, numerals, underscores, and dashes. Keys must begin with a letter.Note that Prometheus &#123;alert name&#125; is a valid Prometheus label names (https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels), whereas Prometheus &#123;rule group&#125; is an unrestricted UTF-8 string. This means that they cannot be stored as-is in user labels, because they may contain characters that are not allowed in user-label values. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="validity" type="object">
+  The Status type defines a logical error model that is suitable for different programming environments, including REST APIs and RPC APIs. It is used by gRPC (https://github.com/grpc). Each Status message contains three pieces of data: error code, error message, and error details.You can find out more about this error model and how to work with it in the API Design Guide (https://cloud.google.com/apis/design/errors). Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="create" type="string">
+    <ResponseField name="code" type="number">
+      The status code, which should be an enum value of google.rpc.Code. Optional.
     </ResponseField>
-    <ResponseField name="delete" type="string">
+    <ResponseField name="details" type="list(map(any))">
+      A list of messages that carry the error details. There is a common set of message types for APIs to use. Optional.
     </ResponseField>
-    <ResponseField name="update" type="string">
+    <ResponseField name="message" type="string">
+      A developer-facing error message, which should be in English. Any user-facing error message should be localized and sent in the google.rpc.Status.details field, or localized by the client. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>

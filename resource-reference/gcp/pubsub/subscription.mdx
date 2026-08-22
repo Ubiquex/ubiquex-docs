@@ -1,39 +1,30 @@
 ---
 title: "google_pubsub_subscription"
-description: "Real, generated bindings for `google_pubsub_subscription`."
+description: "`google_pubsub_subscription` attaches to a Pub/Sub topic and delivers its own published messages to a consumer, either by pull or push..."
 ---
 
-`google_pubsub_subscription` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
+`google_pubsub_subscription` attaches to a Pub/Sub topic and delivers its own published messages to a consumer, either by pull or push, tracking per-message acknowledgment.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_pubsub --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_pubsub/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	pubsub "github.com/ubiquex/ubx-sdk-google/sdk/go/google/pubsub"
+    	pubsub "github.com/ubiquex/ubx-sdk-google/sdk/go/google_pubsub/pubsub"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own subscription"})
 
-    		ubx.Resource(pubsub.Subscription, "ci-runner", pubsub.SubscriptionConfig{
-    			Name:                      "ci-runner",
-    			Topic:                     "example",
-    			EnableExactlyOnceDelivery: true,
-    			EnableMessageOrdering:     true,
-    			Filter:                    "example",
-    			Labels:                    map[string]string{"managed-by": "ubx"},
-    			MessageRetentionDuration:  "example",
-    			RetainAckedMessages:       true,
+    		ubx.Resource(pubsub.PubsubSubscription, "ci-runner", pubsub.PubsubSubscriptionConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -41,42 +32,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_pubsub --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { Subscription } from "jsr:@ubx/sdk-google/google/pubsub/subscription";
+    import { PubsubSubscription } from "./local-sdk/google_pubsub/sdk/typescript/google_pubsub/pubsub/pubsub_subscription.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own subscription" });
 
-      resource(Subscription, "ci-runner", {
+      resource(PubsubSubscription, "ci-runner", {
         name: "ci-runner",
-        topic: "example",
-        enableExactlyOnceDelivery: true,
-        enableMessageOrdering: true,
-        filter: "example",
-        labels: { "managed-by": "ubx" },
-        messageRetentionDuration: "example",
-        retainAckedMessages: true,
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_pubsub --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_pubsub/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.pubsub import Subscription, SubscriptionConfig
+    from ubx.google_pubsub.pubsub import PubsubSubscription, PubsubSubscriptionConfig
 
     def describe():
         ubx.intent("payments own subscription")
 
-        ubx.resource(Subscription, "ci-runner", SubscriptionConfig(
+        ubx.resource(PubsubSubscription, "ci-runner", PubsubSubscriptionConfig(
             name="ci-runner",
-            topic="example",
-            enable_exactly_once_delivery=True,
-            enable_message_ordering=True,
-            filter="example",
-            labels={"managed-by": "ubx"},
-            message_retention_duration="example",
-            retain_acked_messages=True,
         ))
 
     if __name__ == "__main__":
@@ -85,390 +65,288 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_pubsub_subscription called "ci-runner", with topic
-    example, enable exactly once delivery true, enable message
-    ordering true, filter example, labels a set value, message
-    retention duration example, retain acked messages true.
+    Create google_pubsub_subscription called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
 <ResponseField name="ack_deadline_seconds" type="number">
-  This value is the maximum time after a subscriber receives a message before the subscriber should acknowledge the message. After message delivery but before the ack deadline expires and before the message is acknowledged, it is an outstanding message and will not be delivered again during that time (on a best-effort basis). For pull subscriptions, this value is used as the initial value for the ack deadline. To override this value for a given message, call subscriptions.modifyAckDeadline with the corresponding ackId if using pull. The minimum custom deadline you can specify is 10 seconds. The maximum custom deadline you can specify is 600 seconds (10 minutes). If this parameter is 0, a default value of 10 seconds is used. For push delivery, this value is also used to set the request timeout for the call to the push endpoint. If the subscriber never acknowledges the message, the Pub/Sub system will eventually redeliver the message. Optional; if omitted, computed by GCP.
+  Optional. The approximate amount of time (on a best-effort basis) Pub/Sub waits for the subscriber to acknowledge receipt before resending the message. In the interval after the message is delivered and before it is acknowledged, it is considered to be _outstanding_. During that time period, the message will not be redelivered (on a best-effort basis). For pull subscriptions, this value is used as the initial value for the ack deadline. To override this value for a given message, call `ModifyAckDeadline` with the corresponding `ack_id` if using non-streaming pull or send the `ack_id` in a `StreamingModifyAckDeadlineRequest` if using streaming pull. The minimum custom deadline you can specify is 10 seconds. The maximum custom deadline you can specify is 600 seconds (10 minutes). If this parameter is 0, a default value of 10 seconds is used. For push delivery, this value is also used to set the request timeout for the call to the push endpoint. If the subscriber never acknowledges the message, the Pub/Sub system will eventually redeliver the message. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="bigquery_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="analytics_hub_subscription_info" type="object">
+  Information about an associated [Analytics Hub subscription](https://cloud.google.com/bigquery/docs/analytics-hub-manage-subscriptions). Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="listing" type="string">
+      Optional. The name of the associated Analytics Hub listing resource. Pattern: "projects/&#123;project&#125;/locations/&#123;location&#125;/dataExchanges/&#123;data_exchange&#125;/listings/&#123;listing&#125;" Optional.
+    </ResponseField>
+    <ResponseField name="subscription" type="string">
+      Optional. The name of the associated Analytics Hub subscription resource. Pattern: "projects/&#123;project&#125;/locations/&#123;location&#125;/subscriptions/&#123;subscription&#125;" Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="bigquery_config" type="object">
+  Configuration for a BigQuery subscription. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="drop_unknown_fields" type="bool">
+      Optional. If true and `use_topic_schema` is true, drops any fields that are part of the topic schema that are not part of the BigQuery table schema when writing to BigQuery. Otherwise, the schemas must be kept in sync and any messages with extra fields are not written and remain in the subscription's backlog. If true and `use_table_schema` is true, drops any fields in the message that are not part of the BigQuery table schema when writing to BigQuery. Otherwise, the write to BigQuery will fail. Optional.
     </ResponseField>
     <ResponseField name="service_account_email" type="string">
-    </ResponseField>
-    <ResponseField name="table" type="string" required>
-    </ResponseField>
-    <ResponseField name="use_table_schema" type="bool">
-    </ResponseField>
-    <ResponseField name="use_topic_schema" type="bool">
-    </ResponseField>
-    <ResponseField name="write_metadata" type="bool">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="cloud_storage_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="avro_config" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="use_topic_schema" type="bool">
-        </ResponseField>
-        <ResponseField name="write_metadata" type="bool">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="bucket" type="string" required>
-    </ResponseField>
-    <ResponseField name="filename_datetime_format" type="string">
-    </ResponseField>
-    <ResponseField name="filename_prefix" type="string">
-    </ResponseField>
-    <ResponseField name="filename_suffix" type="string">
-    </ResponseField>
-    <ResponseField name="max_bytes" type="number">
-    </ResponseField>
-    <ResponseField name="max_duration" type="string">
-    </ResponseField>
-    <ResponseField name="max_messages" type="number">
-    </ResponseField>
-    <ResponseField name="service_account_email" type="string">
+      Optional. The service account to use to write to BigQuery. The subscription creator or updater that specifies this field must have `iam.serviceAccounts.actAs` permission on the service account. If not specified, the Pub/Sub [service agent](https://cloud.google.com/iam/docs/service-agents), service-&#123;project_number&#125;@gcp-sa-pubsub.iam.gserviceaccount.com, is used. Optional.
     </ResponseField>
     <ResponseField name="state" type="string">
+      Output only. An output-only field that indicates whether or not the subscription can receive messages. Computed by Google Cloud after `ship`.
     </ResponseField>
-    <ResponseField name="text_config" type="list(object)">
+    <ResponseField name="table" type="string">
+      Optional. The name of the table to which to write data, of the form &#123;projectId&#125;.&#123;datasetId&#125;.&#123;tableId&#125; Optional.
+    </ResponseField>
+    <ResponseField name="use_table_schema" type="bool">
+      Optional. When true, use the BigQuery table's schema as the columns to write to in BigQuery. `use_table_schema` and `use_topic_schema` cannot be enabled at the same time. Optional.
+    </ResponseField>
+    <ResponseField name="use_topic_schema" type="bool">
+      Optional. When true, use the topic's schema as the columns to write to in BigQuery, if it exists. `use_topic_schema` and `use_table_schema` cannot be enabled at the same time. Optional.
+    </ResponseField>
+    <ResponseField name="write_metadata" type="bool">
+      Optional. When true, write the subscription name, message_id, publish_time, attributes, and ordering_key to additional columns in the table. The subscription name, message_id, and publish_time fields are put in their own columns while all other message properties (other than data) are written to a JSON object in the attributes column. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="bigtable_config" type="object">
+  Configuration for a Bigtable subscription. The Pub/Sub message will be written to a Bigtable row as follows: - row key: subscription name, message ID hash, and message ID delimited by `#`. - columns: message bytes written to a single column family `data` with an empty-string column qualifier. - cell timestamp: the message publish timestamp. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="app_profile_id" type="string">
+      Optional. The app profile to use for the Bigtable writes. If not specified, the "default" application profile will be used. The app profile must use single-cluster routing. Optional.
+    </ResponseField>
+    <ResponseField name="service_account_email" type="string">
+      Optional. The service account to use to write to Bigtable. The subscription creator or updater that specifies this field must have `iam.serviceAccounts.actAs` permission on the service account. If not specified, the Pub/Sub [service agent](https://cloud.google.com/iam/docs/service-agents), service-&#123;project_number&#125;@gcp-sa-pubsub.iam.gserviceaccount.com, is used. Optional.
+    </ResponseField>
+    <ResponseField name="state" type="string">
+      Output only. An output-only field that indicates whether or not the subscription can receive messages. Computed by Google Cloud after `ship`.
+    </ResponseField>
+    <ResponseField name="table" type="string">
+      Optional. The unique name of the table to write messages to. Values are of the form `projects//instances//tables/`. Optional.
+    </ResponseField>
+    <ResponseField name="write_metadata" type="bool">
+      Optional. When true, write the subscription name, message_id, publish_time, attributes, and ordering_key to additional columns in the table under the pubsub_metadata column family. The subscription name, message_id, and publish_time fields are put in their own columns while all other message properties (other than data) are written to a JSON object in the attributes column. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="cloud_storage_config" type="object">
+  Configuration for a Cloud Storage subscription. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="avro_config" type="object">
+      Configuration for writing message data in Avro format. Message payloads and metadata will be written to files as an Avro binary. Optional.
       <Expandable title="properties">
-        <ResponseField name="state" type="string">
+        <ResponseField name="use_topic_schema" type="bool">
+          Optional. When true, the output Cloud Storage file will be serialized using the topic schema, if it exists. Optional.
+        </ResponseField>
+        <ResponseField name="write_metadata" type="bool">
+          Optional. When true, write the subscription name, message_id, publish_time, attributes, and ordering_key as additional fields in the output. The subscription name, message_id, and publish_time fields are put in their own fields while all other message properties other than data (for example, an ordering_key, if present) are added as entries in the attributes map. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
+    <ResponseField name="bucket" type="string">
+      Required. User-provided name for the Cloud Storage bucket. The bucket must be created by the user. The bucket name must be without any prefix like "gs://". See the [bucket naming requirements] (https://cloud.google.com/storage/docs/buckets#naming). Optional.
+    </ResponseField>
+    <ResponseField name="filename_datetime_format" type="string">
+      Optional. User-provided format string specifying how to represent datetimes in Cloud Storage filenames. See the [datetime format guidance](https://cloud.google.com/pubsub/docs/create-cloudstorage-subscription#file_names). Optional.
+    </ResponseField>
+    <ResponseField name="filename_prefix" type="string">
+      Optional. User-provided prefix for Cloud Storage filename. See the [object naming requirements](https://cloud.google.com/storage/docs/objects#naming). Optional.
+    </ResponseField>
+    <ResponseField name="filename_suffix" type="string">
+      Optional. User-provided suffix for Cloud Storage filename. See the [object naming requirements](https://cloud.google.com/storage/docs/objects#naming). Must not end in "/". Optional.
+    </ResponseField>
+    <ResponseField name="max_bytes" type="string">
+      Optional. The maximum bytes that can be written to a Cloud Storage file before a new file is created. Min 1 KB, max 10 GiB. The max_bytes limit may be exceeded in cases where messages are larger than the limit. Optional.
+    </ResponseField>
+    <ResponseField name="max_duration" type="string">
+      Optional. The maximum duration that can elapse before a new Cloud Storage file is created. Min 1 minute, max 10 minutes, default 5 minutes. May not exceed the subscription's acknowledgment deadline. Optional.
+    </ResponseField>
+    <ResponseField name="max_messages" type="string">
+      Optional. The maximum number of messages that can be written to a Cloud Storage file before a new file is created. Min 1000 messages. Optional.
+    </ResponseField>
+    <ResponseField name="service_account_email" type="string">
+      Optional. The service account to use to write to Cloud Storage. The subscription creator or updater that specifies this field must have `iam.serviceAccounts.actAs` permission on the service account. If not specified, the Pub/Sub [service agent](https://cloud.google.com/iam/docs/service-agents), service-&#123;project_number&#125;@gcp-sa-pubsub.iam.gserviceaccount.com, is used. Optional.
+    </ResponseField>
+    <ResponseField name="state" type="string">
+      Output only. An output-only field that indicates whether or not the subscription can receive messages. Computed by Google Cloud after `ship`.
+    </ResponseField>
+    <ResponseField name="text_config" type="any">
+      Configuration for writing message data in text format. Message payloads will be written to files as raw text, separated by a newline. Optional.
+    </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="dead_letter_policy" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="dead_letter_policy" type="object">
+  Dead lettering is done on a best effort basis. The same message might be dead lettered multiple times. If validation on any of the fields fails at subscription creation/updation, the create/update subscription request will fail. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="dead_letter_topic" type="string">
+      Optional. The name of the topic to which dead letter messages should be published. Format is `projects/&#123;project&#125;/topics/&#123;topic&#125;`.The Pub/Sub service account associated with the enclosing subscription's parent project (i.e., service-&#123;project_number&#125;@gcp-sa-pubsub.iam.gserviceaccount.com) must have permission to Publish() to this topic. The operation will fail if the topic does not exist. Users should ensure that there is a subscription attached to this topic since messages published to a topic with no subscriptions are lost. Optional.
     </ResponseField>
     <ResponseField name="max_delivery_attempts" type="number">
+      Optional. The maximum number of delivery attempts for any message. The value must be between 5 and 100. The number of delivery attempts is defined as 1 + (the sum of number of NACKs and number of times the acknowledgment deadline has been exceeded for the message). A NACK is any call to ModifyAckDeadline with a 0 deadline. Note that client libraries may automatically extend ack_deadlines. This field will be honored on a best effort basis. If this parameter is 0, a default value of 5 is used. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
+<ResponseField name="detached" type="bool">
+  Optional. Indicates whether the subscription is detached from its topic. Detached subscriptions don't receive messages from their topic and don't retain any backlog. `Pull` and `StreamingPull` requests will return FAILED_PRECONDITION. If the subscription is a push subscription, pushes to the endpoint will not be made. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="enable_exactly_once_delivery" type="bool">
-  If 'true', Pub/Sub provides the following guarantees for the delivery of a message with a given value of messageId on this Subscriptions': - The message sent to a subscriber is guaranteed not to be resent before the message's acknowledgement deadline expires. - An acknowledged message will not be resent to a subscriber. Note that subscribers may still receive multiple copies of a message when 'enable_exactly_once_delivery' is true if the message was published multiple times by a publisher client. These copies are considered distinct by Pub/Sub and have distinct messageId values Optional.
+  Optional. If true, Pub/Sub provides the following guarantees for the delivery of a message with a given value of `message_id` on this subscription: * The message sent to a subscriber is guaranteed not to be resent before the message's acknowledgment deadline expires. * An acknowledged message will not be resent to a subscriber. Note that subscribers may still receive multiple copies of a message when `enable_exactly_once_delivery` is true if the message was published multiple times by a publisher client. These copies are considered distinct by Pub/Sub and have distinct `message_id` values. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="enable_message_ordering" type="bool">
-  If 'true', messages published with the same orderingKey in PubsubMessage will be delivered to the subscribers in the order in which they are received by the Pub/Sub system. Otherwise, they may be delivered in any order. Optional.
+  Optional. If true, messages published with the same `ordering_key` in `PubsubMessage` will be delivered to the subscribers in the order in which they are received by the Pub/Sub system. Otherwise, they may be delivered in any order. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="expiration_policy" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="expiration_policy" type="object">
+  A policy that specifies the conditions for resource expiration (i.e., automatic resource deletion). Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="ttl" type="string" required>
+    <ResponseField name="ttl" type="string">
+      Optional. Specifies the "time-to-live" duration for an associated resource. The resource expires if it is not active for a period of `ttl`. The definition of "activity" depends on the type of the associated resource. The minimum and maximum allowed values for `ttl` depend on the type of the associated resource, as well. If `ttl` is not set, the associated resource never expires. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="filter" type="string">
-  The subscription only delivers the messages that match the filter. Pub/Sub automatically acknowledges the messages that don't match the filter. You can filter messages by their attributes. The maximum length of a filter is 256 bytes. After creating the subscription, you can't modify the filter. Optional.
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
+  Optional. An expression written in the Pub/Sub [filter language](https://cloud.google.com/pubsub/docs/filtering). If non-empty, then only `PubsubMessage`s whose `attributes` field matches the filter are delivered on this subscription. If empty, then no messages are filtered out. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="labels" type="map(string)">
-  A set of key/value label pairs to assign to this Subscription. **Note**: This field is non-authoritative, and will only manage the labels present in your configuration. Please refer to the field 'effective_labels' for all of the labels present on the resource. Optional.
+  Optional. See [Creating and managing labels](https://cloud.google.com/pubsub/docs/labels). Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="message_retention_duration" type="string">
-  How long to retain unacknowledged messages in the subscription's backlog, from the moment a message is published. If retain_acked_messages is true, then this also configures the retention of acknowledged messages, and thus configures how far back in time a subscriptions.seek can be done. Defaults to 7 days. Cannot be more than 31 days ('"2678400s"') or less than 10 minutes ('"600s"'). A duration in seconds with up to nine fractional digits, terminated by 's'. Example: '"600.5s"'. Optional.
+  Optional. How long to retain unacknowledged messages in the subscription's backlog, from the moment a message is published. If `retain_acked_messages` is true, then this also configures the retention of acknowledged messages, and thus configures how far back in time a `Seek` can be done. Defaults to 7 days. Cannot be more than 31 days or less than 10 minutes. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="message_transforms" type="list(object)">
-  Optional; if omitted, computed by GCP.
+  Optional. Transforms to be applied to messages before they are delivered to subscribers. Transforms are applied in the order specified. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="ai_inference" type="list(object)">
+    <ResponseField name="ai_inference" type="object">
+      A message transform that runs each message through a Vertex AI model and attaches the model's own inference as additional message data. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
-        <ResponseField name="endpoint" type="string" required>
+        <ResponseField name="endpoint" type="string">
+          The Vertex AI model endpoint this transform sends each message to for inference. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="service_account_email" type="string">
+          The service account this transform uses to call the Vertex AI endpoint. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="unstructured_inference" type="list(object)">
+        <ResponseField name="unstructured_inference" type="object">
+          Configuration for running inference on unstructured message content (e.g. free text), rather than a fixed schema. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
-            <ResponseField name="parameters" type="map(string)">
+            <ResponseField name="parameters" type="map(any)">
+              Model-specific parameters passed to the Vertex AI endpoint for unstructured inference. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="disabled" type="bool">
-    </ResponseField>
-    <ResponseField name="javascript_udf" type="list(object)">
+    <ResponseField name="compression" type="object">
+      A message transform that compresses or decompresses message data as it flows through the transform pipeline. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
-        <ResponseField name="code" type="string" required>
+        <ResponseField name="compression_algorithm" type="string">
+          The compression algorithm this transform uses, e.g. `ZLIB`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="function_name" type="string" required>
+        <ResponseField name="compression_mode" type="string">
+          Whether this transform `COMPRESS`es or `DECOMPRESS`es message data. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="disabled" type="bool">
+      If `true`, this transform is skipped without being removed from the pipeline. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="enabled" type="bool">
+      Whether this transform is active in the pipeline. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="javascript_udf" type="object">
+      A message transform implemented as a user-defined JavaScript function, run inline on each message. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="code" type="string">
+          The JavaScript source code implementing this transform. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="function_name" type="string">
+          The name of the function within `code` Pub/Sub invokes for each message. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="name" type="string" required>
-  Name of the subscription. Required.
+<ResponseField name="name" type="string">
+  Required. Identifier. The name of the subscription. It must have the format `"projects/&#123;project&#125;/subscriptions/&#123;subscription&#125;"`. `&#123;subscription&#125;` must start with a letter, and contain only letters (`[A-Za-z]`), numbers (`[0-9]`), dashes (`-`), underscores (`_`), periods (`.`), tildes (`~`), plus (`+`) or percent signs (`%`). It must be between 3 and 255 characters in length, and it must not start with `"goog"`. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="push_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="push_config" type="object">
+  Configuration for a push delivery endpoint. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="attributes" type="map(string)">
+      Optional. Endpoint configuration attributes that can be used to control different aspects of the message delivery. The only currently supported attribute is `x-goog-version`, which you can use to change the format of the pushed message. This attribute indicates the version of the data expected by the endpoint. This controls the shape of the pushed message (i.e., its fields and metadata). If not present during the `CreateSubscription` call, it will default to the version of the Pub/Sub API used to make such call. If not present in a `ModifyPushConfig` call, its value will not be changed. `GetSubscription` calls will always return a valid version, even if the subscription was created without this attribute. The only supported values for the `x-goog-version` attribute are: * `v1beta1`: uses the push format defined in the v1beta1 Pub/Sub API. * `v1` or `v1beta2`: uses the push format defined in the v1 Pub/Sub API. For example: `attributes &#123; "x-goog-version": "v1" &#125;` Optional.
     </ResponseField>
-    <ResponseField name="no_wrapper" type="list(object)">
+    <ResponseField name="no_wrapper" type="object">
+      Sets the `data` field as the HTTP body for delivery. Optional.
       <Expandable title="properties">
-        <ResponseField name="write_metadata" type="bool" required>
+        <ResponseField name="write_metadata" type="bool">
+          Optional. When true, writes the Pub/Sub message metadata to `x-goog-pubsub-:` headers of the HTTP request. Writes the Pub/Sub message attributes to `:` headers of the HTTP request. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="oidc_token" type="list(object)">
+    <ResponseField name="oidc_token" type="object">
+      Contains information needed for generating an [OpenID Connect token](https://developers.google.com/identity/protocols/OpenIDConnect). Optional.
       <Expandable title="properties">
         <ResponseField name="audience" type="string">
+          Optional. Audience to be used when generating OIDC token. The audience claim identifies the recipients that the JWT is intended for. The audience value is a single case-sensitive string. Having multiple values (array) for the audience field is not supported. More info about the OIDC JWT token audience here: https://tools.ietf.org/html/rfc7519#section-4.1.3 Note: if not specified, the Push endpoint URL will be used. Optional.
         </ResponseField>
-        <ResponseField name="service_account_email" type="string" required>
+        <ResponseField name="service_account_email" type="string">
+          Optional. [Service account email](https://cloud.google.com/iam/docs/service-accounts) used for generating the OIDC token. For more information on setting up authentication, see [Push subscriptions](https://cloud.google.com/pubsub/docs/push). Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="push_endpoint" type="string" required>
+    <ResponseField name="pubsub_wrapper" type="any">
+      The payload to the push endpoint is in the form of the JSON representation of a PubsubMessage (https://cloud.google.com/pubsub/docs/reference/rpc/google.pubsub.v1#pubsubmessage). Optional.
+    </ResponseField>
+    <ResponseField name="push_endpoint" type="string">
+      Optional. A URL locating the endpoint to which messages should be pushed. For example, a Webhook endpoint might use `https://example.com/push`. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="retain_acked_messages" type="bool">
-  Indicates whether to retain acknowledged messages. If 'true', then messages are not expunged from the subscription's backlog, even if they are acknowledged, until they fall out of the messageRetentionDuration window. Optional.
+  Optional. Indicates whether to retain acknowledged messages. If true, then messages are not expunged from the subscription's backlog, even if they are acknowledged, until they fall out of the `message_retention_duration` window. This must be true if you would like to [`Seek` to a timestamp] (https://cloud.google.com/pubsub/docs/replay-overview#seek_to_a_time) in the past to replay previously-acknowledged messages. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="retry_policy" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="retry_policy" type="object">
+  A policy that specifies how Pub/Sub retries message delivery. Retry delay will be exponential based on provided minimum and maximum backoffs. https://en.wikipedia.org/wiki/Exponential_backoff. RetryPolicy will be triggered on NACKs or acknowledgment deadline exceeded events for a given message. Retry Policy is implemented on a best effort basis. At times, the delay between consecutive deliveries may not match the configuration. That is, delay can be more or less than configured backoff. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="maximum_backoff" type="string">
+      Optional. The maximum delay between consecutive deliveries of a given message. Value should be between 0 and 600 seconds. Defaults to 600 seconds. Optional.
     </ResponseField>
     <ResponseField name="minimum_backoff" type="string">
+      Optional. The minimum delay between consecutive deliveries of a given message. Value should be between 0 and 600 seconds. Defaults to 10 seconds. Optional.
     </ResponseField>
   </Expandable>
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Output only. An output-only field indicating whether or not the subscription can receive messages. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="tags" type="map(string)">
-  Input only. Resource manager tags to be bound to the subscription. Tag keys and values have the same definition as resource manager tags. Keys must be in the format tagKeys/&#123;tag_key_id&#125;, and values are in the format tagValues/456. The field is ignored when empty. The field is immutable and causes resource replacement when mutated. This field is only set at create time and modifying this field after creation will trigger recreation. To apply tags to an existing resource, see the 'google_tags_tag_value' resource. Optional.
+  Optional. Input only. Immutable. Tag keys/values directly bound to this resource. For example: "123/environment": "production", "123/costCenter": "marketing" See https://&#123;$universe.dns_names.final_documentation_domain&#125;/pubsub/docs/tags for more information on using tags with Pub/Sub resources. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
+<ResponseField name="topic" type="string">
+  Required. The name of the topic from which this subscription is receiving messages. Format is `projects/&#123;project&#125;/topics/&#123;topic&#125;`. The value of this field will be `_deleted-topic_` if the topic has been deleted. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="topic" type="string" required>
-  A reference to a Topic resource, of the form projects/&#123;project&#125;/topics/&#123;&#123;name&#125;&#125; (as in the id property of a google_pubsub_topic), or just a topic name if the topic is in the same project as the subscription. Required.
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="ack_deadline_seconds" type="number">
-  This value is the maximum time after a subscriber receives a message before the subscriber should acknowledge the message. After message delivery but before the ack deadline expires and before the message is acknowledged, it is an outstanding message and will not be delivered again during that time (on a best-effort basis). For pull subscriptions, this value is used as the initial value for the ack deadline. To override this value for a given message, call subscriptions.modifyAckDeadline with the corresponding ackId if using pull. The minimum custom deadline you can specify is 10 seconds. The maximum custom deadline you can specify is 600 seconds (10 minutes). If this parameter is 0, a default value of 10 seconds is used. For push delivery, this value is also used to set the request timeout for the call to the push endpoint. If the subscriber never acknowledges the message, the Pub/Sub system will eventually redeliver the message. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="bigquery_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="drop_unknown_fields" type="bool">
-    </ResponseField>
-    <ResponseField name="service_account_email" type="string">
-    </ResponseField>
-    <ResponseField name="table" type="string" required>
-    </ResponseField>
-    <ResponseField name="use_table_schema" type="bool">
-    </ResponseField>
-    <ResponseField name="use_topic_schema" type="bool">
-    </ResponseField>
-    <ResponseField name="write_metadata" type="bool">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="cloud_storage_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="avro_config" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="use_topic_schema" type="bool">
-        </ResponseField>
-        <ResponseField name="write_metadata" type="bool">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="bucket" type="string" required>
-    </ResponseField>
-    <ResponseField name="filename_datetime_format" type="string">
-    </ResponseField>
-    <ResponseField name="filename_prefix" type="string">
-    </ResponseField>
-    <ResponseField name="filename_suffix" type="string">
-    </ResponseField>
-    <ResponseField name="max_bytes" type="number">
-    </ResponseField>
-    <ResponseField name="max_duration" type="string">
-    </ResponseField>
-    <ResponseField name="max_messages" type="number">
-    </ResponseField>
-    <ResponseField name="service_account_email" type="string">
-    </ResponseField>
-    <ResponseField name="state" type="string">
-    </ResponseField>
-    <ResponseField name="text_config" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="state" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="dead_letter_policy" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="dead_letter_topic" type="string">
-    </ResponseField>
-    <ResponseField name="max_delivery_attempts" type="number">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="effective_labels" type="map(string)">
-  All of labels (key/value pairs) present on the resource in GCP, including the labels configured through Terraform, other clients and services. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="expiration_policy" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="ttl" type="string" required>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="message_transforms" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="ai_inference" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="endpoint" type="string" required>
-        </ResponseField>
-        <ResponseField name="service_account_email" type="string">
-        </ResponseField>
-        <ResponseField name="unstructured_inference" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="parameters" type="map(string)">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="disabled" type="bool">
-    </ResponseField>
-    <ResponseField name="javascript_udf" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="code" type="string" required>
-        </ResponseField>
-        <ResponseField name="function_name" type="string" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="push_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="attributes" type="map(string)">
-    </ResponseField>
-    <ResponseField name="no_wrapper" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="write_metadata" type="bool" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="oidc_token" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="audience" type="string">
-        </ResponseField>
-        <ResponseField name="service_account_email" type="string" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="push_endpoint" type="string" required>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="retry_policy" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="maximum_backoff" type="string">
-    </ResponseField>
-    <ResponseField name="minimum_backoff" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="terraform_labels" type="map(string)">
-  The combination of labels configured directly on the resource and default labels configured on the provider. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
+<ResponseField name="topic_message_retention_duration" type="string">
+  Output only. Indicates the minimum duration for which a message is retained after it is published to the subscription's topic. If this field is set, messages published to the subscription's topic in the last `topic_message_retention_duration` are always available to subscribers. See the `message_retention_duration` field in `Topic`. This field is set only in responses from the server; it is ignored if it is set in any requests. Optional; if omitted, computed by Google Cloud.
 </ResponseField>

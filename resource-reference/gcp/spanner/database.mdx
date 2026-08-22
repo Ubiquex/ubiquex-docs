@@ -1,37 +1,30 @@
 ---
 title: "google_spanner_database"
-description: "Real, generated bindings for `google_spanner_database`."
+description: "`google_spanner_database` is a Spanner database, the schema and data container created within a Spanner instance that queries and transactions run against."
 ---
-
-`google_spanner_database` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_spanner --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_spanner/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	spanner "github.com/ubiquex/ubx-sdk-google/sdk/go/google/spanner"
+    	spanner "github.com/ubiquex/ubx-sdk-google/sdk/go/google_spanner/spanner"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own database"})
 
-    		ubx.Resource(spanner.Database, "ci-runner", spanner.DatabaseConfig{
-    			Instance:             "example",
-    			Name:                 "ci-runner",
-    			Ddl:                  []string{"example"},
-    			DefaultTimeZone:      "example",
-    			DeletionProtection:   true,
-    			EnableDropProtection: true,
+    		ubx.Resource(spanner.SpannerDatabase, "ci-runner", spanner.SpannerDatabaseConfig{
+    			CreateStatement:  "example",
+    			ExtraStatements:  []string{"example"},
+    			ProtoDescriptors: "example",
     		})
     	}))
     }
@@ -39,38 +32,35 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_spanner --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { Database } from "jsr:@ubx/sdk-google/google/spanner/database";
+    import { SpannerDatabase } from "./local-sdk/google_spanner/sdk/typescript/google_spanner/spanner/spanner_database.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own database" });
 
-      resource(Database, "ci-runner", {
-        instance: "example",
-        name: "ci-runner",
-        ddl: ["example"],
-        defaultTimeZone: "example",
-        deletionProtection: true,
-        enableDropProtection: true,
+      resource(SpannerDatabase, "ci-runner", {
+        createStatement: "example",
+        extraStatements: ["example"],
+        protoDescriptors: "example",
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_spanner --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_spanner/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.spanner import Database, DatabaseConfig
+    from ubx.google_spanner.spanner import SpannerDatabase, SpannerDatabaseConfig
 
     def describe():
         ubx.intent("payments own database")
 
-        ubx.resource(Database, "ci-runner", DatabaseConfig(
-            instance="example",
-            name="ci-runner",
-            ddl=["example"],
-            default_time_zone="example",
-            deletion_protection=True,
-            enable_drop_protection=True,
+        ubx.resource(SpannerDatabase, "ci-runner", SpannerDatabaseConfig(
+            create_statement="example",
+            extra_statements=["example"],
+            proto_descriptors="example",
         ))
 
     if __name__ == "__main__":
@@ -79,125 +69,171 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_spanner_database called "ci-runner", with instance
-    example, ddl a set value, default time zone example, deletion
-    protection true, enable drop protection true.
+    Create google_spanner_database, with create statement example,
+    extra statements a set value, proto descriptors example.
     ```
   </Tab>
 </Tabs>
 
 ## Input properties
 
+<ResponseField name="create_statement" type="string">
+  Required. A `CREATE DATABASE` statement, which specifies the ID of the new database. The database ID must conform to the regular expression `a-z*[a-z0-9]` and be between 2 and 30 characters in length. If the database ID is a reserved word or if it contains a hyphen, the database ID must be enclosed in backticks (`` ` ``). Optional.
+</ResponseField>
+
 <ResponseField name="database_dialect" type="string">
-  The dialect of the Cloud Spanner Database. If it is not provided, "GOOGLE_STANDARD_SQL" will be used. Possible values: ["GOOGLE_STANDARD_SQL", "POSTGRESQL"] Optional; if omitted, computed by GCP.
+  Optional. The dialect of the Cloud Spanner Database. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="ddl" type="list(string)">
-  An optional list of DDL statements to run inside the database. Statements can create tables, indexes, etc. During creation these statements execute atomically with the creation of the database and if there is an error in any statement, the database is not created. Terraform does not perform drift detection on this field and assumes that the values recorded in state are accurate. Limited updates to this field are supported, and newly appended DDL statements can be executed in an update. However, modifications to prior statements will create a plan that marks the resource for recreation. Optional.
-</ResponseField>
-
-<ResponseField name="default_time_zone" type="string">
-  The default time zone for the database. The default time zone must be a valid name from the tz database. Default value is "America/Los_angeles". Optional.
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="deletion_protection" type="bool">
-  Whether Terraform will be prevented from destroying the database. Defaults to true. When a'terraform destroy' or 'terraform apply' would delete the database, the command will fail if this field is not set to false in Terraform state. When the field is set to true or unset in Terraform state, a 'terraform apply' or 'terraform destroy' that would delete the database will fail. When the field is set to false, deleting the database is allowed. Optional.
-</ResponseField>
-
-<ResponseField name="enable_drop_protection" type="bool">
-  Whether drop protection is enabled for this database. Defaults to false. Drop protection is different from the "deletion_protection" attribute in the following ways: (1) "deletion_protection" only protects the database from deletions in Terraform. whereas setting “enableDropProtection” to true protects the database from deletions in all interfaces. (2) Setting "enableDropProtection" to true also prevents the deletion of the parent instance containing the database. "deletion_protection" attribute does not provide protection against the deletion of the parent instance. Optional.
-</ResponseField>
-
-<ResponseField name="encryption_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="encryption_config" type="object">
+  Encryption configuration for a Cloud Spanner database. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="kms_key_name" type="string">
+      The Cloud KMS key to be used for encrypting and decrypting the database. Values are of the form `projects//locations//keyRings//cryptoKeys/`. Optional.
     </ResponseField>
     <ResponseField name="kms_key_names" type="list(string)">
+      Specifies the KMS configuration for one or more keys used to encrypt the database. Values are of the form `projects//locations//keyRings//cryptoKeys/`. The keys referenced by `kms_key_names` must fully cover all regions of the database's instance configuration. Some examples: * For regional (single-region) instance configurations, specify a regional location KMS key. * For multi-region instance configurations of type `GOOGLE_MANAGED`, either specify a multi-region location KMS key or multiple regional location KMS keys that cover all regions in the instance configuration. * For an instance configuration of type `USER_MANAGED`, specify only regional location KMS keys to cover each region in the instance configuration. Multi-region location KMS keys aren't supported for `USER_MANAGED` type instance configurations. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="extra_statements" type="list(string)">
+  Optional. A list of DDL statements to run inside the newly created database. Statements can create tables, indexes, etc. These statements execute atomically with the creation of the database: if there is an error in any statement, the database is not created. Optional.
 </ResponseField>
 
-<ResponseField name="instance" type="string" required>
-  The instance to create the database on. Required.
-</ResponseField>
-
-<ResponseField name="name" type="string" required>
-  A unique identifier for the database, which cannot be changed after the instance is created. Values are of the form '[a-z][-_a-z0-9]*[a-z0-9]'. Required.
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="version_retention_period" type="string">
-  The retention period for the database. The retention period must be between 1 hour and 7 days, and can be specified in days, hours, minutes, or seconds. For example, the values 1d, 24h, 1440m, and 86400s are equivalent. Default value is 1h. If this property is used, you must avoid adding new DDL statements to 'ddl' that update the database's version_retention_period. Optional; if omitted, computed by GCP.
+<ResponseField name="proto_descriptors" type="string">
+  Optional. Proto descriptors used by `CREATE/ALTER PROTO BUNDLE` statements in 'extra_statements'. Contains a protobuf-serialized [`google.protobuf.FileDescriptorSet`](https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/descriptor.proto) descriptor set. To generate it, [install](https://grpc.io/docs/protoc-installation/) and run `protoc` with --include_imports and --descriptor_set_out. For example, to generate for moon/shot/app.proto, run ``` $protoc --proto_path=/app_path --proto_path=/lib_path \ --include_imports \ --descriptor_set_out=descriptors.data \ moon/shot/app.proto ``` For more details, see protobuffer [self description](https://developers.google.com/protocol-buffers/docs/techniques#self-description). Optional.
 </ResponseField>
 
 ## Output properties
 
+<ResponseField name="create_time" type="string">
+  Output only. If exists, the time at which the database creation started. Computed by Google Cloud after `ship`.
+</ResponseField>
+
 <ResponseField name="database_dialect" type="string">
-  The dialect of the Cloud Spanner Database. If it is not provided, "GOOGLE_STANDARD_SQL" will be used. Possible values: ["GOOGLE_STANDARD_SQL", "POSTGRESQL"] Optional; if omitted, computed by GCP.
+  Optional. The dialect of the Cloud Spanner Database. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
+<ResponseField name="default_leader" type="string">
+  Output only. The read-write region which contains the database's leader replicas. This is the same as the value of default_leader database option set using DatabaseAdmin.CreateDatabase or DatabaseAdmin.UpdateDatabaseDdl. If not explicitly set, this is empty. Computed by Google Cloud after `ship`.
 </ResponseField>
 
-<ResponseField name="encryption_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="earliest_version_time" type="string">
+  Output only. Earliest timestamp at which older versions of the data can be read. This value is continuously updated by Cloud Spanner and becomes stale the moment it is queried. If you are using this value to recover data, make sure to account for the time from the moment when the value is queried to the moment when you initiate the recovery. Computed by Google Cloud after `ship`.
+</ResponseField>
+
+<ResponseField name="enable_drop_protection" type="bool">
+  Optional. Whether drop protection is enabled for this database. Defaults to false, if not set. For more details, please see how to [prevent accidental database deletion](https://cloud.google.com/spanner/docs/prevent-database-deletion). Computed by Google Cloud after `ship`.
+</ResponseField>
+
+<ResponseField name="encryption_config" type="object">
+  Encryption configuration for a Cloud Spanner database. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="kms_key_name" type="string">
+      The Cloud KMS key to be used for encrypting and decrypting the database. Values are of the form `projects//locations//keyRings//cryptoKeys/`. Optional.
     </ResponseField>
     <ResponseField name="kms_key_names" type="list(string)">
+      Specifies the KMS configuration for one or more keys used to encrypt the database. Values are of the form `projects//locations//keyRings//cryptoKeys/`. The keys referenced by `kms_key_names` must fully cover all regions of the database's instance configuration. Some examples: * For regional (single-region) instance configurations, specify a regional location KMS key. * For multi-region instance configurations of type `GOOGLE_MANAGED`, either specify a multi-region location KMS key or multiple regional location KMS keys that cover all regions in the instance configuration. * For an instance configuration of type `USER_MANAGED`, specify only regional location KMS keys to cover each region in the instance configuration. Multi-region location KMS keys aren't supported for `USER_MANAGED` type instance configurations. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="encryption_info" type="list(object)">
+  Output only. For databases that are using customer managed encryption, this field contains the encryption information for the database, such as all Cloud KMS key versions that are in use. The `encryption_status` field inside of each `EncryptionInfo` is not populated. For databases that are using Google default or other types of encryption, this field is empty. This field is propagated lazily from the backend. There might be a delay from when a key version is being used and when it appears in this field. Computed by Google Cloud after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="encryption_status" type="object">
+      The current status of encryption for this resource. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="code" type="number">
+          A machine-readable status or error code. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="details" type="list(map(any))">
+          Additional detail about this result. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="message" type="string">
+          A human-readable description of this result. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="encryption_type" type="string">
+      The kind of encryption applied to this resource, e.g. Google-managed or customer-managed. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="kms_key_version" type="string">
+      The specific Cloud KMS key version used to encrypt this resource. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="name" type="string">
+  Required. The name of the database. Values are of the form `projects//instances//databases/`, where `` is as specified in the `CREATE DATABASE` statement. This name can be passed to other API methods to identify the database. Computed by Google Cloud after `ship`.
+</ResponseField>
+
+<ResponseField name="quorum_info" type="object">
+  Information about the dual-region quorum. Computed by Google Cloud after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="etag" type="string">
+      Output only. The etag is used for optimistic concurrency control as a way to help prevent simultaneous `ChangeQuorum` requests that might create a race condition. Computed by Google Cloud after `ship`.
+    </ResponseField>
+    <ResponseField name="initiator" type="string">
+      Output only. Whether this `ChangeQuorum` is Google or User initiated. Computed by Google Cloud after `ship`.
+    </ResponseField>
+    <ResponseField name="quorum_type" type="object">
+      Information about the database quorum type. This only applies to dual-region instance configs. Optional.
+      <Expandable title="properties">
+        <ResponseField name="dual_region" type="any">
+          Message type for a dual-region quorum. Currently this type has no options. Optional.
+        </ResponseField>
+        <ResponseField name="single_region" type="object">
+          Message type for a single-region quorum. Optional.
+          <Expandable title="properties">
+            <ResponseField name="serving_location" type="string">
+              Required. The location of the serving region, for example, "us-central1". The location must be one of the regions within the dual-region instance configuration of your database. The list of valid locations is available using the GetInstanceConfig API. This should only be used if you plan to change quorum to the single-region quorum type. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="start_time" type="string">
+      Output only. The timestamp when the request was triggered. Computed by Google Cloud after `ship`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="reconciling" type="bool">
+  Output only. If true, the database is being updated. If false, there are no ongoing update operations for the database. Computed by Google Cloud after `ship`.
+</ResponseField>
+
+<ResponseField name="restore_info" type="object">
+  Information about the database restore. Computed by Google Cloud after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="backup_info" type="object">
+      Information about a backup. Optional.
+      <Expandable title="properties">
+        <ResponseField name="backup" type="string">
+          Name of the backup. Optional.
+        </ResponseField>
+        <ResponseField name="create_time" type="string">
+          The time the CreateBackup request was received. Optional.
+        </ResponseField>
+        <ResponseField name="source_database" type="string">
+          Name of the database the backup was created from. Optional.
+        </ResponseField>
+        <ResponseField name="version_time" type="string">
+          The backup contains an externally consistent copy of `source_database` at the timestamp specified by `version_time`. If the CreateBackup request did not specify `version_time`, the `version_time` of the backup is equivalent to the `create_time`. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="source_type" type="string">
+      The type of the restore source. Optional.
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
 <ResponseField name="state" type="string">
-  An explanation of the status of the database. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
+  Output only. The current database state. Computed by Google Cloud after `ship`.
 </ResponseField>
 
 <ResponseField name="version_retention_period" type="string">
-  The retention period for the database. The retention period must be between 1 hour and 7 days, and can be specified in days, hours, minutes, or seconds. For example, the values 1d, 24h, 1440m, and 86400s are equivalent. Default value is 1h. If this property is used, you must avoid adding new DDL statements to 'ddl' that update the database's version_retention_period. Optional; if omitted, computed by GCP.
+  Output only. The period in which Cloud Spanner retains all versions of data for the database. This is the same as the value of version_retention_period database option set using UpdateDatabaseDdl. Defaults to 1 hour, if not set. Computed by Google Cloud after `ship`.
 </ResponseField>

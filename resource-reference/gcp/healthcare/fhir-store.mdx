@@ -1,39 +1,30 @@
 ---
 title: "google_healthcare_fhir_store"
-description: "Real, generated bindings for `google_healthcare_fhir_store`."
+description: "`google_healthcare_fhir_store` is a managed store for FHIR-formatted clinical data within the Cloud Healthcare API..."
 ---
 
-`google_healthcare_fhir_store` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
+`google_healthcare_fhir_store` is a managed store for FHIR-formatted clinical data within the Cloud Healthcare API, exposing a standards-compliant FHIR REST interface.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_healthcare --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_healthcare/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	healthcare "github.com/ubiquex/ubx-sdk-google/sdk/go/google/healthcare"
+    	healthcare "github.com/ubiquex/ubx-sdk-google/sdk/go/google_healthcare/healthcare"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own fhir store"})
 
-    		ubx.Resource(healthcare.FhirStore, "ci-runner", healthcare.FhirStoreConfig{
-    			Dataset:                     "example",
-    			Name:                        "ci-runner",
-    			Version:                     "example",
-    			DefaultSearchHandlingStrict: true,
-    			DisableReferentialIntegrity: true,
-    			DisableResourceVersioning:   true,
-    			EnableHistoryImport:         true,
-    			EnableUpdateCreate:          true,
+    		ubx.Resource(healthcare.HealthcareFhirStore, "ci-runner", healthcare.HealthcareFhirStoreConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -41,42 +32,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_healthcare --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { FhirStore } from "jsr:@ubx/sdk-google/google/healthcare/fhir_store";
+    import { HealthcareFhirStore } from "./local-sdk/google_healthcare/sdk/typescript/google_healthcare/healthcare/healthcare_fhir_store.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own fhir store" });
 
-      resource(FhirStore, "ci-runner", {
-        dataset: "example",
+      resource(HealthcareFhirStore, "ci-runner", {
         name: "ci-runner",
-        version: "example",
-        defaultSearchHandlingStrict: true,
-        disableReferentialIntegrity: true,
-        disableResourceVersioning: true,
-        enableHistoryImport: true,
-        enableUpdateCreate: true,
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_healthcare --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_healthcare/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.healthcare import FhirStore, FhirStoreConfig
+    from ubx.google_healthcare.healthcare import HealthcareFhirStore, HealthcareFhirStoreConfig
 
     def describe():
         ubx.intent("payments own fhir store")
 
-        ubx.resource(FhirStore, "ci-runner", FhirStoreConfig(
-            dataset="example",
+        ubx.resource(HealthcareFhirStore, "ci-runner", HealthcareFhirStoreConfig(
             name="ci-runner",
-            version="example",
-            default_search_handling_strict=True,
-            disable_referential_integrity=True,
-            disable_resource_versioning=True,
-            enable_history_import=True,
-            enable_update_create=True,
         ))
 
     if __name__ == "__main__":
@@ -85,243 +65,375 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_healthcare_fhir_store called "ci-runner", with
-    dataset example, version example, default search handling strict
-    true, disable referential integrity true, disable resource
-    versioning true, enable history import true, enable update create
-    true.
+    Create google_healthcare_fhir_store called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
-<ResponseField name="complex_data_type_reference_parsing" type="string">
-  Enable parsing of references within complex FHIR data types such as Extensions. If this value is set to ENABLED, then features like referential integrity and Bundle reference rewriting apply to all references. If this flag has not been specified the behavior of the FHIR store will not change, references in complex data types will not be parsed. New stores will have this value set to ENABLED by default after a notification period. Warning: turning on this flag causes processing existing resources to fail if they contain references to non-existent resources. Possible values: ["COMPLEX_DATA_TYPE_REFERENCE_PARSING_UNSPECIFIED", "DISABLED", "ENABLED"] Optional; if omitted, computed by GCP.
+<ResponseField name="bulk_export_gcs_destination" type="object">
+  The configuration for exporting to Cloud Storage using the bulk export API. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="uri_prefix" type="string">
+      Optional. URI for a Cloud Storage directory where the server writes result files, in the format `gs://&#123;bucket-id&#125;/&#123;path/to/destination/dir&#125;`. If there is no trailing slash, the service appends one when composing the object path. The user is responsible for creating the Cloud Storage bucket referenced in `uri_prefix`. Optional.
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
-<ResponseField name="dataset" type="string" required>
-  Identifies the dataset addressed by this request. Must be in the format 'projects/&#123;project&#125;/locations/&#123;location&#125;/datasets/&#123;dataset&#125;' Required.
+<ResponseField name="complex_data_type_reference_parsing" type="string">
+  Optional. Enable parsing of references within complex FHIR data types such as Extensions. If this value is set to ENABLED, then features like referential integrity and Bundle reference rewriting apply to all references. If this flag has not been specified the behavior of the FHIR store will not change, references in complex data types will not be parsed. New stores will have this value set to ENABLED after a notification period. Warning: turning on this flag causes processing existing resources to fail if they contain references to non-existent resources. Cannot be disabled in R5. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="consent_config" type="object">
+  Configures whether to enforce consent for the FHIR store and which consent enforcement version is being used. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="access_determination_log_config" type="object">
+      Configures consent audit log config for FHIR create, read, update, and delete (CRUD) operations. Cloud audit log for healthcare API must be [enabled](https://cloud.google.com/logging/docs/audit/configure-data-access#config-console-enable). The consent-related logs are included as part of `protoPayload.metadata`. Optional.
+      <Expandable title="properties">
+        <ResponseField name="log_level" type="string">
+          Optional. Controls the amount of detail to include as part of the audit logs. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="access_enforced" type="bool">
+      Optional. The default value is false. If set to true, when accessing FHIR resources, the consent headers will be verified against consents given by patients. See the ConsentEnforcementVersion for the supported consent headers. Optional.
+    </ResponseField>
+    <ResponseField name="consent_header_handling" type="object">
+      How the server handles the consent header. Optional.
+      <Expandable title="properties">
+        <ResponseField name="profile" type="string">
+          Optional. Specifies the default server behavior when the header is empty. If not specified, the `ScopeProfile.PERMIT_EMPTY_SCOPE` option is used. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="enforced_admin_consents" type="list(string)">
+      Output only. The versioned names of the enforced admin Consent resource(s), in the format `projects/&#123;project_id&#125;/locations/&#123;location&#125;/datasets/&#123;dataset_id&#125;/fhirStores/&#123;fhir_store_id&#125;/fhir/Consent/&#123;resource_id&#125;/_history/&#123;version_id&#125;`. For FHIR stores with `disable_resource_versioning=true`, the format is `projects/&#123;project_id&#125;/locations/&#123;location&#125;/datasets/&#123;dataset_id&#125;/fhirStores/&#123;fhir_store_id&#125;/fhir/Consent/&#123;resource_id&#125;`. This field can only be updated using ApplyAdminConsents. Computed by Google Cloud after `ship`.
+    </ResponseField>
+    <ResponseField name="version" type="string">
+      Required. Specifies which consent enforcement version is being used for this FHIR store. This field can only be set once by either CreateFhirStore or UpdateFhirStore. After that, you must call ApplyConsents to change the version. Optional.
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
 <ResponseField name="default_search_handling_strict" type="bool">
-  If true, overrides the default search behavior for this FHIR store to handling=strict which returns an error for unrecognized search parameters. If false, uses the FHIR specification default handling=lenient which ignores unrecognized search parameters. The handling can always be changed from the default on an individual API call by setting the HTTP header Prefer: handling=strict or Prefer: handling=lenient. Optional.
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
+  Optional. If true, overrides the default search behavior for this FHIR store to `handling=strict` which returns an error for unrecognized search parameters. If false, uses the FHIR specification default `handling=lenient` which ignores unrecognized search parameters. The handling can always be changed from the default on an individual API call by setting the HTTP header `Prefer: handling=strict` or `Prefer: handling=lenient`. Defaults to false. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="disable_referential_integrity" type="bool">
-  Whether to disable referential integrity in this FHIR store. This field is immutable after FHIR store creation. The default value is false, meaning that the API will enforce referential integrity and fail the requests that will result in inconsistent state in the FHIR store. When this field is set to true, the API will skip referential integrity check. Consequently, operations that rely on references, such as Patient.get$everything, will not return all the results if broken references exist. ** Changing this property may recreate the FHIR store (removing all data) ** Optional.
+  Immutable. Whether to disable referential integrity in this FHIR store. This field is immutable after FHIR store creation. The default value is false, meaning that the API enforces referential integrity and fails the requests that result in inconsistent state in the FHIR store. When this field is set to true, the API skips referential integrity checks. Consequently, operations that rely on references, such as GetPatientEverything, do not return all the results if broken references exist. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="disable_resource_versioning" type="bool">
-  Whether to disable resource versioning for this FHIR store. This field can not be changed after the creation of FHIR store. If set to false, which is the default behavior, all write operations will cause historical versions to be recorded automatically. The historical versions can be fetched through the history APIs, but cannot be updated. If set to true, no historical versions will be kept. The server will send back errors for attempts to read the historical versions. ** Changing this property may recreate the FHIR store (removing all data) ** Optional.
-</ResponseField>
-
-<ResponseField name="enable_history_import" type="bool">
-  Whether to allow the bulk import API to accept history bundles and directly insert historical resource versions into the FHIR store. Importing resource histories creates resource interactions that appear to have occurred in the past, which clients may not want to allow. If set to false, history bundles within an import will fail with an error. ** Changing this property may recreate the FHIR store (removing all data) ** ** This property can be changed manually in the Google Cloud Healthcare admin console without recreating the FHIR store ** Optional.
+  Immutable. Whether to disable resource versioning for this FHIR store. This field can not be changed after the creation of FHIR store. If set to false, all write operations cause historical versions to be recorded automatically. The historical versions can be fetched through the history APIs, but cannot be updated. If set to true, no historical versions are kept. The server sends errors for attempts to read the historical versions. Defaults to false. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="enable_update_create" type="bool">
-  Whether this FHIR store has the updateCreate capability. This determines if the client can use an Update operation to create a new resource with a client-specified ID. If false, all IDs are server-assigned through the Create operation and attempts to Update a non-existent resource will return errors. Please treat the audit logs with appropriate levels of care if client-specified resource IDs contain sensitive data such as patient identifiers, those IDs will be part of the FHIR resource path recorded in Cloud audit logs and Cloud Pub/Sub notifications. Optional.
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
+  Optional. Whether this FHIR store has the [updateCreate capability](https://www.hl7.org/fhir/capabilitystatement-definitions.html#CapabilityStatement.rest.resource.updateCreate). This determines if the client can use an Update operation to create a new resource with a client-specified ID. If false, all IDs are server-assigned through the Create operation and attempts to update a non-existent resource return errors. It is strongly advised not to include or encode any sensitive data such as patient identifiers in client-specified resource IDs. Those IDs are part of the FHIR resource path recorded in Cloud audit logs and Pub/Sub notifications. Those IDs can also be contained in reference fields within other resources. Defaults to false. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="labels" type="map(string)">
-  User-supplied key-value pairs used to organize FHIR stores. Label keys must be between 1 and 63 characters long, have a UTF-8 encoding of maximum 128 bytes, and must conform to the following PCRE regular expression: [\p&#123;Ll&#125;\p&#123;Lo&#125;][\p&#123;Ll&#125;\p&#123;Lo&#125;\p&#123;N&#125;_-]&#123;0,62&#125; Label values are optional, must be between 1 and 63 characters long, have a UTF-8 encoding of maximum 128 bytes, and must conform to the following PCRE regular expression: [\p&#123;Ll&#125;\p&#123;Lo&#125;\p&#123;N&#125;_-]&#123;0,63&#125; No more than 64 labels can be associated with a given store. An object containing a list of "key": value pairs. Example: &#123; "name": "wrench", "mass": "1.3kg", "count": "3" &#125;. **Note**: This field is non-authoritative, and will only manage the labels present in your configuration. Please refer to the field 'effective_labels' for all of the labels present on the resource. Optional.
+  User-supplied key-value pairs used to organize FHIR stores. Label keys must be between 1 and 63 characters long, have a UTF-8 encoding of maximum 128 bytes, and must conform to the following PCRE regular expression: \p&#123;Ll&#125;\p&#123;Lo&#125;&#123;0,62&#125; Label values are optional, must be between 1 and 63 characters long, have a UTF-8 encoding of maximum 128 bytes, and must conform to the following PCRE regular expression: [\p&#123;Ll&#125;\p&#123;Lo&#125;\p&#123;N&#125;_-]&#123;0,63&#125; No more than 64 labels can be associated with a given store. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="name" type="string" required>
-  The resource name for the FhirStore. ** Changing this property may recreate the FHIR store (removing all data) ** Required.
+<ResponseField name="name" type="string">
+  Output only. Identifier. Resource name of the FHIR store, of the form `projects/&#123;project_id&#125;/locations/&#123;location&#125;/datasets/&#123;dataset_id&#125;/fhirStores/&#123;fhir_store_id&#125;`. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="notification_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="notification_config" type="object">
+  Specifies where to send notifications upon changes to a data store. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="pubsub_topic" type="string" required>
+    <ResponseField name="pubsub_topic" type="string">
+      The [Pub/Sub](https://cloud.google.com/pubsub/docs/) topic that notifications of changes are published on. Supplied by the client. PubsubMessage.Data contains the resource name. PubsubMessage.MessageId is the ID of this message. It is guaranteed to be unique within the topic. PubsubMessage.PublishTime is the time at which the message was published. Notifications are only sent if the topic is non-empty. [Topic names](https://cloud.google.com/pubsub/docs/overview#names) must be scoped to a project. Cloud Healthcare API service account must have publisher permissions on the given Pub/Sub topic. Not having adequate permissions causes the calls that send notifications to fail. If a notification can't be published to Pub/Sub, errors are logged to Cloud Logging (see [Viewing error logs in Cloud Logging](https://cloud.google.com/healthcare/docs/how-tos/logging)). If the number of errors exceeds a certain rate, some aren't submitted. Note that not all operations trigger notifications, see [Configuring Pub/Sub notifications](https://cloud.google.com/healthcare/docs/how-tos/pubsub) for specific details. Optional.
+    </ResponseField>
+    <ResponseField name="send_for_bulk_import" type="bool">
+      Indicates whether or not to send Pub/Sub notifications on bulk import. Only supported for DICOM imports. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="notification_configs" type="list(object)">
-  Optional; if omitted, computed by GCP.
+  Optional. Specifies where and whether to send notifications upon changes to a FHIR store. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="pubsub_topic" type="string" required>
+    <ResponseField name="pubsub_topic" type="string">
+      A reference to the Pub/Sub topic notifications are published to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
     <ResponseField name="send_full_resource" type="bool">
+      Whether the full resource content is included in the notification, rather than just its own reference. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
     <ResponseField name="send_previous_resource_on_delete" type="bool">
+      Whether the resource's own prior content is included in the notification when it's deleted. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="stream_configs" type="list(object)">
-  Optional; if omitted, computed by GCP.
+  Optional. A list of streaming configs that configure the destinations of streaming export for every resource mutation in this FHIR store. Each store is allowed to have up to 10 streaming configs. After a new config is added, the next resource mutation is streamed to the new location in addition to the existing ones. When a location is removed from the list, the server stops streaming to that location. Before adding a new config, you must add the required [`bigquery.dataEditor`](https://cloud.google.com/bigquery/docs/access-control#bigquery.dataEditor) role to your project's **Cloud Healthcare Service Agent** [service account](https://cloud.google.com/iam/docs/service-accounts). Some lag (typically on the order of dozens of seconds) is expected before the results show up in the streaming destination. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="bigquery_destination" type="list(object)">
+    <ResponseField name="bigquery_destination" type="object">
+      The BigQuery table this operation's own output is written to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
-        <ResponseField name="dataset_uri" type="string" required>
+        <ResponseField name="dataset_uri" type="string">
+          A reference to the dataset this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="schema_config" type="list(object)">
+        <ResponseField name="force" type="bool">
+          Whether this operation proceeds even if it would otherwise be blocked by a safety check. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="schema_config" type="object">
+          Configuration for how HL7v2 messages are parsed against a schema. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
-            <ResponseField name="last_updated_partition_config" type="list(object)">
+            <ResponseField name="last_updated_partition_config" type="object">
+              Partitions BigQuery export by each resource's own last-updated time. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
               <Expandable title="properties">
                 <ResponseField name="expiration_ms" type="string">
+                  How long, in milliseconds, this consent or resource remains valid. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
                 </ResponseField>
-                <ResponseField name="type" type="string" required>
+                <ResponseField name="type" type="string">
+                  The JSON Schema data type this (sub-)schema constrains values to: `string`, `number`, `integer`, `boolean`, `object`, `array`, or `null`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
                 </ResponseField>
               </Expandable>
             </ResponseField>
-            <ResponseField name="recursive_structure_depth" type="number" required>
+            <ResponseField name="recursive_structure_depth" type="string">
+              The maximum nesting depth allowed when parsing recursive HL7v2 structures. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="schema_type" type="string">
+              Which schema representation this parser uses. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
+        </ResponseField>
+        <ResponseField name="write_disposition" type="string">
+          Whether export output overwrites, appends to, or requires an empty destination table. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="deidentified_store_destination" type="object">
+      The destination store de-identified output is written to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="config" type="object">
+          The configuration for this resource. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="dicom" type="object">
+              Configuration specific to DICOM (medical imaging) data. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="filter_profile" type="string">
+                  A predefined profile determining which resource types/fields this filter includes. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="keep_list" type="object">
+                  The field(s) explicitly kept, with everything else removed. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="tags" type="list(string)">
+                      The DICOM tag(s) this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="remove_list" type="object">
+                  The field(s) explicitly removed, with everything else kept. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="tags" type="list(string)">
+                      The DICOM tag(s) this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="skip_id_redaction" type="bool">
+                  Whether resource ID fields are excluded from de-identification. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="fhir" type="object">
+              Configuration specific to FHIR (structured clinical) data. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="default_keep_extensions" type="bool">
+                  Whether unspecified FHIR extension(s) are kept by default, rather than stripped. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="field_metadata_list" type="list(object)">
+                  Per-field de-identification configuration, one entry per targeted field. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="action" type="string">
+                      The action to perform. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="paths" type="list(string)">
+                      The path(s) this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="image" type="object">
+              Configuration specific to image data within DICOM instances. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="text_redaction_mode" type="string">
+                  How free-text fields are redacted during de-identification. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="text" type="object">
+              The plain-text content. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="additional_transformations" type="list(object)">
+                  Further de-identification transformation(s) applied on top of the primary configuration. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="character_mask_config" type="object">
+                      Replaces characters in a matching value with a fixed masking character. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="masking_character" type="string">
+                          The character substituted in place of each masked character. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="crypto_hash_config" type="object">
+                      De-identifies a value by replacing it with a cryptographic hash. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="crypto_key" type="string">
+                          The encryption key used for this cryptographic transformation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="kms_wrapped" type="object">
+                          A crypto key wrapped by Cloud KMS. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="crypto_key" type="string">
+                              The encryption key used for this cryptographic transformation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                            </ResponseField>
+                            <ResponseField name="wrapped_key" type="string">
+                              The crypto key's own bytes, encrypted by a Cloud KMS key. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="date_shift_config" type="object">
+                      De-identifies dates by shifting them a random, per-context number of days. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="crypto_key" type="string">
+                          The encryption key used for this cryptographic transformation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="kms_wrapped" type="object">
+                          A crypto key wrapped by Cloud KMS. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="crypto_key" type="string">
+                              The encryption key used for this cryptographic transformation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                            </ResponseField>
+                            <ResponseField name="wrapped_key" type="string">
+                              The crypto key's own bytes, encrypted by a Cloud KMS key. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="info_types" type="list(string)">
+                      The info type(s) this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="redact_config" type="any">
+                      De-identifies a value by removing it entirely. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="replace_with_info_type_config" type="any">
+                      De-identifies a value by replacing it with its own detected info type name. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="exclude_info_types" type="list(string)">
+                  Info type(s) excluded from de-identification, even if they'd otherwise match. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="transformations" type="list(object)">
+                  The transformation(s) applied to matching data. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="character_mask_config" type="object">
+                      Replaces characters in a matching value with a fixed masking character. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="masking_character" type="string">
+                          The character substituted in place of each masked character. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="crypto_hash_config" type="object">
+                      De-identifies a value by replacing it with a cryptographic hash. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="crypto_key" type="string">
+                          The encryption key used for this cryptographic transformation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="kms_wrapped" type="object">
+                          A crypto key wrapped by Cloud KMS. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="crypto_key" type="string">
+                              The encryption key used for this cryptographic transformation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                            </ResponseField>
+                            <ResponseField name="wrapped_key" type="string">
+                              The crypto key's own bytes, encrypted by a Cloud KMS key. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="date_shift_config" type="object">
+                      De-identifies dates by shifting them a random, per-context number of days. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="crypto_key" type="string">
+                          The encryption key used for this cryptographic transformation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                        </ResponseField>
+                        <ResponseField name="kms_wrapped" type="object">
+                          A crypto key wrapped by Cloud KMS. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="crypto_key" type="string">
+                              The encryption key used for this cryptographic transformation. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                            </ResponseField>
+                            <ResponseField name="wrapped_key" type="string">
+                              The crypto key's own bytes, encrypted by a Cloud KMS key. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                    <ResponseField name="info_types" type="list(string)">
+                      The info type(s) this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="redact_config" type="any">
+                      De-identifies a value by removing it entirely. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="replace_with_info_type_config" type="any">
+                      De-identifies a value by replacing it with its own detected info type name. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="use_regional_data_processing" type="bool">
+              Whether processing happens within the resource's own region, rather than a multi-region location. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="store" type="string">
+          A reference to the data store this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="resource_types" type="list(string)">
+      The FHIR resource type(s) this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="validation_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="validation_config" type="object">
+  Contains the configuration for FHIR profiles and validation. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="disable_fhirpath_validation" type="bool">
+      Optional. Whether to disable FHIRPath validation for incoming resources. The default value is false. Set this to true to disable checking incoming resources for conformance against FHIRPath requirement defined in the FHIR specification. This property only affects resource types that do not have profiles configured for them, any rules in enabled implementation guides will still be enforced. Optional.
     </ResponseField>
     <ResponseField name="disable_profile_validation" type="bool">
+      Optional. Whether to disable profile validation for this FHIR store. The default value is false. Set this to true to disable checking incoming resources for conformance against structure definitions in this FHIR store. Optional.
     </ResponseField>
     <ResponseField name="disable_reference_type_validation" type="bool">
+      Optional. Whether to disable reference type validation for incoming resources. The default value is false. Set this to true to disable checking incoming resources for conformance against reference type requirement defined in the FHIR specification. This property only affects resource types that do not have profiles configured for them, any rules in enabled implementation guides will still be enforced. Optional.
     </ResponseField>
     <ResponseField name="disable_required_field_validation" type="bool">
+      Optional. Whether to disable required fields validation for incoming resources. The default value is false. Set this to true to disable checking incoming resources for conformance against required fields requirement defined in the FHIR specification. This property only affects resource types that do not have profiles configured for them, any rules in enabled implementation guides will still be enforced. Optional.
+    </ResponseField>
+    <ResponseField name="enable_fhirpath_profile_validation" type="bool">
+      Optional. Whether to enable FHIRPath validation for incoming resource types that have profiles configured for them in the `enabled_implementation_guides` list. Set this to true to enable checking incoming resources for conformance against FHIRPath requirements defined in the configured profiles. Optional.
     </ResponseField>
     <ResponseField name="enabled_implementation_guides" type="list(string)">
+      Optional. A list of implementation guide URLs in this FHIR store that are used to configure the profiles to use for validation. For example, to use the US Core profiles for validation, set `enabled_implementation_guides` to `["http://hl7.org/fhir/us/core/ImplementationGuide/ig"]`. If `enabled_implementation_guides` is empty or omitted, then incoming resources are only required to conform to the base FHIR profiles. Otherwise, a resource must conform to at least one profile listed in the `global` property of one of the enabled ImplementationGuides. The Cloud Healthcare API does not currently enforce all of the rules in a StructureDefinition. The following rules are supported: - min/max - minValue/maxValue - maxLength - type - fixed[x] - pattern[x] on simple types - slicing, when using "value" as the discriminator type - FHIRPath constraints (only when `enable_fhirpath_profile_validation` is true) When a URL cannot be resolved (for example, in a type assertion), the server does not return an error. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="version" type="string" required>
-  The FHIR specification version. Possible values: ["DSTU2", "STU3", "R4"] Required.
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="complex_data_type_reference_parsing" type="string">
-  Enable parsing of references within complex FHIR data types such as Extensions. If this value is set to ENABLED, then features like referential integrity and Bundle reference rewriting apply to all references. If this flag has not been specified the behavior of the FHIR store will not change, references in complex data types will not be parsed. New stores will have this value set to ENABLED by default after a notification period. Warning: turning on this flag causes processing existing resources to fail if they contain references to non-existent resources. Possible values: ["COMPLEX_DATA_TYPE_REFERENCE_PARSING_UNSPECIFIED", "DISABLED", "ENABLED"] Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="effective_labels" type="map(string)">
-  All of labels (key/value pairs) present on the resource in GCP, including the labels configured through Terraform, other clients and services. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="notification_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="pubsub_topic" type="string" required>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="notification_configs" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="pubsub_topic" type="string" required>
-    </ResponseField>
-    <ResponseField name="send_full_resource" type="bool">
-    </ResponseField>
-    <ResponseField name="send_previous_resource_on_delete" type="bool">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="self_link" type="string">
-  The fully qualified name of this dataset Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="stream_configs" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="bigquery_destination" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="dataset_uri" type="string" required>
-        </ResponseField>
-        <ResponseField name="schema_config" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="last_updated_partition_config" type="list(object)">
-              <Expandable title="properties">
-                <ResponseField name="expiration_ms" type="string">
-                </ResponseField>
-                <ResponseField name="type" type="string" required>
-                </ResponseField>
-              </Expandable>
-            </ResponseField>
-            <ResponseField name="recursive_structure_depth" type="number" required>
-            </ResponseField>
-            <ResponseField name="schema_type" type="string">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="resource_types" type="list(string)">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="terraform_labels" type="map(string)">
-  The combination of labels configured directly on the resource and default labels configured on the provider. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="validation_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="disable_fhirpath_validation" type="bool">
-    </ResponseField>
-    <ResponseField name="disable_profile_validation" type="bool">
-    </ResponseField>
-    <ResponseField name="disable_reference_type_validation" type="bool">
-    </ResponseField>
-    <ResponseField name="disable_required_field_validation" type="bool">
-    </ResponseField>
-    <ResponseField name="enabled_implementation_guides" type="list(string)">
-    </ResponseField>
-  </Expandable>
+<ResponseField name="version" type="string">
+  Required. Immutable. The FHIR specification version that this FHIR store supports natively. This field is immutable after store creation. Requests are rejected if they contain FHIR resources of a different version. Version is required for every FHIR store. Optional; if omitted, computed by Google Cloud.
 </ResponseField>

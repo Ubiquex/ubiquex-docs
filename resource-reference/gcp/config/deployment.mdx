@@ -1,39 +1,28 @@
 ---
 title: "google_config_deployment"
-description: "Real, generated bindings for `google_config_deployment`."
+description: "`google_config_deployment` applies a Terraform configuration through Infrastructure Manager, Google Cloud's own managed Terraform execution service."
 ---
-
-`google_config_deployment` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_config --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_config/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	config "github.com/ubiquex/ubx-sdk-google/sdk/go/google/config"
+    	config "github.com/ubiquex/ubx-sdk-google/sdk/go/google_config/config"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own deployment"})
 
-    		ubx.Resource(config.Deployment, "ci-runner", config.DeploymentConfig{
-    			Location:                "example",
-    			Name:                    "ci-runner",
-    			ServiceAccount:          "example",
-    			Annotations:             map[string]string{"managed-by": "ubx"},
-    			ArtifactsGcsBucket:      "example",
-    			ForceDestroy:            true,
-    			ImportExistingResources: true,
-    			Labels:                  map[string]string{"managed-by": "ubx"},
+    		ubx.Resource(config.ConfigDeployment, "ci-runner", config.ConfigDeploymentConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -41,42 +30,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_config --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { Deployment } from "jsr:@ubx/sdk-google/google/config/deployment";
+    import { ConfigDeployment } from "./local-sdk/google_config/sdk/typescript/google_config/config/config_deployment.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own deployment" });
 
-      resource(Deployment, "ci-runner", {
-        location: "example",
+      resource(ConfigDeployment, "ci-runner", {
         name: "ci-runner",
-        serviceAccount: "example",
-        annotations: { "managed-by": "ubx" },
-        artifactsGcsBucket: "example",
-        forceDestroy: true,
-        importExistingResources: true,
-        labels: { "managed-by": "ubx" },
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_config --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_config/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.config import Deployment, DeploymentConfig
+    from ubx.google_config.config import ConfigDeployment, ConfigDeploymentConfig
 
     def describe():
         ubx.intent("payments own deployment")
 
-        ubx.resource(Deployment, "ci-runner", DeploymentConfig(
-            location="example",
+        ubx.resource(ConfigDeployment, "ci-runner", ConfigDeploymentConfig(
             name="ci-runner",
-            service_account="example",
-            annotations={"managed-by": "ubx"},
-            artifacts_gcs_bucket="example",
-            force_destroy=True,
-            import_existing_resources=True,
-            labels={"managed-by": "ubx"},
         ))
 
     if __name__ == "__main__":
@@ -85,178 +63,197 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_config_deployment called "ci-runner", with location
-    example, service account example, annotations a set value,
-    artifacts gcs bucket example, force destroy true, import existing
-    resources true, labels a set value.
+    Create google_config_deployment called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
 <ResponseField name="annotations" type="map(string)">
-  Optional. Arbitrary key-value metadata storage. **Note**: This field is non-authoritative, and will only manage the annotations present in your configuration. Please refer to the field 'effective_annotations' for all of the annotations present on the resource. Optional.
+  Optional. Arbitrary key-value metadata storage e.g. to help client tools identify deployments during automation. See https://google.aip.dev/148#annotations for details on format and size limitations. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="artifacts_gcs_bucket" type="string">
-  Location for Cloud Build logs and artifacts. Optional.
+  User-defined location of Cloud Build logs and artifacts in Google Cloud Storage. Format: `gs://&#123;bucket&#125;/&#123;folder&#125;` A default bucket will be bootstrapped if the field is not set or empty. Default bucket format: `gs://--blueprint-config` Constraints: - The bucket needs to be in the same project as the deployment - The path cannot be within the path of `gcs_source` - The field cannot be updated, including changing its presence Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
+<ResponseField name="create_time" type="string">
+  Output only. Time when the deployment was created. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="force_destroy" type="bool">
-  If true, deletes the deployment and its nested resources. Optional.
+<ResponseField name="delete_build" type="string">
+  Output only. Cloud Build instance UUID associated with deleting this deployment. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="delete_logs" type="string">
+  Output only. Location of Cloud Build logs in Google Cloud Storage, populated when deleting this deployment. Format: `gs://&#123;bucket&#125;/&#123;object&#125;`. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="delete_results" type="object">
+  Outputs and artifacts from applying a deployment. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="artifacts" type="string">
+      Location of artifacts (e.g. logs) in Google Cloud Storage. Format: `gs://&#123;bucket&#125;/&#123;object&#125;` Optional.
+    </ResponseField>
+    <ResponseField name="content" type="string">
+      Location of a blueprint copy and other manifests in Google Cloud Storage. Format: `gs://&#123;bucket&#125;/&#123;object&#125;` Optional.
+    </ResponseField>
+    <ResponseField name="outputs" type="map(object)">
+      Map of output name to output info. Optional.
+      <Expandable title="properties">
+        <ResponseField name="sensitive" type="bool">
+          Whether this Terraform output value is marked sensitive and should be redacted from logs and the console. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value" type="any">
+          The output value produced when this deployment's own resources were deleted. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="error_code" type="string">
+  Output only. Error code describing errors that may have occurred. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="error_logs" type="string">
+  Output only. Location of Terraform error logs in Google Cloud Storage. Format: `gs://&#123;bucket&#125;/&#123;object&#125;`. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="import_existing_resources" type="bool">
-  If true, attempts to automatically import resources on 409 conflict. Optional.
+  By default, Infra Manager will return a failure when Terraform encounters a 409 code (resource conflict error) during actuation. If this flag is set to true, Infra Manager will instead attempt to automatically import the resource into the Terraform state (for supported resource types) and continue actuation. Not all resource types are supported, refer to documentation. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="labels" type="map(string)">
-  Optional. User-defined metadata for the deployment. **Note**: This field is non-authoritative, and will only manage the labels present in your configuration. Please refer to the field 'effective_labels' for all of the labels present on the resource. Optional.
-</ResponseField>
-
-<ResponseField name="location" type="string" required>
-  The location for the resource Required.
-</ResponseField>
-
-<ResponseField name="name" type="string" required>
-  The user-specified ID of the deployment. Required.
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="quota_validation" type="string">
-  Controls quota checks. Possible values: ["ENABLED", "ENFORCED"] Optional.
-</ResponseField>
-
-<ResponseField name="service_account" type="string" required>
-  Required. User-specified Service Account (SA) credentials to be used when actuating resources. Required.
-</ResponseField>
-
-<ResponseField name="terraform_blueprint" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="gcs_source" type="string">
-    </ResponseField>
-    <ResponseField name="git_source" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="directory" type="string">
-        </ResponseField>
-        <ResponseField name="ref" type="string">
-        </ResponseField>
-        <ResponseField name="repo" type="string" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="input_values" type="set(object)">
-      <Expandable title="properties">
-        <ResponseField name="input_value" type="string" required>
-        </ResponseField>
-        <ResponseField name="variable_name" type="string" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="tf_version_constraint" type="string">
-  Optional constraint on the Terraform version. Optional.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="worker_pool" type="string">
-  Custom Cloud Build worker pool resource name. Optional.
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="effective_annotations" type="map(string)">
-  All of annotations (key/value pairs) present on the resource in GCP, including the annotations configured through Terraform, other clients and services. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="effective_labels" type="map(string)">
-  All of labels (key/value pairs) present on the resource in GCP, including the labels configured through Terraform, other clients and services. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
+  Optional. User-defined metadata for the deployment. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="latest_revision" type="string">
-  Output only. Revision name most recently applied. Computed by GCP after `ship`.
+  Output only. Revision name that was most recently applied. Format: `projects/&#123;project&#125;/locations/&#123;location&#125;/deployments/&#123;deployment&#125;/ revisions/&#123;revision&#125;` Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="lock_state" type="string">
+  Output only. Current lock state of the deployment. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Identifier. Resource name of the deployment. Format: `projects/&#123;project&#125;/locations/&#123;location&#125;/deployments/&#123;deployment&#125;` Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="provider_config" type="object">
+  ProviderConfig contains the provider configurations. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="source_type" type="string">
+      Optional. ProviderSource specifies the source type of the provider. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="quota_validation" type="string">
+  Optional. Input to control quota checks for resources in terraform configuration files. There are limited resources on which quota validation applies. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="service_account" type="string">
+  Required. User-specified Service Account (SA) credentials to be used when actuating resources. Format: `projects/&#123;projectID&#125;/serviceAccounts/&#123;serviceAccount&#125;` Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="state" type="string">
-  Output only. Current state of the deployment. Computed by GCP after `ship`.
+  Output only. Current state of the deployment. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="terraform_blueprint" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="state_detail" type="string">
+  Output only. Additional information regarding the current state. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="terraform_blueprint" type="object">
+  TerraformBlueprint describes the source of a Terraform root module which describes the resources and configs to be deployed. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="gcs_source" type="string">
+    <ResponseField name="external_values" type="map(object)">
+      Optional. Map of input variable names in this blueprint to configurations for importing values from external sources. Optional.
+      <Expandable title="properties">
+        <ResponseField name="deployment_source" type="object">
+          References an output value from another Infrastructure Manager deployment, letting this blueprint consume it as an input. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="deployment" type="string">
+              The other deployment this external value is sourced from. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="output_name" type="string">
+              The name of the specific Terraform output on the source deployment to use as this value. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
     </ResponseField>
-    <ResponseField name="git_source" type="list(object)">
+    <ResponseField name="gcs_source" type="string">
+      URI of an object in Google Cloud Storage. Format: `gs://&#123;bucket&#125;/&#123;object&#125;` URI may also specify an object version for zipped objects. Format: `gs://&#123;bucket&#125;/&#123;object&#125;#&#123;version&#125;` Optional.
+    </ResponseField>
+    <ResponseField name="git_source" type="object">
+      A set of files in a Git repository. Optional.
       <Expandable title="properties">
         <ResponseField name="directory" type="string">
+          Subdirectory inside the repository. Example: 'staging/my-package' Optional.
         </ResponseField>
         <ResponseField name="ref" type="string">
+          Git reference (e.g. branch or tag). Optional.
         </ResponseField>
-        <ResponseField name="repo" type="string" required>
+        <ResponseField name="repo" type="string">
+          Repository URL. Example: 'https://github.com/kubernetes/examples.git' Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="input_values" type="set(object)">
+    <ResponseField name="input_values" type="map(object)">
+      Optional. Input variable values for the Terraform blueprint. Optional.
       <Expandable title="properties">
-        <ResponseField name="input_value" type="string" required>
-        </ResponseField>
-        <ResponseField name="variable_name" type="string" required>
+        <ResponseField name="input_value" type="any">
+          The literal value passed for this Terraform input variable when the blueprint is applied. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="terraform_labels" type="map(string)">
-  The combination of labels configured directly on the resource and default labels configured on the provider. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="tf_errors" type="list(object)">
+  Output only. Errors encountered when deleting this deployment. Errors are truncated to 10 entries, see `delete_results` and `error_logs` for full details. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="create" type="string">
+    <ResponseField name="error" type="object">
+      Structured detail for one error Terraform reported while applying this deployment's own blueprint. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="code" type="number">
+          The error's own numeric status code. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="details" type="list(map(any))">
+          Additional structured detail about the error, in whatever shape Terraform's own error reporting supplied. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="message" type="string">
+          A human-readable description of the error. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
     </ResponseField>
-    <ResponseField name="delete" type="string">
+    <ResponseField name="error_description" type="string">
+      A human-readable summary of why this Terraform operation failed. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
-    <ResponseField name="update" type="string">
+    <ResponseField name="http_response_code" type="number">
+      The HTTP status code returned by the underlying API call that failed, when the error originated from one. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="resource_address" type="string">
+      The Terraform resource address (e.g. `google_storage_bucket.my_bucket`) this error occurred on. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
   </Expandable>
+</ResponseField>
+
+<ResponseField name="tf_version" type="string">
+  Output only. The current Terraform version set on the deployment. It is in the format of "Major.Minor.Patch", for example, "1.3.10". Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="tf_version_constraint" type="string">
+  The user-specified Terraform version constraint. Example: "=1.3.10". Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="update_time" type="string">
+  Output only. Time when the deployment was last modified. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="worker_pool" type="string">
+  The user-specified Cloud Build worker pool resource in which the Cloud Build job will execute. Format: `projects/&#123;project&#125;/locations/&#123;location&#125;/workerPools/&#123;workerPoolId&#125;`. If this field is unspecified, the default Cloud Build worker pool will be used. Optional; if omitted, computed by Google Cloud.
 </ResponseField>

@@ -24,6 +24,7 @@ Example (the real command this session used for Datadog):
       --bindings-status local_only
 """
 import argparse
+import json
 import os
 import sys
 
@@ -43,6 +44,9 @@ def main():
     p.add_argument("--docs-root", default=REPO_ROOT, help="real ubiquex-docs checkout root (default: this repo)")
     p.add_argument("--scratch-dir", default="/tmp", help="where to write the real nav fragment JSON (default: /tmp)")
     p.add_argument("--stack-name", default="payments", help="real example stack name used across every generated program")
+    p.add_argument("--intros-path", default=None,
+                    help="artifacts/<provider>/intros.json (real, keyed by wire -- see real_intro_for) "
+                         "to replace the generic boilerplate intro/frontmatter description. Omit to keep the boilerplate.")
     p.add_argument("--bindings-status", choices=["published", "local_only"], default="published",
                     help='"local_only" (no ubx-sdk-<provider>{,-go,-py,-ts} repo published or even created yet -- '
                          "confirmed live for datadog/github via `gh repo view`, not assumed) renders every "
@@ -50,6 +54,10 @@ def main():
                          "(plus, for Go, a real go.mod replace directive) instead of a remote import that would "
                          'reference a repo that doesn\'t exist. Default "published" matches every already-shipped page.')
     args = p.parse_args()
+
+    intros_by_provider = None
+    if args.intros_path:
+        intros_by_provider = {args.provider: json.load(open(args.intros_path))}
 
     n_resources, n_services = generate_richer_provider(
         docs_root=args.docs_root,
@@ -61,6 +69,7 @@ def main():
         schema_path=args.schema_path,
         idents_path=args.idents_path,
         bindings_status=args.bindings_status,
+        intros_by_provider=intros_by_provider,
     )
     print(f"generated {n_resources} resource pages across {n_services} services for {args.provider}")
 

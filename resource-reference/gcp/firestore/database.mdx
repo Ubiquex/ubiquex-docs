@@ -1,36 +1,30 @@
 ---
 title: "google_firestore_database"
-description: "Real, generated bindings for `google_firestore_database`."
+description: "`google_firestore_database` is a Firestore database..."
 ---
 
-`google_firestore_database` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
+`google_firestore_database` is a Firestore database, the top-level document/collection data store within a Google Cloud project -- a project can have multiple Firestore databases.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_firestore --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_firestore/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	firestore "github.com/ubiquex/ubx-sdk-google/sdk/go/google/firestore"
+    	firestore "github.com/ubiquex/ubx-sdk-google/sdk/go/google_firestore/firestore"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own database"})
 
-    		ubx.Resource(firestore.Database, "ci-runner", firestore.DatabaseConfig{
-    			LocationId:                    "example",
-    			Name:                          "ci-runner",
-    			Type:                          "example",
-    			PointInTimeRecoveryEnablement: "example",
-    			Tags:                          map[string]string{"managed-by": "ubx"},
+    		ubx.Resource(firestore.FirestoreDatabase, "ci-runner", firestore.FirestoreDatabaseConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -38,36 +32,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_firestore --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { Database } from "jsr:@ubx/sdk-google/google/firestore/database";
+    import { FirestoreDatabase } from "./local-sdk/google_firestore/sdk/typescript/google_firestore/firestore/firestore_database.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own database" });
 
-      resource(Database, "ci-runner", {
-        locationId: "example",
+      resource(FirestoreDatabase, "ci-runner", {
         name: "ci-runner",
-        type: "example",
-        pointInTimeRecoveryEnablement: "example",
-        tags: { "managed-by": "ubx" },
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_firestore --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_firestore/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.firestore import Database, DatabaseConfig
+    from ubx.google_firestore.firestore import FirestoreDatabase, FirestoreDatabaseConfig
 
     def describe():
         ubx.intent("payments own database")
 
-        ubx.resource(Database, "ci-runner", DatabaseConfig(
-            location_id="example",
+        ubx.resource(FirestoreDatabase, "ci-runner", FirestoreDatabaseConfig(
             name="ci-runner",
-            type="example",
-            point_in_time_recovery_enablement="example",
-            tags={"managed-by": "ubx"},
         ))
 
     if __name__ == "__main__":
@@ -76,185 +65,126 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_firestore_database called "ci-runner", with
-    location id example, type example, point in time recovery
-    enablement example, tags a set value.
+    Create google_firestore_database called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
 <ResponseField name="app_engine_integration_mode" type="string">
-  The App Engine integration mode to use for this database. Possible values: ["ENABLED", "DISABLED"] Optional; if omitted, computed by GCP.
+  The App Engine integration mode to use for this database. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="cmek_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="cmek_config" type="object">
+  The CMEK (Customer Managed Encryption Key) configuration for a Firestore database. If not present, the database is secured by the default Google encryption key. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="active_key_version" type="list(string)">
+      Output only. Currently in-use [KMS key versions](https://cloud.google.com/kms/docs/resource-hierarchy#key_versions). During [key rotation](https://cloud.google.com/kms/docs/key-rotation), there can be multiple in-use key versions. The expected format is `projects/&#123;project_id&#125;/locations/&#123;kms_location&#125;/keyRings/&#123;key_ring&#125;/cryptoKeys/&#123;crypto_key&#125;/cryptoKeyVersions/&#123;key_version&#125;`. Computed by Google Cloud after `ship`.
     </ResponseField>
-    <ResponseField name="kms_key_name" type="string" required>
+    <ResponseField name="kms_key_name" type="string">
+      Required. Only keys in the same location as this database are allowed to be used for encryption. For Firestore's nam5 multi-region, this corresponds to Cloud KMS multi-region us. For Firestore's eur3 multi-region, this corresponds to Cloud KMS multi-region europe. See https://cloud.google.com/kms/docs/locations. The expected format is `projects/&#123;project_id&#125;/locations/&#123;kms_location&#125;/keyRings/&#123;key_ring&#125;/cryptoKeys/&#123;crypto_key&#125;`. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="concurrency_mode" type="string">
-  The concurrency control mode to use for this database. Possible values: ["OPTIMISTIC", "PESSIMISTIC", "OPTIMISTIC_WITH_ENTITY_GROUPS"] Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="database_edition" type="string">
-  The database edition. When set to 'ENTERPRISE', then type must be set to 'FIRESTORE_NATIVE'. Possible values: ["STANDARD", "ENTERPRISE"] Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="delete_protection_state" type="string">
-  State of delete protection for the database. When delete protection is enabled, this database cannot be deleted. The default value is 'DELETE_PROTECTION_STATE_UNSPECIFIED', which is currently equivalent to 'DELETE_PROTECTION_DISABLED'. **Note:** Additionally, to delete this database using 'terraform destroy', 'deletion_policy' must be set to 'DELETE'. Possible values: ["DELETE_PROTECTION_STATE_UNSPECIFIED", "DELETE_PROTECTION_ENABLED", "DELETE_PROTECTION_DISABLED"] Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "ABANDON". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="firestore_data_access_mode" type="string">
-  The Firestore API data access mode to use for this database. Can only be specified for 'ENTERPRISE' edition databases. Possible values: ["DATA_ACCESS_MODE_ENABLED", "DATA_ACCESS_MODE_DISABLED"] Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="location_id" type="string" required>
-  The location of the database. Available locations are listed at https://cloud.google.com/firestore/docs/locations. Required.
-</ResponseField>
-
-<ResponseField name="mongodb_compatible_data_access_mode" type="string">
-  The MongoDB compatible API data access mode to use for this database. Can only be specified for 'ENTERPRISE' edition databases. Possible values: ["DATA_ACCESS_MODE_ENABLED", "DATA_ACCESS_MODE_DISABLED"] Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="name" type="string" required>
-  The ID to use for the database, which will become the final component of the database's resource name. This value should be 4-63 characters. Valid characters are /[a-z][0-9]-/ with first character a letter and the last a letter or a number. Must not be UUID-like /[0-9a-f]&#123;8&#125;(-[0-9a-f]&#123;4&#125;)&#123;3&#125;-[0-9a-f]&#123;12&#125;/. "(default)" database id is also valid. Required.
-</ResponseField>
-
-<ResponseField name="point_in_time_recovery_enablement" type="string">
-  Whether to enable the PITR feature on this database. If 'POINT_IN_TIME_RECOVERY_ENABLED' is selected, reads are supported on selected versions of the data from within the past 7 days. versionRetentionPeriod and earliestVersionTime can be used to determine the supported versions. These include reads against any timestamp within the past hour and reads against 1-minute snapshots beyond 1 hour and within 7 days. If 'POINT_IN_TIME_RECOVERY_DISABLED' is selected, reads are supported on any version of the data from within the past 1 hour. Default value: "POINT_IN_TIME_RECOVERY_DISABLED" Possible values: ["POINT_IN_TIME_RECOVERY_ENABLED", "POINT_IN_TIME_RECOVERY_DISABLED"] Optional.
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="realtime_updates_mode" type="string">
-  The Realtime Updates mode to use for this database. Can only be specified for 'ENTERPRISE' edition databases. Possible values: ["REALTIME_UPDATES_MODE_ENABLED", "REALTIME_UPDATES_MODE_DISABLED"] Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="tags" type="map(string)">
-  Input only. A map of resource manager tags. Resource manager tag keys and values have the same definition as resource manager tags. Keys must be in the format tagKeys/&#123;tag_key_id&#125;, and values are in the format tagValues/456. The field is ignored when empty. The field is immutable and causes resource replacement when mutated. To apply tags to an existing resource, see the 'google_tags_tag_value' resource. Optional.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="type" type="string" required>
-  The type of the database. See https://cloud.google.com/datastore/docs/firestore-or-datastore for information about how to choose. Possible values: ["FIRESTORE_NATIVE", "DATASTORE_MODE"] Required.
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="app_engine_integration_mode" type="string">
-  The App Engine integration mode to use for this database. Possible values: ["ENABLED", "DISABLED"] Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="cmek_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="active_key_version" type="list(string)">
-    </ResponseField>
-    <ResponseField name="kms_key_name" type="string" required>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="concurrency_mode" type="string">
-  The concurrency control mode to use for this database. Possible values: ["OPTIMISTIC", "PESSIMISTIC", "OPTIMISTIC_WITH_ENTITY_GROUPS"] Optional; if omitted, computed by GCP.
+  The default concurrency control mode to use for this database. If unspecified in a CreateDatabase request, this will default based on the database edition: Optimistic for Enterprise and Pessimistic for all other databases. While transactions can explicitly specify their own concurrency mode, this setting defines the default behavior when left unspecified. Important: This database-level setting is not respected for Firestore with MongoDB compatibility. All transactions through the MongoDB compatibility layer will use optimistic concurrency control, regardless of this setting. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="create_time" type="string">
-  Output only. The timestamp at which this database was created. Computed by GCP after `ship`.
+  Output only. The timestamp at which this database was created. Databases created before 2016 do not populate create_time. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="database_edition" type="string">
-  The database edition. When set to 'ENTERPRISE', then type must be set to 'FIRESTORE_NATIVE'. Possible values: ["STANDARD", "ENTERPRISE"] Optional; if omitted, computed by GCP.
+  Immutable. The edition of the database. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="delete_protection_state" type="string">
-  State of delete protection for the database. When delete protection is enabled, this database cannot be deleted. The default value is 'DELETE_PROTECTION_STATE_UNSPECIFIED', which is currently equivalent to 'DELETE_PROTECTION_DISABLED'. **Note:** Additionally, to delete this database using 'terraform destroy', 'deletion_policy' must be set to 'DELETE'. Possible values: ["DELETE_PROTECTION_STATE_UNSPECIFIED", "DELETE_PROTECTION_ENABLED", "DELETE_PROTECTION_DISABLED"] Optional; if omitted, computed by GCP.
+  State of delete protection for the database. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "ABANDON". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
+<ResponseField name="delete_time" type="string">
+  Output only. The timestamp at which this database was deleted. Only set if the database has been deleted. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="earliest_version_time" type="string">
-  Output only. The earliest timestamp at which older versions of the data can be read from the database. See versionRetentionPeriod above; this field is populated with now - versionRetentionPeriod. This value is continuously updated, and becomes stale the moment it is queried. If you are using this value to recover data, make sure to account for the time from the moment when the value is queried to the moment when you initiate the recovery. A timestamp in RFC3339 UTC "Zulu" format, with nanosecond resolution and up to nine fractional digits. Examples: "2014-10-02T15:01:23Z" and "2014-10-02T15:01:23.045123456Z". Computed by GCP after `ship`.
+  Output only. The earliest timestamp at which older versions of the data can be read from the database. See [version_retention_period] above; this field is populated with `now - version_retention_period`. This value is continuously updated, and becomes stale the moment it is queried. If you are using this value to recover data, make sure to account for the time from the moment when the value is queried to the moment when you initiate the recovery. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="etag" type="string">
-  Output only. This checksum is computed by the server based on the value of other fields, and may be sent on update and delete requests to ensure the client has an up-to-date value before proceeding. Computed by GCP after `ship`.
+  This checksum is computed by the server based on the value of other fields, and may be sent on update and delete requests to ensure the client has an up-to-date value before proceeding. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="firestore_data_access_mode" type="string">
-  The Firestore API data access mode to use for this database. Can only be specified for 'ENTERPRISE' edition databases. Possible values: ["DATA_ACCESS_MODE_ENABLED", "DATA_ACCESS_MODE_DISABLED"] Optional; if omitted, computed by GCP.
+  Optional. The Firestore API data access mode to use for this database. If not set on write: - the default value is DATA_ACCESS_MODE_DISABLED for Enterprise edition. - the default value is DATA_ACCESS_MODE_ENABLED for Standard edition. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="free_tier" type="bool">
+  Output only. Background: Free tier is the ability of a Firestore database to use a small amount of resources every day without being charged. Once usage exceeds the free tier limit further usage is charged. Whether this database can make use of the free tier. Only one database per project can be eligible for the free tier. The first (or next) database that is created in a project without a free tier database will be marked as eligible for the free tier. Databases that are created while there is a free tier database will not be eligible for the free tier. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="key_prefix" type="string">
-  Output only. The keyPrefix for this database. This keyPrefix is used, in combination with the project id ("~") to construct the application id that is returned from the Cloud Datastore APIs in Google App Engine first generation runtimes. This value may be empty in which case the appid to use for URL-encoded keys is the project_id (eg: foo instead of v~foo). Computed by GCP after `ship`.
+  Output only. The key_prefix for this database. This key_prefix is used, in combination with the project ID ("~") to construct the application ID that is returned from the Cloud Datastore APIs in Google App Engine first generation runtimes. This value may be empty in which case the appid to use for URL-encoded keys is the project_id (eg: foo instead of v~foo). Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="location_id" type="string">
+  Required. The location of the database. Available locations are listed at https://cloud.google.com/firestore/docs/locations. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="mongodb_compatible_data_access_mode" type="string">
-  The MongoDB compatible API data access mode to use for this database. Can only be specified for 'ENTERPRISE' edition databases. Possible values: ["DATA_ACCESS_MODE_ENABLED", "DATA_ACCESS_MODE_DISABLED"] Optional; if omitted, computed by GCP.
+  Optional. The MongoDB compatible API data access mode to use for this database. If not set on write, the default value is DATA_ACCESS_MODE_ENABLED for Enterprise edition. The value is always DATA_ACCESS_MODE_DISABLED for Standard edition. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="name" type="string">
+  The resource name of the Database. Format: `projects/&#123;project&#125;/databases/&#123;database&#125;` Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="point_in_time_recovery_enablement" type="string">
+  Whether to enable the PITR feature on this database. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="previous_id" type="string">
+  Output only. The database resource's prior database ID. This field is only populated for deleted databases. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="realtime_updates_mode" type="string">
-  The Realtime Updates mode to use for this database. Can only be specified for 'ENTERPRISE' edition databases. Possible values: ["REALTIME_UPDATES_MODE_ENABLED", "REALTIME_UPDATES_MODE_DISABLED"] Optional; if omitted, computed by GCP.
+  Immutable. The default Realtime Updates mode to use for this database. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="source_info" type="object">
+  Information about the provenance of this database. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="create" type="string">
+    <ResponseField name="backup" type="object">
+      Information about a backup that was used to restore a database. Optional.
+      <Expandable title="properties">
+        <ResponseField name="backup" type="string">
+          The resource name of the backup that was used to restore this database. Format: `projects/&#123;project&#125;/locations/&#123;location&#125;/backups/&#123;backup&#125;`. Optional.
+        </ResponseField>
+      </Expandable>
     </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
+    <ResponseField name="operation" type="string">
+      The associated long-running operation. This field may not be set after the operation has completed. Format: `projects/&#123;project&#125;/databases/&#123;database&#125;/operations/&#123;operation&#125;`. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
+<ResponseField name="tags" type="map(string)">
+  Optional. Input only. Immutable. Tag keys/values directly bound to this resource. For example: "123/environment": "production", "123/costCenter": "marketing" Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="type" type="string">
+  Required. The type of the database. See https://cloud.google.com/datastore/docs/firestore-or-datastore for information about how to choose. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
 <ResponseField name="uid" type="string">
-  Output only. The system-generated UUID4 for this Database. Computed by GCP after `ship`.
+  Output only. The system-generated UUID4 for this Database. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="update_time" type="string">
-  Output only. The timestamp at which this database was most recently updated. Computed by GCP after `ship`.
+  Output only. The timestamp at which this database was most recently updated. Note this only includes updates to the database resource and not data contained by the database. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="version_retention_period" type="string">
-  Output only. The period during which past versions of data are retained in the database. Any read or query can specify a readTime within this window, and will read the state of the database at that time. If the PITR feature is enabled, the retention period is 7 days. Otherwise, the retention period is 1 hour. A duration in seconds with up to nine fractional digits, ending with 's'. Example: "3.5s". Computed by GCP after `ship`.
+  Output only. The period during which past versions of data are retained in the database. Any read or query can specify a `read_time` within this window, and will read the state of the database at that time. If the PITR feature is enabled, the retention period is 7 days. Otherwise, the retention period is 1 hour. Optional; if omitted, computed by Google Cloud.
 </ResponseField>

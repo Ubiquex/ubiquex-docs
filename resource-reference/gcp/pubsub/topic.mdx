@@ -1,36 +1,28 @@
 ---
 title: "google_pubsub_topic"
-description: "Real, generated bindings for `google_pubsub_topic`."
+description: "`google_pubsub_topic` is a Pub/Sub topic, the named resource publishers send message(s) to and subscription(s) receive message(s) from."
 ---
-
-`google_pubsub_topic` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_pubsub --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_pubsub/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	pubsub "github.com/ubiquex/ubx-sdk-google/sdk/go/google/pubsub"
+    	pubsub "github.com/ubiquex/ubx-sdk-google/sdk/go/google_pubsub/pubsub"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own topic"})
 
-    		ubx.Resource(pubsub.Topic, "ci-runner", pubsub.TopicConfig{
-    			Name:                     "ci-runner",
-    			KmsKeyName:               "example-kms-key-name",
-    			Labels:                   map[string]string{"managed-by": "ubx"},
-    			MessageRetentionDuration: "example",
-    			Tags:                     map[string]string{"managed-by": "ubx"},
+    		ubx.Resource(pubsub.PubsubTopic, "ci-runner", pubsub.PubsubTopicConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -38,36 +30,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_pubsub --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { Topic } from "jsr:@ubx/sdk-google/google/pubsub/topic";
+    import { PubsubTopic } from "./local-sdk/google_pubsub/sdk/typescript/google_pubsub/pubsub/pubsub_topic.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own topic" });
 
-      resource(Topic, "ci-runner", {
+      resource(PubsubTopic, "ci-runner", {
         name: "ci-runner",
-        kmsKeyName: "example-kms-key-name",
-        labels: { "managed-by": "ubx" },
-        messageRetentionDuration: "example",
-        tags: { "managed-by": "ubx" },
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_pubsub --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_pubsub/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.pubsub import Topic, TopicConfig
+    from ubx.google_pubsub.pubsub import PubsubTopic, PubsubTopicConfig
 
     def describe():
         ubx.intent("payments own topic")
 
-        ubx.resource(Topic, "ci-runner", TopicConfig(
+        ubx.resource(PubsubTopic, "ci-runner", PubsubTopicConfig(
             name="ci-runner",
-            kms_key_name="example-kms-key-name",
-            labels={"managed-by": "ubx"},
-            message_retention_duration="example",
-            tags={"managed-by": "ubx"},
         ))
 
     if __name__ == "__main__":
@@ -76,105 +63,144 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_pubsub_topic called "ci-runner", with kms key name
-    example-kms-key-name, labels a set value, message retention
-    duration example, tags a set value.
+    Create google_pubsub_topic called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="ingestion_data_source_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="ingestion_data_source_settings" type="object">
+  Settings for an ingestion data source on a topic. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="aws_kinesis" type="list(object)">
+    <ResponseField name="aws_kinesis" type="object">
+      Ingestion settings for Amazon Kinesis Data Streams. Optional.
       <Expandable title="properties">
-        <ResponseField name="aws_role_arn" type="string" required>
+        <ResponseField name="aws_role_arn" type="string">
+          Required. AWS role ARN to be used for Federated Identity authentication with Kinesis. Check the Pub/Sub docs for how to set up this role and the required permissions that need to be attached to it. Optional.
         </ResponseField>
-        <ResponseField name="consumer_arn" type="string" required>
-        </ResponseField>
-        <ResponseField name="gcp_service_account" type="string" required>
-        </ResponseField>
-        <ResponseField name="stream_arn" type="string" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="aws_msk" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="aws_role_arn" type="string" required>
-        </ResponseField>
-        <ResponseField name="cluster_arn" type="string" required>
-        </ResponseField>
-        <ResponseField name="gcp_service_account" type="string" required>
-        </ResponseField>
-        <ResponseField name="topic" type="string" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="azure_event_hubs" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="client_id" type="string">
-        </ResponseField>
-        <ResponseField name="event_hub" type="string">
+        <ResponseField name="consumer_arn" type="string">
+          Required. The Kinesis consumer ARN to used for ingestion in Enhanced Fan-Out mode. The consumer must be already created and ready to be used. Optional.
         </ResponseField>
         <ResponseField name="gcp_service_account" type="string">
+          Required. The GCP service account to be used for Federated Identity authentication with Kinesis (via a `AssumeRoleWithWebIdentity` call for the provided role). The `aws_role_arn` must be set up with `accounts.google.com:sub` equals to this service account number. Optional.
         </ResponseField>
-        <ResponseField name="namespace" type="string">
+        <ResponseField name="state" type="string">
+          Output only. An output-only field that indicates the state of the Kinesis ingestion source. Computed by Google Cloud after `ship`.
         </ResponseField>
-        <ResponseField name="resource_group" type="string">
-        </ResponseField>
-        <ResponseField name="subscription_id" type="string">
-        </ResponseField>
-        <ResponseField name="tenant_id" type="string">
+        <ResponseField name="stream_arn" type="string">
+          Required. The Kinesis stream ARN to ingest data from. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="cloud_storage" type="list(object)">
+    <ResponseField name="aws_msk" type="object">
+      Ingestion settings for Amazon MSK. Optional.
       <Expandable title="properties">
-        <ResponseField name="avro_format" type="list(object)">
+        <ResponseField name="aws_role_arn" type="string">
+          Required. AWS role ARN to be used for Federated Identity authentication with Amazon MSK. Check the Pub/Sub docs for how to set up this role and the required permissions that need to be attached to it. Optional.
         </ResponseField>
-        <ResponseField name="bucket" type="string" required>
+        <ResponseField name="cluster_arn" type="string">
+          Required. The Amazon Resource Name (ARN) that uniquely identifies the cluster. Optional.
+        </ResponseField>
+        <ResponseField name="gcp_service_account" type="string">
+          Required. The GCP service account to be used for Federated Identity authentication with Amazon MSK (via a `AssumeRoleWithWebIdentity` call for the provided role). The `aws_role_arn` must be set up with `accounts.google.com:sub` equals to this service account number. Optional.
+        </ResponseField>
+        <ResponseField name="state" type="string">
+          Output only. An output-only field that indicates the state of the Amazon MSK ingestion source. Computed by Google Cloud after `ship`.
+        </ResponseField>
+        <ResponseField name="topic" type="string">
+          Required. The name of the topic in the Amazon MSK cluster that Pub/Sub will import from. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="azure_event_hubs" type="object">
+      Ingestion settings for Azure Event Hubs. Optional.
+      <Expandable title="properties">
+        <ResponseField name="client_id" type="string">
+          Optional. The client id of the Azure application that is being used to authenticate Pub/Sub. Optional.
+        </ResponseField>
+        <ResponseField name="event_hub" type="string">
+          Optional. The name of the Event Hub. Optional.
+        </ResponseField>
+        <ResponseField name="gcp_service_account" type="string">
+          Optional. The GCP service account to be used for Federated Identity authentication. Optional.
+        </ResponseField>
+        <ResponseField name="namespace" type="string">
+          Optional. The name of the Event Hubs namespace. Optional.
+        </ResponseField>
+        <ResponseField name="resource_group" type="string">
+          Optional. Name of the resource group within the azure subscription. Optional.
+        </ResponseField>
+        <ResponseField name="state" type="string">
+          Output only. An output-only field that indicates the state of the Event Hubs ingestion source. Computed by Google Cloud after `ship`.
+        </ResponseField>
+        <ResponseField name="subscription_id" type="string">
+          Optional. The Azure subscription id. Optional.
+        </ResponseField>
+        <ResponseField name="tenant_id" type="string">
+          Optional. The tenant id of the Azure application that is being used to authenticate Pub/Sub. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="cloud_storage" type="object">
+      Ingestion settings for Cloud Storage. Optional.
+      <Expandable title="properties">
+        <ResponseField name="avro_format" type="any">
+          Configuration for reading Cloud Storage data in Avro binary format. The bytes of each object will be set to the `data` field of a Pub/Sub message. Optional.
+        </ResponseField>
+        <ResponseField name="bucket" type="string">
+          Optional. Cloud Storage bucket. The bucket name must be without any prefix like "gs://". See the [bucket naming requirements] (https://cloud.google.com/storage/docs/buckets#naming). Optional.
         </ResponseField>
         <ResponseField name="match_glob" type="string">
+          Optional. Glob pattern used to match objects that will be ingested. If unset, all objects will be ingested. See the [supported patterns](https://cloud.google.com/storage/docs/json_api/v1/objects/list#list-objects-and-prefixes-using-glob). Optional.
         </ResponseField>
         <ResponseField name="minimum_object_create_time" type="string">
+          Optional. Only objects with a larger or equal creation timestamp will be ingested. Optional.
         </ResponseField>
-        <ResponseField name="pubsub_avro_format" type="list(object)">
+        <ResponseField name="pubsub_avro_format" type="any">
+          Configuration for reading Cloud Storage data written via [Cloud Storage subscriptions](https://cloud.google.com/pubsub/docs/cloudstorage). The data and attributes fields of the originally exported Pub/Sub message will be restored when publishing. Optional.
         </ResponseField>
-        <ResponseField name="text_format" type="list(object)">
+        <ResponseField name="state" type="string">
+          Output only. An output-only field that indicates the state of the Cloud Storage ingestion source. Computed by Google Cloud after `ship`.
+        </ResponseField>
+        <ResponseField name="text_format" type="object">
+          Configuration for reading Cloud Storage data in text format. Each line of text as specified by the delimiter will be set to the `data` field of a Pub/Sub message. Optional.
           <Expandable title="properties">
             <ResponseField name="delimiter" type="string">
+              Optional. When unset, '\n' is used. Optional.
             </ResponseField>
           </Expandable>
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="confluent_cloud" type="list(object)">
+    <ResponseField name="confluent_cloud" type="object">
+      Ingestion settings for Confluent Cloud. Optional.
       <Expandable title="properties">
-        <ResponseField name="bootstrap_server" type="string" required>
+        <ResponseField name="bootstrap_server" type="string">
+          Required. The address of the bootstrap server. The format is url:port. Optional.
         </ResponseField>
         <ResponseField name="cluster_id" type="string">
+          Required. The id of the cluster. Optional.
         </ResponseField>
-        <ResponseField name="gcp_service_account" type="string" required>
+        <ResponseField name="gcp_service_account" type="string">
+          Required. The GCP service account to be used for Federated Identity authentication with `identity_pool_id`. Optional.
         </ResponseField>
-        <ResponseField name="identity_pool_id" type="string" required>
+        <ResponseField name="identity_pool_id" type="string">
+          Required. The id of the identity pool to be used for Federated Identity authentication with Confluent Cloud. See https://docs.confluent.io/cloud/current/security/authenticate/workload-identities/identity-providers/oauth/identity-pools.html#add-oauth-identity-pools. Optional.
         </ResponseField>
-        <ResponseField name="topic" type="string" required>
+        <ResponseField name="state" type="string">
+          Output only. An output-only field that indicates the state of the Confluent Cloud ingestion source. Computed by Google Cloud after `ship`.
+        </ResponseField>
+        <ResponseField name="topic" type="string">
+          Required. The name of the topic in the Confluent Cloud cluster that Pub/Sub will import from. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="platform_logs_settings" type="list(object)">
+    <ResponseField name="platform_logs_settings" type="object">
+      Settings for Platform Logs produced by Pub/Sub. Optional.
       <Expandable title="properties">
         <ResponseField name="severity" type="string">
+          Optional. The minimum severity level of Platform Logs that will be written. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
@@ -182,267 +208,112 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="kms_key_name" type="string">
-  The resource name of the Cloud KMS CryptoKey to be used to protect access to messages published on this topic. Your project's PubSub service account ('service-&#123;&#123;PROJECT_NUMBER&#125;&#125;@gcp-sa-pubsub.iam.gserviceaccount.com') must have 'roles/cloudkms.cryptoKeyEncrypterDecrypter' to use this feature. The expected format is 'projects/*/locations/*/keyRings/*/cryptoKeys/*' Optional.
+  Optional. The resource name of the Cloud KMS CryptoKey to be used to protect access to messages published on this topic. The expected format is `projects/*/locations/*/keyRings/*/cryptoKeys/*`. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="labels" type="map(string)">
-  A set of key/value label pairs to assign to this Topic. **Note**: This field is non-authoritative, and will only manage the labels present in your configuration. Please refer to the field 'effective_labels' for all of the labels present on the resource. Optional.
+  Optional. See [Creating and managing labels] (https://cloud.google.com/pubsub/docs/labels). Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="message_retention_duration" type="string">
-  Indicates the minimum duration to retain a message after it is published to the topic. If this field is set, messages published to the topic in the last messageRetentionDuration are always available to subscribers. For instance, it allows any attached subscription to seek to a timestamp that is up to messageRetentionDuration in the past. If this field is not set, message retention is controlled by settings on individual subscriptions. The rotation period has the format of a decimal number, followed by the letter 's' (seconds). Cannot be more than 31 days or less than 10 minutes. Optional.
+  Optional. Indicates the minimum duration to retain a message after it is published to the topic. If this field is set, messages published to the topic in the last `message_retention_duration` are always available to subscribers. For instance, it allows any attached subscription to [seek to a timestamp](https://cloud.google.com/pubsub/docs/replay-overview#seek_to_a_time) that is up to `message_retention_duration` in the past. If this field is not set, message retention is controlled by settings on individual subscriptions. Cannot be more than 31 days or less than 10 minutes. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="message_storage_policy" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="message_storage_policy" type="object">
+  A policy constraining the storage of messages published to the topic. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="allowed_persistence_regions" type="set(string)" required>
+    <ResponseField name="allowed_persistence_regions" type="list(string)">
+      Optional. A list of IDs of Google Cloud regions where messages that are published to the topic may be persisted in storage. Messages published by publishers running in non-allowed Google Cloud regions (or running outside of Google Cloud altogether) are routed for storage in one of the allowed regions. An empty list means that no regions are allowed, and is not a valid configuration. Optional.
     </ResponseField>
     <ResponseField name="enforce_in_transit" type="bool">
+      Optional. If true, `allowed_persistence_regions` is also used to enforce in-transit guarantees for messages. That is, Pub/Sub will fail Publish operations on this topic and subscribe operations on any subscription attached to this topic in any region that is not in `allowed_persistence_regions`. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="message_transforms" type="list(object)">
-  Optional; if omitted, computed by GCP.
+  Optional. Transforms to be applied to messages published to the topic. Transforms are applied in the order specified. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="ai_inference" type="list(object)">
+    <ResponseField name="ai_inference" type="object">
+      A message transform that runs each message through a Vertex AI model and attaches the model's own inference as additional message data. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
-        <ResponseField name="endpoint" type="string" required>
+        <ResponseField name="endpoint" type="string">
+          The Vertex AI model endpoint this transform sends each message to for inference. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="service_account_email" type="string">
+          The service account this transform uses to call the Vertex AI endpoint. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="unstructured_inference" type="list(object)">
+        <ResponseField name="unstructured_inference" type="object">
+          Configuration for running inference on unstructured message content (e.g. free text), rather than a fixed schema. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
-            <ResponseField name="parameters" type="map(string)">
+            <ResponseField name="parameters" type="map(any)">
+              Model-specific parameters passed to the Vertex AI endpoint for unstructured inference. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="disabled" type="bool">
-    </ResponseField>
-    <ResponseField name="javascript_udf" type="list(object)">
+    <ResponseField name="compression" type="object">
+      A message transform that compresses or decompresses message data as it flows through the transform pipeline. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
-        <ResponseField name="code" type="string" required>
+        <ResponseField name="compression_algorithm" type="string">
+          The compression algorithm this transform uses, e.g. `ZLIB`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="function_name" type="string" required>
+        <ResponseField name="compression_mode" type="string">
+          Whether this transform `COMPRESS`es or `DECOMPRESS`es message data. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="disabled" type="bool">
+      If `true`, this transform is skipped without being removed from the pipeline. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="enabled" type="bool">
+      Whether this transform is active in the pipeline. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="javascript_udf" type="object">
+      A message transform implemented as a user-defined JavaScript function, run inline on each message. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="code" type="string">
+          The JavaScript source code implementing this transform. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="function_name" type="string">
+          The name of the function within `code` Pub/Sub invokes for each message. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="name" type="string" required>
-  Name of the topic. Required.
+<ResponseField name="name" type="string">
+  Required. Identifier. The name of the topic. It must have the format `"projects/&#123;project&#125;/topics/&#123;topic&#125;"`. `&#123;topic&#125;` must start with a letter, and contain only letters (`[A-Za-z]`), numbers (`[0-9]`), dashes (`-`), underscores (`_`), periods (`.`), tildes (`~`), plus (`+`) or percent signs (`%`). It must be between 3 and 255 characters in length, and it must not start with `"goog"`. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="satisfies_pzs" type="bool">
+  Optional. Reserved for future use. This field is set only in responses from the server; it is ignored if it is set in any requests. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="schema_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="schema_settings" type="object">
+  Settings for validating messages published against a schema. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="encoding" type="string">
+      Optional. The encoding of messages validated against `schema`. Optional.
     </ResponseField>
     <ResponseField name="first_revision_id" type="string">
+      Optional. The minimum (inclusive) revision allowed for validating messages. If empty or not present, allow any revision to be validated against last_revision or any revision created before. Optional.
     </ResponseField>
     <ResponseField name="last_revision_id" type="string">
+      Optional. The maximum (inclusive) revision allowed for validating messages. If empty or not present, allow any revision to be validated against first_revision or any revision created after. Optional.
     </ResponseField>
-    <ResponseField name="schema" type="string" required>
+    <ResponseField name="schema" type="string">
+      Required. The name of the schema that messages published should be validated against. Format is `projects/&#123;project&#125;/schemas/&#123;schema&#125;`. The value of this field will be `_deleted-schema_` if the schema has been deleted. Optional.
     </ResponseField>
   </Expandable>
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Output only. An output-only field indicating the state of the topic. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="tags" type="map(string)">
-  Input only. Resource manager tags to be bound to the topic. Tag keys and values have the same definition as resource manager tags. Keys must be in the format tagKeys/&#123;tag_key_id&#125;, and values are in the format tagValues/456. The field is ignored when empty. The field is immutable and causes resource replacement when mutated. This field is only set at create time and modifying this field after creation will trigger recreation. To apply tags to an existing resource, see the 'google_tags_tag_value' resource. Optional.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="effective_labels" type="map(string)">
-  All of labels (key/value pairs) present on the resource in GCP, including the labels configured through Terraform, other clients and services. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="ingestion_data_source_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="aws_kinesis" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="aws_role_arn" type="string" required>
-        </ResponseField>
-        <ResponseField name="consumer_arn" type="string" required>
-        </ResponseField>
-        <ResponseField name="gcp_service_account" type="string" required>
-        </ResponseField>
-        <ResponseField name="stream_arn" type="string" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="aws_msk" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="aws_role_arn" type="string" required>
-        </ResponseField>
-        <ResponseField name="cluster_arn" type="string" required>
-        </ResponseField>
-        <ResponseField name="gcp_service_account" type="string" required>
-        </ResponseField>
-        <ResponseField name="topic" type="string" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="azure_event_hubs" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="client_id" type="string">
-        </ResponseField>
-        <ResponseField name="event_hub" type="string">
-        </ResponseField>
-        <ResponseField name="gcp_service_account" type="string">
-        </ResponseField>
-        <ResponseField name="namespace" type="string">
-        </ResponseField>
-        <ResponseField name="resource_group" type="string">
-        </ResponseField>
-        <ResponseField name="subscription_id" type="string">
-        </ResponseField>
-        <ResponseField name="tenant_id" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="cloud_storage" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="avro_format" type="list(object)">
-        </ResponseField>
-        <ResponseField name="bucket" type="string" required>
-        </ResponseField>
-        <ResponseField name="match_glob" type="string">
-        </ResponseField>
-        <ResponseField name="minimum_object_create_time" type="string">
-        </ResponseField>
-        <ResponseField name="pubsub_avro_format" type="list(object)">
-        </ResponseField>
-        <ResponseField name="text_format" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="delimiter" type="string">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="confluent_cloud" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="bootstrap_server" type="string" required>
-        </ResponseField>
-        <ResponseField name="cluster_id" type="string">
-        </ResponseField>
-        <ResponseField name="gcp_service_account" type="string" required>
-        </ResponseField>
-        <ResponseField name="identity_pool_id" type="string" required>
-        </ResponseField>
-        <ResponseField name="topic" type="string" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="platform_logs_settings" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="severity" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="message_storage_policy" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="allowed_persistence_regions" type="set(string)" required>
-    </ResponseField>
-    <ResponseField name="enforce_in_transit" type="bool">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="message_transforms" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="ai_inference" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="endpoint" type="string" required>
-        </ResponseField>
-        <ResponseField name="service_account_email" type="string">
-        </ResponseField>
-        <ResponseField name="unstructured_inference" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="parameters" type="map(string)">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="disabled" type="bool">
-    </ResponseField>
-    <ResponseField name="javascript_udf" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="code" type="string" required>
-        </ResponseField>
-        <ResponseField name="function_name" type="string" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="schema_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="encoding" type="string">
-    </ResponseField>
-    <ResponseField name="first_revision_id" type="string">
-    </ResponseField>
-    <ResponseField name="last_revision_id" type="string">
-    </ResponseField>
-    <ResponseField name="schema" type="string" required>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="terraform_labels" type="map(string)">
-  The combination of labels configured directly on the resource and default labels configured on the provider. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
+  Optional. Input only. Immutable. Tag keys/values directly bound to this resource. For example: "123/environment": "production", "123/costCenter": "marketing" See https://&#123;$universe.dns_names.final_documentation_domain&#125;/pubsub/docs/tags for more information on using tags with Pub/Sub resources. Optional; if omitted, computed by Google Cloud.
 </ResponseField>

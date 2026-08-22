@@ -1,35 +1,30 @@
 ---
 title: "google_apihub_curation"
-description: "Real, generated bindings for `google_apihub_curation`."
+description: "`google_apihub_curation` configures a plugin-driven job that automatically enriches or classifies discovered API metadata within API hub..."
 ---
 
-`google_apihub_curation` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
+`google_apihub_curation` configures a plugin-driven job that automatically enriches or classifies discovered API metadata within API hub, e.g. auto-detecting an API's own maturity level.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_apihub --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_apihub/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	apihub "github.com/ubiquex/ubx-sdk-google/sdk/go/google/apihub"
+    	apihub "github.com/ubiquex/ubx-sdk-google/sdk/go/google_apihub/apihub"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own curation"})
 
-    		ubx.Resource(apihub.Curation, "ci-runner", apihub.CurationConfig{
-    			CurationId:  "example",
-    			DisplayName: "example-display-name",
-    			Location:    "example",
-    			Description: "Managed by ubx.",
+    		ubx.Resource(apihub.ApihubCuration, "ci-runner", apihub.ApihubCurationConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -37,34 +32,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_apihub --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { Curation } from "jsr:@ubx/sdk-google/google/apihub/curation";
+    import { ApihubCuration } from "./local-sdk/google_apihub/sdk/typescript/google_apihub/apihub/apihub_curation.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own curation" });
 
-      resource(Curation, "ci-runner", {
-        curationId: "example",
-        displayName: "example-display-name",
-        location: "example",
-        description: "Managed by ubx.",
+      resource(ApihubCuration, "ci-runner", {
+        name: "ci-runner",
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_apihub --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_apihub/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.apihub import Curation, CurationConfig
+    from ubx.google_apihub.apihub import ApihubCuration, ApihubCurationConfig
 
     def describe():
         ubx.intent("payments own curation")
 
-        ubx.resource(Curation, "ci-runner", CurationConfig(
-            curation_id="example",
-            display_name="example-display-name",
-            location="example",
-            description="Managed by ubx.",
+        ubx.resource(ApihubCuration, "ci-runner", ApihubCurationConfig(
+            name="ci-runner",
         ))
 
     if __name__ == "__main__":
@@ -73,139 +65,70 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_apihub_curation, with curation id example, display
-    name example-display-name, location example, description Managed
-    by ubx..
+    Create google_apihub_curation called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
-<ResponseField name="curation_id" type="string" required>
-  The ID to use for the curation resource, which will become the final component of the curations's resource name. This field is optional. * If provided, the same will be used. The service will throw an error if the specified ID is already used by another curation resource in the API hub. * If not provided, a system generated ID will be used. This value should be 4-500 characters, and valid characters are /a-z[0-9]-_/. Required.
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
+<ResponseField name="create_time" type="string">
+  Output only. The time at which the curation was created. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="description" type="string">
-  The description of the curation. Optional.
+  Optional. The description of the curation. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="display_name" type="string" required>
-  The display name of the curation. Required.
+<ResponseField name="display_name" type="string">
+  Required. The display name of the curation. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="endpoint" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="endpoint" type="object">
+  The endpoint to be triggered for curation. The endpoint will be invoked with a request payload containing ApiMetadata. Response should contain curated data in the form of ApiMetadata. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="application_integration_endpoint_details" type="list(object)">
+    <ResponseField name="application_integration_endpoint_details" type="object">
+      The details of the Application Integration endpoint to be triggered for curation. Optional.
       <Expandable title="properties">
-        <ResponseField name="trigger_id" type="string" required>
+        <ResponseField name="trigger_id" type="string">
+          Required. The API trigger ID of the Application Integration workflow. Optional.
         </ResponseField>
-        <ResponseField name="uri" type="string" required>
+        <ResponseField name="uri" type="string">
+          Required. The endpoint URI should be a valid REST URI for triggering an Application Integration. Format: `https://integrations.googleapis.com/v1/&#123;name=projects/*/locations/*/integrations/*&#125;:execute` or `https://&#123;location&#125;-integrations.googleapis.com/v1/&#123;name=projects/*/locations/*/integrations/*&#125;:execute` Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="location" type="string" required>
-  Resource ID segment making up resource 'name'. It identifies the resource within its parent collection as described in https://google.aip.dev/122. Required.
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="create_time" type="string">
-  The time at which the curation was created. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="endpoint" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="application_integration_endpoint_details" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="trigger_id" type="string" required>
-        </ResponseField>
-        <ResponseField name="uri" type="string" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
 </ResponseField>
 
 <ResponseField name="last_execution_error_code" type="string">
-  The error code of the last execution of the curation. The error code is populated only when the last execution state is failed. Possible values: ERROR_CODE_UNSPECIFIED INTERNAL_ERROR UNAUTHORIZED Computed by GCP after `ship`.
+  Output only. The error code of the last execution of the curation. The error code is populated only when the last execution state is failed. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="last_execution_error_message" type="string">
-  Error message describing the failure, if any, during the last execution of the curation. Computed by GCP after `ship`.
+  Output only. Error message describing the failure, if any, during the last execution of the curation. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="last_execution_state" type="string">
-  The last execution state of the curation. Possible values: LAST_EXECUTION_STATE_UNSPECIFIED SUCCEEDED FAILED Computed by GCP after `ship`.
+  Output only. The last execution state of the curation. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="name" type="string">
-  Identifier. The name of the curation. Format: 'projects/&#123;project&#125;/locations/&#123;location&#125;/curations/&#123;curation&#125;' Computed by GCP after `ship`.
+  Identifier. The name of the curation. Format: `projects/&#123;project&#125;/locations/&#123;location&#125;/curations/&#123;curation&#125;` Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="plugin_instance_actions" type="list(object)">
-  The plugin instances and associated actions that are using the curation. Note: A particular curation could be used by multiple plugin instances or multiple actions in a plugin instance. Computed by GCP after `ship`.
+  Output only. The plugin instances and associated actions that are using the curation. Note: A particular curation could be used by multiple plugin instances or multiple actions in a plugin instance. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="action_id" type="string">
+      An identifier for this action, unique within its own containing plugin. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
     <ResponseField name="plugin_instance" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
+      A reference to the plugin instance this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="update_time" type="string">
-  The time at which the curation was last updated. Computed by GCP after `ship`.
+  Output only. The time at which the curation was last updated. Optional; if omitted, computed by Google Cloud.
 </ResponseField>

@@ -1,0 +1,107 @@
+---
+title: "google_pubsub_snapshot"
+description: "`google_pubsub_snapshot` captures a Pub/Sub subscription's own acknowledgment state at a point in time..."
+---
+
+`google_pubsub_snapshot` captures a Pub/Sub subscription's own acknowledgment state at a point in time, letting the subscription be seeked back to it later to replay messages.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only google_pubsub --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_pubsub/sdk/go
+    package main
+
+    import (
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    	pubsub "github.com/ubiquex/ubx-sdk-google/sdk/go/google_pubsub/pubsub"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own snapshot"})
+
+    		ubx.Resource(pubsub.PubsubSnapshot, "ci-runner", pubsub.PubsubSnapshotConfig{
+    			Subscription: "example",
+    			Tags:         map[string]string{"managed-by": "ubx"},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only google_pubsub --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { PubsubSnapshot } from "./local-sdk/google_pubsub/sdk/typescript/google_pubsub/pubsub/pubsub_snapshot.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own snapshot" });
+
+      resource(PubsubSnapshot, "ci-runner", {
+        subscription: "example",
+        tags: { "managed-by": "ubx" },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only google_pubsub --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_pubsub/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.google_pubsub.pubsub import PubsubSnapshot, PubsubSnapshotConfig
+
+    def describe():
+        ubx.intent("payments own snapshot")
+
+        ubx.resource(PubsubSnapshot, "ci-runner", PubsubSnapshotConfig(
+            subscription="example",
+            tags={"managed-by": "ubx"},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create google_pubsub_snapshot, with subscription example, tags a
+    set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="labels" type="map(string)">
+  Optional. See [Creating and managing labels](https://cloud.google.com/pubsub/docs/labels). Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="subscription" type="string">
+  Required. The subscription whose backlog the snapshot retains. Specifically, the created snapshot is guaranteed to retain: (a) The existing backlog on the subscription. More precisely, this is defined as the messages in the subscription's backlog that are unacknowledged upon the successful completion of the `CreateSnapshot` request; as well as: (b) Any messages published to the subscription's topic following the successful completion of the CreateSnapshot request. Format is `projects/&#123;project&#125;/subscriptions/&#123;sub&#125;`. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="map(string)">
+  Optional. Input only. Immutable. Tag keys/values directly bound to this resource. For example: "123/environment": "production", "123/costCenter": "marketing" See https://&#123;$universe.dns_names.final_documentation_domain&#125;/pubsub/docs/tags for more information on using tags with Pub/Sub resources. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="expire_time" type="string">
+  Optional. The snapshot is guaranteed to exist up until this time. A newly-created snapshot expires no later than 7 days from the time of its creation. Its exact lifetime is determined at creation by the existing backlog in the source subscription. Specifically, the lifetime of the snapshot is `7 days - (age of oldest unacked message in the subscription)`. For example, consider a subscription whose oldest unacked message is 3 days old. If a snapshot is created from this subscription, the snapshot -- which will always capture this 3-day-old backlog as long as the snapshot exists -- will expire in 4 days. The service will refuse to create a snapshot that would expire in less than 1 hour after creation. Computed by Google Cloud after `ship`.
+</ResponseField>
+
+<ResponseField name="labels" type="map(string)">
+  Optional. See [Creating and managing labels](https://cloud.google.com/pubsub/docs/labels). Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Optional. The name of the snapshot. Computed by Google Cloud after `ship`.
+</ResponseField>
+
+<ResponseField name="topic" type="string">
+  Optional. The name of the topic from which this snapshot is retaining messages. Computed by Google Cloud after `ship`.
+</ResponseField>

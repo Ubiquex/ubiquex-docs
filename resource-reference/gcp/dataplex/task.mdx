@@ -1,37 +1,28 @@
 ---
 title: "google_dataplex_task"
-description: "Real, generated bindings for `google_dataplex_task`."
+description: "`google_dataplex_task` schedules a recurring or one-off Spark job (a notebook or custom script) to run against data managed within a Dataplex lake."
 ---
-
-`google_dataplex_task` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_dataplex --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_dataplex/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	dataplex "github.com/ubiquex/ubx-sdk-google/sdk/go/google/dataplex"
+    	dataplex "github.com/ubiquex/ubx-sdk-google/sdk/go/google_dataplex/dataplex"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own task"})
 
-    		ubx.Resource(dataplex.Task, "ci-runner", dataplex.TaskConfig{
-    			Description: "Managed by ubx.",
-    			DisplayName: "example-display-name",
-    			Labels:      map[string]string{"managed-by": "ubx"},
-    			Lake:        "example",
-    			Location:    "example",
-    			TaskId:      "example",
+    		ubx.Resource(dataplex.DataplexTask, "ci-runner", dataplex.DataplexTaskConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -39,38 +30,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_dataplex --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { Task } from "jsr:@ubx/sdk-google/google/dataplex/task";
+    import { DataplexTask } from "./local-sdk/google_dataplex/sdk/typescript/google_dataplex/dataplex/dataplex_task.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own task" });
 
-      resource(Task, "ci-runner", {
-        description: "Managed by ubx.",
-        displayName: "example-display-name",
-        labels: { "managed-by": "ubx" },
-        lake: "example",
-        location: "example",
-        taskId: "example",
+      resource(DataplexTask, "ci-runner", {
+        name: "ci-runner",
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_dataplex --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_dataplex/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.dataplex import Task, TaskConfig
+    from ubx.google_dataplex.dataplex import DataplexTask, DataplexTaskConfig
 
     def describe():
         ubx.intent("payments own task")
 
-        ubx.resource(Task, "ci-runner", TaskConfig(
-            description="Managed by ubx.",
-            display_name="example-display-name",
-            labels={"managed-by": "ubx"},
-            lake="example",
-            location="example",
-            task_id="example",
+        ubx.resource(DataplexTask, "ci-runner", DataplexTaskConfig(
+            name="ci-runner",
         ))
 
     if __name__ == "__main__":
@@ -79,407 +63,286 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_dataplex_task, with description Managed by ubx.,
-    display name example-display-name, labels a set value, lake
-    example, location example, task id example.
+    Create google_dataplex_task called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
+<ResponseField name="create_time" type="string">
+  Output only. The time when the task was created. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="description" type="string">
-  User-provided description of the task. Optional.
+  Optional. Description of the task. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="display_name" type="string">
-  User friendly display name. Optional.
+  Optional. User friendly display name. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="execution_spec" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="execution_spec" type="object">
+  Execution related settings, like retry and service_account. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="args" type="map(string)">
+      Optional. The arguments to pass to the task. The args can use placeholders of the format $&#123;placeholder&#125; as part of key/value string. These will be interpolated before passing the args to the driver. Currently supported placeholders: - $&#123;task_id&#125; - $&#123;job_time&#125; To pass positional args, set the key as TASK_ARGS. The value should be a comma-separated string of all the positional arguments. To use a delimiter other than comma, refer to https://cloud.google.com/sdk/gcloud/reference/topic/escaping. In case of other keys being present in the args, then TASK_ARGS will be passed as the last argument. Optional.
     </ResponseField>
     <ResponseField name="kms_key" type="string">
+      Optional. The Cloud KMS key to use for encryption, of the form: projects/&#123;project_number&#125;/locations/&#123;location_id&#125;/keyRings/&#123;key-ring-name&#125;/cryptoKeys/&#123;key-name&#125;. Optional.
     </ResponseField>
     <ResponseField name="max_job_execution_lifetime" type="string">
+      Optional. The maximum duration after which the job execution is expired. Optional.
     </ResponseField>
     <ResponseField name="project" type="string">
+      Optional. The project in which jobs are run. By default, the project containing the Lake is used. If a project is provided, the ExecutionSpec.service_account must belong to this project. Optional.
     </ResponseField>
-    <ResponseField name="service_account" type="string" required>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="labels" type="map(string)">
-  User-defined labels for the task. **Note**: This field is non-authoritative, and will only manage the labels present in your configuration. Please refer to the field 'effective_labels' for all of the labels present on the resource. Optional.
-</ResponseField>
-
-<ResponseField name="lake" type="string">
-  The lake in which the task will be created in. Optional.
-</ResponseField>
-
-<ResponseField name="location" type="string">
-  The location in which the task will be created in. Optional.
-</ResponseField>
-
-<ResponseField name="notebook" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="archive_uris" type="list(string)">
-    </ResponseField>
-    <ResponseField name="file_uris" type="list(string)">
-    </ResponseField>
-    <ResponseField name="infrastructure_spec" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="batch" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="executors_count" type="number">
-            </ResponseField>
-            <ResponseField name="max_executors_count" type="number">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="container_image" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="image" type="string">
-            </ResponseField>
-            <ResponseField name="java_jars" type="list(string)">
-            </ResponseField>
-            <ResponseField name="properties" type="map(string)">
-            </ResponseField>
-            <ResponseField name="python_packages" type="list(string)">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="vpc_network" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="network" type="string">
-            </ResponseField>
-            <ResponseField name="network_tags" type="list(string)">
-            </ResponseField>
-            <ResponseField name="sub_network" type="string">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="notebook" type="string" required>
+    <ResponseField name="service_account" type="string">
+      Required. Service account to use to execute a task. If not provided, the default Compute service account for the project is used. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="spark" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="execution_status" type="object">
+  Status of the task execution (e.g. Jobs). Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="archive_uris" type="list(string)">
-    </ResponseField>
-    <ResponseField name="file_uris" type="list(string)">
-    </ResponseField>
-    <ResponseField name="infrastructure_spec" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="batch" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="executors_count" type="number">
-            </ResponseField>
-            <ResponseField name="max_executors_count" type="number">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="container_image" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="image" type="string">
-            </ResponseField>
-            <ResponseField name="java_jars" type="list(string)">
-            </ResponseField>
-            <ResponseField name="properties" type="map(string)">
-            </ResponseField>
-            <ResponseField name="python_packages" type="list(string)">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="vpc_network" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="network" type="string">
-            </ResponseField>
-            <ResponseField name="network_tags" type="list(string)">
-            </ResponseField>
-            <ResponseField name="sub_network" type="string">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="main_class" type="string">
-    </ResponseField>
-    <ResponseField name="main_jar_file_uri" type="string">
-    </ResponseField>
-    <ResponseField name="python_script_file" type="string">
-    </ResponseField>
-    <ResponseField name="sql_script" type="string">
-    </ResponseField>
-    <ResponseField name="sql_script_file" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="task_id" type="string">
-  The task Id of the task. Optional.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="trigger_spec" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="disabled" type="bool">
-    </ResponseField>
-    <ResponseField name="max_retries" type="number">
-    </ResponseField>
-    <ResponseField name="schedule" type="string">
-    </ResponseField>
-    <ResponseField name="start_time" type="string">
-    </ResponseField>
-    <ResponseField name="type" type="string" required>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="create_time" type="string">
-  The time when the task was created. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="effective_labels" type="map(string)">
-  All of labels (key/value pairs) present on the resource in GCP, including the labels configured through Terraform, other clients and services. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="execution_spec" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="args" type="map(string)">
-    </ResponseField>
-    <ResponseField name="kms_key" type="string">
-    </ResponseField>
-    <ResponseField name="max_job_execution_lifetime" type="string">
-    </ResponseField>
-    <ResponseField name="project" type="string">
-    </ResponseField>
-    <ResponseField name="service_account" type="string" required>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="execution_status" type="list(object)">
-  Configuration for the cluster Computed by GCP after `ship`.
-  <Expandable title="properties">
-    <ResponseField name="latest_job" type="list(object)">
+    <ResponseField name="latest_job" type="object">
+      A job represents an instance of a task. Optional.
       <Expandable title="properties">
         <ResponseField name="end_time" type="string">
+          Output only. The time when the job ended. Computed by Google Cloud after `ship`.
+        </ResponseField>
+        <ResponseField name="execution_spec" type="object">
+          Execution related settings, like retry and service_account. Optional.
+          <Expandable title="properties">
+            <ResponseField name="args" type="map(string)">
+              Optional. The arguments to pass to the task. The args can use placeholders of the format $&#123;placeholder&#125; as part of key/value string. These will be interpolated before passing the args to the driver. Currently supported placeholders: - $&#123;task_id&#125; - $&#123;job_time&#125; To pass positional args, set the key as TASK_ARGS. The value should be a comma-separated string of all the positional arguments. To use a delimiter other than comma, refer to https://cloud.google.com/sdk/gcloud/reference/topic/escaping. In case of other keys being present in the args, then TASK_ARGS will be passed as the last argument. Optional.
+            </ResponseField>
+            <ResponseField name="kms_key" type="string">
+              Optional. The Cloud KMS key to use for encryption, of the form: projects/&#123;project_number&#125;/locations/&#123;location_id&#125;/keyRings/&#123;key-ring-name&#125;/cryptoKeys/&#123;key-name&#125;. Optional.
+            </ResponseField>
+            <ResponseField name="max_job_execution_lifetime" type="string">
+              Optional. The maximum duration after which the job execution is expired. Optional.
+            </ResponseField>
+            <ResponseField name="project" type="string">
+              Optional. The project in which jobs are run. By default, the project containing the Lake is used. If a project is provided, the ExecutionSpec.service_account must belong to this project. Optional.
+            </ResponseField>
+            <ResponseField name="service_account" type="string">
+              Required. Service account to use to execute a task. If not provided, the default Compute service account for the project is used. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="labels" type="map(string)">
+          Output only. User-defined labels for the task. Computed by Google Cloud after `ship`.
         </ResponseField>
         <ResponseField name="message" type="string">
+          Output only. Additional information about the current state. Computed by Google Cloud after `ship`.
         </ResponseField>
         <ResponseField name="name" type="string">
+          Output only. The relative resource name of the job, of the form: projects/&#123;project_number&#125;/locations/&#123;location_id&#125;/lakes/&#123;lake_id&#125;/tasks/&#123;task_id&#125;/jobs/&#123;job_id&#125;. Computed by Google Cloud after `ship`.
         </ResponseField>
         <ResponseField name="retry_count" type="number">
+          Output only. The number of times the job has been retried (excluding the initial attempt). Computed by Google Cloud after `ship`.
         </ResponseField>
         <ResponseField name="service" type="string">
+          Output only. The underlying service running a job. Computed by Google Cloud after `ship`.
         </ResponseField>
         <ResponseField name="service_job" type="string">
+          Output only. The full resource name for the job run under a particular service. Computed by Google Cloud after `ship`.
         </ResponseField>
         <ResponseField name="start_time" type="string">
+          Output only. The time when the job was started. Computed by Google Cloud after `ship`.
         </ResponseField>
         <ResponseField name="state" type="string">
+          Output only. Execution state for the job. Computed by Google Cloud after `ship`.
+        </ResponseField>
+        <ResponseField name="trigger" type="string">
+          Output only. Job execution trigger. Computed by Google Cloud after `ship`.
         </ResponseField>
         <ResponseField name="uid" type="string">
+          Output only. System generated globally unique ID for the job. Computed by Google Cloud after `ship`.
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="update_time" type="string">
+      Output only. Last update time of the status. Computed by Google Cloud after `ship`.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="labels" type="map(string)">
+  Optional. User-defined labels for the task. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="name" type="string">
-  The relative resource name of the task, of the form: projects/&#123;project_number&#125;/locations/&#123;locationId&#125;/lakes/&#123;lakeId&#125;/ tasks/&#123;name&#125;. Computed by GCP after `ship`.
+  Output only. The relative resource name of the task, of the form: projects/&#123;project_number&#125;/locations/&#123;location_id&#125;/lakes/&#123;lake_id&#125;/ tasks/&#123;task_id&#125;. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="notebook" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="notebook" type="object">
+  Config for running scheduled notebooks. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="archive_uris" type="list(string)">
+      Optional. Cloud Storage URIs of archives to be extracted into the working directory of each executor. Supported file types: .jar, .tar, .tar.gz, .tgz, and .zip. Optional.
     </ResponseField>
     <ResponseField name="file_uris" type="list(string)">
+      Optional. Cloud Storage URIs of files to be placed in the working directory of each executor. Optional.
     </ResponseField>
-    <ResponseField name="infrastructure_spec" type="list(object)">
+    <ResponseField name="infrastructure_spec" type="object">
+      Configuration for the underlying infrastructure used to run workloads. Optional.
       <Expandable title="properties">
-        <ResponseField name="batch" type="list(object)">
+        <ResponseField name="batch" type="object">
+          Batch compute resources associated with the task. Optional.
           <Expandable title="properties">
             <ResponseField name="executors_count" type="number">
+              Optional. Total number of job executors. Executor Count should be between 2 and 100. Default=2 Optional.
             </ResponseField>
             <ResponseField name="max_executors_count" type="number">
+              Optional. Max configurable executors. If max_executors_count &gt; executors_count, then auto-scaling is enabled. Max Executor Count should be between 2 and 1000. Default=1000 Optional.
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="container_image" type="list(object)">
+        <ResponseField name="container_image" type="object">
+          Container Image Runtime Configuration used with Batch execution. Optional.
           <Expandable title="properties">
             <ResponseField name="image" type="string">
+              Optional. Container image to use. Optional.
             </ResponseField>
             <ResponseField name="java_jars" type="list(string)">
+              Optional. A list of Java JARS to add to the classpath. Valid input includes Cloud Storage URIs to Jar binaries. For example, gs://bucket-name/my/path/to/file.jar Optional.
             </ResponseField>
             <ResponseField name="properties" type="map(string)">
+              Optional. Override to common configuration of open source components installed on the Dataproc cluster. The properties to set on daemon config files. Property keys are specified in prefix:property format, for example core:hadoop.tmp.dir. For more information, see Cluster properties (https://cloud.google.com/dataproc/docs/concepts/cluster-properties). Optional.
             </ResponseField>
             <ResponseField name="python_packages" type="list(string)">
+              Optional. A list of python packages to be installed. Valid formats include Cloud Storage URI to a PIP installable library. For example, gs://bucket-name/my/path/to/lib.tar.gz Optional.
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="vpc_network" type="list(object)">
+        <ResponseField name="vpc_network" type="object">
+          Cloud VPC Network used to run the infrastructure. Optional.
           <Expandable title="properties">
             <ResponseField name="network" type="string">
+              Optional. The Cloud VPC network in which the job is run. By default, the Cloud VPC network named Default within the project is used. Optional.
             </ResponseField>
             <ResponseField name="network_tags" type="list(string)">
+              Optional. List of network tags to apply to the job. Optional.
             </ResponseField>
             <ResponseField name="sub_network" type="string">
+              Optional. The Cloud VPC sub-network in which the job is run. Optional.
             </ResponseField>
           </Expandable>
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="notebook" type="string" required>
+    <ResponseField name="notebook" type="string">
+      Required. Path to input notebook. This can be the Cloud Storage URI of the notebook file or the path to a Notebook Content. The execution args are accessible as environment variables (TASK_key=value). Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="spark" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="spark" type="object">
+  User-specified config for running a Spark task. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="archive_uris" type="list(string)">
+      Optional. Cloud Storage URIs of archives to be extracted into the working directory of each executor. Supported file types: .jar, .tar, .tar.gz, .tgz, and .zip. Optional.
     </ResponseField>
     <ResponseField name="file_uris" type="list(string)">
+      Optional. Cloud Storage URIs of files to be placed in the working directory of each executor. Optional.
     </ResponseField>
-    <ResponseField name="infrastructure_spec" type="list(object)">
+    <ResponseField name="infrastructure_spec" type="object">
+      Configuration for the underlying infrastructure used to run workloads. Optional.
       <Expandable title="properties">
-        <ResponseField name="batch" type="list(object)">
+        <ResponseField name="batch" type="object">
+          Batch compute resources associated with the task. Optional.
           <Expandable title="properties">
             <ResponseField name="executors_count" type="number">
+              Optional. Total number of job executors. Executor Count should be between 2 and 100. Default=2 Optional.
             </ResponseField>
             <ResponseField name="max_executors_count" type="number">
+              Optional. Max configurable executors. If max_executors_count &gt; executors_count, then auto-scaling is enabled. Max Executor Count should be between 2 and 1000. Default=1000 Optional.
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="container_image" type="list(object)">
+        <ResponseField name="container_image" type="object">
+          Container Image Runtime Configuration used with Batch execution. Optional.
           <Expandable title="properties">
             <ResponseField name="image" type="string">
+              Optional. Container image to use. Optional.
             </ResponseField>
             <ResponseField name="java_jars" type="list(string)">
+              Optional. A list of Java JARS to add to the classpath. Valid input includes Cloud Storage URIs to Jar binaries. For example, gs://bucket-name/my/path/to/file.jar Optional.
             </ResponseField>
             <ResponseField name="properties" type="map(string)">
+              Optional. Override to common configuration of open source components installed on the Dataproc cluster. The properties to set on daemon config files. Property keys are specified in prefix:property format, for example core:hadoop.tmp.dir. For more information, see Cluster properties (https://cloud.google.com/dataproc/docs/concepts/cluster-properties). Optional.
             </ResponseField>
             <ResponseField name="python_packages" type="list(string)">
+              Optional. A list of python packages to be installed. Valid formats include Cloud Storage URI to a PIP installable library. For example, gs://bucket-name/my/path/to/lib.tar.gz Optional.
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="vpc_network" type="list(object)">
+        <ResponseField name="vpc_network" type="object">
+          Cloud VPC Network used to run the infrastructure. Optional.
           <Expandable title="properties">
             <ResponseField name="network" type="string">
+              Optional. The Cloud VPC network in which the job is run. By default, the Cloud VPC network named Default within the project is used. Optional.
             </ResponseField>
             <ResponseField name="network_tags" type="list(string)">
+              Optional. List of network tags to apply to the job. Optional.
             </ResponseField>
             <ResponseField name="sub_network" type="string">
+              Optional. The Cloud VPC sub-network in which the job is run. Optional.
             </ResponseField>
           </Expandable>
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="main_class" type="string">
+      The name of the driver's main class. The jar file that contains the class must be in the default CLASSPATH or specified in jar_file_uris. The execution args are passed in as a sequence of named process arguments (--key=value). Optional.
     </ResponseField>
     <ResponseField name="main_jar_file_uri" type="string">
+      The Cloud Storage URI of the jar file that contains the main class. The execution args are passed in as a sequence of named process arguments (--key=value). Optional.
     </ResponseField>
     <ResponseField name="python_script_file" type="string">
+      The Gcloud Storage URI of the main Python file to use as the driver. Must be a .py file. The execution args are passed in as a sequence of named process arguments (--key=value). Optional.
     </ResponseField>
     <ResponseField name="sql_script" type="string">
+      The query text. The execution args are used to declare a set of script variables (set key="value";). Optional.
     </ResponseField>
     <ResponseField name="sql_script_file" type="string">
+      A reference to a query file. This should be the Cloud Storage URI of the query file. The execution args are used to declare a set of script variables (set key="value";). Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="state" type="string">
-  Current state of the task. Computed by GCP after `ship`.
+  Output only. Current state of the task. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="terraform_labels" type="map(string)">
-  The combination of labels configured directly on the resource and default labels configured on the provider. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="trigger_spec" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="trigger_spec" type="object">
+  Task scheduling and trigger settings. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="disabled" type="bool">
+      Optional. Prevent the task from executing. This does not cancel already running tasks. It is intended to temporarily disable RECURRING tasks. Optional.
     </ResponseField>
     <ResponseField name="max_retries" type="number">
+      Optional. Number of retry attempts before aborting. Set to zero to never attempt to retry a failed task. Optional.
     </ResponseField>
     <ResponseField name="schedule" type="string">
+      Optional. Cron schedule (https://en.wikipedia.org/wiki/Cron) for running tasks periodically. To explicitly set a timezone to the cron tab, apply a prefix in the cron tab: "CRON_TZ=$&#123;IANA_TIME_ZONE&#125;" or "TZ=$&#123;IANA_TIME_ZONE&#125;". The $&#123;IANA_TIME_ZONE&#125; may only be a valid string from IANA time zone database. For example, CRON_TZ=America/New_York 1 * * * *, or TZ=America/New_York 1 * * * *. This field is required for RECURRING tasks. Optional.
     </ResponseField>
     <ResponseField name="start_time" type="string">
+      Optional. The first run of the task will be after this time. If not specified, the task will run shortly after being submitted if ON_DEMAND and based on the schedule if RECURRING. Optional.
     </ResponseField>
-    <ResponseField name="type" type="string" required>
+    <ResponseField name="type" type="string">
+      Required. Immutable. Trigger type of the user-specified Task. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="uid" type="string">
-  System generated globally unique ID for the task. This ID will be different if the task is deleted and re-created with the same name. Computed by GCP after `ship`.
+  Output only. System generated globally unique ID for the task. This ID will be different if the task is deleted and re-created with the same name. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="update_time" type="string">
-  The time when the task was last updated. Computed by GCP after `ship`.
+  Output only. The time when the task was last updated. Optional; if omitted, computed by Google Cloud.
 </ResponseField>

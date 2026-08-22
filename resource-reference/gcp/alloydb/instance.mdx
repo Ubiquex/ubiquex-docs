@@ -1,38 +1,30 @@
 ---
 title: "google_alloydb_instance"
-description: "Real, generated bindings for `google_alloydb_instance`."
+description: "`google_alloydb_instance` is a compute instance within an AlloyDB cluster -- either the primary read/write instance or a read pool instance serving..."
 ---
 
-`google_alloydb_instance` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
+`google_alloydb_instance` is a compute instance within an AlloyDB cluster -- either the primary read/write instance or a read pool instance serving read-only replica traffic.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_alloydb --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_alloydb/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	alloydb "github.com/ubiquex/ubx-sdk-google/sdk/go/google/alloydb"
+    	alloydb "github.com/ubiquex/ubx-sdk-google/sdk/go/google_alloydb/alloydb"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own instance"})
 
-    		ubx.Resource(alloydb.Instance, "ci-runner", alloydb.InstanceConfig{
-    			Cluster:      "example",
-    			InstanceId:   "example",
-    			InstanceType: "example",
-    			Annotations:  map[string]string{"managed-by": "ubx"},
-    			DisplayName:  "example-display-name",
-    			GceZone:      "example",
-    			Labels:       map[string]string{"managed-by": "ubx"},
+    		ubx.Resource(alloydb.AlloydbInstance, "ci-runner", alloydb.AlloydbInstanceConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -40,40 +32,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_alloydb --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { Instance } from "jsr:@ubx/sdk-google/google/alloydb/instance";
+    import { AlloydbInstance } from "./local-sdk/google_alloydb/sdk/typescript/google_alloydb/alloydb/alloydb_instance.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own instance" });
 
-      resource(Instance, "ci-runner", {
-        cluster: "example",
-        instanceId: "example",
-        instanceType: "example",
-        annotations: { "managed-by": "ubx" },
-        displayName: "example-display-name",
-        gceZone: "example",
-        labels: { "managed-by": "ubx" },
+      resource(AlloydbInstance, "ci-runner", {
+        name: "ci-runner",
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_alloydb --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_alloydb/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.alloydb import Instance, InstanceConfig
+    from ubx.google_alloydb.alloydb import AlloydbInstance, AlloydbInstanceConfig
 
     def describe():
         ubx.intent("payments own instance")
 
-        ubx.resource(Instance, "ci-runner", InstanceConfig(
-            cluster="example",
-            instance_id="example",
-            instance_type="example",
-            annotations={"managed-by": "ubx"},
-            display_name="example-display-name",
-            gce_zone="example",
-            labels={"managed-by": "ubx"},
+        ubx.resource(AlloydbInstance, "ci-runner", AlloydbInstanceConfig(
+            name="ci-runner",
         ))
 
     if __name__ == "__main__":
@@ -82,369 +65,321 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_alloydb_instance, with cluster example, instance id
-    example, instance type example, annotations a set value, display
-    name example-display-name, gce zone example, labels a set value.
+    Create google_alloydb_instance called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
 <ResponseField name="activation_policy" type="string">
-  'Specifies whether an instance needs to spin up. Once the instance is active, the activation policy can be updated to the 'NEVER' to stop the instance. Likewise, the activation policy can be updated to 'ALWAYS' to start the instance. There are restrictions around when an instance can/cannot be activated (for example, a read pool instance should be stopped before stopping primary etc.). Please refer to the API documentation for more details. Possible values are: 'ACTIVATION_POLICY_UNSPECIFIED', 'ALWAYS', 'NEVER'.' Possible values: ["ACTIVATION_POLICY_UNSPECIFIED", "ALWAYS", "NEVER"] Optional; if omitted, computed by GCP.
+  Optional. Specifies whether an instance needs to spin up. Once the instance is active, the activation policy can be updated to the `NEVER` to stop the instance. Likewise, the activation policy can be updated to `ALWAYS` to start the instance. There are restrictions around when an instance can/cannot be activated (for example, a read pool instance should be stopped before stopping primary etc.). Please refer to the API documentation for more details. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="annotations" type="map(string)">
-  Annotations to allow client tools to store small amount of arbitrary data. This is distinct from labels. **Note**: This field is non-authoritative, and will only manage the annotations present in your configuration. Please refer to the field 'effective_annotations' for all of the annotations present on the resource. Optional.
+  Annotations to allow client tools to store small amount of arbitrary data. This is distinct from labels. https://google.aip.dev/128 Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="availability_type" type="string">
-  'Availability type of an Instance. Defaults to REGIONAL for both primary and read instances. Note that primary and read instances can have different availability types. Primary instances can be either ZONAL or REGIONAL. Read Pool instances can also be either ZONAL or REGIONAL. Read pools of size 1 can only have zonal availability. Read pools with a node count of 2 or more can have regional availability (nodes are present in 2 or more zones in a region). Possible values are: 'AVAILABILITY_TYPE_UNSPECIFIED', 'ZONAL', 'REGIONAL'.' Possible values: ["AVAILABILITY_TYPE_UNSPECIFIED", "ZONAL", "REGIONAL"] Optional; if omitted, computed by GCP.
+  Availability type of an Instance. If empty, defaults to REGIONAL for primary instances. For read pools, availability_type is always UNSPECIFIED. Instances in the read pools are evenly distributed across available zones within the region (i.e. read pools with more than one node will have a node in at least two zones). Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="client_connection_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="client_connection_config" type="object">
+  Client connection configuration Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="require_connectors" type="bool">
+      Optional. Configuration to enforce connectors only (ex: AuthProxy) connections to the database. Optional.
     </ResponseField>
-    <ResponseField name="ssl_config" type="list(object)">
+    <ResponseField name="ssl_config" type="object">
+      SSL configuration. Optional.
       <Expandable title="properties">
+        <ResponseField name="ca_source" type="string">
+          Optional. Certificate Authority (CA) source. Only CA_SOURCE_MANAGED is supported currently, and is the default value. Optional.
+        </ResponseField>
         <ResponseField name="ssl_mode" type="string">
+          Optional. SSL mode. Specifies client-server SSL/TLS connection behavior. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="cluster" type="string" required>
-  Identifies the alloydb cluster. Must be in the format 'projects/&#123;project&#125;/locations/&#123;location&#125;/clusters/&#123;cluster_id&#125;' Required.
-</ResponseField>
-
-<ResponseField name="connection_pool_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="connection_pool_config" type="object">
+  Configuration for Managed Connection Pool (MCP). Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="enabled" type="bool" required>
+    <ResponseField name="authproxy_pooler_count" type="number">
+      Output only. The number of running AuthProxy poolers per instance. Computed by Google Cloud after `ship`.
+    </ResponseField>
+    <ResponseField name="authproxy_pooler_scaling_type" type="string">
+      Optional. The scaling type of the AuthProxy pooler. Optional.
+    </ResponseField>
+    <ResponseField name="enabled" type="bool">
+      Optional. Whether to enable Managed Connection Pool (MCP). Optional.
     </ResponseField>
     <ResponseField name="flags" type="map(string)">
+      Optional. Connection Pool flags, as a list of "key": "value" pairs. Optional.
     </ResponseField>
     <ResponseField name="pooler_count" type="number">
+      Output only. The number of running poolers per instance. Computed by Google Cloud after `ship`.
     </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="database_flags" type="map(string)">
-  Database flags. Set at instance level. * They are copied from primary instance on read instance creation. * Read instances can set new or override existing flags that are relevant for reads, e.g. for enabling columnar cache on a read instance. Flags set on read instance may or may not be present on primary. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="display_name" type="string">
-  User-settable and human-readable display name for the Instance. Optional.
-</ResponseField>
-
-<ResponseField name="gce_zone" type="string">
-  The Compute Engine zone that the instance should serve from, per https://cloud.google.com/compute/docs/regions-zones This can ONLY be specified for ZONAL instances. If present for a REGIONAL instance, an error will be thrown. If this is absent for a ZONAL instance, instance is created in a random zone with available capacity. Optional.
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="instance_id" type="string" required>
-  The ID of the alloydb instance. Required.
-</ResponseField>
-
-<ResponseField name="instance_type" type="string" required>
-  The type of the instance. If the instance type is READ_POOL, provide the associated PRIMARY/SECONDARY instance in the 'depends_on' meta-data attribute. If the instance type is SECONDARY, point to the cluster_type of the associated secondary cluster instead of mentioning SECONDARY. Example: &#123;instance_type = google_alloydb_cluster.&lt;secondary_cluster_name&gt;.cluster_type&#125; instead of &#123;instance_type = SECONDARY&#125; If the instance type is SECONDARY, the terraform delete instance operation does not delete the secondary instance but abandons it instead. Use deletion_policy = "FORCE" in the associated secondary cluster and delete the cluster forcefully to delete the secondary cluster as well its associated secondary instance. Users can undo the delete secondary instance action by importing the deleted secondary instance by calling terraform import. Possible values: ["PRIMARY", "READ_POOL", "SECONDARY"] Required.
-</ResponseField>
-
-<ResponseField name="labels" type="map(string)">
-  User-defined labels for the alloydb instance. **Note**: This field is non-authoritative, and will only manage the labels present in your configuration. Please refer to the field 'effective_labels' for all of the labels present on the resource. Optional.
-</ResponseField>
-
-<ResponseField name="machine_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="cpu_count" type="number">
-    </ResponseField>
-    <ResponseField name="machine_type" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="network_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="allocated_ip_range_override" type="string">
-    </ResponseField>
-    <ResponseField name="authorized_external_networks" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="cidr_range" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="enable_outbound_public_ip" type="bool">
-    </ResponseField>
-    <ResponseField name="enable_public_ip" type="bool">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="psc_instance_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="allowed_consumer_projects" type="list(string)">
-    </ResponseField>
-    <ResponseField name="psc_auto_connections" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="consumer_network" type="string">
-        </ResponseField>
-        <ResponseField name="consumer_network_status" type="string">
-        </ResponseField>
-        <ResponseField name="consumer_project" type="string">
-        </ResponseField>
-        <ResponseField name="ip_address" type="string">
-        </ResponseField>
-        <ResponseField name="status" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="psc_dns_name" type="string">
-    </ResponseField>
-    <ResponseField name="psc_interface_configs" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="network_attachment_resource" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="service_attachment_link" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="query_insights_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="query_plans_per_minute" type="number">
-    </ResponseField>
-    <ResponseField name="query_string_length" type="number">
-    </ResponseField>
-    <ResponseField name="record_application_tags" type="bool">
-    </ResponseField>
-    <ResponseField name="record_client_address" type="bool">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="read_pool_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="node_count" type="number">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="activation_policy" type="string">
-  'Specifies whether an instance needs to spin up. Once the instance is active, the activation policy can be updated to the 'NEVER' to stop the instance. Likewise, the activation policy can be updated to 'ALWAYS' to start the instance. There are restrictions around when an instance can/cannot be activated (for example, a read pool instance should be stopped before stopping primary etc.). Please refer to the API documentation for more details. Possible values are: 'ACTIVATION_POLICY_UNSPECIFIED', 'ALWAYS', 'NEVER'.' Possible values: ["ACTIVATION_POLICY_UNSPECIFIED", "ALWAYS", "NEVER"] Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="availability_type" type="string">
-  'Availability type of an Instance. Defaults to REGIONAL for both primary and read instances. Note that primary and read instances can have different availability types. Primary instances can be either ZONAL or REGIONAL. Read Pool instances can also be either ZONAL or REGIONAL. Read pools of size 1 can only have zonal availability. Read pools with a node count of 2 or more can have regional availability (nodes are present in 2 or more zones in a region). Possible values are: 'AVAILABILITY_TYPE_UNSPECIFIED', 'ZONAL', 'REGIONAL'.' Possible values: ["AVAILABILITY_TYPE_UNSPECIFIED", "ZONAL", "REGIONAL"] Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="client_connection_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="require_connectors" type="bool">
-    </ResponseField>
-    <ResponseField name="ssl_config" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="ssl_mode" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="connection_pool_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="enabled" type="bool" required>
-    </ResponseField>
-    <ResponseField name="flags" type="map(string)">
-    </ResponseField>
-    <ResponseField name="pooler_count" type="number">
+    <ResponseField name="pooler_scaling_type" type="string">
+      Optional. The scaling type of the regular pooler. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="create_time" type="string">
-  Time the Instance was created in UTC. Computed by GCP after `ship`.
+  Output only. Create time stamp Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="data_api_access" type="string">
+  Optional. Controls whether the Data API is enabled for this instance. When enabled, this allows authorized users to connect to the instance from the public internet using the `executeSql` API, even for private IP instances. If this is not specified, the data API is enabled by default for Google internal services like AlloyDB Studio. Disable it explicitly to disallow Google internal services as well. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="database_flags" type="map(string)">
-  Database flags. Set at instance level. * They are copied from primary instance on read instance creation. * Read instances can set new or override existing flags that are relevant for reads, e.g. for enabling columnar cache on a read instance. Flags set on read instance may or may not be present on primary. Optional; if omitted, computed by GCP.
+  Database flags. Set at the instance level. They are copied from the primary instance on secondary instance creation. Flags that have restrictions default to the value at primary instance on read instances during creation. Read instances can set new flags or override existing flags that are relevant for reads, for example, for enabling columnar cache on a read instance. Flags set on read instance might or might not be present on the primary instance. This is a list of "key": "value" pairs. "key": The name of the flag. These flags are passed at instance setup time, so include both server options and system variables for Postgres. Flags are specified with underscores, not hyphens. "value": The value of the flag. Booleans are set to **on** for true and **off** for false. This field must be omitted if the flag doesn't take a value. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
+<ResponseField name="delete_time" type="string">
+  Output only. Delete time stamp Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="effective_annotations" type="map(string)">
-  All of annotations (key/value pairs) present on the resource in GCP, including the annotations configured through Terraform, other clients and services. Computed by GCP after `ship`.
+<ResponseField name="display_name" type="string">
+  User-settable and human-readable display name for the Instance. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="effective_labels" type="map(string)">
-  All of labels (key/value pairs) present on the resource in GCP, including the labels configured through Terraform, other clients and services. Computed by GCP after `ship`.
+<ResponseField name="etag" type="string">
+  For Resource freshness validation (https://google.aip.dev/154) Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="gce_zone" type="string">
+  The Compute Engine zone that the instance should serve from, per https://cloud.google.com/compute/docs/regions-zones This can ONLY be specified for ZONAL instances. If present for a REGIONAL instance, an error will be thrown. If this is absent for a ZONAL instance, instance is created in a random zone with available capacity. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="instance_type" type="string">
+  Required. The type of the instance. Specified at creation time. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="ip_address" type="string">
-  The IP address for the Instance. This is the connection endpoint for an end-user application. Computed by GCP after `ship`.
+  Output only. The IP address for the Instance. This is the connection endpoint for an end-user application. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="machine_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="labels" type="map(string)">
+  Labels as key value pairs Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="machine_config" type="object">
+  MachineConfig describes the configuration of a machine. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="cpu_count" type="number">
+      The number of CPU's in the VM instance. Optional.
     </ResponseField>
     <ResponseField name="machine_type" type="string">
+      Machine type of the VM instance. E.g. "n2-highmem-4", "n2-highmem-8", "c4a-highmem-4-lssd". cpu_count must match the number of vCPUs in the machine type. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="name" type="string">
-  The name of the instance resource. Computed by GCP after `ship`.
+<ResponseField name="maintenance_version_name" type="string">
+  Output only. Maintenance version of the instance, for example: POSTGRES_15.2025_07_15.04_00. Output only. Update this field via the parent cluster's maintenance_version field(s). Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="network_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="name" type="string">
+  Output only. The name of the instance resource with the format: * projects/&#123;project&#125;/locations/&#123;region&#125;/clusters/&#123;cluster_id&#125;/instances/&#123;instance_id&#125; where the cluster and instance ID segments should satisfy the regex expression `[a-z]([a-z0-9-]&#123;0,61&#125;[a-z0-9])?`, e.g. 1-63 characters of lowercase letters, numbers, and dashes, starting with a letter, and ending with a letter or number. For more details see https://google.aip.dev/122. The prefix of the instance resource name is the name of the parent resource: * projects/&#123;project&#125;/locations/&#123;region&#125;/clusters/&#123;cluster_id&#125; Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="network_config" type="object">
+  Metadata related to instance-level network configuration. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="allocated_ip_range_override" type="string">
+      Optional. Name of the allocated IP range for the private IP AlloyDB instance, for example: "google-managed-services-default". If set, the instance IPs will be created from this allocated range and will override the IP range used by the parent cluster. The range name must comply with [RFC 1035](https://datatracker.ietf.org/doc/html/rfc1035). Specifically, the name must be 1-63 characters long and match the regular expression [a-z]([-a-z0-9]*[a-z0-9])?. Optional.
     </ResponseField>
     <ResponseField name="authorized_external_networks" type="list(object)">
+      Optional. A list of external network authorized to access this instance. Optional.
       <Expandable title="properties">
         <ResponseField name="cidr_range" type="string">
+          The IP address range, in CIDR notation, this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="enable_outbound_public_ip" type="bool">
+      Optional. Enabling an outbound public IP address to support a database server sending requests out into the internet. Optional.
     </ResponseField>
     <ResponseField name="enable_public_ip" type="bool">
+      Optional. Enabling public ip for the instance. Optional.
+    </ResponseField>
+    <ResponseField name="network" type="string">
+      Output only. The resource link for the VPC network in which instance resources are created and from which they are accessible via Private IP. This will be the same value as the parent cluster's network. It is specified in the form: // `projects/&#123;project_number&#125;/global/networks/&#123;network_id&#125;`. Computed by Google Cloud after `ship`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="nodes" type="list(object)">
+  Output only. List of available read-only VMs in this instance, including the standby for a PRIMARY instance. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      A unique identifier for this resource. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="ip" type="string">
+      An IP address. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="is_hot_standby" type="bool">
+      Whether this instance is a hot standby, ready to take over with minimal failover time. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="state" type="string">
+      The current lifecycle state of this resource. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="zone_id" type="string">
+      The Compute Engine zone this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="observability_config" type="object">
+  Observability Instance specific configuration. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="enabled" type="bool">
+      Observability feature status for an instance. This flag is turned "off" by default. Optional.
+    </ResponseField>
+    <ResponseField name="max_query_string_length" type="number">
+      Query string length. The default value is 10k. Optional.
+    </ResponseField>
+    <ResponseField name="preserve_comments" type="bool">
+      Preserve comments in query string for an instance. This flag is turned "off" by default. Optional.
+    </ResponseField>
+    <ResponseField name="query_plans_per_minute" type="number">
+      Number of query execution plans captured by Insights per minute for all queries combined. The default value is 200. Any integer between 0 to 200 is considered valid. Optional.
+    </ResponseField>
+    <ResponseField name="record_application_tags" type="bool">
+      Record application tags for an instance. This flag is turned "off" by default. Optional.
+    </ResponseField>
+    <ResponseField name="track_active_queries" type="bool">
+      Track actively running queries on the instance. If not set, this flag is "off" by default. Optional.
+    </ResponseField>
+    <ResponseField name="track_wait_event_types" type="bool">
+      Output only. Track wait event types during query execution for an instance. This flag is turned "on" by default but tracking is enabled only after observability enabled flag is also turned on. This is read-only flag and only modifiable by internal API. Computed by Google Cloud after `ship`.
+    </ResponseField>
+    <ResponseField name="track_wait_events" type="bool">
+      Track wait events during query execution for an instance. This flag is turned "on" by default but tracking is enabled only after observability enabled flag is also turned on. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="outbound_public_ip_addresses" type="list(string)">
-  The outbound public IP addresses for the instance. This is available ONLY when networkConfig.enableOutboundPublicIp is set to true. These IP addresses are used for outbound connections. Computed by GCP after `ship`.
+  Output only. All outbound public IP addresses configured for the instance. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="psc_instance_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="psc_instance_config" type="object">
+  PscInstanceConfig contains PSC related configuration at an instance level. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="allowed_consumer_projects" type="list(string)">
+      Optional. List of consumer projects that are allowed to create PSC endpoints to service-attachments to this instance. Optional.
     </ResponseField>
     <ResponseField name="psc_auto_connections" type="list(object)">
+      Optional. Configurations for setting up PSC service automation. Optional.
       <Expandable title="properties">
         <ResponseField name="consumer_network" type="string">
+          A reference to the consumer-side VPC network this connection uses. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="consumer_network_status" type="string">
+          The current status of the consumer-side network connection. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="consumer_project" type="string">
+          A reference to the consumer's own Google Cloud project. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="ip_address" type="string">
+          An IP address, in IPv4 or IPv6 format. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="status" type="string">
+          The current status of this resource. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="psc_dns_name" type="string">
+      Output only. The DNS name of the instance for PSC connectivity. Name convention: ...alloydb-psc.goog Computed by Google Cloud after `ship`.
     </ResponseField>
     <ResponseField name="psc_interface_configs" type="list(object)">
+      Optional. Configurations for setting up PSC interfaces attached to the instance which are used for outbound connectivity. Only primary instances can have PSC interface attached. Currently we only support 0 or 1 PSC interface. Optional.
       <Expandable title="properties">
         <ResponseField name="network_attachment_resource" type="string">
+          A reference to the network attachment this connection uses. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="service_attachment_link" type="string">
+      Output only. The service attachment created when Private Service Connect (PSC) is enabled for the instance. The name of the resource will be in the format of `projects//regions//serviceAttachments/` Computed by Google Cloud after `ship`.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="public_ip_address" type="string">
-  The public IP addresses for the Instance. This is available ONLY when networkConfig.enablePublicIp is set to true. This is the connection endpoint for an end-user application. Computed by GCP after `ship`.
+  Output only. The public IP addresses for the Instance. This is available ONLY when enable_public_ip is set. This is the connection endpoint for an end-user application. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="query_insights_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="query_insights_config" type="object">
+  QueryInsights Instance specific configuration. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="query_plans_per_minute" type="number">
+      Number of query execution plans captured by Insights per minute for all queries combined. The default value is 5. Any integer between 0 and 20 is considered valid. Optional.
     </ResponseField>
     <ResponseField name="query_string_length" type="number">
+      Query string length. The default value is 1024. Any integer between 256 and 4500 is considered valid. Optional.
     </ResponseField>
     <ResponseField name="record_application_tags" type="bool">
+      Record application tags for an instance. This flag is turned "on" by default. Optional.
     </ResponseField>
     <ResponseField name="record_client_address" type="bool">
+      Record client address for an instance. Client address is PII information. This flag is turned "on" by default. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="read_pool_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="read_pool_config" type="object">
+  Configuration for a read pool instance. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="node_count" type="number">
+      Read capacity, i.e. number of nodes in a read pool instance. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="reconciling" type="bool">
-  Set to true if the current state of Instance does not match the user's intended state, and the service is actively updating the resource to reconcile them. This can happen due to user-triggered updates or system actions like failover or maintenance. Computed by GCP after `ship`.
+  Output only. Reconciling (https://google.aip.dev/128#reconciliation). Set to true if the current state of Instance does not match the user's intended state, and the service is actively updating the resource to reconcile them. This can happen due to user-triggered updates or system actions like failover or maintenance. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="satisfies_pzs" type="bool">
+  Output only. Reserved for future use. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="state" type="string">
-  The current state of the alloydb instance. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="terraform_labels" type="map(string)">
-  The combination of labels configured directly on the resource and default labels configured on the provider. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
+  Output only. The current serving state of the instance. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="uid" type="string">
-  The system-generated UID of the resource. Computed by GCP after `ship`.
+  Output only. The system-generated UID of the resource. The UID is assigned when the resource is created, and it is retained until it is deleted. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="update_time" type="string">
-  Time the Instance was updated in UTC. Computed by GCP after `ship`.
+  Output only. Update time stamp Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="writable_node" type="object">
+  Details of a single node in the instance. Nodes in an AlloyDB instance are ephemeral, they can change during update, failover, autohealing and resize operations. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      Output only. The identifier of the VM e.g. "test-read-0601-407e52be-ms3l". Computed by Google Cloud after `ship`.
+    </ResponseField>
+    <ResponseField name="ip" type="string">
+      Output only. The private IP address of the VM e.g. "10.57.0.34". Computed by Google Cloud after `ship`.
+    </ResponseField>
+    <ResponseField name="is_hot_standby" type="bool">
+      Output only. Indicates whether the node set up to be configured as a hot standby. Computed by Google Cloud after `ship`.
+    </ResponseField>
+    <ResponseField name="state" type="string">
+      Output only. Determined by state of the compute VM and postgres-service health. Compute VM state can have values listed in https://cloud.google.com/compute/docs/instances/instance-life-cycle and postgres-service health can have values: HEALTHY and UNHEALTHY. Computed by Google Cloud after `ship`.
+    </ResponseField>
+    <ResponseField name="zone_id" type="string">
+      Output only. The Compute Engine zone of the VM e.g. "us-central1-b". Computed by Google Cloud after `ship`.
+    </ResponseField>
+  </Expandable>
 </ResponseField>

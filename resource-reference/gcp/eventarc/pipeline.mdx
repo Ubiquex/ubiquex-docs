@@ -1,37 +1,30 @@
 ---
 title: "google_eventarc_pipeline"
-description: "Real, generated bindings for `google_eventarc_pipeline`."
+description: "`google_eventarc_pipeline` transforms and forwards event(s) flowing through Eventarc from a message bus to one or more destination(s)..."
 ---
 
-`google_eventarc_pipeline` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
+`google_eventarc_pipeline` transforms and forwards event(s) flowing through Eventarc from a message bus to one or more destination(s), optionally applying a transformation template along the way.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_eventarc --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_eventarc/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	eventarc "github.com/ubiquex/ubx-sdk-google/sdk/go/google/eventarc"
+    	eventarc "github.com/ubiquex/ubx-sdk-google/sdk/go/google_eventarc/eventarc"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own pipeline"})
 
-    		ubx.Resource(eventarc.Pipeline, "ci-runner", eventarc.PipelineConfig{
-    			Location:      "example",
-    			PipelineId:    "example",
-    			Annotations:   map[string]string{"managed-by": "ubx"},
-    			CryptoKeyName: "example-crypto-key-name",
-    			DisplayName:   "example-display-name",
-    			Labels:        map[string]string{"managed-by": "ubx"},
+    		ubx.Resource(eventarc.EventarcPipeline, "ci-runner", eventarc.EventarcPipelineConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -39,38 +32,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_eventarc --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { Pipeline } from "jsr:@ubx/sdk-google/google/eventarc/pipeline";
+    import { EventarcPipeline } from "./local-sdk/google_eventarc/sdk/typescript/google_eventarc/eventarc/eventarc_pipeline.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own pipeline" });
 
-      resource(Pipeline, "ci-runner", {
-        location: "example",
-        pipelineId: "example",
-        annotations: { "managed-by": "ubx" },
-        cryptoKeyName: "example-crypto-key-name",
-        displayName: "example-display-name",
-        labels: { "managed-by": "ubx" },
+      resource(EventarcPipeline, "ci-runner", {
+        name: "ci-runner",
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_eventarc --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_eventarc/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.eventarc import Pipeline, PipelineConfig
+    from ubx.google_eventarc.eventarc import EventarcPipeline, EventarcPipelineConfig
 
     def describe():
         ubx.intent("payments own pipeline")
 
-        ubx.resource(Pipeline, "ci-runner", PipelineConfig(
-            location="example",
-            pipeline_id="example",
-            annotations={"managed-by": "ubx"},
-            crypto_key_name="example-crypto-key-name",
-            display_name="example-display-name",
-            labels={"managed-by": "ubx"},
+        ubx.resource(EventarcPipeline, "ci-runner", EventarcPipelineConfig(
+            name="ci-runner",
         ))
 
     if __name__ == "__main__":
@@ -79,114 +65,137 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_eventarc_pipeline, with location example, pipeline
-    id example, annotations a set value, crypto key name
-    example-crypto-key-name, display name example-display-name,
-    labels a set value.
+    Create google_eventarc_pipeline called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
 <ResponseField name="annotations" type="map(string)">
-  User-defined annotations. See https://google.aip.dev/128#annotations. **Note**: This field is non-authoritative, and will only manage the annotations present in your configuration. Please refer to the field 'effective_annotations' for all of the annotations present on the resource. Optional.
+  Optional. User-defined annotations. See https://google.aip.dev/128#annotations. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="create_time" type="string">
+  Output only. The creation time. A timestamp in RFC3339 UTC "Zulu" format, with nanosecond resolution and up to nine fractional digits. Examples: "2014-10-02T15:01:23Z" and "2014-10-02T15:01:23.045123456Z". Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="crypto_key_name" type="string">
-  Resource name of a KMS crypto key (managed by the user) used to encrypt/decrypt the event data. If not set, an internal Google-owned key will be used to encrypt messages. It must match the pattern "projects/&#123;project&#125;/locations/&#123;location&#125;/keyRings/&#123;keyring&#125;/cryptoKeys/&#123;key&#125;". Optional.
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
+  Optional. Resource name of a KMS crypto key (managed by the user) used to encrypt/decrypt the event data. If not set, an internal Google-owned key will be used to encrypt messages. It must match the pattern "projects/&#123;project&#125;/locations/&#123;location&#125;/keyRings/&#123;keyring&#125;/cryptoKeys/&#123;key&#125;". Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="destinations" type="list(object)">
-  Optional; if omitted, computed by GCP.
+  Required. List of destinations to which messages will be forwarded. Currently, exactly one destination is supported per Pipeline. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="authentication_config" type="list(object)">
+    <ResponseField name="authentication_config" type="object">
+      Configuration for authenticating requests delivered to this destination. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
-        <ResponseField name="google_oidc" type="list(object)">
+        <ResponseField name="google_oidc" type="object">
+          Authenticates delivered requests using a Google-signed OIDC token. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
             <ResponseField name="audience" type="string">
+              The intended recipient of this authentication token. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
-            <ResponseField name="service_account" type="string" required>
+            <ResponseField name="service_account" type="string">
+              The service account this resource acts as (or is managed by) when calling other Google Cloud APIs. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="oauth_token" type="list(object)">
+        <ResponseField name="oauth_token" type="object">
+          Authenticates delivered requests using an OAuth access token. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
             <ResponseField name="scope" type="string">
+              What this configuration's own scope covers. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
-            <ResponseField name="service_account" type="string" required>
+            <ResponseField name="service_account" type="string">
+              The service account this resource acts as (or is managed by) when calling other Google Cloud APIs. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="http_endpoint" type="list(object)">
+    <ResponseField name="http_endpoint" type="object">
+      The HTTP endpoint events are delivered to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
         <ResponseField name="message_binding_template" type="string">
+          The CEL expression mapping a source event into a CloudEvents-formatted message. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="uri" type="string" required>
+        <ResponseField name="uri" type="string">
+          A resource URI. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="message_bus" type="string">
+      A reference to the message bus this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
-    <ResponseField name="network_config" type="list(object)">
+    <ResponseField name="network_config" type="object">
+      Configuration controlling how this destination is reached over the network. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
         <ResponseField name="network_attachment" type="string">
+          A reference to the network attachment used to reach this private destination. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="output_payload_format" type="list(object)">
+    <ResponseField name="output_payload_format" type="object">
+      The format events are encoded in when delivered. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
-        <ResponseField name="avro" type="list(object)">
+        <ResponseField name="avro" type="object">
+          Configuration for encoding this schema using Avro. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
             <ResponseField name="schema_definition" type="string">
+              The literal content of this schema. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="json" type="list(object)">
+        <ResponseField name="json" type="any">
+          Configuration for encoding this schema using JSON. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="protobuf" type="list(object)">
+        <ResponseField name="protobuf" type="object">
+          Configuration for encoding this schema using Protocol Buffers. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
             <ResponseField name="schema_definition" type="string">
+              The literal content of this schema. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="topic" type="string">
+      A reference to the Pub/Sub topic this applies to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
     <ResponseField name="workflow" type="string">
+      A reference to the workflow this event triggers. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="display_name" type="string">
-  Display name of resource. Optional.
+  Optional. Display name of resource. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="etag" type="string">
+  Output only. This checksum is computed by the server based on the value of other fields, and might be sent only on create requests to ensure that the client has an up-to-date value before proceeding. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="input_payload_format" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="input_payload_format" type="object">
+  Represents the format of message data. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="avro" type="list(object)">
+    <ResponseField name="avro" type="object">
+      The format of an AVRO message payload. Optional.
       <Expandable title="properties">
         <ResponseField name="schema_definition" type="string">
+          Optional. The entire schema definition is stored in this field. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="json" type="list(object)">
+    <ResponseField name="json" type="any">
+      The format of a JSON message payload. Optional.
     </ResponseField>
-    <ResponseField name="protobuf" type="list(object)">
+    <ResponseField name="protobuf" type="object">
+      The format of a Protobuf message payload. Optional.
       <Expandable title="properties">
         <ResponseField name="schema_definition" type="string">
+          Optional. The entire schema definition is stored in this field. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
@@ -194,189 +203,26 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="labels" type="map(string)">
-  User labels attached to the Pipeline that can be used to group resources. An object containing a list of "key": value pairs. Example: &#123; "name": "wrench", "mass": "1.3kg", "count": "3" &#125;. **Note**: This field is non-authoritative, and will only manage the labels present in your configuration. Please refer to the field 'effective_labels' for all of the labels present on the resource. Optional.
+  Optional. User labels attached to the Pipeline that can be used to group resources. An object containing a list of "key": value pairs. Example: &#123; "name": "wrench", "mass": "1.3kg", "count": "3" &#125;. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="location" type="string" required>
-  Resource ID segment making up resource 'name'. It identifies the resource within its parent collection as described in https://google.aip.dev/122. Required.
-</ResponseField>
-
-<ResponseField name="logging_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="logging_config" type="object">
+  The configuration for Platform Telemetry logging for Eventarc Advanced resources. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="log_severity" type="string">
+      Optional. The minimum severity of logs that will be sent to Stackdriver/Platform Telemetry. Logs at severitiy ≥ this value will be sent, unless it is NONE. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="mediations" type="list(object)">
-  Optional; if omitted, computed by GCP.
+  Optional. List of mediation operations to be performed on the message. Currently, only one Transformation operation is allowed in each Pipeline. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="transformation" type="list(object)">
+    <ResponseField name="transformation" type="object">
+      A transformation applied to this event before delivery. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
         <ResponseField name="transformation_template" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="pipeline_id" type="string" required>
-  The user-provided ID to be assigned to the Pipeline. It should match the format '^[a-z]([a-z0-9-]&#123;0,61&#125;[a-z0-9])?$'. Required.
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="retry_policy" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="max_attempts" type="number">
-    </ResponseField>
-    <ResponseField name="max_retry_delay" type="string">
-    </ResponseField>
-    <ResponseField name="min_retry_delay" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="create_time" type="string">
-  The creation time. A timestamp in RFC3339 UTC "Zulu" format, with nanosecond resolution and up to nine fractional digits. Examples: "2014-10-02T15:01:23Z" and "2014-10-02T15:01:23.045123456Z". Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="destinations" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="authentication_config" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="google_oidc" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="audience" type="string">
-            </ResponseField>
-            <ResponseField name="service_account" type="string" required>
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="oauth_token" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="scope" type="string">
-            </ResponseField>
-            <ResponseField name="service_account" type="string" required>
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="http_endpoint" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="message_binding_template" type="string">
-        </ResponseField>
-        <ResponseField name="uri" type="string" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="message_bus" type="string">
-    </ResponseField>
-    <ResponseField name="network_config" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="network_attachment" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="output_payload_format" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="avro" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="schema_definition" type="string">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="json" type="list(object)">
-        </ResponseField>
-        <ResponseField name="protobuf" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="schema_definition" type="string">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="topic" type="string">
-    </ResponseField>
-    <ResponseField name="workflow" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="effective_annotations" type="map(string)">
-  All of annotations (key/value pairs) present on the resource in GCP, including the annotations configured through Terraform, other clients and services. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="effective_labels" type="map(string)">
-  All of labels (key/value pairs) present on the resource in GCP, including the labels configured through Terraform, other clients and services. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="etag" type="string">
-  This checksum is computed by the server based on the value of other fields, and might be sent only on create requests to ensure that the client has an up-to-date value before proceeding. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="input_payload_format" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="avro" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="schema_definition" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="json" type="list(object)">
-    </ResponseField>
-    <ResponseField name="protobuf" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="schema_definition" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="logging_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="log_severity" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="mediations" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="transformation" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="transformation_template" type="string">
+          The CEL expression used to transform this event's own payload. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
@@ -384,45 +230,32 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="name" type="string">
-  The resource name of the Pipeline. Must be unique within the location of the project and must be in 'projects/&#123;project&#125;/locations/&#123;location&#125;/pipelines/&#123;pipeline&#125;' format. Computed by GCP after `ship`.
+  Identifier. The resource name of the Pipeline. Must be unique within the location of the project and must be in `projects/&#123;project&#125;/locations/&#123;location&#125;/pipelines/&#123;pipeline&#125;` format. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="retry_policy" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="retry_policy" type="object">
+  The retry policy configuration for the Pipeline. The pipeline exponentially backs off in case the destination is non responsive or returns a retryable error code. The default semantics are as follows: The backoff starts with a 5 second delay and doubles the delay after each failed attempt (10 seconds, 20 seconds, 40 seconds, etc.). The delay is capped at 60 seconds by default. Please note that if you set the min_retry_delay and max_retry_delay fields to the same value this will make the duration between retries constant. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="max_attempts" type="number">
+      Optional. The maximum number of delivery attempts for any message. The value must be between 1 and 100. The default value for this field is 5. Optional.
     </ResponseField>
     <ResponseField name="max_retry_delay" type="string">
+      Optional. The maximum amount of seconds to wait between retry attempts. The value must be between 1 and 600. The default value for this field is 60. Optional.
     </ResponseField>
     <ResponseField name="min_retry_delay" type="string">
+      Optional. The minimum amount of seconds to wait between retry attempts. The value must be between 1 and 600. The default value for this field is 5. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="terraform_labels" type="map(string)">
-  The combination of labels configured directly on the resource and default labels configured on the provider. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
+<ResponseField name="satisfies_pzs" type="bool">
+  Output only. Whether or not this Pipeline satisfies the requirements of physical zone separation Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="uid" type="string">
-  Server-assigned unique identifier for the Pipeline. The value is a UUID4 string and guaranteed to remain unchanged until the resource is deleted. Computed by GCP after `ship`.
+  Output only. Server-assigned unique identifier for the Pipeline. The value is a UUID4 string and guaranteed to remain unchanged until the resource is deleted. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="update_time" type="string">
-  The last-modified time. A timestamp in RFC3339 UTC "Zulu" format, with nanosecond resolution and up to nine fractional digits. Examples: "2014-10-02T15:01:23Z" and "2014-10-02T15:01:23.045123456Z". Computed by GCP after `ship`.
+  Output only. The last-modified time. A timestamp in RFC3339 UTC "Zulu" format, with nanosecond resolution and up to nine fractional digits. Examples: "2014-10-02T15:01:23Z" and "2014-10-02T15:01:23.045123456Z". Optional; if omitted, computed by Google Cloud.
 </ResponseField>

@@ -1,35 +1,30 @@
 ---
 title: "google_privateca_ca_pool"
-description: "Real, generated bindings for `google_privateca_ca_pool`."
+description: "`google_privateca_ca_pool` groups related Certificate Authority Service certificate authorities together..."
 ---
 
-`google_privateca_ca_pool` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
+`google_privateca_ca_pool` groups related Certificate Authority Service certificate authorities together, sharing issuance policy and letting certificates be requested from the pool without pinning to one specific CA.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_privateca --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_privateca/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	privateca "github.com/ubiquex/ubx-sdk-google/sdk/go/google/privateca"
+    	privateca "github.com/ubiquex/ubx-sdk-google/sdk/go/google_privateca/privateca"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own ca pool"})
 
-    		ubx.Resource(privateca.CaPool, "ci-runner", privateca.CaPoolConfig{
-    			Location: "example",
-    			Name:     "ci-runner",
-    			Tier:     "example",
-    			Labels:   map[string]string{"managed-by": "ubx"},
+    		ubx.Resource(privateca.PrivatecaCaPool, "ci-runner", privateca.PrivatecaCaPoolConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -37,34 +32,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_privateca --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { CaPool } from "jsr:@ubx/sdk-google/google/privateca/ca_pool";
+    import { PrivatecaCaPool } from "./local-sdk/google_privateca/sdk/typescript/google_privateca/privateca/privateca_ca_pool.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own ca pool" });
 
-      resource(CaPool, "ci-runner", {
-        location: "example",
+      resource(PrivatecaCaPool, "ci-runner", {
         name: "ci-runner",
-        tier: "example",
-        labels: { "managed-by": "ubx" },
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_privateca --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_privateca/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.privateca import CaPool, CaPoolConfig
+    from ubx.google_privateca.privateca import PrivatecaCaPool, PrivatecaCaPoolConfig
 
     def describe():
         ubx.intent("payments own ca pool")
 
-        ubx.resource(CaPool, "ci-runner", CaPoolConfig(
-            location="example",
+        ubx.resource(PrivatecaCaPool, "ci-runner", PrivatecaCaPoolConfig(
             name="ci-runner",
-            tier="example",
-            labels={"managed-by": "ubx"},
         ))
 
     if __name__ == "__main__":
@@ -73,452 +65,285 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_privateca_ca_pool called "ci-runner", with location
-    example, tier example, labels a set value.
+    Create google_privateca_ca_pool called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="encryption_spec" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="encryption_spec" type="object">
+  The configuration used for encrypting data at rest. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="cloud_kms_key" type="string">
+      The resource name for a Cloud KMS key in the format `projects/*/locations/*/keyRings/*/cryptoKeys/*`. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="issuance_policy" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="issuance_policy" type="object">
+  Defines controls over all certificate issuance within a CaPool. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="allowed_issuance_modes" type="list(object)">
+    <ResponseField name="allow_requester_specified_not_before_time" type="bool">
+      Optional. If set to true, allows requesters to specify the requested_not_before_time field when creating a Certificate. Certificates requested with this option enabled will have a 'not_before_time' equal to the value specified in the request. The 'not_after_time' will be adjusted to preserve the requested lifetime. The maximum time that a certificate can be backdated with these options is 48 hours in the past. This option cannot be set if backdate_duration is set. Optional.
+    </ResponseField>
+    <ResponseField name="allowed_issuance_modes" type="object">
+      IssuanceModes specifies the allowed ways in which Certificates may be requested from this CaPool. Optional.
       <Expandable title="properties">
-        <ResponseField name="allow_config_based_issuance" type="bool" required>
+        <ResponseField name="allow_config_based_issuance" type="bool">
+          Optional. When true, allows callers to create Certificates by specifying a CertificateConfig. Optional.
         </ResponseField>
-        <ResponseField name="allow_csr_based_issuance" type="bool" required>
+        <ResponseField name="allow_csr_based_issuance" type="bool">
+          Optional. When true, allows callers to create Certificates by specifying a CSR. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="allowed_key_types" type="list(object)">
+      Optional. If any AllowedKeyType is specified, then the certificate request's public key must match one of the key types listed here. Otherwise, any key may be used. Optional.
       <Expandable title="properties">
-        <ResponseField name="elliptic_curve" type="list(object)">
+        <ResponseField name="elliptic_curve" type="object">
+          Configures this key as an elliptic-curve key, on the specified curve. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
-            <ResponseField name="signature_algorithm" type="string" required>
+            <ResponseField name="signature_algorithm" type="string">
+              The algorithm used to sign this certificate. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="rsa" type="list(object)">
+        <ResponseField name="rsa" type="object">
+          Configures this key as an RSA key, with the specified modulus size. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
             <ResponseField name="max_modulus_size" type="string">
+              The maximum RSA key modulus size, in bits, accepted for a certificate request. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="min_modulus_size" type="string">
+              The minimum RSA key modulus size, in bits, accepted for a certificate request. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="backdate_duration" type="string">
+      Optional. If set, all certificates issued from this CaPool will be backdated by this duration. The 'not_before_time' will be the issuance time minus this backdate_duration, and the 'not_after_time' will be adjusted to preserve the requested lifetime. The maximum duration that a certificate can be backdated with these options is 48 hours in the past. This option cannot be set if allow_requester_specified_not_before_time is set. Optional.
     </ResponseField>
-    <ResponseField name="baseline_values" type="list(object)">
+    <ResponseField name="baseline_values" type="object">
+      An X509Parameters is used to describe certain fields of an X.509 certificate, such as the key usage fields, fields specific to CA certificates, certificate policy extensions and custom extensions. Optional.
       <Expandable title="properties">
         <ResponseField name="additional_extensions" type="list(object)">
+          Optional. Describes custom X.509 extensions. Optional.
           <Expandable title="properties">
-            <ResponseField name="critical" type="bool" required>
+            <ResponseField name="critical" type="bool">
+              Whether this X.509 extension is marked critical, meaning a verifier that doesn't understand it must reject the certificate. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
-            <ResponseField name="object_id" type="list(object)">
+            <ResponseField name="object_id" type="object">
+              An X.509 object identifier (OID). Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
               <Expandable title="properties">
-                <ResponseField name="object_id_path" type="list(number)" required>
+                <ResponseField name="object_id_path" type="list(number)">
+                  The numeric component(s) making up an object identifier. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
                 </ResponseField>
               </Expandable>
             </ResponseField>
-            <ResponseField name="value" type="string" required>
+            <ResponseField name="value" type="string">
+              The literal value of this field. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
         <ResponseField name="aia_ocsp_servers" type="list(string)">
+          Optional. Describes Online Certificate Status Protocol (OCSP) endpoint addresses that appear in the "Authority Information Access" extension in the certificate. Optional.
         </ResponseField>
-        <ResponseField name="ca_options" type="list(object)">
+        <ResponseField name="ca_options" type="object">
+          Describes the X.509 basic constraints extension, per [RFC 5280 section 4.2.1.9](https://tools.ietf.org/html/rfc5280#section-4.2.1.9) Optional.
           <Expandable title="properties">
             <ResponseField name="is_ca" type="bool">
+              Optional. Refers to the "CA" boolean field in the X.509 extension. When this value is missing, the basic constraints extension will be omitted from the certificate. Optional.
             </ResponseField>
             <ResponseField name="max_issuer_path_length" type="number">
-            </ResponseField>
-            <ResponseField name="non_ca" type="bool">
-            </ResponseField>
-            <ResponseField name="zero_max_issuer_path_length" type="bool">
+              Optional. Refers to the path length constraint field in the X.509 extension. For a CA certificate, this value describes the depth of subordinate CA certificates that are allowed. If this value is less than 0, the request will fail. If this value is missing, the max path length will be omitted from the certificate. Optional.
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="key_usage" type="list(object)">
+        <ResponseField name="key_usage" type="object">
+          A KeyUsage describes key usage values that may appear in an X.509 certificate. Optional.
           <Expandable title="properties">
-            <ResponseField name="base_key_usage" type="list(object)">
+            <ResponseField name="base_key_usage" type="object">
+              KeyUsage.KeyUsageOptions corresponds to the key usage values described in https://tools.ietf.org/html/rfc5280#section-4.2.1.3. Optional.
               <Expandable title="properties">
                 <ResponseField name="cert_sign" type="bool">
+                  The key may be used to sign certificates. Optional.
                 </ResponseField>
                 <ResponseField name="content_commitment" type="bool">
+                  The key may be used for cryptographic commitments. Note that this may also be referred to as "non-repudiation". Optional.
                 </ResponseField>
                 <ResponseField name="crl_sign" type="bool">
+                  The key may be used sign certificate revocation lists. Optional.
                 </ResponseField>
                 <ResponseField name="data_encipherment" type="bool">
+                  The key may be used to encipher data. Optional.
                 </ResponseField>
                 <ResponseField name="decipher_only" type="bool">
+                  The key may be used to decipher only. Optional.
                 </ResponseField>
                 <ResponseField name="digital_signature" type="bool">
+                  The key may be used for digital signatures. Optional.
                 </ResponseField>
                 <ResponseField name="encipher_only" type="bool">
+                  The key may be used to encipher only. Optional.
                 </ResponseField>
                 <ResponseField name="key_agreement" type="bool">
+                  The key may be used in a key agreement protocol. Optional.
                 </ResponseField>
                 <ResponseField name="key_encipherment" type="bool">
+                  The key may be used to encipher other keys. Optional.
                 </ResponseField>
               </Expandable>
             </ResponseField>
-            <ResponseField name="extended_key_usage" type="list(object)">
+            <ResponseField name="extended_key_usage" type="object">
+              KeyUsage.ExtendedKeyUsageOptions has fields that correspond to certain common OIDs that could be specified as an extended key usage value. Optional.
               <Expandable title="properties">
                 <ResponseField name="client_auth" type="bool">
+                  Corresponds to OID 1.3.6.1.5.5.7.3.2. Officially described as "TLS WWW client authentication", though regularly used for non-WWW TLS. Optional.
                 </ResponseField>
                 <ResponseField name="code_signing" type="bool">
+                  Corresponds to OID 1.3.6.1.5.5.7.3.3. Officially described as "Signing of downloadable executable code client authentication". Optional.
                 </ResponseField>
                 <ResponseField name="email_protection" type="bool">
+                  Corresponds to OID 1.3.6.1.5.5.7.3.4. Officially described as "Email protection". Optional.
                 </ResponseField>
                 <ResponseField name="ocsp_signing" type="bool">
+                  Corresponds to OID 1.3.6.1.5.5.7.3.9. Officially described as "Signing OCSP responses". Optional.
                 </ResponseField>
                 <ResponseField name="server_auth" type="bool">
+                  Corresponds to OID 1.3.6.1.5.5.7.3.1. Officially described as "TLS WWW server authentication", though regularly used for non-WWW TLS. Optional.
                 </ResponseField>
                 <ResponseField name="time_stamping" type="bool">
+                  Corresponds to OID 1.3.6.1.5.5.7.3.8. Officially described as "Binding the hash of an object to a time". Optional.
                 </ResponseField>
               </Expandable>
             </ResponseField>
             <ResponseField name="unknown_extended_key_usages" type="list(object)">
+              Used to describe extended key usages that are not listed in the KeyUsage.ExtendedKeyUsageOptions message. Optional.
               <Expandable title="properties">
-                <ResponseField name="object_id_path" type="list(number)" required>
+                <ResponseField name="object_id_path" type="list(number)">
+                  The numeric component(s) making up an object identifier. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
                 </ResponseField>
               </Expandable>
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="name_constraints" type="list(object)">
+        <ResponseField name="name_constraints" type="object">
+          Describes the X.509 name constraints extension, per https://tools.ietf.org/html/rfc5280#section-4.2.1.10 Optional.
           <Expandable title="properties">
-            <ResponseField name="critical" type="bool" required>
+            <ResponseField name="critical" type="bool">
+              Indicates whether or not the name constraints are marked critical. Optional.
             </ResponseField>
             <ResponseField name="excluded_dns_names" type="list(string)">
+              Contains excluded DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, `example.com`, `www.example.com`, `www.sub.example.com` would satisfy `example.com` while `example1.com` does not. Optional.
             </ResponseField>
             <ResponseField name="excluded_email_addresses" type="list(string)">
+              Contains the excluded email addresses. The value can be a particular email address, a hostname to indicate all email addresses on that host or a domain with a leading period (e.g. `.example.com`) to indicate all email addresses in that domain. Optional.
             </ResponseField>
             <ResponseField name="excluded_ip_ranges" type="list(string)">
+              Contains the excluded IP ranges. For IPv4 addresses, the ranges are expressed using CIDR notation as specified in RFC 4632. For IPv6 addresses, the ranges are expressed in similar encoding as IPv4 addresses. Optional.
             </ResponseField>
             <ResponseField name="excluded_uris" type="list(string)">
+              Contains the excluded URIs that apply to the host part of the name. The value can be a hostname or a domain with a leading period (like `.example.com`) Optional.
             </ResponseField>
             <ResponseField name="permitted_dns_names" type="list(string)">
+              Contains permitted DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, `example.com`, `www.example.com`, `www.sub.example.com` would satisfy `example.com` while `example1.com` does not. Optional.
             </ResponseField>
             <ResponseField name="permitted_email_addresses" type="list(string)">
+              Contains the permitted email addresses. The value can be a particular email address, a hostname to indicate all email addresses on that host or a domain with a leading period (e.g. `.example.com`) to indicate all email addresses in that domain. Optional.
             </ResponseField>
             <ResponseField name="permitted_ip_ranges" type="list(string)">
+              Contains the permitted IP ranges. For IPv4 addresses, the ranges are expressed using CIDR notation as specified in RFC 4632. For IPv6 addresses, the ranges are expressed in similar encoding as IPv4 addresses. Optional.
             </ResponseField>
             <ResponseField name="permitted_uris" type="list(string)">
+              Contains the permitted URIs that apply to the host part of the name. The value can be a hostname or a domain with a leading period (like `.example.com`) Optional.
             </ResponseField>
           </Expandable>
         </ResponseField>
         <ResponseField name="policy_ids" type="list(object)">
+          Optional. Describes the X.509 certificate policy object identifiers, per https://tools.ietf.org/html/rfc5280#section-4.2.1.4. Optional.
           <Expandable title="properties">
-            <ResponseField name="object_id_path" type="list(number)" required>
+            <ResponseField name="object_id_path" type="list(number)">
+              The numeric component(s) making up an object identifier. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="identity_constraints" type="list(object)">
+    <ResponseField name="identity_constraints" type="object">
+      Describes constraints on a Certificate's Subject and SubjectAltNames. Optional.
       <Expandable title="properties">
-        <ResponseField name="allow_subject_alt_names_passthrough" type="bool" required>
+        <ResponseField name="allow_subject_alt_names_passthrough" type="bool">
+          Required. If this is true, the SubjectAltNames extension may be copied from a certificate request into the signed certificate. Otherwise, the requested SubjectAltNames will be discarded. Optional.
         </ResponseField>
-        <ResponseField name="allow_subject_passthrough" type="bool" required>
+        <ResponseField name="allow_subject_passthrough" type="bool">
+          Required. If this is true, the Subject field may be copied from a certificate request into the signed certificate. Otherwise, the requested Subject will be discarded. Optional.
         </ResponseField>
-        <ResponseField name="cel_expression" type="list(object)">
+        <ResponseField name="cel_expression" type="object">
+          Represents a textual expression in the Common Expression Language (CEL) syntax. CEL is a C-like expression language. The syntax and semantics of CEL are documented at https://github.com/google/cel-spec. Example (Comparison): title: "Summary size limit" description: "Determines if a summary is less than 100 chars" expression: "document.summary.size() &lt; 100" Example (Equality): title: "Requestor is owner" description: "Determines if requestor is the document owner" expression: "document.owner == request.auth.claims.email" Example (Logic): title: "Public documents" description: "Determine whether the document should be publicly visible" expression: "document.type != 'private' && document.type != 'internal'" Example (Data Manipulation): title: "Notification string" description: "Create a notification string with a timestamp." expression: "'New message received at ' + string(document.create_time)" The exact variables and functions that may be referenced within an expression are determined by the service that evaluates it. See the service documentation for additional information. Optional.
           <Expandable title="properties">
             <ResponseField name="description" type="string">
+              Optional. Description of the expression. This is a longer text which describes the expression, e.g. when hovered over it in a UI. Optional.
             </ResponseField>
-            <ResponseField name="expression" type="string" required>
+            <ResponseField name="expression" type="string">
+              Textual representation of an expression in Common Expression Language syntax. Optional.
             </ResponseField>
             <ResponseField name="location" type="string">
+              Optional. String indicating the location of the expression for error reporting, e.g. a file name and a position in the file. Optional.
             </ResponseField>
             <ResponseField name="title" type="string">
+              Optional. Title for the expression, i.e. a short string describing its purpose. This can be used e.g. in UIs which allow to enter the expression. Optional.
             </ResponseField>
           </Expandable>
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="maximum_lifetime" type="string">
+      Optional. The maximum lifetime allowed for issued Certificates. Note that if the issuing CertificateAuthority expires before a Certificate resource's requested maximum_lifetime, the effective lifetime will be explicitly truncated to match it. Optional.
+    </ResponseField>
+    <ResponseField name="passthrough_extensions" type="object">
+      Describes a set of X.509 extensions that may be part of some certificate issuance controls. Optional.
+      <Expandable title="properties">
+        <ResponseField name="additional_extensions" type="list(object)">
+          Optional. A set of ObjectIds identifying custom X.509 extensions. Will be combined with known_extensions to determine the full set of X.509 extensions. Optional.
+          <Expandable title="properties">
+            <ResponseField name="object_id_path" type="list(number)">
+              The numeric component(s) making up an object identifier. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="known_extensions" type="list(string)">
+          Optional. A set of named X.509 extensions. Will be combined with additional_extensions to determine the full set of X.509 extensions. Optional.
+        </ResponseField>
+      </Expandable>
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="labels" type="map(string)">
-  Labels with user-defined metadata. An object containing a list of "key": value pairs. Example: &#123; "name": "wrench", "mass": "1.3kg", "count": "3" &#125;. **Note**: This field is non-authoritative, and will only manage the labels present in your configuration. Please refer to the field 'effective_labels' for all of the labels present on the resource. Optional.
+  Optional. Labels with user-defined metadata. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="location" type="string" required>
-  Location of the CaPool. A full list of valid locations can be found by running 'gcloud privateca locations list'. Required.
+<ResponseField name="name" type="string">
+  Identifier. The resource name for this CaPool in the format `projects/*/locations/*/caPools/*`. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="name" type="string" required>
-  The name for this CaPool. Required.
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="publishing_options" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="publishing_options" type="object">
+  Options relating to the publication of each CertificateAuthority's CA certificate and CRLs and their inclusion as extensions in issued Certificates. The options set here apply to certificates issued by any CertificateAuthority in the CaPool. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="encoding_format" type="string">
+      Optional. Specifies the encoding format of each CertificateAuthority resource's CA certificate and CRLs. If this is omitted, CA certificates and CRLs will be published in PEM. Optional.
     </ResponseField>
-    <ResponseField name="publish_ca_cert" type="bool" required>
+    <ResponseField name="publish_ca_cert" type="bool">
+      Optional. When true, publishes each CertificateAuthority's CA certificate and includes its URL in the "Authority Information Access" X.509 extension in all issued Certificates. If this is false, the CA certificate will not be published and the corresponding X.509 extension will not be written in issued certificates. Optional.
     </ResponseField>
-    <ResponseField name="publish_crl" type="bool" required>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="tier" type="string" required>
-  The Tier of this CaPool. Possible values: ["ENTERPRISE", "DEVOPS"] Required.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
+    <ResponseField name="publish_crl" type="bool">
+      Optional. When true, publishes each CertificateAuthority's CRL and includes its URL in the "CRL Distribution Points" X.509 extension in all issued Certificates. If this is false, CRLs will not be published and the corresponding X.509 extension will not be written in issued certificates. CRLs will expire 7 days from their creation. However, we will rebuild daily. CRLs are also rebuilt shortly after a certificate is revoked. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-## Output properties
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="effective_labels" type="map(string)">
-  All of labels (key/value pairs) present on the resource in GCP, including the labels configured through Terraform, other clients and services. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="encryption_spec" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="cloud_kms_key" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="issuance_policy" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="allowed_issuance_modes" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="allow_config_based_issuance" type="bool" required>
-        </ResponseField>
-        <ResponseField name="allow_csr_based_issuance" type="bool" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="allowed_key_types" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="elliptic_curve" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="signature_algorithm" type="string" required>
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="rsa" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="max_modulus_size" type="string">
-            </ResponseField>
-            <ResponseField name="min_modulus_size" type="string">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="backdate_duration" type="string">
-    </ResponseField>
-    <ResponseField name="baseline_values" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="additional_extensions" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="critical" type="bool" required>
-            </ResponseField>
-            <ResponseField name="object_id" type="list(object)">
-              <Expandable title="properties">
-                <ResponseField name="object_id_path" type="list(number)" required>
-                </ResponseField>
-              </Expandable>
-            </ResponseField>
-            <ResponseField name="value" type="string" required>
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="aia_ocsp_servers" type="list(string)">
-        </ResponseField>
-        <ResponseField name="ca_options" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="is_ca" type="bool">
-            </ResponseField>
-            <ResponseField name="max_issuer_path_length" type="number">
-            </ResponseField>
-            <ResponseField name="non_ca" type="bool">
-            </ResponseField>
-            <ResponseField name="zero_max_issuer_path_length" type="bool">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="key_usage" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="base_key_usage" type="list(object)">
-              <Expandable title="properties">
-                <ResponseField name="cert_sign" type="bool">
-                </ResponseField>
-                <ResponseField name="content_commitment" type="bool">
-                </ResponseField>
-                <ResponseField name="crl_sign" type="bool">
-                </ResponseField>
-                <ResponseField name="data_encipherment" type="bool">
-                </ResponseField>
-                <ResponseField name="decipher_only" type="bool">
-                </ResponseField>
-                <ResponseField name="digital_signature" type="bool">
-                </ResponseField>
-                <ResponseField name="encipher_only" type="bool">
-                </ResponseField>
-                <ResponseField name="key_agreement" type="bool">
-                </ResponseField>
-                <ResponseField name="key_encipherment" type="bool">
-                </ResponseField>
-              </Expandable>
-            </ResponseField>
-            <ResponseField name="extended_key_usage" type="list(object)">
-              <Expandable title="properties">
-                <ResponseField name="client_auth" type="bool">
-                </ResponseField>
-                <ResponseField name="code_signing" type="bool">
-                </ResponseField>
-                <ResponseField name="email_protection" type="bool">
-                </ResponseField>
-                <ResponseField name="ocsp_signing" type="bool">
-                </ResponseField>
-                <ResponseField name="server_auth" type="bool">
-                </ResponseField>
-                <ResponseField name="time_stamping" type="bool">
-                </ResponseField>
-              </Expandable>
-            </ResponseField>
-            <ResponseField name="unknown_extended_key_usages" type="list(object)">
-              <Expandable title="properties">
-                <ResponseField name="object_id_path" type="list(number)" required>
-                </ResponseField>
-              </Expandable>
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="name_constraints" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="critical" type="bool" required>
-            </ResponseField>
-            <ResponseField name="excluded_dns_names" type="list(string)">
-            </ResponseField>
-            <ResponseField name="excluded_email_addresses" type="list(string)">
-            </ResponseField>
-            <ResponseField name="excluded_ip_ranges" type="list(string)">
-            </ResponseField>
-            <ResponseField name="excluded_uris" type="list(string)">
-            </ResponseField>
-            <ResponseField name="permitted_dns_names" type="list(string)">
-            </ResponseField>
-            <ResponseField name="permitted_email_addresses" type="list(string)">
-            </ResponseField>
-            <ResponseField name="permitted_ip_ranges" type="list(string)">
-            </ResponseField>
-            <ResponseField name="permitted_uris" type="list(string)">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="policy_ids" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="object_id_path" type="list(number)" required>
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="identity_constraints" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="allow_subject_alt_names_passthrough" type="bool" required>
-        </ResponseField>
-        <ResponseField name="allow_subject_passthrough" type="bool" required>
-        </ResponseField>
-        <ResponseField name="cel_expression" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="description" type="string">
-            </ResponseField>
-            <ResponseField name="expression" type="string" required>
-            </ResponseField>
-            <ResponseField name="location" type="string">
-            </ResponseField>
-            <ResponseField name="title" type="string">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="maximum_lifetime" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="publishing_options" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="encoding_format" type="string">
-    </ResponseField>
-    <ResponseField name="publish_ca_cert" type="bool" required>
-    </ResponseField>
-    <ResponseField name="publish_crl" type="bool" required>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="terraform_labels" type="map(string)">
-  The combination of labels configured directly on the resource and default labels configured on the provider. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
+<ResponseField name="tier" type="string">
+  Required. Immutable. The Tier of this CaPool. Optional; if omitted, computed by Google Cloud.
 </ResponseField>

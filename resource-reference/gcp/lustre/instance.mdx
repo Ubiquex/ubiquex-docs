@@ -1,39 +1,30 @@
 ---
 title: "google_lustre_instance"
-description: "Real, generated bindings for `google_lustre_instance`."
+description: "`google_lustre_instance` provisions a Google Cloud Managed Lustre instance, a fully managed..."
 ---
 
-`google_lustre_instance` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
+`google_lustre_instance` provisions a Google Cloud Managed Lustre instance, a fully managed, high-throughput parallel file system used for HPC and AI training workloads.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_lustre --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_lustre/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	lustre "github.com/ubiquex/ubx-sdk-google/sdk/go/google/lustre"
+    	lustre "github.com/ubiquex/ubx-sdk-google/sdk/go/google_lustre/lustre"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own instance"})
 
-    		ubx.Resource(lustre.Instance, "ci-runner", lustre.InstanceConfig{
-    			CapacityGib:       "example",
-    			Filesystem:        "example",
-    			InstanceId:        "example",
-    			Location:          "example",
-    			Network:           "example",
-    			Description:       "Managed by ubx.",
-    			GkeSupportEnabled: true,
-    			KmsKey:            "example",
+    		ubx.Resource(lustre.LustreInstance, "ci-runner", lustre.LustreInstanceConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -41,42 +32,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_lustre --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { Instance } from "jsr:@ubx/sdk-google/google/lustre/instance";
+    import { LustreInstance } from "./local-sdk/google_lustre/sdk/typescript/google_lustre/lustre/lustre_instance.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own instance" });
 
-      resource(Instance, "ci-runner", {
-        capacityGib: "example",
-        filesystem: "example",
-        instanceId: "example",
-        location: "example",
-        network: "example",
-        description: "Managed by ubx.",
-        gkeSupportEnabled: true,
-        kmsKey: "example",
+      resource(LustreInstance, "ci-runner", {
+        name: "ci-runner",
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_lustre --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_lustre/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.lustre import Instance, InstanceConfig
+    from ubx.google_lustre.lustre import LustreInstance, LustreInstanceConfig
 
     def describe():
         ubx.intent("payments own instance")
 
-        ubx.resource(Instance, "ci-runner", InstanceConfig(
-            capacity_gib="example",
-            filesystem="example",
-            instance_id="example",
-            location="example",
-            network="example",
-            description="Managed by ubx.",
-            gke_support_enabled=True,
-            kms_key="example",
+        ubx.resource(LustreInstance, "ci-runner", LustreInstanceConfig(
+            name="ci-runner",
         ))
 
     if __name__ == "__main__":
@@ -85,274 +65,152 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_lustre_instance, with capacity gib example,
-    filesystem example, instance id example, location example,
-    network example, description Managed by ubx., gke support enabled
-    true, kms key example.
+    Create google_lustre_instance called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
-<ResponseField name="access_rules_options" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="access_rules_options" type="object">
+  IP-based access rules for the Managed Lustre instance. These options define the root user squash configuration. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="access_rules" type="list(object)">
+      Optional. The access rules for the instance. Optional.
       <Expandable title="properties">
-        <ResponseField name="ip_address_ranges" type="list(string)" required>
+        <ResponseField name="ip_address_ranges" type="list(string)">
+          The IP address range(s) this access rule grants access to. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="name" type="string" required>
+        <ResponseField name="name" type="string">
+          A caller-chosen name for this access rule. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="squash_mode" type="string" required>
+        <ResponseField name="squash_mode" type="string">
+          How client root privileges are handled: `NO_SQUASH` (client root keeps root on the filesystem) or `ROOT_SQUASH` (client root is mapped to an unprivileged user). Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="default_squash_gid" type="number">
+      Optional. The user squash GID for the default access rule. This user squash GID applies to all root users connecting from clients that are not matched by any of the access rules. If not set, the default is 0 (no GID squash). Optional.
     </ResponseField>
-    <ResponseField name="default_squash_mode" type="string" required>
-    </ResponseField>
-    <ResponseField name="default_squash_uid" type="number">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="capacity_gib" type="string" required>
-  The storage capacity of the instance in gibibytes (GiB). Allowed values are from '9000' to '7632000', depending on the 'perUnitStorageThroughput'. See [Performance tiers and maximum storage capacities](https://cloud.google.com/managed-lustre/docs/create-instance#performance-tiers) for specific minimums, maximums, and step sizes for each performance tier. Required.
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="description" type="string">
-  A user-readable description of the instance. Optional.
-</ResponseField>
-
-<ResponseField name="dynamic_tier_options" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="mode" type="string" required>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="filesystem" type="string" required>
-  The filesystem name for this instance. This name is used by client-side tools, including when mounting the instance. Must be eight characters or less and can only contain letters and numbers. Required.
-</ResponseField>
-
-<ResponseField name="gke_support_enabled" type="bool">
-  Indicates whether you want to enable support for GKE clients. By default, GKE clients are not supported. Optional.
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="instance_id" type="string" required>
-  The name of the Managed Lustre instance. * Must contain only lowercase letters, numbers, and hyphens. * Must start with a letter. * Must be between 1-63 characters. * Must end with a number or a letter. Required.
-</ResponseField>
-
-<ResponseField name="kms_key" type="string">
-  The Cloud KMS key name to use for data encryption. If not set, the instance will use Google-managed encryption keys. If set, the instance will use customer-managed encryption keys. The key must be in the same region as the instance. The key format is: projects/&#123;project&#125;/locations/&#123;location&#125;/keyRings/&#123;key_ring&#125;/cryptoKeys/&#123;key&#125; Optional.
-</ResponseField>
-
-<ResponseField name="labels" type="map(string)">
-  Labels as key value pairs. **Note**: This field is non-authoritative, and will only manage the labels present in your configuration. Please refer to the field 'effective_labels' for all of the labels present on the resource. Optional.
-</ResponseField>
-
-<ResponseField name="location" type="string" required>
-  Resource ID segment making up resource 'name'. It identifies the resource within its parent collection as described in https://google.aip.dev/122. Required.
-</ResponseField>
-
-<ResponseField name="maintenance_policy" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="maintenance_exclusion_window" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="end_date" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="day" type="number">
-            </ResponseField>
-            <ResponseField name="month" type="number">
-            </ResponseField>
-            <ResponseField name="year" type="number">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="start_date" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="day" type="number">
-            </ResponseField>
-            <ResponseField name="month" type="number">
-            </ResponseField>
-            <ResponseField name="year" type="number">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="time" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="hours" type="number">
-            </ResponseField>
-            <ResponseField name="minutes" type="number">
-            </ResponseField>
-            <ResponseField name="nanos" type="number">
-            </ResponseField>
-            <ResponseField name="seconds" type="number">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="weekly_maintenance_windows" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="day_of_week" type="string" required>
-        </ResponseField>
-        <ResponseField name="start_time" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="hours" type="number">
-            </ResponseField>
-            <ResponseField name="minutes" type="number">
-            </ResponseField>
-            <ResponseField name="nanos" type="number">
-            </ResponseField>
-            <ResponseField name="seconds" type="number">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="network" type="string" required>
-  The full name of the VPC network to which the instance is connected. Must be in the format 'projects/&#123;project_id&#125;/global/networks/&#123;network_name&#125;'. Required.
-</ResponseField>
-
-<ResponseField name="per_unit_storage_throughput" type="string">
-  The throughput of the instance in MBps per TiB. Valid values are 125, 250, 500, 1000. See [Performance tiers and maximum storage capacities](https://cloud.google.com/managed-lustre/docs/create-instance#performance-tiers) for more information. If the instance is using the Dynamic tier, this field must not be set or must be set to zero. Optional.
-</ResponseField>
-
-<ResponseField name="placement_policy" type="string">
-  The placement policy name for the instance in the format of projects/&#123;project&#125;/locations/&#123;location&#125;/resourcePolicies/&#123;resource_policy&#125; Optional.
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="access_rules_options" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="access_rules" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="ip_address_ranges" type="list(string)" required>
-        </ResponseField>
-        <ResponseField name="name" type="string" required>
-        </ResponseField>
-        <ResponseField name="squash_mode" type="string" required>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="default_squash_gid" type="number">
-    </ResponseField>
-    <ResponseField name="default_squash_mode" type="string" required>
+    <ResponseField name="default_squash_mode" type="string">
+      Required. The squash mode for the default access rule. Optional.
     </ResponseField>
     <ResponseField name="default_squash_uid" type="number">
+      Optional. The user squash UID for the default access rule. This user squash UID applies to all root users connecting from clients that are not matched by any of the access rules. If not set, the default is 0 (no UID squash). Optional.
     </ResponseField>
   </Expandable>
+</ResponseField>
+
+<ResponseField name="capacity_gib" type="string">
+  Required. The storage capacity of the instance in gibibytes (GiB). Allowed values depend on the `perUnitStorageThroughput`. See [Performance tiers](https://docs.cloud.google.com/managed-lustre/docs/performance-tiers) for specific minimums, maximums, and step sizes for each performance tier. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="create_time" type="string">
-  Timestamp when the instance was created. Computed by GCP after `ship`.
+  Output only. Timestamp when the instance was created. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
+<ResponseField name="description" type="string">
+  Optional. A user-readable description of the instance. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="dynamic_tier_options" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="dynamic_tier_options" type="object">
+  Dynamic tier options for a Managed Lustre instance. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="mode" type="string" required>
+    <ResponseField name="mode" type="string">
+      Required. Immutable. The dynamic tier mode of the instance. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="effective_labels" type="map(string)">
-  All of labels (key/value pairs) present on the resource in GCP, including the labels configured through Terraform, other clients and services. Computed by GCP after `ship`.
+<ResponseField name="filesystem" type="string">
+  Required. Immutable. The filesystem name for this instance. This name is used by client-side tools, including when mounting the instance. Must be eight characters or less and can only contain letters and numbers. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="gke_support_enabled" type="bool">
+  Optional. Deprecated: No longer required for GKE instance creation. Indicates whether you want to enable support for GKE clients. By default, GKE clients are not supported. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="maintenance_policy" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="kms_key" type="string">
+  Optional. Immutable. The Cloud KMS key name to use for data encryption. If not set, the instance will use Google-managed encryption keys. If set, the instance will use customer-managed encryption keys. The key must be in the same region as the instance. The key format is: projects/&#123;project&#125;/locations/&#123;location&#125;/keyRings/&#123;key_ring&#125;/cryptoKeys/&#123;key&#125; Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="labels" type="map(string)">
+  Optional. Labels as key value pairs. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="maintenance_policy" type="object">
+  Defines a maintenance policy for a resource. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="maintenance_exclusion_window" type="list(object)">
+      Optional. The exclusion windows for the instance. Currently limited to 1 window. Optional.
       <Expandable title="properties">
-        <ResponseField name="end_date" type="list(object)">
+        <ResponseField name="end_date" type="object">
+          The calendar date this maintenance exclusion window ends on. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
             <ResponseField name="day" type="number">
+              The day-of-month component of the end date. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="month" type="number">
+              The month component of the end date. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="year" type="number">
+              The year component of the end date. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="start_date" type="list(object)">
+        <ResponseField name="start_date" type="object">
+          The calendar date this maintenance exclusion window begins on. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
             <ResponseField name="day" type="number">
+              The day-of-month component of the start date. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="month" type="number">
+              The month component of the start date. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="year" type="number">
+              The year component of the start date. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="time" type="list(object)">
+        <ResponseField name="time" type="object">
+          The time of day this maintenance exclusion window's own start/end dates apply from. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
             <ResponseField name="hours" type="number">
+              The hour component of the time. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="minutes" type="number">
+              The minute component of the time. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="nanos" type="number">
+              The sub-second, nanosecond component of the time. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="seconds" type="number">
+              The second component of the time. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="weekly_maintenance_windows" type="list(object)">
+      Required. The weekly maintenance windows for the instance. Currently limited to 1 window. Optional.
       <Expandable title="properties">
-        <ResponseField name="day_of_week" type="string" required>
+        <ResponseField name="day_of_week" type="string">
+          The day of the week this recurring maintenance window occurs on. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="start_time" type="list(object)">
+        <ResponseField name="start_time" type="object">
+          The UTC time of day this recurring maintenance window starts at. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
           <Expandable title="properties">
             <ResponseField name="hours" type="number">
+              The hour component of the start time. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="minutes" type="number">
+              The minute component of the start time. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="nanos" type="number">
+              The sub-second, nanosecond component of the start time. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
             <ResponseField name="seconds" type="number">
+              The second component of the start time. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
             </ResponseField>
           </Expandable>
         </ResponseField>
@@ -362,55 +220,49 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="mount_point" type="string">
-  Mount point of the instance in the format 'IP_ADDRESS@tcp:/FILESYSTEM'. Computed by GCP after `ship`.
+  Output only. Mount point of the instance in the format `IP_ADDRESS@tcp:/FILESYSTEM`. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="name" type="string">
-  Identifier. The name of the instance. Computed by GCP after `ship`.
+  Identifier. The name of the instance. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="network" type="string">
+  Required. Immutable. The full name of the VPC network to which the instance is connected. Must be in the format `projects/&#123;project_id&#125;/global/networks/&#123;network_name&#125;`. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="per_unit_storage_throughput" type="string">
+  Optional. The throughput of the instance in MBps per TiB. Valid values are 0, 125, 250, 500, 1000. See [Performance tiers](https://docs.cloud.google.com/managed-lustre/docs/performance-tiers) for more information. If the instance is using the Dynamic tier, this field must not be set or must be set to zero. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="placement_policy" type="string">
+  Optional. The placement policy name for the instance in the format of projects/&#123;project&#125;/locations/&#123;location&#125;/resourcePolicies/&#123;resource_policy&#125; Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="state" type="string">
-  The state of the instance. Possible values: ACTIVE CREATING DELETING UPGRADING REPAIRING STOPPED UPDATING SUSPENDED Computed by GCP after `ship`.
+  Output only. The state of the instance. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="state_reason" type="string">
-  The reason why the instance is in a certain state (e.g. SUSPENDED). Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="terraform_labels" type="map(string)">
-  The combination of labels configured directly on the resource and default labels configured on the provider. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
+  Output only. The reason why the instance is in a certain state (e.g. SUSPENDED). Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="uid" type="string">
-  Unique ID of the resource. This is unrelated to the access rules which allow specifying the root squash uid. Computed by GCP after `ship`.
+  Output only. Unique ID of the resource. This is unrelated to the access rules which allow specifying the root squash uid. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="upcoming_maintenance_schedule" type="list(object)">
-  Represents a scheduled maintenance event. Computed by GCP after `ship`.
+<ResponseField name="upcoming_maintenance_schedule" type="object">
+  Represents a scheduled maintenance event. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="end_time" type="string">
+      Output only. The scheduled end time for the maintenance. Computed by Google Cloud after `ship`.
     </ResponseField>
     <ResponseField name="start_time" type="string">
+      Output only. The scheduled start time for the maintenance. Computed by Google Cloud after `ship`.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="update_time" type="string">
-  Timestamp when the instance was last updated. Computed by GCP after `ship`.
+  Output only. Timestamp when the instance was last updated. Optional; if omitted, computed by Google Cloud.
 </ResponseField>

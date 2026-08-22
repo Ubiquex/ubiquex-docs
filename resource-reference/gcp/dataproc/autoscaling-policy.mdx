@@ -1,33 +1,30 @@
 ---
 title: "google_dataproc_autoscaling_policy"
-description: "Real, generated bindings for `google_dataproc_autoscaling_policy`."
+description: "`google_dataproc_autoscaling_policy` defines rules for automatically resizing a Dataproc cluster's own worker node count in response to YARN..."
 ---
 
-`google_dataproc_autoscaling_policy` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
+`google_dataproc_autoscaling_policy` defines rules for automatically resizing a Dataproc cluster's own worker node count in response to YARN pending-memory pressure.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_dataproc --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_dataproc/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	dataproc "github.com/ubiquex/ubx-sdk-google/sdk/go/google/dataproc"
+    	dataproc "github.com/ubiquex/ubx-sdk-google/sdk/go/google_dataproc/dataproc"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own autoscaling policy"})
 
-    		ubx.Resource(dataproc.AutoscalingPolicy, "ci-runner", dataproc.AutoscalingPolicyConfig{
-    			PolicyId: "example",
-    			Location: "example",
+    		ubx.Resource(dataproc.DataprocAutoscalingPolicy, "ci-runner", dataproc.DataprocAutoscalingPolicyConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -35,30 +32,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_dataproc --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { AutoscalingPolicy } from "jsr:@ubx/sdk-google/google/dataproc/autoscaling_policy";
+    import { DataprocAutoscalingPolicy } from "./local-sdk/google_dataproc/sdk/typescript/google_dataproc/dataproc/dataproc_autoscaling_policy.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own autoscaling policy" });
 
-      resource(AutoscalingPolicy, "ci-runner", {
-        policyId: "example",
-        location: "example",
+      resource(DataprocAutoscalingPolicy, "ci-runner", {
+        name: "ci-runner",
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_dataproc --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_dataproc/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.dataproc import AutoscalingPolicy, AutoscalingPolicyConfig
+    from ubx.google_dataproc.dataproc import DataprocAutoscalingPolicy, DataprocAutoscalingPolicyConfig
 
     def describe():
         ubx.intent("payments own autoscaling policy")
 
-        ubx.resource(AutoscalingPolicy, "ci-runner", AutoscalingPolicyConfig(
-            policy_id="example",
-            location="example",
+        ubx.resource(DataprocAutoscalingPolicy, "ci-runner", DataprocAutoscalingPolicyConfig(
+            name="ci-runner",
         ))
 
     if __name__ == "__main__":
@@ -67,164 +65,108 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_dataproc_autoscaling_policy, with policy id
-    example, location example.
+    Create google_dataproc_autoscaling_policy called "ci-runner",
+    with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
-<ResponseField name="basic_algorithm" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="basic_algorithm" type="object">
+  Basic algorithm for autoscaling. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="cooldown_period" type="string">
+      Optional. Duration between scaling events. A scaling period starts after the update operation from the previous event has completed.Bounds: 2m, 1d. Default: 2m. Optional.
     </ResponseField>
-    <ResponseField name="yarn_config" type="list(object)">
+    <ResponseField name="spark_standalone_config" type="object">
+      Basic autoscaling configurations for Spark Standalone. Optional.
       <Expandable title="properties">
-        <ResponseField name="graceful_decommission_timeout" type="string" required>
+        <ResponseField name="graceful_decommission_timeout" type="string">
+          Required. Timeout for Spark graceful decommissioning of spark workers. Specifies the duration to wait for spark worker to complete spark decommissioning tasks before forcefully removing workers. Only applicable to downscaling operations.Bounds: 0s, 1d. Optional.
         </ResponseField>
-        <ResponseField name="scale_down_factor" type="number" required>
+        <ResponseField name="remove_only_idle_workers" type="bool">
+          Optional. Remove only idle workers when scaling down cluster Optional.
+        </ResponseField>
+        <ResponseField name="scale_down_factor" type="number">
+          Required. Fraction of required executors to remove from Spark Serverless clusters. A scale-down factor of 1.0 will result in scaling down so that there are no more executors for the Spark Job.(more aggressive scaling). A scale-down factor closer to 0 will result in a smaller magnitude of scaling donw (less aggressive scaling).Bounds: 0.0, 1.0. Optional.
         </ResponseField>
         <ResponseField name="scale_down_min_worker_fraction" type="number">
+          Optional. Minimum scale-down threshold as a fraction of total cluster size before scaling occurs. For example, in a 20-worker cluster, a threshold of 0.1 means the autoscaler must recommend at least a 2 worker scale-down for the cluster to scale. A threshold of 0 means the autoscaler will scale down on any recommended change.Bounds: 0.0, 1.0. Default: 0.0. Optional.
         </ResponseField>
-        <ResponseField name="scale_up_factor" type="number" required>
+        <ResponseField name="scale_up_factor" type="number">
+          Required. Fraction of required workers to add to Spark Standalone clusters. A scale-up factor of 1.0 will result in scaling up so that there are no more required workers for the Spark Job (more aggressive scaling). A scale-up factor closer to 0 will result in a smaller magnitude of scaling up (less aggressive scaling).Bounds: 0.0, 1.0. Optional.
         </ResponseField>
         <ResponseField name="scale_up_min_worker_fraction" type="number">
+          Optional. Minimum scale-up threshold as a fraction of total cluster size before scaling occurs. For example, in a 20-worker cluster, a threshold of 0.1 means the autoscaler must recommend at least a 2-worker scale-up for the cluster to scale. A threshold of 0 means the autoscaler will scale up on any recommended change.Bounds: 0.0, 1.0. Default: 0.0. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="yarn_config" type="object">
+      Basic autoscaling configurations for YARN. Optional.
+      <Expandable title="properties">
+        <ResponseField name="graceful_decommission_timeout" type="string">
+          Required. Timeout for YARN graceful decommissioning of Node Managers. Specifies the duration to wait for jobs to complete before forcefully removing workers (and potentially interrupting jobs). Only applicable to downscaling operations.Bounds: 0s, 1d. Optional.
+        </ResponseField>
+        <ResponseField name="scale_down_factor" type="number">
+          Required. Fraction of average YARN pending memory in the last cooldown period for which to remove workers. A scale-down factor of 1 will result in scaling down so that there is no available memory remaining after the update (more aggressive scaling). A scale-down factor of 0 disables removing workers, which can be beneficial for autoscaling a single job. See How autoscaling works (https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/autoscaling#how_autoscaling_works) for more information.Bounds: 0.0, 1.0. Optional.
+        </ResponseField>
+        <ResponseField name="scale_down_min_worker_fraction" type="number">
+          Optional. Minimum scale-down threshold as a fraction of total cluster size before scaling occurs. For example, in a 20-worker cluster, a threshold of 0.1 means the autoscaler must recommend at least a 2 worker scale-down for the cluster to scale. A threshold of 0 means the autoscaler will scale down on any recommended change.Bounds: 0.0, 1.0. Default: 0.0. Optional.
+        </ResponseField>
+        <ResponseField name="scale_up_factor" type="number">
+          Required. Fraction of average YARN pending memory in the last cooldown period for which to add workers. A scale-up factor of 1.0 will result in scaling up so that there is no pending memory remaining after the update (more aggressive scaling). A scale-up factor closer to 0 will result in a smaller magnitude of scaling up (less aggressive scaling). See How autoscaling works (https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/autoscaling#how_autoscaling_works) for more information.Bounds: 0.0, 1.0. Optional.
+        </ResponseField>
+        <ResponseField name="scale_up_min_worker_fraction" type="number">
+          Optional. Minimum scale-up threshold as a fraction of total cluster size before scaling occurs. For example, in a 20-worker cluster, a threshold of 0.1 means the autoscaler must recommend at least a 2-worker scale-up for the cluster to scale. A threshold of 0 means the autoscaler will scale up on any recommended change.Bounds: 0.0, 1.0. Default: 0.0. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
+<ResponseField name="cluster_type" type="string">
+  Optional. The type of the clusters for which this autoscaling policy is to be configured. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
+  Required. The policy id.The id must contain only letters (a-z, A-Z), numbers (0-9), underscores (_), and hyphens (-). Cannot begin or end with underscore or hyphen. Must consist of between 3 and 50 characters. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="location" type="string">
-  The location where the autoscaling policy should reside. The default value is 'global'. Optional.
-</ResponseField>
-
-<ResponseField name="policy_id" type="string" required>
-  The policy id. The id must contain only letters (a-z, A-Z), numbers (0-9), underscores (_), and hyphens (-). Cannot begin or end with underscore or hyphen. Must consist of between 3 and 50 characters. Required.
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="secondary_worker_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="max_instances" type="number">
-    </ResponseField>
-    <ResponseField name="min_instances" type="number">
-    </ResponseField>
-    <ResponseField name="weight" type="number">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="worker_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="max_instances" type="number" required>
-    </ResponseField>
-    <ResponseField name="min_instances" type="number">
-    </ResponseField>
-    <ResponseField name="weight" type="number">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="basic_algorithm" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="cooldown_period" type="string">
-    </ResponseField>
-    <ResponseField name="yarn_config" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="graceful_decommission_timeout" type="string" required>
-        </ResponseField>
-        <ResponseField name="scale_down_factor" type="number" required>
-        </ResponseField>
-        <ResponseField name="scale_down_min_worker_fraction" type="number">
-        </ResponseField>
-        <ResponseField name="scale_up_factor" type="number" required>
-        </ResponseField>
-        <ResponseField name="scale_up_min_worker_fraction" type="number">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="labels" type="map(string)">
+  Optional. The labels to associate with this autoscaling policy. Label keys must contain 1 to 63 characters, and must conform to RFC 1035 (https://www.ietf.org/rfc/rfc1035.txt). Label values may be empty, but, if present, must contain 1 to 63 characters, and must conform to RFC 1035 (https://www.ietf.org/rfc/rfc1035.txt). No more than 32 labels can be associated with an autoscaling policy. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="name" type="string">
-  The "resource name" of the autoscaling policy. Computed by GCP after `ship`.
+  Output only. The "resource name" of the autoscaling policy, as described in https://cloud.google.com/apis/design/resource_names. For projects.regions.autoscalingPolicies, the resource name of the policy has the following format: projects/&#123;project_id&#125;/regions/&#123;region&#125;/autoscalingPolicies/&#123;policy_id&#125; For projects.locations.autoscalingPolicies, the resource name of the policy has the following format: projects/&#123;project_id&#125;/locations/&#123;location&#125;/autoscalingPolicies/&#123;policy_id&#125; Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="secondary_worker_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="secondary_worker_config" type="object">
+  Configuration for the size bounds of an instance group, including its proportional size to other groups. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="max_instances" type="number">
+      Required. Maximum number of instances for this group. Required for primary workers. Note that by default, clusters will not use secondary workers. Required for secondary workers if the minimum secondary instances is set.Primary workers - Bounds: [min_instances, ). Secondary workers - Bounds: [min_instances, ). Default: 0. Optional.
     </ResponseField>
     <ResponseField name="min_instances" type="number">
+      Optional. Minimum number of instances for this group.Primary workers - Bounds: 2, max_instances. Default: 2. Secondary workers - Bounds: 0, max_instances. Default: 0. Optional.
     </ResponseField>
     <ResponseField name="weight" type="number">
+      Optional. Weight for the instance group, which is used to determine the fraction of total workers in the cluster from this instance group. For example, if primary workers have weight 2, and secondary workers have weight 1, the cluster will have approximately 2 primary workers for each secondary worker.The cluster may not reach the specified balance if constrained by min/max bounds or other autoscaling settings. For example, if max_instances for secondary workers is 0, then only primary workers will be added. The cluster can also be out of balance when created.If weight is not set on any instance group, the cluster will default to equal weight for all groups: the cluster will attempt to maintain an equal number of workers in each group within the configured size bounds for each group. If weight is set for one group only, the cluster will default to zero weight on the unset group. For example if weight is set only on primary workers, the cluster will use primary workers only and no secondary workers. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="worker_config" type="object">
+  Configuration for the size bounds of an instance group, including its proportional size to other groups. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="worker_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="max_instances" type="number" required>
+    <ResponseField name="max_instances" type="number">
+      Required. Maximum number of instances for this group. Required for primary workers. Note that by default, clusters will not use secondary workers. Required for secondary workers if the minimum secondary instances is set.Primary workers - Bounds: [min_instances, ). Secondary workers - Bounds: [min_instances, ). Default: 0. Optional.
     </ResponseField>
     <ResponseField name="min_instances" type="number">
+      Optional. Minimum number of instances for this group.Primary workers - Bounds: 2, max_instances. Default: 2. Secondary workers - Bounds: 0, max_instances. Default: 0. Optional.
     </ResponseField>
     <ResponseField name="weight" type="number">
+      Optional. Weight for the instance group, which is used to determine the fraction of total workers in the cluster from this instance group. For example, if primary workers have weight 2, and secondary workers have weight 1, the cluster will have approximately 2 primary workers for each secondary worker.The cluster may not reach the specified balance if constrained by min/max bounds or other autoscaling settings. For example, if max_instances for secondary workers is 0, then only primary workers will be added. The cluster can also be out of balance when created.If weight is not set on any instance group, the cluster will default to equal weight for all groups: the cluster will attempt to maintain an equal number of workers in each group within the configured size bounds for each group. If weight is set for one group only, the cluster will default to zero weight on the unset group. For example if weight is set only on primary workers, the cluster will use primary workers only and no secondary workers. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>

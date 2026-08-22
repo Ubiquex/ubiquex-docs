@@ -379,8 +379,36 @@ _FRONTMATTER_TRUNCATION_STOPWORDS = {
 }
 
 
+# Real, found-in-review defect: naive intro_text.split(". ", 1) treated
+# "e.g. "/"i.e. "/"etc. " as a sentence boundary (a real ". " substring
+# occurs inside each), truncating the frontmatter subtitle mid-
+# parenthetical on 175 real Phase C intros (93 GCP, 82 Azure) that use
+# one of these abbreviations -- e.g. google_apigee_datastore's own
+# intro cut to '...target (e.g.' with the rest of the sentence orphaned
+# into the body. _sentence_split below is abbreviation-aware so these
+# don't get treated as sentence ends.
+_ABBREVIATIONS = ("e.g.", "i.e.", "etc.", "vs.")
+
+
+def _sentence_split(text):
+    """Returns (first_sentence, rest) split at the first real ". "
+    sentence boundary -- one NOT immediately preceded by a known
+    abbreviation (see _ABBREVIATIONS)."""
+    search_from = 0
+    while True:
+        pos = text.find(". ", search_from)
+        if pos == -1:
+            return text, ""
+        preceding = text[:pos + 1]
+        if any(preceding.endswith(abbr) for abbr in _ABBREVIATIONS):
+            search_from = pos + 1
+            continue
+        return text[:pos], text[pos + 2:]
+
+
 def frontmatter_description_from_intro(intro_text):
-    first = intro_text.split(". ", 1)[0].strip()
+    first, _ = _sentence_split(intro_text)
+    first = first.strip()
     if not first.endswith((".", "!", "?")):
         first += "."
     if len(first) > 155:
@@ -1254,7 +1282,8 @@ REAL_SDK_REPO_ID = {
 
 
 def generate_richer_provider(docs_root, scratch_dir, provider, schema_name, provider_display,
-                              stack_name, schema_path, idents_path, bindings_status="published"):
+                              stack_name, schema_path, idents_path, bindings_status="published",
+                              intros_by_provider=None):
     """Full-provider, richer-tier generation -- the ONLY real page-
     writing path this generator has (its own former sibling,
     generate_mechanical_provider, is removed entirely along with
@@ -1327,6 +1356,7 @@ def generate_richer_provider(docs_root, scratch_dir, provider, schema_name, prov
                 intent_summary=f"{stack_name} own {local.replace('_', ' ')}",
                 companion_markdown=companion_markdown, sdk_repo_id=sdk_repo_id,
                 bindings_status=bindings_status,
+                intro_text=real_intro_for(provider, wire, intros_by_provider or {}),
             )
             with open(os.path.join(service_dir, f"{slug}.mdx"), "w") as fh:
                 fh.write(page)

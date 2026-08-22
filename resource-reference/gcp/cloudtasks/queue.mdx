@@ -1,0 +1,228 @@
+---
+title: "google_cloudtasks_queue"
+description: "`google_cloudtasks_queue` is a Cloud Tasks queue..."
+---
+
+`google_cloudtasks_queue` is a Cloud Tasks queue, holding task(s) that are dispatched to a target (an HTTP endpoint or App Engine service) at a controlled rate.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only google_cloudtasks --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_cloudtasks/sdk/go
+    package main
+
+    import (
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    	cloudtasks "github.com/ubiquex/ubx-sdk-google/sdk/go/google_cloudtasks/cloudtasks"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own queue"})
+
+    		ubx.Resource(cloudtasks.CloudtasksQueue, "ci-runner", cloudtasks.CloudtasksQueueConfig{
+    			Name: "ci-runner",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only google_cloudtasks --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { CloudtasksQueue } from "./local-sdk/google_cloudtasks/sdk/typescript/google_cloudtasks/cloudtasks/cloudtasks_queue.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own queue" });
+
+      resource(CloudtasksQueue, "ci-runner", {
+        name: "ci-runner",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only google_cloudtasks --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_cloudtasks/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.google_cloudtasks.cloudtasks import CloudtasksQueue, CloudtasksQueueConfig
+
+    def describe():
+        ubx.intent("payments own queue")
+
+        ubx.resource(CloudtasksQueue, "ci-runner", CloudtasksQueueConfig(
+            name="ci-runner",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create google_cloudtasks_queue called "ci-runner", with .
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="app_engine_routing_override" type="object">
+  App Engine Routing. Defines routing characteristics specific to App Engine - service, version, and instance. For more information about services, versions, and instances see [An Overview of App Engine](https://cloud.google.com/appengine/docs/python/an-overview-of-app-engine), [Microservices Architecture on Google App Engine](https://cloud.google.com/appengine/docs/python/microservices-on-app-engine), [App Engine Standard request routing](https://cloud.google.com/appengine/docs/standard/python/how-requests-are-routed), and [App Engine Flex request routing](https://cloud.google.com/appengine/docs/flexible/python/how-requests-are-routed). Using AppEngineRouting requires [`appengine.applications.get`](https://cloud.google.com/appengine/docs/admin-api/access-control) Google IAM permission for the project and the following scope: `https://www.googleapis.com/auth/cloud-platform` Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="host" type="string">
+      Output only. The host that the task is sent to. The host is constructed from the domain name of the app associated with the queue's project ID (for example .appspot.com), and the service, version, and instance. Tasks which were created using the App Engine SDK might have a custom domain name. For more information, see [How Requests are Routed](https://cloud.google.com/appengine/docs/standard/python/how-requests-are-routed). Optional.
+    </ResponseField>
+    <ResponseField name="instance" type="string">
+      App instance. By default, the task is sent to an instance which is available when the task is attempted. Requests can only be sent to a specific instance if [manual scaling is used in App Engine Standard](https://cloud.google.com/appengine/docs/python/an-overview-of-app-engine?hl=en_US#scaling_types_and_instance_classes). App Engine Flex does not support instances. For more information, see [App Engine Standard request routing](https://cloud.google.com/appengine/docs/standard/python/how-requests-are-routed) and [App Engine Flex request routing](https://cloud.google.com/appengine/docs/flexible/python/how-requests-are-routed). Optional.
+    </ResponseField>
+    <ResponseField name="service" type="string">
+      App service. By default, the task is sent to the service which is the default service when the task is attempted. For some queues or tasks which were created using the App Engine Task Queue API, host is not parsable into service, version, and instance. For example, some tasks which were created using the App Engine SDK use a custom domain name; custom domains are not parsed by Cloud Tasks. If host is not parsable, then service, version, and instance are the empty string. Optional.
+    </ResponseField>
+    <ResponseField name="version" type="string">
+      App version. By default, the task is sent to the version which is the default version when the task is attempted. For some queues or tasks which were created using the App Engine Task Queue API, host is not parsable into service, version, and instance. For example, some tasks which were created using the App Engine SDK use a custom domain name; custom domains are not parsed by Cloud Tasks. If host is not parsable, then service, version, and instance are the empty string. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="http_target" type="object">
+  HTTP target. When specified as a Queue, all the tasks with [HttpRequest] will be overridden according to the target. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="header_overrides" type="list(object)">
+      HTTP target headers. This map contains the header field names and values. Headers will be set when running the CreateTask and/or BufferTask. These headers represent a subset of the headers that will be configured for the task's HTTP request. Some HTTP request headers will be ignored or replaced. A partial list of headers that will be ignored or replaced is: * Several predefined headers, prefixed with "X-CloudTasks-", can be used to define properties of the task. * Host: This will be computed by Cloud Tasks and derived from HttpRequest.url. * Content-Length: This will be computed by Cloud Tasks. `Content-Type` won't be set by Cloud Tasks. You can explicitly set `Content-Type` to a media type when the task is created. For example,`Content-Type` can be set to `"application/octet-stream"` or `"application/json"`. The default value is set to "application/json"`. * User-Agent: This will be set to `"Google-Cloud-Tasks"`. Headers which can have multiple values (according to RFC2616) can be specified using comma-separated values. The size of the headers must be less than 80KB. Queue-level headers to override headers of all the tasks in the queue. Do not put business sensitive or personally identifying data in the HTTP Header Override Configuration or other similar fields in accordance with Section 12 (Resource Fields) of the [Service Specific Terms](https://cloud.google.com/terms/service-terms). Optional.
+      <Expandable title="properties">
+        <ResponseField name="header" type="object">
+          A single HTTP header to upsert onto every task's request in this queue's `http_target`. Headers prefixed `X-CloudTasks-` are reserved for Cloud Tasks' own service headers and can't be overridden this way. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The HTTP header name to set. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The HTTP header value to set. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="http_method" type="string">
+      The HTTP method to use for the request. When specified, it overrides HttpRequest for the task. Note that if the value is set to HttpMethod the HttpRequest of the task will be ignored at execution time. Optional.
+    </ResponseField>
+    <ResponseField name="oauth_token" type="object">
+      Contains information needed for generating an [OAuth token](https://developers.google.com/identity/protocols/OAuth2). This type of authorization should generally only be used when calling Google APIs hosted on *.googleapis.com. Optional.
+      <Expandable title="properties">
+        <ResponseField name="scope" type="string">
+          OAuth scope to be used for generating OAuth access token. If not specified, "https://www.googleapis.com/auth/cloud-platform" will be used. Optional.
+        </ResponseField>
+        <ResponseField name="service_account_email" type="string">
+          [Service account email](https://cloud.google.com/iam/docs/service-accounts) to be used for generating OAuth token. The service account must be within the same project as the queue. The caller must have iam.serviceAccounts.actAs permission for the service account. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="oidc_token" type="object">
+      Contains information needed for generating an [OpenID Connect token](https://developers.google.com/identity/protocols/OpenIDConnect). This type of authorization can be used for many scenarios, including calling Cloud Run, or endpoints where you intend to validate the token yourself. Optional.
+      <Expandable title="properties">
+        <ResponseField name="audience" type="string">
+          Audience to be used when generating OIDC token. If not specified, the URI specified in target will be used. Optional.
+        </ResponseField>
+        <ResponseField name="service_account_email" type="string">
+          [Service account email](https://cloud.google.com/iam/docs/service-accounts) to be used for generating OIDC token. The service account must be within the same project as the queue. The caller must have iam.serviceAccounts.actAs permission for the service account. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="uri_override" type="object">
+      URI Override. When specified, all the HTTP tasks inside the queue will be partially or fully overridden depending on the configured values. Optional.
+      <Expandable title="properties">
+        <ResponseField name="host" type="string">
+          Host override. When specified, replaces the host part of the task URL. For example, if the task URL is "https://www.google.com," and host value is set to "example.net", the overridden URI will be changed to "https://example.net." Host value cannot be an empty string (INVALID_ARGUMENT). Optional.
+        </ResponseField>
+        <ResponseField name="path_override" type="object">
+          PathOverride. Path message defines path override for HTTP targets. Optional.
+          <Expandable title="properties">
+            <ResponseField name="path" type="string">
+              The URI path (e.g., /users/1234). Default is an empty string. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="port" type="string">
+          Port override. When specified, replaces the port part of the task URI. For instance, for a URI "https://www.example.com/example" and port=123, the overridden URI becomes "https://www.example.com:123/example". Note that the port value must be a positive integer. Setting the port to 0 (Zero) clears the URI port. Optional.
+        </ResponseField>
+        <ResponseField name="query_override" type="object">
+          QueryOverride. Query message defines query override for HTTP targets. Optional.
+          <Expandable title="properties">
+            <ResponseField name="query_params" type="string">
+              The query parameters (e.g., qparam1=123&qparam2=456). Default is an empty string. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="scheme" type="string">
+          Scheme override. When specified, the task URI scheme is replaced by the provided value (HTTP or HTTPS). Optional.
+        </ResponseField>
+        <ResponseField name="uri_override_enforce_mode" type="string">
+          URI Override Enforce Mode When specified, determines the Target UriOverride mode. If not specified, it defaults to ALWAYS. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Caller-specified and required in CreateQueue, after which it becomes output only. The queue name. The queue name must have the following format: `projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID` * `PROJECT_ID` can contain letters ([A-Za-z]), numbers ([0-9]), hyphens (-), colons (:), or periods (.). For more information, see [Identifying projects](https://cloud.google.com/resource-manager/docs/creating-managing-projects#identifying_projects) * `LOCATION_ID` is the canonical ID for the queue's location. The list of available locations can be obtained by calling ListLocations. For more information, see https://cloud.google.com/about/locations/. * `QUEUE_ID` can contain letters ([A-Za-z]), numbers ([0-9]), or hyphens (-). The maximum length is 100 characters. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="purge_time" type="string">
+  Output only. The last time this queue was purged. All tasks that were created before this time were purged. A queue can be purged using PurgeQueue, the [App Engine Task Queue SDK, or the Cloud Console](https://cloud.google.com/appengine/docs/standard/python/taskqueue/push/deleting-tasks-and-queues#purging_all_tasks_from_a_queue). Purge time will be truncated to the nearest microsecond. Purge time will be unset if the queue has never been purged. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="rate_limits" type="object">
+  Rate limits. This message determines the maximum rate that tasks can be dispatched by a queue, regardless of whether the dispatch is a first task attempt or a retry. Note: The debugging command, RunTask, will run a task even if the queue has reached its RateLimits. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="max_burst_size" type="number">
+      Output only. The max burst size. Max burst size limits how fast tasks in queue are processed when many tasks are in the queue and the rate is high. This field allows the queue to have a high rate so processing starts shortly after a task is enqueued, but still limits resource usage when many tasks are enqueued in a short period of time. The [token bucket](https://wikipedia.org/wiki/Token_Bucket) algorithm is used to control the rate of task dispatches. Each queue has a token bucket that holds tokens, up to the maximum specified by `max_burst_size`. Each time a task is dispatched, a token is removed from the bucket. Tasks will be dispatched until the queue's bucket runs out of tokens. The bucket will be continuously refilled with new tokens based on `max_dispatches_per_second`. Cloud Tasks automatically sets an appropriate `max_burst_size` based on the value of `max_dispatches_per_second`. The value is dynamically optimized to ensure queue stability and throughput. It is generally at least equal to `max_dispatches_per_second` but might be higher to accommodate bursts of traffic. For queues that were created or updated using `queue.yaml/xml`, `max_burst_size` is equal to [bucket_size](https://cloud.google.com/appengine/docs/standard/python/config/queueref#bucket_size). Since `max_burst_size` is output only, if UpdateQueue is called on a queue created by `queue.yaml/xml`, `max_burst_size` will be reset based on the value of `max_dispatches_per_second`, regardless of whether `max_dispatches_per_second` is updated. Optional.
+    </ResponseField>
+    <ResponseField name="max_concurrent_dispatches" type="number">
+      The maximum number of concurrent tasks that Cloud Tasks allows to be dispatched for this queue. After this threshold has been reached, Cloud Tasks stops dispatching tasks until the number of concurrent requests decreases. If unspecified when the queue is created, Cloud Tasks will pick the default. The maximum allowed value is 5,000. This field has the same meaning as [max_concurrent_requests in queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#max_concurrent_requests). Optional.
+    </ResponseField>
+    <ResponseField name="max_dispatches_per_second" type="number">
+      The maximum rate at which tasks are dispatched from this queue. If unspecified when the queue is created, Cloud Tasks will pick the default. The maximum allowed value is 500. This field has the same meaning as [rate in queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#rate). Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="retry_config" type="object">
+  Retry config. These settings determine when a failed task attempt is retried. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="max_attempts" type="number">
+      Number of attempts per task, including the first attempt. (If the first attempt fails, there will be `max_attempts - 1` retries.) Must be greater than or equal to -1, which indicates unlimited attempts. Cloud Tasks stops retrying only when `max_attempts` and `max_retry_duration` are both satisfied, or when the task is successfully executed. When the task has been attempted `max_attempts` times and when the `max_retry_duration` time has passed, no further attempts are made, and the task is deleted. If `max_attempts` is set to -1 and `max_retry_duration` is set to 0, the task is retried until the [maximum task retention](https://docs.cloud.google.com/tasks/docs/quotas#limits) limit is reached. If unspecified when the queue is created, Cloud Tasks will pick the default. This field has the same meaning as [task_retry_limit in queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#retry_parameters). Optional.
+    </ResponseField>
+    <ResponseField name="max_backoff" type="string">
+      A task will be scheduled for retry between min_backoff and max_backoff duration after it fails, if the queue's RetryConfig specifies that the task should be retried. The value must be given as a string that indicates the length of time (in seconds) followed by `s` (for "seconds"). For more information on the format, see the documentation for [Duration](https://protobuf.dev/reference/protobuf/google.protobuf/#duration). `max_backoff` will be truncated to the nearest second. If unspecified when the queue is created, Cloud Tasks will pick the default. This field has the same meaning as [max_backoff_seconds in queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#retry_parameters). Optional.
+    </ResponseField>
+    <ResponseField name="max_doublings" type="number">
+      The time between retries will double `max_doublings` times. A task's retry interval starts at min_backoff, then doubles `max_doublings` times, then increases linearly, and finally retries at intervals of max_backoff up to max_attempts times. For example, if min_backoff is 10s, max_backoff is 300s, and `max_doublings` is 3, then the a task will first be retried in 10s. The retry interval will double three times, and then increase linearly by 2^3 * 10s. Finally, the task will retry at intervals of max_backoff until the task has been attempted max_attempts times. Thus, the requests will retry at 10s, 20s, 40s, 80s, 160s, 240s, 300s, 300s, .... If unspecified when the queue is created, Cloud Tasks will pick the default. This field has the same meaning as [max_doublings in queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#retry_parameters). Optional.
+    </ResponseField>
+    <ResponseField name="max_retry_duration" type="string">
+      If positive, `max_retry_duration` specifies the time limit for retrying a failed task, measured from when the task was first attempted. Once `max_retry_duration` time has passed *and* the task has been attempted max_attempts times, no further attempts are made and the task is deleted. A zero (0) indicates an unlimited duration, up to the [maximum task retention](https://docs.cloud.google.com/tasks/docs/quotas#limits) limit. The value must be given as a string that indicates the length of time (in seconds) followed by `s` (for "seconds"). For the maximum possible value or the format, see the documentation for [Duration](https://protobuf.dev/reference/protobuf/google.protobuf/#duration). `max_retry_duration` will be truncated to the nearest second. If unspecified when the queue is created, Cloud Tasks will pick the default. This field has the same meaning as [task_age_limit in queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#retry_parameters). Optional.
+    </ResponseField>
+    <ResponseField name="min_backoff" type="string">
+      A task will be scheduled for retry between min_backoff and max_backoff duration after it fails, if the queue's RetryConfig specifies that the task should be retried. The value must be given as a string that indicates the length of time (in seconds) followed by `s` (for "seconds"). For more information on the format, see the documentation for [Duration](https://protobuf.dev/reference/protobuf/google.protobuf/#duration). `min_backoff` will be truncated to the nearest second. If unspecified when the queue is created, Cloud Tasks will pick the default. This field has the same meaning as [min_backoff_seconds in queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#retry_parameters). Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="stackdriver_logging_config" type="object">
+  Configuration options for writing logs to [Stackdriver Logging](https://cloud.google.com/logging/docs/). Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="sampling_ratio" type="number">
+      Specifies the fraction of operations to write to [Stackdriver Logging](https://cloud.google.com/logging/docs/). This field may contain any value between 0.0 and 1.0, inclusive. 0.0 is the default and means that no operations are logged. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Output only. The state of the queue. `state` can only be changed by calling PauseQueue, ResumeQueue, or uploading [queue.yaml/xml](https://cloud.google.com/appengine/docs/python/config/queueref). UpdateQueue cannot be used to change `state`. Optional; if omitted, computed by Google Cloud.
+</ResponseField>

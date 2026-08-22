@@ -1,0 +1,256 @@
+---
+title: "azure_network_networkwatcher_connection_analyzer"
+description: "`azure_network_networkwatcher_connection_analyzer` (Connection Troubleshoot) runs a one-off connectivity check between a source and destination..."
+---
+
+`azure_network_networkwatcher_connection_analyzer` (Connection Troubleshoot) runs a one-off connectivity check between a source and destination, reporting whether the connection succeeds and the hop(s) it takes.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only azure_network_networkwatcher --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-azure/sdk/go => ./local-sdk/azure_network_networkwatcher/sdk/go
+    package main
+
+    import (
+    	network "github.com/ubiquex/ubx-sdk-azure/sdk/go/azure_network_networkwatcher/network"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("payments", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own networkwatcher connection analyzer"})
+
+    		ubx.Resource(network.NetworkwatcherConnectionAnalyzer, "ci-runner", network.NetworkwatcherConnectionAnalyzerConfig{
+    			Location:   "example",
+    			Properties: map[string]any{"destination": map[string]any{"type": "example"}},
+    			Name:       "ci-runner",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only azure_network_networkwatcher --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { NetworkwatcherConnectionAnalyzer } from "./local-sdk/azure_network_networkwatcher/sdk/typescript/azure_network_networkwatcher/network/networkwatcher_connection_analyzer.ts";
+
+    export default stack("payments", () => {
+      intent({ summary: "payments own networkwatcher connection analyzer" });
+
+      resource(NetworkwatcherConnectionAnalyzer, "ci-runner", {
+        location: "example",
+        properties: { destination: { type: "example" } },
+        name: "ci-runner",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only azure_network_networkwatcher --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/azure_network_networkwatcher/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.azure_network_networkwatcher.network import NetworkwatcherConnectionAnalyzer, NetworkwatcherConnectionAnalyzerConfig
+
+    def describe():
+        ubx.intent("payments own networkwatcher connection analyzer")
+
+        ubx.resource(NetworkwatcherConnectionAnalyzer, "ci-runner", NetworkwatcherConnectionAnalyzerConfig(
+            location="example",
+            properties={"destination": {"type": "example"}},
+            name="ci-runner",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("payments", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create azure_network_networkwatcher_connection_analyzer called
+    "ci-runner", with location example, properties a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="etag" type="string">
+  A unique read-only string that changes whenever the resource is updated. Optional; if omitted, computed by Microsoft Azure.
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  Resource ID of the connection analyzer. Optional; if omitted, computed by Microsoft Azure.
+</ResponseField>
+
+<ResponseField name="location" type="string" required>
+  Resource location. Required.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Name of the connection analyzer. Optional; if omitted, computed by Microsoft Azure.
+</ResponseField>
+
+<ResponseField name="properties" type="object" required>
+  Properties of a connection analyzer. Required.
+  <Expandable title="properties">
+    <ResponseField name="destination" type="object" required>
+      Describes a source or destination endpoint of a connection analyzer. The schema is intentionally permissive (a flat object) because the set of valid fields is determined by `type` and is enforced server-side by the Network Resource Provider. The required and allowed fields per `type` are: - `VM`, `VMSS`, `BastionHost`, `ApplicationGateway`: `resourceId` is required and must be the ARM resource ID of the corresponding resource (a virtual machine, virtual machine scale set or VMSS instance, Azure Bastion host, or Application Gateway, respectively); `address` is not used; `port` is optional. - `ExternalAddress`: `address` is required and must be an IP address or FQDN reachable from outside Azure; `resourceId` is not used; `port` is optional. Requests that supply fields not allowed for the chosen `type`, or omit a required field, are rejected by the service with a validation error. This follows the same convention used by `ConnectivitySource` and `ConnectivityDestination` on Network Watcher. Required.
+      <Expandable title="properties">
+        <ResponseField name="address" type="string">
+          IP address or FQDN of the endpoint. Required when `type` is `ExternalAddress`. Not used for the resource-typed endpoint kinds (`VM`, `VMSS`, `BastionHost`, `ApplicationGateway`). Optional.
+        </ResponseField>
+        <ResponseField name="port" type="number">
+          Port to use for the endpoint (0-65535). Optional.
+        </ResponseField>
+        <ResponseField name="resource_id" type="string">
+          ARM resource ID of the endpoint resource. Required when `type` is `VM`, `VMSS`, `BastionHost`, or `ApplicationGateway`. Not used when `type` is `ExternalAddress`. Optional.
+        </ResponseField>
+        <ResponseField name="type" type="string" required>
+          The endpoint type for a connection analyzer source or destination. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="diagnostic_operations" type="list(string)" required>
+      List of diagnostic operations to run. Required.
+    </ResponseField>
+    <ResponseField name="diagnostic_operations_settings" type="object">
+      Diagnostic settings to provide for the ConnectionAnalyzer operation. Optional.
+      <Expandable title="properties">
+        <ResponseField name="connectivity_check_settings" type="object">
+          Settings that control how connectivity checks are performed by the connection analyzer. Optional.
+          <Expandable title="properties">
+            <ResponseField name="generate_path" type="bool">
+              Whether to generate a hop-by-hop path during the connectivity check. Default value is true. Optional.
+            </ResponseField>
+            <ResponseField name="preferred_ipversion" type="string">
+              The preferred IP version to use in test evaluation. The connection monitor may choose to use a different version depending on other parameters. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="express_route_diagnostics_settings" type="object">
+          Settings that control how Express Route diagnostics are performed by the connection analyzer. Optional.
+          <Expandable title="properties">
+            <ResponseField name="bandwidth" type="number">
+              Bandwidth (in Mbps) to use for the Express Route diagnostic. Optional.
+            </ResponseField>
+            <ResponseField name="er_circuit_resource_id" type="string">
+              Resource ID of the Express Route circuit. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="expiry_in_days" type="number">
+      Time-to-live (days) before the analyzer expires. Optional.
+    </ResponseField>
+    <ResponseField name="output_settings" type="object">
+      Settings that control where the connection analyzer writes its results. Optional.
+      <Expandable title="properties">
+        <ResponseField name="storage_account_settings" type="object">
+          Storage account where the connection analyzer writes its output. Optional.
+          <Expandable title="properties">
+            <ResponseField name="path" type="string">
+              Sub-path within the storage account where results are written. Optional.
+            </ResponseField>
+            <ResponseField name="storage_account_id" type="string" required>
+              Resource ID of the storage account. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="protocol_settings" type="object">
+      Protocol-level settings for the connection analyzer. Optional.
+      <Expandable title="properties">
+        <ResponseField name="http_configuration" type="object">
+          HTTP configuration of the connectivity check. Optional.
+          <Expandable title="properties">
+            <ResponseField name="headers" type="list(object)">
+              List of HTTP headers. Optional.
+              <Expandable title="properties">
+                <ResponseField name="name" type="string">
+                  The resource's own name, unique within its parent scope. Optional; if omitted, computed by Microsoft Azure. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="value" type="string">
+                  The literal value of this field. Optional; if omitted, computed by Microsoft Azure. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="method" type="string">
+              HTTP method. Optional.
+            </ResponseField>
+            <ResponseField name="valid_status_codes" type="list(number)">
+              Valid status codes. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="protocol" type="string">
+          Network protocol. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="provisioning_state" type="string">
+      Provisioning states of a resource. Optional.
+    </ResponseField>
+    <ResponseField name="request_time" type="string">
+      UTC time when the connection analyzer request was received. Computed by Microsoft Azure after `ship`.
+    </ResponseField>
+    <ResponseField name="source" type="object" required>
+      Describes a source or destination endpoint of a connection analyzer. The schema is intentionally permissive (a flat object) because the set of valid fields is determined by `type` and is enforced server-side by the Network Resource Provider. The required and allowed fields per `type` are: - `VM`, `VMSS`, `BastionHost`, `ApplicationGateway`: `resourceId` is required and must be the ARM resource ID of the corresponding resource (a virtual machine, virtual machine scale set or VMSS instance, Azure Bastion host, or Application Gateway, respectively); `address` is not used; `port` is optional. - `ExternalAddress`: `address` is required and must be an IP address or FQDN reachable from outside Azure; `resourceId` is not used; `port` is optional. Requests that supply fields not allowed for the chosen `type`, or omit a required field, are rejected by the service with a validation error. This follows the same convention used by `ConnectivitySource` and `ConnectivityDestination` on Network Watcher. Required.
+      <Expandable title="properties">
+        <ResponseField name="address" type="string">
+          IP address or FQDN of the endpoint. Required when `type` is `ExternalAddress`. Not used for the resource-typed endpoint kinds (`VM`, `VMSS`, `BastionHost`, `ApplicationGateway`). Optional.
+        </ResponseField>
+        <ResponseField name="port" type="number">
+          Port to use for the endpoint (0-65535). Optional.
+        </ResponseField>
+        <ResponseField name="resource_id" type="string">
+          ARM resource ID of the endpoint resource. Required when `type` is `VM`, `VMSS`, `BastionHost`, or `ApplicationGateway`. Not used when `type` is `ExternalAddress`. Optional.
+        </ResponseField>
+        <ResponseField name="type" type="string" required>
+          The endpoint type for a connection analyzer source or destination. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="status" type="string">
+      Current execution status of the connection analyzer. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="system_data" type="object">
+  Metadata pertaining to creation and last modification of the resource. Optional; if omitted, computed by Microsoft Azure.
+  <Expandable title="properties">
+    <ResponseField name="created_at" type="string">
+      The timestamp of resource creation (UTC). Optional.
+    </ResponseField>
+    <ResponseField name="created_by" type="string">
+      The identity that created the resource. Optional.
+    </ResponseField>
+    <ResponseField name="created_by_type" type="string">
+      The type of identity that created the resource. Optional.
+    </ResponseField>
+    <ResponseField name="last_modified_at" type="string">
+      The timestamp of resource last modification (UTC) Optional.
+    </ResponseField>
+    <ResponseField name="last_modified_by" type="string">
+      The identity that last modified the resource. Optional.
+    </ResponseField>
+    <ResponseField name="last_modified_by_type" type="string">
+      The type of identity that last modified the resource. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="map(string)">
+  Resource tags. Optional; if omitted, computed by Microsoft Azure.
+</ResponseField>
+
+<ResponseField name="type" type="string">
+  Resource type. Optional; if omitted, computed by Microsoft Azure.
+</ResponseField>

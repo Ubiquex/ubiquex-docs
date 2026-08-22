@@ -1,35 +1,30 @@
 ---
 title: "google_spanner_backup_schedule"
-description: "Real, generated bindings for `google_spanner_backup_schedule`."
+description: "`google_spanner_backup_schedule` automates recurring Spanner database backups on a defined cadence..."
 ---
 
-`google_spanner_backup_schedule` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
+`google_spanner_backup_schedule` automates recurring Spanner database backups on a defined cadence, instead of requiring each backup to be triggered manually.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_spanner --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_spanner/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	spanner "github.com/ubiquex/ubx-sdk-google/sdk/go/google/spanner"
+    	spanner "github.com/ubiquex/ubx-sdk-google/sdk/go/google_spanner/spanner"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own backup schedule"})
 
-    		ubx.Resource(spanner.BackupSchedule, "ci-runner", spanner.BackupScheduleConfig{
-    			Database:          "example",
-    			Instance:          "example",
-    			RetentionDuration: "example",
-    			Name:              "ci-runner",
+    		ubx.Resource(spanner.SpannerBackupSchedule, "ci-runner", spanner.SpannerBackupScheduleConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -37,16 +32,14 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_spanner --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { BackupSchedule } from "jsr:@ubx/sdk-google/google/spanner/backup_schedule";
+    import { SpannerBackupSchedule } from "./local-sdk/google_spanner/sdk/typescript/google_spanner/spanner/spanner_backup_schedule.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own backup schedule" });
 
-      resource(BackupSchedule, "ci-runner", {
-        database: "example",
-        instance: "example",
-        retentionDuration: "example",
+      resource(SpannerBackupSchedule, "ci-runner", {
         name: "ci-runner",
       });
     });
@@ -54,16 +47,15 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_spanner --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_spanner/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.spanner import BackupSchedule, BackupScheduleConfig
+    from ubx.google_spanner.spanner import SpannerBackupSchedule, SpannerBackupScheduleConfig
 
     def describe():
         ubx.intent("payments own backup schedule")
 
-        ubx.resource(BackupSchedule, "ci-runner", BackupScheduleConfig(
-            database="example",
-            instance="example",
-            retention_duration="example",
+        ubx.resource(SpannerBackupSchedule, "ci-runner", SpannerBackupScheduleConfig(
             name="ci-runner",
         ))
 
@@ -73,140 +65,64 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_spanner_backup_schedule called "ci-runner", with
-    database example, instance example, retention duration example.
+    Create google_spanner_backup_schedule called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
-<ResponseField name="database" type="string" required>
-  The database to create the backup schedule on. Required.
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="encryption_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="encryption_config" type="object">
+  Encryption configuration for the backup to create. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="encryption_type" type="string" required>
+    <ResponseField name="encryption_type" type="string">
+      Required. The encryption type of the backup. Optional.
     </ResponseField>
     <ResponseField name="kms_key_name" type="string">
+      Optional. This field is maintained for backwards compatibility. For new callers, we recommend using `kms_key_names` to specify the KMS key. Only use `kms_key_name` if the location of the KMS key matches the database instance's configuration (location) exactly. For example, if the KMS location is in `us-central1` or `nam3`, then the database instance must also be in `us-central1` or `nam3`. The Cloud KMS key that is used to encrypt and decrypt the restored database. Set this field only when encryption_type is `CUSTOMER_MANAGED_ENCRYPTION`. Values are of the form `projects/&#123;project&#125;/locations/&#123;location&#125;/keyRings/&#123;key_ring&#125;/cryptoKeys/&#123;kms_key_name&#125;`. Optional.
     </ResponseField>
     <ResponseField name="kms_key_names" type="list(string)">
+      Optional. Specifies the KMS configuration for the one or more keys used to protect the backup. Values are of the form `projects/&#123;project&#125;/locations/&#123;location&#125;/keyRings/&#123;key_ring&#125;/cryptoKeys/&#123;kms_key_name&#125;`. The keys referenced by `kms_key_names` must fully cover all regions of the backup's instance configuration. Some examples: * For regional (single-region) instance configurations, specify a regional location KMS key. * For multi-region instance configurations of type `GOOGLE_MANAGED`, either specify a multi-region location KMS key or multiple regional location KMS keys that cover all regions in the instance configuration. * For an instance configuration of type `USER_MANAGED`, specify only regional location KMS keys to cover each region in the instance configuration. Multi-region location KMS keys aren't supported for `USER_MANAGED` type instance configurations. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="full_backup_spec" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="full_backup_spec" type="any">
+  The specification for full backups. A full backup stores the entire contents of the database at a given version time. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="incremental_backup_spec" type="list(object)">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="instance" type="string" required>
-  The instance to create the database on. Required.
+<ResponseField name="incremental_backup_spec" type="any">
+  The specification for incremental backup chains. An incremental backup stores the delta of changes between a previous backup and the database contents at a given version time. An incremental backup chain consists of a full backup and zero or more successive incremental backups. The first backup created for an incremental backup chain is always a full backup. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="name" type="string">
-  A unique identifier for the backup schedule, which cannot be changed after the backup schedule is created. Values are of the form [a-z][-a-z0-9]*[a-z0-9]. Optional.
+  Identifier. Output only for the CreateBackupSchedule operation. Required for the UpdateBackupSchedule operation. A globally unique identifier for the backup schedule which cannot be changed. Values are of the form `projects//instances//databases//backupSchedules/a-z*[a-z0-9]` The final segment of the name must be between 2 and 60 characters in length. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="retention_duration" type="string">
+  Optional. The retention duration of a backup that must be at least 6 hours and at most 366 days. The backup is eligible to be automatically deleted once the retention period has elapsed. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="retention_duration" type="string" required>
-  At what relative time in the future, compared to its creation time, the backup should be deleted, e.g. keep backups for 7 days. A duration in seconds with up to nine fractional digits, ending with 's'. Example: '3.5s'. You can set this to a value up to 366 days. Required.
-</ResponseField>
-
-<ResponseField name="spec" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="spec" type="object">
+  Defines specifications of the backup schedule. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="cron_spec" type="list(object)">
+    <ResponseField name="cron_spec" type="object">
+      CrontabSpec can be used to specify the version time and frequency at which the backup is created. Optional.
       <Expandable title="properties">
+        <ResponseField name="creation_window" type="string">
+          Output only. Scheduled backups contain an externally consistent copy of the database at the version time specified in `schedule_spec.cron_spec`. However, Spanner might not initiate the creation of the scheduled backups at that version time. Spanner initiates the creation of scheduled backups within the time window bounded by the version_time specified in `schedule_spec.cron_spec` and version_time + `creation_window`. Computed by Google Cloud after `ship`.
+        </ResponseField>
         <ResponseField name="text" type="string">
+          Required. Textual representation of the crontab. User can customize the backup frequency and the backup version time using the cron expression. The version time must be in UTC timezone. The backup will contain an externally consistent copy of the database at the version time. Full backups must be scheduled a minimum of 12 hours apart and incremental backups must be scheduled a minimum of 4 hours apart. Examples of valid cron specifications: * `0 2/12 * * *` : every 12 hours at (2, 14) hours past midnight in UTC. * `0 2,14 * * *` : every 12 hours at (2, 14) hours past midnight in UTC. * `0 */4 * * *` : (incremental backups only) every 4 hours at (0, 4, 8, 12, 16, 20) hours past midnight in UTC. * `0 2 * * *` : once a day at 2 past midnight in UTC. * `0 2 * * 0` : once a week every Sunday at 2 past midnight in UTC. * `0 2 8 * *` : once a month on 8th day at 2 past midnight in UTC. Optional.
+        </ResponseField>
+        <ResponseField name="time_zone" type="string">
+          Output only. The time zone of the times in `CrontabSpec.text`. Currently, only UTC is supported. Computed by Google Cloud after `ship`.
         </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="encryption_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="encryption_type" type="string" required>
-    </ResponseField>
-    <ResponseField name="kms_key_name" type="string">
-    </ResponseField>
-    <ResponseField name="kms_key_names" type="list(string)">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="full_backup_spec" type="list(object)">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="incremental_backup_spec" type="list(object)">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="spec" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="cron_spec" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="text" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
+<ResponseField name="update_time" type="string">
+  Output only. The timestamp at which the schedule was last updated. If the schedule has never been updated, this field contains the timestamp when the schedule was first created. Optional; if omitted, computed by Google Cloud.
 </ResponseField>

@@ -1,76 +1,57 @@
 ---
 title: "google_storage_notification"
-description: "Real, generated bindings for `google_storage_notification`."
+description: "`google_storage_notification` configures a Cloud Storage bucket to publish a Pub/Sub message whenever a specified object event (create, delete..."
 ---
 
-`google_storage_notification` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
+`google_storage_notification` configures a Cloud Storage bucket to publish a Pub/Sub message whenever a specified object event (create, delete, and similar) occurs.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_storage --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_storage/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	storage "github.com/ubiquex/ubx-sdk-google/sdk/go/google/storage"
+    	storage "github.com/ubiquex/ubx-sdk-google/sdk/go/google_storage/storage"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own notification"})
 
-    		ubx.Resource(storage.Notification, "ci-runner", storage.NotificationConfig{
-    			Bucket:           "example",
-    			PayloadFormat:    "example",
-    			Topic:            "example",
-    			CustomAttributes: map[string]string{"managed-by": "ubx"},
-    			EventTypes:       []string{"example"},
-    			ObjectNamePrefix: "example",
-    		})
+    		ubx.Resource(storage.StorageNotification, "ci-runner", storage.StorageNotificationConfig{})
     	}))
     }
     ```
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_storage --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { Notification } from "jsr:@ubx/sdk-google/google/storage/notification";
+    import { StorageNotification } from "./local-sdk/google_storage/sdk/typescript/google_storage/storage/storage_notification.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own notification" });
 
-      resource(Notification, "ci-runner", {
-        bucket: "example",
-        payloadFormat: "example",
-        topic: "example",
-        customAttributes: { "managed-by": "ubx" },
-        eventTypes: ["example"],
-        objectNamePrefix: "example",
-      });
+      resource(StorageNotification, "ci-runner", {});
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_storage --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_storage/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.storage import Notification, NotificationConfig
+    from ubx.google_storage.storage import StorageNotification, StorageNotificationConfig
 
     def describe():
         ubx.intent("payments own notification")
 
-        ubx.resource(Notification, "ci-runner", NotificationConfig(
-            bucket="example",
-            payload_format="example",
-            topic="example",
-            custom_attributes={"managed-by": "ubx"},
-            event_types=["example"],
-            object_name_prefix="example",
+        ubx.resource(StorageNotification, "ci-runner", StorageNotificationConfig(
         ))
 
     if __name__ == "__main__":
@@ -79,49 +60,45 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_storage_notification, with bucket example, payload
-    format example, topic example, custom attributes a set value,
-    event types a set value, object name prefix example.
+    Create google_storage_notification, with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
-
-<ResponseField name="bucket" type="string" required>
-  The name of the bucket. Required.
-</ResponseField>
+## Properties
 
 <ResponseField name="custom_attributes" type="map(string)">
-  A set of key/value attribute pairs to attach to each Cloud Pub/Sub message published for this notification subscription. Optional.
+  An optional list of additional attributes to attach to each Cloud PubSub message published for this notification subscription. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="event_types" type="set(string)">
-  List of event type filters for this notification config. If not specified, Cloud Storage will send notifications for all event types. The valid types are: "OBJECT_FINALIZE", "OBJECT_METADATA_UPDATE", "OBJECT_DELETE", "OBJECT_ARCHIVE" Optional.
+<ResponseField name="etag" type="string">
+  HTTP 1.1 Entity tag for this subscription notification. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="event_types" type="list(string)">
+  If present, only send notifications about listed event types. If empty, sent notifications for all event types. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The ID of the notification. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="kind" type="string">
+  The kind of item this is. For notifications, this is always storage#notification. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="object_name_prefix" type="string">
-  Specifies a prefix path filter for this notification config. Cloud Storage will only send notifications for objects in this bucket whose names begin with the specified prefix. Optional.
+  If present, only apply this notification configuration to object names that begin with this prefix. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="payload_format" type="string" required>
-  The desired content of the Payload. One of "JSON_API_V1" or "NONE". Required.
-</ResponseField>
-
-<ResponseField name="topic" type="string" required>
-  The Cloud Pub/Sub topic to which this subscription publishes. Required.
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="id" type="string">
-  Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="notification_id" type="string">
-  The ID of the created notification. Computed by GCP after `ship`.
+<ResponseField name="payload_format" type="string">
+  The desired content of the Payload. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="self_link" type="string">
-  The URI of the created resource. Computed by GCP after `ship`.
+  The canonical URL of this notification. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="topic" type="string">
+  The Cloud PubSub topic to which this subscription publishes. Formatted as: '//pubsub.googleapis.com/projects/&#123;project-identifier&#125;/topics/&#123;my-topic&#125;' Optional; if omitted, computed by Google Cloud.
 </ResponseField>

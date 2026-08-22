@@ -1,39 +1,30 @@
 ---
 title: "google_ces_app"
-description: "Real, generated bindings for `google_ces_app`."
+description: "`google_ces_app` is a deployable customer engagement application in Customer Engagement Suite (CX Agent Studio)..."
 ---
 
-`google_ces_app` -- real, typed bindings generated directly from the
-`hashicorp/google` provider schema, in every SDK language.
-
-Every tab below is a complete, runnable program, not a fragment,
-real enough to save and run exactly as shown.
+`google_ces_app` is a deployable customer engagement application in Customer Engagement Suite (CX Agent Studio), packaging an agent along with its own guardrails and deployment settings.
 
 ## Example
 
 <Tabs>
   <Tab title="Go">
     ```go
+    // ubx sdk gen --only google_ces --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-google/sdk/go => ./local-sdk/google_ces/sdk/go
     package main
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	ces "github.com/ubiquex/ubx-sdk-google/sdk/go/google/ces"
+    	ces "github.com/ubiquex/ubx-sdk-google/sdk/go/google_ces/ces"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
     		ubx.Intent(ubx.IntentInfo{Summary: "payments own app"})
 
-    		ubx.Resource(ces.App, "ci-runner", ces.AppConfig{
-    			AppId:             "example",
-    			DisplayName:       "example-display-name",
-    			Location:          "example",
-    			Description:       "Managed by ubx.",
-    			GlobalInstruction: "example",
-    			Guardrails:        []string{"example"},
-    			Metadata:          map[string]string{"managed-by": "ubx"},
-    			Pinned:            true,
+    		ubx.Resource(ces.CesApp, "ci-runner", ces.CesAppConfig{
+    			Name: "ci-runner",
     		})
     	}))
     }
@@ -41,42 +32,31 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="TypeScript">
     ```typescript
+    // ubx sdk gen --only google_ces --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { App } from "jsr:@ubx/sdk-google/google/ces/app";
+    import { CesApp } from "./local-sdk/google_ces/sdk/typescript/google_ces/ces/ces_app.ts";
 
     export default stack("payments", () => {
       intent({ summary: "payments own app" });
 
-      resource(App, "ci-runner", {
-        appId: "example",
-        displayName: "example-display-name",
-        location: "example",
-        description: "Managed by ubx.",
-        globalInstruction: "example",
-        guardrails: ["example"],
-        metadata: { "managed-by": "ubx" },
-        pinned: true,
+      resource(CesApp, "ci-runner", {
+        name: "ci-runner",
       });
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # ubx sdk gen --only google_ces --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/google_ces/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.google.ces import App, AppConfig
+    from ubx.google_ces.ces import CesApp, CesAppConfig
 
     def describe():
         ubx.intent("payments own app")
 
-        ubx.resource(App, "ci-runner", AppConfig(
-            app_id="example",
-            display_name="example-display-name",
-            location="example",
-            description="Managed by ubx.",
-            global_instruction="example",
-            guardrails=["example"],
-            metadata={"managed-by": "ubx"},
-            pinned=True,
+        ubx.resource(CesApp, "ci-runner", CesAppConfig(
+            name="ci-runner",
         ))
 
     if __name__ == "__main__":
@@ -85,216 +65,435 @@ real enough to save and run exactly as shown.
   </Tab>
   <Tab title="Markdown">
     ```
-    Create google_ces_app, with app id example, display name
-    example-display-name, location example, description Managed by
-    ubx., global instruction example, guardrails a set value,
-    metadata a set value, pinned true.
+    Create google_ces_app called "ci-runner", with .
     ```
   </Tab>
 </Tabs>
 
-## Input properties
+## Properties
 
-<ResponseField name="app_id" type="string" required>
-  The ID to use for the app, which will become the final component of the app's resource name. If not provided, a unique ID will be automatically assigned for the app. Required.
-</ResponseField>
-
-<ResponseField name="audio_processing_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="audio_processing_config" type="object">
+  Configuration for how the input and output audio should be processed and delivered. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="ambient_sound_config" type="list(object)">
+    <ResponseField name="ambient_sound_config" type="object">
+      Configuration for the ambient sound to be played with the synthesized agent response, to enhance the naturalness of the conversation. Optional.
       <Expandable title="properties">
         <ResponseField name="gcs_uri" type="string">
+          Optional. Ambient noise as a mono-channel, 16kHz WAV file stored in [Cloud Storage](https://cloud.google.com/storage). Note: Please make sure the CES service agent `service-@gcp-sa-ces.iam.gserviceaccount.com` has `storage.objects.get` permission to the Cloud Storage object. Optional.
+        </ResponseField>
+        <ResponseField name="prebuilt_ambient_noise" type="string">
+          Optional. Deprecated: `prebuilt_ambient_noise` is deprecated in favor of `prebuilt_ambient_sound`. Optional.
         </ResponseField>
         <ResponseField name="prebuilt_ambient_sound" type="string">
+          Optional. Name of the prebuilt ambient sound. Valid values are: - "coffee_shop" - "keyboard" - "keypad" - "hum" - "office_1" - "office_2" - "office_3" - "room_1" - "room_2" - "room_3" - "room_4" - "room_5" - "air_conditioner" Optional.
         </ResponseField>
         <ResponseField name="volume_gain_db" type="number">
+          Optional. Volume gain (in dB) of the normal native volume supported by ambient noise, in the range [-96.0, 16.0]. If unset, or set to a value of 0.0 (dB), will play at normal native signal amplitude. A value of -6.0 (dB) will play at approximately half the amplitude of the normal native signal amplitude. A value of +6.0 (dB) will play at approximately twice the amplitude of the normal native signal amplitude. We strongly recommend not to exceed +10 (dB) as there's usually no effective increase in loudness for any value greater than that. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="barge_in_config" type="list(object)">
+    <ResponseField name="barge_in_config" type="object">
+      Configuration for how the user barge-in activities should be handled. Optional.
       <Expandable title="properties">
         <ResponseField name="barge_in_awareness" type="bool">
+          Optional. If enabled, the agent will adapt its next response based on the assumption that the user hasn't heard the full preceding agent message. This should not be used in scenarios where agent responses are displayed visually. Optional.
+        </ResponseField>
+        <ResponseField name="disable_barge_in" type="bool">
+          Optional. Deprecated: `disable_barge_in` is deprecated in favor of `disable_barge_in_control` in ChannelProfile. Disables user barge-in while the agent is speaking. If true, user input during agent response playback will be ignored. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="inactivity_timeout" type="string">
+      Optional. The duration of user inactivity (no speech or interaction) before the agent prompts the user for reengagement. If not set, the agent will not prompt the user for reengagement. Optional.
     </ResponseField>
-    <ResponseField name="synthesize_speech_configs" type="set(object)">
+    <ResponseField name="synthesize_speech_configs" type="map(object)">
+      Optional. Configuration of how the agent response should be synthesized, mapping from the language code to SynthesizeSpeechConfig. If the configuration for the specified language code is not found, the configuration for the root language code will be used. For example, if the map contains "en-us" and "en", and the specified language code is "en-gb", then "en" configuration will be used. Note: Language code is case-insensitive. Optional.
       <Expandable title="properties">
-        <ResponseField name="language_code" type="string" required>
+        <ResponseField name="consent_audio_gcs_uri" type="string">
+          The Cloud Storage URI of a recorded consent statement for voice cloning. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="instruction" type="string">
+          An instruction given to the model or agent. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="model" type="string">
+          The name of the underlying LLM this uses, e.g. `gemini-3.0-flash`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="speaking_rate" type="number">
+          The speed synthesized speech is spoken at, relative to the default rate. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="voice" type="string">
+          Configuration for which synthesized voice this agent uses. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="voice_sample_gcs_uri" type="string">
+          The Cloud Storage URI of an audio sample used to clone a custom voice. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="client_certificate_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="client_certificate_settings" type="object">
+  Settings for custom client certificates. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="passphrase" type="string">
+      Optional. The name of the SecretManager secret version resource storing the passphrase to decrypt the private key. Should be left unset if the private key is not encrypted. Format: `projects/&#123;project&#125;/secrets/&#123;secret&#125;/versions/&#123;version&#125;` Optional.
     </ResponseField>
-    <ResponseField name="private_key" type="string" required>
+    <ResponseField name="private_key" type="string">
+      Required. The name of the SecretManager secret version resource storing the private key encoded in PEM format. Format: `projects/&#123;project&#125;/secrets/&#123;secret&#125;/versions/&#123;version&#125;` Optional.
     </ResponseField>
-    <ResponseField name="tls_certificate" type="string" required>
+    <ResponseField name="tls_certificate" type="string">
+      Required. The TLS certificate encoded in PEM format. This string must include the begin header and end footer lines. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="data_store_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="create_time" type="string">
+  Output only. Timestamp when the app was created. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="data_store_settings" type="object">
+  Data store related settings for the app. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="engines" type="list(object)">
+      Output only. The engines for the app. Computed by Google Cloud after `ship`.
       <Expandable title="properties">
         <ResponseField name="name" type="string">
+          The resource name or identifier of this object. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="type" type="string">
+          The JSON Schema data type this (sub-)schema constrains values to: `string`, `number`, `integer`, `boolean`, `object`, `array`, or `null`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="default_channel_profile" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="default_channel_profile" type="object">
+  A ChannelProfile configures the agent's behavior for a specific communication channel, such as web UI or telephony. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="channel_type" type="string">
+      Optional. The type of the channel profile. Optional.
     </ResponseField>
     <ResponseField name="disable_barge_in_control" type="bool">
+      Optional. Whether to disable user barge-in control in the conversation. - **true**: User interruptions are disabled while the agent is speaking. - **false**: The agent retains automatic control over when the user can interrupt. Optional.
     </ResponseField>
     <ResponseField name="disable_dtmf" type="bool">
+      Optional. Whether to disable DTMF (dual-tone multi-frequency). Optional.
     </ResponseField>
-    <ResponseField name="persona_property" type="list(object)">
+    <ResponseField name="instagram_config" type="object">
+      Configuration specific to Instagram deployments. Optional.
+      <Expandable title="properties">
+        <ResponseField name="description" type="string">
+          Output only. The description of the Meta business page or profile. Computed by Google Cloud after `ship`.
+        </ResponseField>
+        <ResponseField name="display_name" type="string">
+          Output only. The fetched Meta business page name. Computed by Google Cloud after `ship`.
+        </ResponseField>
+        <ResponseField name="instagram_account_id" type="string">
+          Required. The Instagram Account ID. Optional.
+        </ResponseField>
+        <ResponseField name="thumbnail_url" type="string">
+          Output only. The fetched Meta business profile thumbnail URL. Computed by Google Cloud after `ship`.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="noise_suppression_level" type="string">
+      Optional. The noise suppression level of the channel profile. Available values are "low", "moderate", "high", "very_high". Optional.
+    </ResponseField>
+    <ResponseField name="persona_property" type="object">
+      Represents the persona property of a channel. Optional.
       <Expandable title="properties">
         <ResponseField name="persona" type="string">
+          Optional. The persona of the channel. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
     <ResponseField name="profile_id" type="string">
+      Optional. The unique identifier of the channel profile. Optional.
     </ResponseField>
-    <ResponseField name="web_widget_config" type="list(object)">
+    <ResponseField name="web_widget_config" type="object">
+      Message for configuration for the web widget. Optional.
       <Expandable title="properties">
         <ResponseField name="modality" type="string">
+          Optional. The modality of the web widget. Optional.
+        </ResponseField>
+        <ResponseField name="security_settings" type="object">
+          Security settings for the web widget. Optional.
+          <Expandable title="properties">
+            <ResponseField name="allowed_origins" type="list(string)">
+              Optional. The origins that are allowed to host the web widget. An origin is defined by RFC 6454. If empty, all origins are allowed. A maximum of 100 origins is allowed. Example: "https://example.com" Optional.
+            </ResponseField>
+            <ResponseField name="enable_origin_check" type="bool">
+              Optional. Indicates whether origin check for the web widget is enabled. If `true`, the web widget will check the origin of the website that loads the web widget and only allow it to be loaded in the same origin or any of the allowed origins. Optional.
+            </ResponseField>
+            <ResponseField name="enable_public_access" type="bool">
+              Optional. Indicates whether public access to the web widget is enabled. If `true`, the web widget will be publicly accessible. If `false`, the web widget must be integrated with your own authentication and authorization system to return valid credentials for accessing the CES agent. Optional.
+            </ResponseField>
+            <ResponseField name="enable_recaptcha" type="bool">
+              Optional. Indicates whether reCAPTCHA verification for the web widget is enabled. Optional.
+            </ResponseField>
+          </Expandable>
         </ResponseField>
         <ResponseField name="theme" type="string">
+          Optional. The theme of the web widget. Optional.
         </ResponseField>
         <ResponseField name="web_widget_title" type="string">
+          Optional. The title of the web widget. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="whatsapp_config" type="object">
+      Configuration specific to WhatsApp deployments. Optional.
+      <Expandable title="properties">
+        <ResponseField name="description" type="string">
+          Output only. The description of the Meta business page or profile. Computed by Google Cloud after `ship`.
+        </ResponseField>
+        <ResponseField name="display_name" type="string">
+          Output only. The fetched Meta business page name. Computed by Google Cloud after `ship`.
+        </ResponseField>
+        <ResponseField name="phone_number" type="string">
+          Optional. The phone number in E.164 format. Optional.
+        </ResponseField>
+        <ResponseField name="phone_number_id" type="string">
+          Required. The Meta phone number ID. Optional.
+        </ResponseField>
+        <ResponseField name="thumbnail_url" type="string">
+          Output only. The fetched Meta business profile thumbnail URL. Computed by Google Cloud after `ship`.
+        </ResponseField>
+        <ResponseField name="waba_id" type="string">
+          Required. The WhatsApp Business Account ID. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
+<ResponseField name="deployment_count" type="number">
+  Output only. Number of deployments in the app. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="description" type="string">
-  Human-readable description of the app. Optional.
+  Optional. Human-readable description of the app. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="display_name" type="string" required>
-  Display name of the app. Required.
+<ResponseField name="display_name" type="string">
+  Required. Display name of the app. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="evaluation_metrics_thresholds" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="error_handling_settings" type="object">
+  Settings to describe how errors should be handled in the app. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="golden_evaluation_metrics_thresholds" type="list(object)">
+    <ResponseField name="end_session_config" type="object">
+      Configuration for ending the session in case of system errors (e.g. LLM errors). Optional.
       <Expandable title="properties">
-        <ResponseField name="expectation_level_metrics_thresholds" type="list(object)">
+        <ResponseField name="escalate_session" type="bool">
+          Optional. Whether to escalate the session in EndSession. If session is escalated, metadata in EndSession will contain `session_escalated = true`. See https://docs.cloud.google.com/customer-engagement-ai/conversational-agents/ps/deploy/google-telephony-platform#transfer_a_call_to_a_human_agent for details. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="error_handling_strategy" type="string">
+      Optional. The strategy to use for error handling. Optional.
+    </ResponseField>
+    <ResponseField name="fallback_response_config" type="object">
+      Configuration for handling fallback responses. Optional.
+      <Expandable title="properties">
+        <ResponseField name="custom_fallback_messages" type="map(string)">
+          Optional. The fallback messages in case of system errors (e.g. LLM errors), mapped by [supported language code](https://docs.cloud.google.com/customer-engagement-ai/conversational-agents/ps/reference/language). Optional.
+        </ResponseField>
+        <ResponseField name="max_fallback_attempts" type="number">
+          Optional. The maximum number of fallback attempts to make before the agent emitting EndSession Signal. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="etag" type="string">
+  Output only. Etag used to ensure the object hasn't changed during a read-modify-write operation. If the etag is empty, the update will overwrite any concurrent changes. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="evaluation_metrics_thresholds" type="object">
+  Threshold settings for metrics in an Evaluation. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="golden_evaluation_metrics_thresholds" type="object">
+      Settings for golden evaluations. Optional.
+      <Expandable title="properties">
+        <ResponseField name="expectation_level_metrics_thresholds" type="object">
+          Expectation level metrics thresholds. Optional.
           <Expandable title="properties">
             <ResponseField name="tool_invocation_parameter_correctness_threshold" type="number">
+              Optional. The success threshold for individual tool invocation parameter correctness. Must be a float between 0 and 1. Default is 1.0. Optional.
             </ResponseField>
           </Expandable>
         </ResponseField>
-        <ResponseField name="turn_level_metrics_thresholds" type="list(object)">
+        <ResponseField name="tool_matching_settings" type="object">
+          Settings for matching tool calls. Optional.
+          <Expandable title="properties">
+            <ResponseField name="extra_tool_call_behavior" type="string">
+              Optional. Behavior for extra tool calls. Defaults to FAIL. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="turn_level_metrics_thresholds" type="object">
+          Turn level metrics thresholds. Optional.
           <Expandable title="properties">
             <ResponseField name="overall_tool_invocation_correctness_threshold" type="number">
+              Optional. The success threshold for overall tool invocation correctness. Must be a float between 0 and 1. Default is 1.0. Optional.
+            </ResponseField>
+            <ResponseField name="semantic_similarity_channel" type="string">
+              Optional. The semantic similarity channel to use for evaluation. Optional.
             </ResponseField>
             <ResponseField name="semantic_similarity_success_threshold" type="number">
+              Optional. The success threshold for semantic similarity. Must be an integer between 0 and 4. Default is &gt;= 3. Optional.
             </ResponseField>
           </Expandable>
         </ResponseField>
       </Expandable>
+    </ResponseField>
+    <ResponseField name="golden_hallucination_metric_behavior" type="string">
+      Optional. The hallucination metric behavior for golden evaluations. Optional.
+    </ResponseField>
+    <ResponseField name="hallucination_metric_behavior" type="string">
+      Optional. Deprecated: Use `golden_hallucination_metric_behavior` instead. The hallucination metric behavior is currently used for golden evaluations. Optional.
+    </ResponseField>
+    <ResponseField name="scenario_hallucination_metric_behavior" type="string">
+      Optional. The hallucination metric behavior for scenario evaluations. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="global_instruction" type="string">
-  Instructions for all the agents in the app. You can use this instruction to set up a stable identity or personality across all the agents. Optional.
+  Optional. Instructions for all the agents in the app. You can use this instruction to set up a stable identity or personality across all the agents. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="guardrails" type="list(string)">
-  List of guardrails for the app. Format: 'projects/&#123;project&#125;/locations/&#123;location&#125;/apps/&#123;app&#125;/guardrails/&#123;guardrail&#125;' Optional.
+  Optional. List of guardrails for the app. Format: `projects/&#123;project&#125;/locations/&#123;location&#125;/apps/&#123;app&#125;/guardrails/&#123;guardrail&#125;` Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="language_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="language_settings" type="object">
+  Language settings of the app. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="default_language_code" type="string">
+      Optional. The default language code of the app. Optional.
     </ResponseField>
     <ResponseField name="enable_multilingual_support" type="bool">
+      Optional. Enables multilingual support. If true, agents in the app will use pre-built instructions to improve handling of multilingual input. Optional.
     </ResponseField>
     <ResponseField name="fallback_action" type="string">
+      Optional. Deprecated: This feature is no longer supported. Use `enable_multilingual_support` instead to improve handling of multilingual input. The action to perform when an agent receives input in an unsupported language. This can be a predefined action or a custom tool call. Valid values are: - A tool's full resource name, which triggers a specific tool execution. - A predefined system action, such as "escalate" or "exit", which triggers an EndSession signal with corresponding metadata to terminate the conversation. Optional.
     </ResponseField>
     <ResponseField name="supported_language_codes" type="list(string)">
+      Optional. List of languages codes supported by the app, in addition to the `default_language_code`. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="location" type="string" required>
-  Resource ID segment making up resource 'name'. It identifies the resource within its parent collection as described in https://google.aip.dev/122. Required.
+<ResponseField name="locked" type="bool">
+  Optional. Indicates whether the app is locked for changes. If the app is locked, modifications to the app resources will be rejected. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="logging_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="logging_settings" type="object">
+  Settings to describe the logging behaviors for the app. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="audio_recording_config" type="list(object)">
+    <ResponseField name="audio_recording_config" type="object">
+      Configuration for how the audio interactions should be recorded. Optional.
       <Expandable title="properties">
         <ResponseField name="gcs_bucket" type="string">
+          Optional. The [Cloud Storage](https://cloud.google.com/storage) bucket to store the session audio recordings. The URI must start with "gs://". Please choose a bucket location that meets your data residency requirements. Note: If the Cloud Storage bucket is in a different project from the app, you should grant `storage.objects.create` permission to the CES service agent `service-@gcp-sa-ces.iam.gserviceaccount.com`. Optional.
         </ResponseField>
         <ResponseField name="gcs_path_prefix" type="string">
+          Optional. The Cloud Storage path prefix for audio recordings. This prefix can include the following placeholders, which will be dynamically substituted at serving time: - $project: project ID - $location: app location - $app: app ID - $date: session date in YYYY-MM-DD format - $session: session ID If the path prefix is not specified, the default prefix `$project/$location/$app/$date/$session/` will be used. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="bigquery_export_settings" type="list(object)">
+    <ResponseField name="bigquery_export_settings" type="object">
+      Settings to describe the BigQuery export behaviors for the app. Optional.
       <Expandable title="properties">
         <ResponseField name="dataset" type="string">
+          Optional. The BigQuery **dataset ID** to export the data to. Optional.
         </ResponseField>
         <ResponseField name="enabled" type="bool">
+          Optional. Indicates whether the BigQuery export is enabled. Optional.
         </ResponseField>
         <ResponseField name="project" type="string">
+          Optional. The **project ID** of the BigQuery dataset to export the data to. Note: If the BigQuery dataset is in a different project from the app, you should grant `roles/bigquery.admin` role to the CES service agent `service-@gcp-sa-ces.iam.gserviceaccount.com`. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="cloud_logging_settings" type="list(object)">
+    <ResponseField name="cloud_logging_settings" type="object">
+      Settings to describe the Cloud Logging behaviors for the app. Optional.
       <Expandable title="properties">
         <ResponseField name="enable_cloud_logging" type="bool">
+          Optional. Whether to enable Cloud Logging for the sessions. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="conversation_logging_settings" type="list(object)">
+    <ResponseField name="conversation_logging_settings" type="object">
+      Settings to describe the conversation logging behaviors for the app. Optional.
       <Expandable title="properties">
         <ResponseField name="disable_conversation_logging" type="bool">
+          Optional. Whether to disable conversation logging for the sessions. Optional.
+        </ResponseField>
+        <ResponseField name="retention_window" type="string">
+          Optional. Controls the retention window for the conversation. If not set, the conversation will be retained for 365 days. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
-    <ResponseField name="redaction_config" type="list(object)">
+    <ResponseField name="evaluation_audio_recording_config" type="object">
+      Configuration for how the audio interactions should be recorded. Optional.
+      <Expandable title="properties">
+        <ResponseField name="gcs_bucket" type="string">
+          Optional. The [Cloud Storage](https://cloud.google.com/storage) bucket to store the session audio recordings. The URI must start with "gs://". Please choose a bucket location that meets your data residency requirements. Note: If the Cloud Storage bucket is in a different project from the app, you should grant `storage.objects.create` permission to the CES service agent `service-@gcp-sa-ces.iam.gserviceaccount.com`. Optional.
+        </ResponseField>
+        <ResponseField name="gcs_path_prefix" type="string">
+          Optional. The Cloud Storage path prefix for audio recordings. This prefix can include the following placeholders, which will be dynamically substituted at serving time: - $project: project ID - $location: app location - $app: app ID - $date: session date in YYYY-MM-DD format - $session: session ID If the path prefix is not specified, the default prefix `$project/$location/$app/$date/$session/` will be used. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="metric_analysis_settings" type="object">
+      Settings to describe the conversation data collection behaviors for LLM analysis metrics pipeline. Optional.
+      <Expandable title="properties">
+        <ResponseField name="llm_metrics_opted_out" type="bool">
+          Optional. Whether to collect conversation data for llm analysis metrics. If true, conversation data will not be collected for llm analysis metrics; otherwise, conversation data will be collected. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="redaction_config" type="object">
+      Configuration to instruct how sensitive data should be handled. Optional.
       <Expandable title="properties">
         <ResponseField name="deidentify_template" type="string">
+          Optional. [DLP](https://cloud.google.com/dlp/docs) deidentify template name to instruct on how to de-identify content. Format: `projects/&#123;project&#125;/locations/&#123;location&#125;/deidentifyTemplates/&#123;deidentify_template&#125;` Optional.
         </ResponseField>
         <ResponseField name="enable_redaction" type="bool">
+          Optional. If true, redaction will be applied in various logging scenarios, including conversation history, Cloud Logging and audio recording. Optional.
         </ResponseField>
         <ResponseField name="inspect_template" type="string">
+          Optional. [DLP](https://cloud.google.com/dlp/docs) inspect template name to configure detection of sensitive data types. Format: `projects/&#123;project&#125;/locations/&#123;location&#125;/inspectTemplates/&#123;inspect_template&#125;` Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="unredacted_audio_recording_config" type="object">
+      Configuration for how the audio interactions should be recorded. Optional.
+      <Expandable title="properties">
+        <ResponseField name="gcs_bucket" type="string">
+          Optional. The [Cloud Storage](https://cloud.google.com/storage) bucket to store the session audio recordings. The URI must start with "gs://". Please choose a bucket location that meets your data residency requirements. Note: If the Cloud Storage bucket is in a different project from the app, you should grant `storage.objects.create` permission to the CES service agent `service-@gcp-sa-ces.iam.gserviceaccount.com`. Optional.
+        </ResponseField>
+        <ResponseField name="gcs_path_prefix" type="string">
+          Optional. The Cloud Storage path prefix for audio recordings. This prefix can include the following placeholders, which will be dynamically substituted at serving time: - $project: project ID - $location: app location - $app: app ID - $date: session date in YYYY-MM-DD format - $session: session ID If the path prefix is not specified, the default prefix `$project/$location/$app/$date/$session/` will be used. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="unredacted_bigquery_export_settings" type="object">
+      Settings to describe the BigQuery export behaviors for the app. Optional.
+      <Expandable title="properties">
+        <ResponseField name="dataset" type="string">
+          Optional. The BigQuery **dataset ID** to export the data to. Optional.
+        </ResponseField>
+        <ResponseField name="enabled" type="bool">
+          Optional. Indicates whether the BigQuery export is enabled. Optional.
+        </ResponseField>
+        <ResponseField name="project" type="string">
+          Optional. The **project ID** of the BigQuery dataset to export the data to. Note: If the BigQuery dataset is in a different project from the app, you should grant `roles/bigquery.admin` role to the CES service agent `service-@gcp-sa-ces.iam.gserviceaccount.com`. Optional.
         </ResponseField>
       </Expandable>
     </ResponseField>
@@ -302,377 +501,207 @@ real enough to save and run exactly as shown.
 </ResponseField>
 
 <ResponseField name="metadata" type="map(string)">
-  Metadata about the app. This field can be used to store additional information relevant to the app's details or intended usages. Optional.
+  Optional. Metadata about the app. This field can be used to store additional information relevant to the app's details or intended usages. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="model_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="model_settings" type="object">
+  Model settings contains various configurations for the LLM model. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="model" type="string">
+      Optional. The LLM model that the agent should use. If not set, the agent will inherit the model from its parent agent. Optional.
     </ResponseField>
     <ResponseField name="temperature" type="number">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="pinned" type="bool">
-  Whether the app is pinned in the app list. Optional.
-</ResponseField>
-
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="root_agent" type="string">
-  The root agent is the entry point of the app. Format: 'projects/&#123;project&#125;/locations/&#123;location&#125;/apps/&#123;app&#125;/agents/&#123;agent&#125;' Optional.
-</ResponseField>
-
-<ResponseField name="time_zone_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="time_zone" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="tool_execution_mode" type="string">
-  The tool execution mode for the app. See the [API reference](https://docs.cloud.google.com/customer-engagement-ai/conversational-agents/ps/reference/rpc/google.cloud.ces.v1#google.cloud.ces.v1.App.ToolExecutionMode) for more details. Optional.
-</ResponseField>
-
-<ResponseField name="variable_declarations" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="description" type="string" required>
-    </ResponseField>
-    <ResponseField name="name" type="string" required>
-    </ResponseField>
-    <ResponseField name="schema" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="additional_properties" type="string">
-        </ResponseField>
-        <ResponseField name="any_of" type="string">
-        </ResponseField>
-        <ResponseField name="default" type="string">
-        </ResponseField>
-        <ResponseField name="defs" type="string">
-        </ResponseField>
-        <ResponseField name="description" type="string">
-        </ResponseField>
-        <ResponseField name="enum" type="list(string)">
-        </ResponseField>
-        <ResponseField name="items" type="string">
-        </ResponseField>
-        <ResponseField name="nullable" type="bool">
-        </ResponseField>
-        <ResponseField name="prefix_items" type="string">
-        </ResponseField>
-        <ResponseField name="properties" type="string">
-        </ResponseField>
-        <ResponseField name="ref" type="string">
-        </ResponseField>
-        <ResponseField name="required" type="list(string)">
-        </ResponseField>
-        <ResponseField name="title" type="string">
-        </ResponseField>
-        <ResponseField name="type" type="string" required>
-        </ResponseField>
-        <ResponseField name="unique_items" type="bool">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-## Output properties
-
-<ResponseField name="audio_processing_config" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="ambient_sound_config" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="gcs_uri" type="string">
-        </ResponseField>
-        <ResponseField name="prebuilt_ambient_sound" type="string">
-        </ResponseField>
-        <ResponseField name="volume_gain_db" type="number">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="barge_in_config" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="barge_in_awareness" type="bool">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="inactivity_timeout" type="string">
-    </ResponseField>
-    <ResponseField name="synthesize_speech_configs" type="set(object)">
-      <Expandable title="properties">
-        <ResponseField name="language_code" type="string" required>
-        </ResponseField>
-        <ResponseField name="speaking_rate" type="number">
-        </ResponseField>
-        <ResponseField name="voice" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="client_certificate_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="passphrase" type="string">
-    </ResponseField>
-    <ResponseField name="private_key" type="string" required>
-    </ResponseField>
-    <ResponseField name="tls_certificate" type="string" required>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="create_time" type="string">
-  Timestamp when the app was created. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="data_store_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="engines" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="name" type="string">
-        </ResponseField>
-        <ResponseField name="type" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="default_channel_profile" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="channel_type" type="string">
-    </ResponseField>
-    <ResponseField name="disable_barge_in_control" type="bool">
-    </ResponseField>
-    <ResponseField name="disable_dtmf" type="bool">
-    </ResponseField>
-    <ResponseField name="persona_property" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="persona" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="profile_id" type="string">
-    </ResponseField>
-    <ResponseField name="web_widget_config" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="modality" type="string">
-        </ResponseField>
-        <ResponseField name="theme" type="string">
-        </ResponseField>
-        <ResponseField name="web_widget_title" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="deletion_policy" type="string">
-  Whether Terraform will be prevented from destroying the instance. Defaults to "DELETE". When a 'terraform destroy' or 'terraform apply' would delete the instance, the command will fail if this field is set to "PREVENT" in Terraform state. When set to "ABANDON", the command will remove the resource from Terraform management without updating or deleting the resource in the API. When set to "DELETE", deleting the resource is allowed. Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="deployment_count" type="number">
-  Number of deployments in the app. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="etag" type="string">
-  Etag used to ensure the object hasn't changed during a read-modify-write operation. If the etag is empty, the update will overwrite any concurrent changes. Computed by GCP after `ship`.
-</ResponseField>
-
-<ResponseField name="evaluation_metrics_thresholds" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="golden_evaluation_metrics_thresholds" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="expectation_level_metrics_thresholds" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="tool_invocation_parameter_correctness_threshold" type="number">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-        <ResponseField name="turn_level_metrics_thresholds" type="list(object)">
-          <Expandable title="properties">
-            <ResponseField name="overall_tool_invocation_correctness_threshold" type="number">
-            </ResponseField>
-            <ResponseField name="semantic_similarity_success_threshold" type="number">
-            </ResponseField>
-          </Expandable>
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="id" type="string">
-  Optional; if omitted, computed by GCP.
-</ResponseField>
-
-<ResponseField name="language_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="default_language_code" type="string">
-    </ResponseField>
-    <ResponseField name="enable_multilingual_support" type="bool">
-    </ResponseField>
-    <ResponseField name="fallback_action" type="string">
-    </ResponseField>
-    <ResponseField name="supported_language_codes" type="list(string)">
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="logging_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="audio_recording_config" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="gcs_bucket" type="string">
-        </ResponseField>
-        <ResponseField name="gcs_path_prefix" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="bigquery_export_settings" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="dataset" type="string">
-        </ResponseField>
-        <ResponseField name="enabled" type="bool">
-        </ResponseField>
-        <ResponseField name="project" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="cloud_logging_settings" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="enable_cloud_logging" type="bool">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="conversation_logging_settings" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="disable_conversation_logging" type="bool">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-    <ResponseField name="redaction_config" type="list(object)">
-      <Expandable title="properties">
-        <ResponseField name="deidentify_template" type="string">
-        </ResponseField>
-        <ResponseField name="enable_redaction" type="bool">
-        </ResponseField>
-        <ResponseField name="inspect_template" type="string">
-        </ResponseField>
-      </Expandable>
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="model_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="model" type="string">
-    </ResponseField>
-    <ResponseField name="temperature" type="number">
+      Optional. If set, this temperature will be used for the LLM model. Temperature controls the randomness of the model's responses. Lower temperatures produce responses that are more predictable. Higher temperatures produce responses that are more creative. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="name" type="string">
-  Identifier. The unique identifier of the app. Format: 'projects/&#123;project&#125;/locations/&#123;location&#125;/apps/&#123;app&#125;' Computed by GCP after `ship`.
+  Identifier. The unique identifier of the app. Format: `projects/&#123;project&#125;/locations/&#123;location&#125;/apps/&#123;app&#125;` Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="project" type="string">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="pinned" type="bool">
+  Optional. Whether the app is pinned in the app list. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
-<ResponseField name="time_zone_settings" type="list(object)">
-  Optional; if omitted, computed by GCP.
+<ResponseField name="predefined_variable_declarations" type="list(object)">
+  Output only. The declarations of predefined variables for the app. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="description" type="string">
+      A human-readable explanation of this schema's own meaning and intended use. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      The resource name or identifier of this object. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="schema" type="object">
+      A schema describing this value's own expected structure. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="additional_properties" type="any">
+          Whether -- or, given a schema, how -- an `object`-typed value may carry properties beyond those named in `properties`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="any_of" type="list(any)">
+          A list of schemas where a value must satisfy at least one to be valid. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="default" type="any">
+          The value used when this field is left unset. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="defs" type="map(any)">
+          Named sub-schemas defined once and referenced elsewhere in this schema via `ref`, avoiding repetition. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="description" type="string">
+          A human-readable explanation of this schema's own meaning and intended use. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="enum" type="list(string)">
+          The exact, closed set of values a `string`-typed schema allows. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="items" type="any">
+          The schema every element of an `array`-typed value must satisfy. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="max_items" type="string">
+          The most elements an `array`-typed value may have. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum" type="number">
+          The largest value a `number`/`integer`-typed value may take. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="min_items" type="string">
+          The fewest elements an `array`-typed value may have. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="minimum" type="number">
+          The smallest value a `number`/`integer`-typed value may take. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="nullable" type="bool">
+          Whether `null` is a valid value for this otherwise-typed field. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="prefix_items" type="list(any)">
+          The JSON Schema for each fixed-position element at the start of a tuple-shaped array, before its own variadic `items` schema applies. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="properties" type="map(any)">
+          The named sub-schemas an `object`-typed value's own fields must each satisfy. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="ref" type="string">
+          A reference to a schema defined under `defs`, by name. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="required" type="list(string)">
+          The list of `properties` keys that must be present on an `object`-typed value. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="title" type="string">
+          The resource's own formal name -- a more official variant of `display_name`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="type" type="string">
+          The JSON Schema data type this (sub-)schema constrains values to: `string`, `number`, `integer`, `boolean`, `object`, `array`, or `null`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="unique_items" type="bool">
+          Whether every element of an array-typed value must be distinct. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="root_agent" type="string">
+  Optional. The root agent is the entry point of the app. Format: `projects/&#123;project&#125;/locations/&#123;location&#125;/apps/&#123;app&#125;/agents/&#123;agent&#125;` Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="time_zone_settings" type="object">
+  TimeZone settings of the app. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
     <ResponseField name="time_zone" type="string">
+      Optional. The time zone of the app from the [time zone database](https://www.iana.org/time-zones), e.g., America/Los_Angeles, Europe/Paris. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="timeouts" type="object">
-  Optional; if omitted, computed by GCP.
-  <Expandable title="properties">
-    <ResponseField name="create" type="string">
-    </ResponseField>
-    <ResponseField name="delete" type="string">
-    </ResponseField>
-    <ResponseField name="update" type="string">
-    </ResponseField>
-  </Expandable>
+<ResponseField name="tool_execution_mode" type="string">
+  Optional. The tool execution mode for the app. If not provided, will default to PARALLEL. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="update_time" type="string">
-  Timestamp when the app was last updated. Computed by GCP after `ship`.
+  Output only. Timestamp when the app was last updated. Optional; if omitted, computed by Google Cloud.
+</ResponseField>
+
+<ResponseField name="validation_errors" type="list(string)">
+  Output only. Misconfigurations or warnings in the app. Optional; if omitted, computed by Google Cloud.
 </ResponseField>
 
 <ResponseField name="variable_declarations" type="list(object)">
-  Optional; if omitted, computed by GCP.
+  Optional. The declarations of the variables. Optional; if omitted, computed by Google Cloud.
   <Expandable title="properties">
-    <ResponseField name="description" type="string" required>
+    <ResponseField name="description" type="string">
+      A human-readable explanation of this schema's own meaning and intended use. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
-    <ResponseField name="name" type="string" required>
+    <ResponseField name="name" type="string">
+      The resource name or identifier of this object. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
     </ResponseField>
-    <ResponseField name="schema" type="list(object)">
+    <ResponseField name="schema" type="object">
+      A schema describing this value's own expected structure. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
       <Expandable title="properties">
-        <ResponseField name="additional_properties" type="string">
+        <ResponseField name="additional_properties" type="any">
+          Whether -- or, given a schema, how -- an `object`-typed value may carry properties beyond those named in `properties`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="any_of" type="string">
+        <ResponseField name="any_of" type="list(any)">
+          A list of schemas where a value must satisfy at least one to be valid. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="default" type="string">
+        <ResponseField name="default" type="any">
+          The value used when this field is left unset. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="defs" type="string">
+        <ResponseField name="defs" type="map(any)">
+          Named sub-schemas defined once and referenced elsewhere in this schema via `ref`, avoiding repetition. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="description" type="string">
+          A human-readable explanation of this schema's own meaning and intended use. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="enum" type="list(string)">
+          The exact, closed set of values a `string`-typed schema allows. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="items" type="string">
+        <ResponseField name="items" type="any">
+          The schema every element of an `array`-typed value must satisfy. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="max_items" type="string">
+          The most elements an `array`-typed value may have. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="maximum" type="number">
+          The largest value a `number`/`integer`-typed value may take. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="min_items" type="string">
+          The fewest elements an `array`-typed value may have. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="minimum" type="number">
+          The smallest value a `number`/`integer`-typed value may take. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="nullable" type="bool">
+          Whether `null` is a valid value for this otherwise-typed field. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="prefix_items" type="string">
+        <ResponseField name="prefix_items" type="list(any)">
+          The JSON Schema for each fixed-position element at the start of a tuple-shaped array, before its own variadic `items` schema applies. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="properties" type="string">
+        <ResponseField name="properties" type="map(any)">
+          The named sub-schemas an `object`-typed value's own fields must each satisfy. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="ref" type="string">
+          A reference to a schema defined under `defs`, by name. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="required" type="list(string)">
+          The list of `properties` keys that must be present on an `object`-typed value. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="title" type="string">
+          The resource's own formal name -- a more official variant of `display_name`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
-        <ResponseField name="type" type="string" required>
+        <ResponseField name="type" type="string">
+          The JSON Schema data type this (sub-)schema constrains values to: `string`, `number`, `integer`, `boolean`, `object`, `array`, or `null`. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="unique_items" type="bool">
+          Whether every element of an array-typed value must be distinct. Optional; if omitted, computed by Google Cloud. **(AI-inferred)**
         </ResponseField>
       </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="vpc_sc_settings" type="object">
+  VPC-SC settings for the app. Optional; if omitted, computed by Google Cloud.
+  <Expandable title="properties">
+    <ResponseField name="allowed_origins" type="list(string)">
+      Optional. The allowed HTTP(s) origins that OpenAPI tools in the App are able to directly call when VPC Service Controls are enabled. These strings must match the origin exactly, including the port if specified. For example, "https://example.com" or "https://example.com:443". This list does not yet apply to Python tools that may make direct HTTP calls. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
