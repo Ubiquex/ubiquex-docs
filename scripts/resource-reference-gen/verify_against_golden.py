@@ -180,18 +180,24 @@ def check_em_dashes(page):
 
 
 def check_category_override(provider, wire, artifacts_root):
-    """Confirms an override entry, if one exists for this wire, is a
-    real resolved label -- NOT 'UNRESOLVED:...' (build_categories.py's
-    own real failure marker). Cannot verify actual docs.json nav
-    placement for a resource with no live page yet -- see
-    CHECKS_THIS_CANNOT_DO."""
+    """Confirms this wire's own category entry, if one exists, is a
+    real resolved label -- NOT 'UNRESOLVED:...'. UBI-175 category
+    derivation rewrite: categories.json's old {service_map, overrides}
+    shape (a mechanical wire-split scheme patched by 340 hand overrides)
+    is retired -- the file is now a flat {categories: {wire: label}}
+    map derived directly from each provider's own vendor-native
+    taxonomy field (CFN typeName / Discovery Doc title / ARM namespace /
+    Kubernetes API group / OpenAPI tag). A wire with no entry (e.g. one
+    outside the scoped, vendor-field-correlated corpus, like a legacy
+    HashiCorp-sourced page) is not an error -- see
+    CHECKS_THIS_CANNOT_DO for what this cannot verify."""
     cat_path = os.path.join(artifacts_root, provider, "categories.json")
     if not os.path.exists(cat_path):
         return []
     cats = json.load(open(cat_path))
-    override = cats.get("overrides", {}).get(wire)
-    if override and override.startswith("UNRESOLVED:"):
-        return [f"category override: {wire!r} resolves to {override!r} -- unresolved, not a real label"]
+    label = cats.get("categories", {}).get(wire)
+    if label and label.startswith("UNRESOLVED:"):
+        return [f"category: {wire!r} resolves to {label!r} -- unresolved, not a real label"]
     return []
 
 

@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
-"""UBI-175 Phase 2: builds artifacts/<provider>/categories.json directly
+"""SUPERSEDED (UBI-175 category derivation rewrite): categories.json is
+no longer built by this script. The mechanical wire-split-plus-340-
+overrides scheme this file implements has been replaced by a flat
+{categories: {wire: label}} map derived directly from each provider's
+own vendor-native taxonomy field (CFN typeName / Discovery Doc title /
+ARM namespace / Kubernetes API group / OpenAPI tag) -- see each
+provider's own categories.json "derivation" field for exactly how.
+Kept for history, not part of the real generation path anymore; do not
+run this and expect its output to match the real, current
+artifacts/<provider>/categories.json files.
+
+UBI-175 Phase 2 (original): builds artifacts/<provider>/categories.json directly
 from Phase 1's own audit findings (scratchpad/UBI-175-phase1-audit.md).
 
 Shape: {"service_map": {sidebar-category-key: "Display Label"},
