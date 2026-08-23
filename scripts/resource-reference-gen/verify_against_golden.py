@@ -40,6 +40,7 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from gen_golden_page import generate
 from gen_provider_docs import intro_and_description, frontmatter_description_from_intro, eff_flags
+from category_resolve import resolve_category
 
 GOLDEN_DIR = os.path.dirname(os.path.abspath(__file__))
 MANIFEST_PATH = os.path.join(GOLDEN_DIR, "golden", "manifest.json")
@@ -180,24 +181,28 @@ def check_em_dashes(page):
 
 
 def check_category_override(provider, wire, artifacts_root):
-    """Confirms this wire's own category entry, if one exists, is a
-    real resolved label -- NOT 'UNRESOLVED:...'. UBI-175 category
-    derivation rewrite: categories.json's old {service_map, overrides}
-    shape (a mechanical wire-split scheme patched by 340 hand overrides)
-    is retired -- the file is now a flat {categories: {wire: label}}
-    map derived directly from each provider's own vendor-native
-    taxonomy field (CFN typeName / Discovery Doc title / ARM namespace /
-    Kubernetes API group / OpenAPI tag). A wire with no entry (e.g. one
-    outside the scoped, vendor-field-correlated corpus, like a legacy
+    """Confirms this wire's own category resolves to a real, non-empty
+    label via the real three-step resolver (category_resolve.py):
+    overrides by exact wire name first, then the resource's derived
+    service in services, then the raw vendor-derived label from
+    categories.json's own {categories: {wire: label}} map (CFN typeName
+    / Discovery Doc title / ARM namespace / Kubernetes API group /
+    OpenAPI tag). services/overrides are a purely additive authored
+    layer for display names and for the rare case where the vendor's
+    own grouping is wrong for a reader -- categories itself is never
+    edited by that layer. A wire with no entry at all (e.g. one outside
+    the scoped, vendor-field-correlated corpus, like a legacy
     HashiCorp-sourced page) is not an error -- see
     CHECKS_THIS_CANNOT_DO for what this cannot verify."""
     cat_path = os.path.join(artifacts_root, provider, "categories.json")
     if not os.path.exists(cat_path):
         return []
     cats = json.load(open(cat_path))
-    label = cats.get("categories", {}).get(wire)
-    if label and label.startswith("UNRESOLVED:"):
-        return [f"category: {wire!r} resolves to {label!r} -- unresolved, not a real label"]
+    if wire not in cats.get("categories", {}):
+        return []
+    label, _domain, _source = resolve_category(cats, wire)
+    if not label:
+        return [f"category: {wire!r} resolved to an empty/missing label"]
     return []
 
 
