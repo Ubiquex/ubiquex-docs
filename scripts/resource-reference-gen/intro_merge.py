@@ -16,7 +16,7 @@ import sys
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("provider", choices=["gcp", "azure"])
+    p.add_argument("provider", choices=["gcp", "azure", "kubernetes"])
     p.add_argument("batches", nargs="+", help="batch JSON file(s): {wire_type: intro_text}")
     args = p.parse_args()
 

@@ -43,10 +43,20 @@ Azure's raw-wire-doubling pathology, so the raw wire IS the corrected
 wire and descriptions.json/intros.json were authored directly against
 it, no aliasing required.
 
+Kubernetes (UBI-176: recovering the 21 alpha/beta/older-major version
+siblings a real resourcemap.go collision-guard used to silently drop)
+is the fourth provider, and shares AWS's own "no correction needed"
+shape exactly: a single real [dynamic_providers.kubernetes] entry, one
+literal "kubernetes" line in the families_file, raw wire IS the
+corrected wire (Kubernetes' typeNames were never doubled the way GCP's
+own dynamic-provider synthesis is), descriptions.json/intros.json
+authored directly against it.
+
 Usage:
   python3 regen_pages.py gcp /tmp/gcp-ir-dump /tmp/local-sdk-gcp /tmp/families_gcp.txt
   python3 regen_pages.py azure /tmp/azure-ir-dump /tmp/local-sdk-azure /tmp/families_azure.txt
   python3 regen_pages.py aws /tmp/aws-ir-dump /tmp/local-sdk-aws /tmp/families_aws.txt
+  python3 regen_pages.py kubernetes /tmp/k8s-ir-dump /tmp/local-sdk-k8s /tmp/families_k8s.txt
 """
 import json
 import os
@@ -65,18 +75,22 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 DOCS_ROOT = REPO_ROOT
 SCRATCH_DIR = "/tmp/regen-scratch"
 
-PROVIDER_DISPLAY = {"gcp": "Google Cloud", "azure": "Microsoft Azure", "aws": "AWS"}
+PROVIDER_DISPLAY = {"gcp": "Google Cloud", "azure": "Microsoft Azure", "aws": "AWS", "kubernetes": "Kubernetes"}
 
 # The "already baked directly into the raw IR dump, do not re-inject"
-# source tag differs per provider: GCP/Azure's artifacts use
+# source tag differs per provider: GCP/Azure/Kubernetes' artifacts use
 # "docs-vendor"; AWS's descriptions.json (Phase 5) uses "cfn" for the
 # real CloudFormation registry text, confirmed by direct comparison
 # against /tmp/aws-ir-dump/aws/schema.json -- cfn-sourced text is
 # already present verbatim in each field's own real Description, so
 # re-injecting it would be redundant (inject_description only fills
 # empty Description fields, so this is a correctness/clarity match,
-# not a behavior-critical one).
-SKIP_INJECTION_SOURCE = {"gcp": "docs-vendor", "azure": "docs-vendor", "aws": "cfn"}
+# not a behavior-critical one). Kubernetes' own OpenAPI spec carries
+# real per-field descriptive text for essentially everything (UBI-176:
+# the 21 resources recovered by the alpha/beta version-collision fix
+# needed 0/122 fields individually described -- all already
+# "docs-vendor", confirmed live against the real dump-ir output).
+SKIP_INJECTION_SOURCE = {"gcp": "docs-vendor", "azure": "docs-vendor", "aws": "cfn", "kubernetes": "docs-vendor"}
 
 
 def main():
@@ -129,7 +143,7 @@ def main():
     # that ubx-sdk-google/-azure actually contain this family today (the
     # published-repo overlap check earlier this session found most of
     # them don't).
-    sdk_repo_id = {"gcp": "google", "azure": "azure", "aws": "aws"}[provider]
+    sdk_repo_id = {"gcp": "google", "azure": "azure", "aws": "aws", "kubernetes": "kubernetes"}[provider]
     for family in families:
         gen_provider_docs.REAL_SDK_REPO_ID.setdefault(family, sdk_repo_id)
 
@@ -173,13 +187,12 @@ def main():
                 # miss every changed entry).
                 inject_description(fields, raw_wire, desc_by_key)
             else:
-                # AWS: no wire/local/service doubling exists (confirmed
-                # live against artifacts/aws/descriptions.json's own
-                # keys) -- CFN's AWS::Service::Resource -> aws_service_
-                # resource naming is the raw wire straight out of
-                # --dump-ir, with no correction function needed or
-                # applied. descriptions.json/intros.json were authored
-                # directly against this same raw wire.
+                # AWS/Kubernetes: no wire/local/service doubling exists
+                # (confirmed live against artifacts/aws and artifacts/
+                # kubernetes' own descriptions.json keys) -- the raw wire
+                # straight out of --dump-ir needs no correction function.
+                # descriptions.json/intros.json were authored directly
+                # against this same raw wire for both.
                 wire = raw_wire
                 local = rec["localName"]
                 service = rec["service"]
