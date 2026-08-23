@@ -150,6 +150,33 @@ was checked and approved explicitly (UBI-144 Phase 1's own checkpoint,
 confirmed again through Phase 2). Real page-level overflow, or a wide
 block NOT contained by a scroll wrapper, is not.
 
+## A fix to an artifact does not reach already-published pages
+
+Real, standing gotcha, caught twice now (UBI-176's own 187 broken GCP
+vendor links, 31 published pages affected). `docs-vendor`-sourced
+description text is baked directly into each field's own real
+`Description` at `--dump-ir`/generation time, straight from the raw
+provider schema -- `regen_pages.py`'s own `inject_description` deliberately
+never touches it (`SKIP_INJECTION_SOURCE`, "already baked in, don't
+re-inject"). That means editing `artifacts/<provider>/descriptions.json`
+alone, however correct, changes nothing on any page that was already
+generated before the edit -- the page's own `.mdx` file still carries
+the old, unfixed text verbatim, and nothing about `mint validate` or the
+JSON's own validity will ever surface that gap.
+
+**When fixing `docs-vendor` text (a broken link, a typo, anything baked
+directly into the raw schema dump), always check whether any already-
+published page carries the same broken text, and patch it too** -- grep
+the real `resource-reference/<provider>/**/*.mdx` tree for the same
+pattern the artifact fix targets, not just the artifact. Don't assume a
+full corpus regen is the fix either: regenerating from the still-live,
+still-unfixed vendor schema reproduces the identical broken text, since
+the schema itself is upstream of both the artifact and the page. A
+direct, targeted patch to the affected `.mdx` files (mirroring the exact
+same fix applied to the artifact) is the correct, minimal fix -- verified
+this way for UBI-176 (193 occurrences found baked into 31 live pages,
+separate from and in addition to the 187 in the artifact itself).
+
 ## Real, deliberate scope limits -- read before extending
 
 - **`MAX_RICH_FIELDS = 8`** (`gen_provider_docs.py`): required fields +
