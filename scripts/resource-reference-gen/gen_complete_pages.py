@@ -54,21 +54,48 @@ INTRO_NOTE = "\n\n" + wrap_markdown(
 
 
 def generate_one(wire, docs_root, schema_dir, idents_all, provider, schema_name,
-                  provider_display, stack_name, bindings_status, add_intro_note=True):
+                  provider_display, stack_name, bindings_status, add_intro_note=True,
+                  sdk_repo_id_override=None, out_path_override=None):
     schema_path = os.path.join(schema_dir, f"{wire}.json")
     if not os.path.isfile(schema_path):
         return "skip", f"no schema dump at {schema_path}"
     if wire not in idents_all:
         return "skip", "no identifier entry (run extract_idents.py first)"
 
-    if schema_name not in REAL_SDK_REPO_ID:
+    if sdk_repo_id_override:
+        # Azure/GCP declare one [dynamic_providers.<family>] config entry
+        # per real resource family -- schema_name here is that family
+        # name (e.g. "google_billingbudgets"), which REAL_SDK_REPO_ID
+        # was never populated with (it only ever held the bare provider
+        # identity). Its own repo id is still the same real, constant
+        # per-provider value regardless of family (see
+        # gen_provider_docs.py's own REAL_SDK_REPO_ID comment), so the
+        # caller passes it directly rather than this function trying to
+        # rediscover per-family entries that were never declared.
+        sdk_repo_id = sdk_repo_id_override
+    elif schema_name not in REAL_SDK_REPO_ID:
         return "error", f"no real, confirmed SDK repo id for schema_name {schema_name!r} in REAL_SDK_REPO_ID -- add it (verified against the real GitHub org) before generating"
-    sdk_repo_id = REAL_SDK_REPO_ID[schema_name]
+    else:
+        sdk_repo_id = REAL_SDK_REPO_ID[schema_name]
 
     fields = json.load(open(schema_path))
     idents = idents_all[wire]
 
-    out_path, doc_service_dir, go_local, slug = resolve_page_path(docs_root, provider, idents)
+    if out_path_override:
+        # GCP/Azure: the go/py/ts identifiers' OWN service_dir/filename
+        # still carry whatever raw, possibly-doubled name Discover()
+        # produced (the doc-generation-time correction, gcp_corrected_
+        # key/_local, was never applied to the generated SDK code
+        # itself) -- resolve_page_path's own derivation from those
+        # would recompute the WRONG, pre-correction path. The real,
+        # already-correct path comes from the wire's own existing page
+        # title instead (built by the caller from a real directory
+        # scan), and go_local for intent_summary comes from that same
+        # real page's own current filename, not from the go file.
+        out_path = out_path_override
+        go_local = os.path.splitext(os.path.basename(out_path))[0].replace("-", "_")
+    else:
+        out_path, doc_service_dir, go_local, slug = resolve_page_path(docs_root, provider, idents)
     if not os.path.isfile(out_path):
         return "skip", (
             f"no existing page at {out_path} -- this tool only touches up an "
@@ -149,7 +176,18 @@ def main():
     p.add_argument("--idents-path", required=True, help="real extract_idents.py output JSON")
     p.add_argument("--docs-root", default=REPO_ROOT, help="real ubiquex-docs checkout root (default: this repo)")
     p.add_argument("--provider", default="aws")
-    p.add_argument("--schema-name", default="aws")
+    p.add_argument("--schema-name", default="aws",
+                    help="ignored per-wire when --schema-name-map is given")
+    p.add_argument("--schema-name-map",
+                    help="path to a real {wire: schema_name} JSON map, for providers (Azure, GCP) "
+                         "that declare one config entry per resource family rather than one for "
+                         "the whole provider -- each wire's own existing page already names its "
+                         "real family in its 'ubx sdk gen --only <family>' comment; that value "
+                         "must be preserved exactly, never collapsed to one global --schema-name")
+    p.add_argument("--sdk-repo-id",
+                    help="required together with --schema-name-map -- the real, constant "
+                         "per-provider SDK repo id (e.g. 'google', 'azure') that REAL_SDK_REPO_ID "
+                         "was never populated with per-family entries for")
     p.add_argument("--provider-display", default="AWS")
     p.add_argument("--stack-name", default="example")
     p.add_argument("--bindings-status", default="local_only", choices=["local_only", "published"],
@@ -161,7 +199,14 @@ def main():
                     help="skip inserting INTRO_NOTE ('Every tab below is a complete, runnable "
                          "program...') even when the existing page doesn't have it yet -- for a "
                          "narrowly-scoped splice that must not add unrelated prose")
+    p.add_argument("--out-path-map",
+                    help="path to a real {wire: existing_mdx_path} JSON map -- for GCP/Azure, "
+                         "whose generated SDK code's own service_dir/filename were never "
+                         "corrected the way the wire type was, so resolve_page_path's normal "
+                         "derivation would compute the wrong, pre-correction path")
     args = p.parse_args()
+    if args.schema_name_map and not args.sdk_repo_id:
+        p.error("--schema-name-map requires --sdk-repo-id")
 
     wires = list(args.wires)
     if args.wires_file:
@@ -170,13 +215,18 @@ def main():
         p.error("no wire types given -- pass some as arguments or via --wires-file")
 
     idents_all = json.load(open(args.idents_path))
+    schema_name_map = json.load(open(args.schema_name_map)) if args.schema_name_map else {}
+    out_path_map = json.load(open(args.out_path_map)) if args.out_path_map else {}
 
     results = []
     for wire in wires:
+        schema_name = schema_name_map.get(wire, args.schema_name)
         status, detail = generate_one(
             wire, args.docs_root, args.schema_dir, idents_all,
-            args.provider, args.schema_name, args.provider_display, args.stack_name,
+            args.provider, schema_name, args.provider_display, args.stack_name,
             args.bindings_status, add_intro_note=not args.no_intro_note,
+            sdk_repo_id_override=args.sdk_repo_id,
+            out_path_override=out_path_map.get(wire),
         )
         print(f"{status.upper()} {wire}: {detail}")
         results.append((wire, status, detail))
