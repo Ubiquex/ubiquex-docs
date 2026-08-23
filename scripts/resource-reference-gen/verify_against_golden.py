@@ -182,23 +182,22 @@ def check_em_dashes(page):
 
 def check_category_override(provider, wire, artifacts_root):
     """Confirms this wire's own category resolves to a real, non-empty
-    label via the real three-step resolver (category_resolve.py):
-    overrides by exact wire name first, then the resource's derived
-    service in services, then the raw vendor-derived label from
-    categories.json's own {categories: {wire: label}} map (CFN typeName
-    / Discovery Doc title / ARM namespace / Kubernetes API group /
-    OpenAPI tag). services/overrides are a purely additive authored
-    layer for display names and for the rare case where the vendor's
-    own grouping is wrong for a reader -- categories itself is never
-    edited by that layer. A wire with no entry at all (e.g. one outside
-    the scoped, vendor-field-correlated corpus, like a legacy
-    HashiCorp-sourced page) is not an error -- see
+    label via the real resolver (category_resolve.py). All six real
+    provider files are the flat per-resource shape now -- one overrides
+    entry per resource, `{wire: {label, domain?}}`, services always
+    empty -- so the in-scope check below is against overrides directly.
+    The older {categories: {wire: label}} base-map shape (categories as
+    the authoritative source, services/overrides an additive layer on
+    top) is still handled, for any file that hasn't been converted. A
+    wire with no entry at all (e.g. one outside the scoped corpus, like
+    a legacy HashiCorp-sourced page) is not an error -- see
     CHECKS_THIS_CANNOT_DO for what this cannot verify."""
     cat_path = os.path.join(artifacts_root, provider, "categories.json")
     if not os.path.exists(cat_path):
         return []
     cats = json.load(open(cat_path))
-    if wire not in cats.get("categories", {}):
+    in_scope = wire in cats.get("categories", {}) if "categories" in cats else wire in cats.get("overrides", {})
+    if not in_scope:
         return []
     label, _domain, _source = resolve_category(cats, wire)
     if not label:

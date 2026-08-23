@@ -1,13 +1,20 @@
-"""Shared category resolution for the two-section categories.json shape
-(services + overrides, added on top of the existing vendor-derived
-categories map): overrides by exact wire name first, then the
-resource's derived service in services, then the raw derived label.
+"""Shared category resolution for categories.json.
 
-The vendor-derived `categories` map itself is the authoritative base and
-is never edited by this resolver or anything that calls it -- `services`
-and `overrides` are a purely additive authored layer for display names
-and for the rare case where the vendor's own grouping is wrong for a
-reader (see artifacts/<provider>/categories.json's own _comment)."""
+All six providers were converted to flat per-resource form: one
+overrides entry per real resource, `{wire: {label, domain?}}`, holding
+a snapshot of whatever that resource's label resolved to at conversion
+time. `services` is kept as an always-present, currently-empty section
+(schema stability, not dead weight -- a provider could repopulate it
+later without a shape change) but is never the resolution path for any
+of the six real files today, since every resource already has a direct
+override.
+
+The old two-section shape (a vendor-derived `categories` base map, with
+`services`/`overrides` as an additive layer on top) is still supported
+here for backward compatibility -- resolve_category only walks that
+fallback path when a file actually has a `categories` key. None of the
+six real provider files do anymore; this is purely so an
+older-shaped input never silently resolves to nothing."""
 import re
 
 
@@ -20,14 +27,18 @@ def resolve_category(categories_doc, wire):
     Returns (label, domain_or_None, source) where source is one of
     "override", "service", "raw" -- source is for reporting/debugging,
     never meant to be shown to a reader."""
-    raw_label = categories_doc.get("categories", {}).get(wire)
-    if raw_label is None:
-        return None, None, None
-
     overrides = categories_doc.get("overrides", {})
     if wire in overrides:
         entry = overrides[wire]
         return entry["label"], entry.get("domain"), "override"
+
+    categories = categories_doc.get("categories")
+    if categories is None:
+        return None, None, None
+
+    raw_label = categories.get(wire)
+    if raw_label is None:
+        return None, None, None
 
     services = categories_doc.get("services", {})
     slug = slugify(raw_label)
