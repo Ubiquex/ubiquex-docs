@@ -1,9 +1,9 @@
 ---
-title: "kubernetes_coordination_lease_candidate"
-description: "`kubernetes_coordination_lease_candidate` registers one real instance of a control-plane component (like `kube-scheduler`) as competing for leadership..."
+title: "kubernetes_autoscaling_v1_horizontal_pod_autoscaler"
+description: "The real, older `autoscaling/v1` shape of `kubernetes_autoscaling_horizontal_pod_autoscaler`, still served for compatibility but not the current..."
 ---
 
-`kubernetes_coordination_lease_candidate` registers one real instance of a control-plane component (like `kube-scheduler`) as competing for leadership during coordinated leader election, carrying its own identity, binary version, and emulation version -- real information the cluster uses to deterministically pick a leader during a rolling upgrade rather than picking whichever instance happened to grab the lease first. This is the `coordination.k8s.io/v1beta1` shape, the real, current generation control-plane components are moving onto -- Coordinated Leader Election's original API generation was `v1alpha1`, then `v1alpha2` (`kubernetes_coordination_v1alpha2_lease_candidate`, still served but older), superseded by this v1beta1 generation.
+The real, older `autoscaling/v1` shape of `kubernetes_autoscaling_horizontal_pod_autoscaler`, still served for compatibility but not the current, preferred one -- that's the plain, unversioned sibling (`autoscaling/v2`). v1 only ever supports scaling on a single CPU-utilization target (`target_cpu_utilization_percentage`), predating v2's own multi-metric `metrics` array and real scaling status conditions. New HorizontalPodAutoscalers should target the plain, unversioned resource instead.
 
 ## Example
 
@@ -16,17 +16,17 @@ description: "`kubernetes_coordination_lease_candidate` registers one real insta
 
     import (
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
-    	coordination "github.com/ubiquex/ubx-sdk-kubernetes/sdk/go/kubernetes/coordination"
+    	autoscaling "github.com/ubiquex/ubx-sdk-kubernetes/sdk/go/kubernetes/autoscaling"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("payments", func() {
-    		ubx.Intent(ubx.IntentInfo{Summary: "payments own lease candidate"})
+    		ubx.Intent(ubx.IntentInfo{Summary: "payments own v1 horizontal pod autoscaler"})
 
-    		ubx.Resource(coordination.LeaseCandidate, "ci-runner", coordination.LeaseCandidateConfig{
+    		ubx.Resource(autoscaling.V1HorizontalPodAutoscaler, "ci-runner", autoscaling.V1HorizontalPodAutoscalerConfig{
     			Name:      "ci-runner",
     			Namespace: "example",
-    			Spec:      map[string]any{"binary_version": "example"},
+    			Spec:      map[string]any{"max_replicas": 1},
     		})
     	}))
     }
@@ -36,15 +36,15 @@ description: "`kubernetes_coordination_lease_candidate` registers one real insta
     ```typescript
     // ubx sdk gen --only kubernetes --lang ts --out ./local-sdk
     import { intent, resource, stack } from "@ubx/sdk";
-    import { LeaseCandidate } from "./local-sdk/kubernetes/sdk/typescript/kubernetes/coordination/lease_candidate.ts";
+    import { V1HorizontalPodAutoscaler } from "./local-sdk/kubernetes/sdk/typescript/kubernetes/autoscaling/v1_horizontal_pod_autoscaler.ts";
 
     export default stack("payments", () => {
-      intent({ summary: "payments own lease candidate" });
+      intent({ summary: "payments own v1 horizontal pod autoscaler" });
 
-      resource(LeaseCandidate, "ci-runner", {
+      resource(V1HorizontalPodAutoscaler, "ci-runner", {
         name: "ci-runner",
         namespace: "example",
-        spec: { binaryVersion: "example" },
+        spec: { maxReplicas: 1 },
       });
     });
     ```
@@ -54,15 +54,15 @@ description: "`kubernetes_coordination_lease_candidate` registers one real insta
     # ubx sdk gen --only kubernetes --lang py --out ./local-sdk
     # export PYTHONPATH=./local-sdk/kubernetes/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.kubernetes.coordination import LeaseCandidate, LeaseCandidateConfig
+    from ubx.kubernetes.autoscaling import V1HorizontalPodAutoscaler, V1HorizontalPodAutoscalerConfig
 
     def describe():
-        ubx.intent("payments own lease candidate")
+        ubx.intent("payments own v1 horizontal pod autoscaler")
 
-        ubx.resource(LeaseCandidate, "ci-runner", LeaseCandidateConfig(
+        ubx.resource(V1HorizontalPodAutoscaler, "ci-runner", V1HorizontalPodAutoscalerConfig(
             name="ci-runner",
             namespace="example",
-            spec={"binary_version": "example"},
+            spec={"max_replicas": 1},
         ))
 
     if __name__ == "__main__":
@@ -71,7 +71,7 @@ description: "`kubernetes_coordination_lease_candidate` registers one real insta
   </Tab>
   <Tab title="Markdown">
     ```
-    Create kubernetes_coordination_lease_candidate called
+    Create kubernetes_autoscaling_v1_horizontal_pod_autoscaler called
     "ci-runner", with namespace example, spec a set value.
     ```
   </Tab>
@@ -118,25 +118,25 @@ description: "`kubernetes_coordination_lease_candidate` registers one real insta
       ManagedFields maps workflow-id and version to the set of fields that are managed by that workflow. This is mostly for internal housekeeping, and users typically shouldn't need to set or understand this field. A workflow can be the user's name, a controller's name, or the name of a specific apply path like "ci-cd". The set of fields is always in the version that the workflow used when modifying the object. Optional.
       <Expandable title="properties">
         <ResponseField name="api_version" type="string">
-          The API version of the resource that the manager used to manage the field. This is part of the managed fields metadata for the Kubernetes object. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
+          APIVersion defines the version of this resource that this field set applies to. The format is 'group/version' just like the top-level Version field. It is necessary to clear the entry in the managed fields when the API version changes. Optional; if omitted, computed by Kubernetes. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="fields_type" type="string">
-          The type of fields stored in this managedFields entry. In Kubernetes, the only supported value is 'FieldsV1', which indicates the fields are stored in the FieldsV1 format. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
+          FieldsType is the discriminator for the different fields format and version. There is only one possible value: FieldsV1. Optional; if omitted, computed by Kubernetes. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="fields_v1" type="any">
-          fields_v1 is a JSON representation of the managed fields. It stores the set of fields that are owned by the manager, including their current values, used for conflict resolution during updates. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
+          fieldsV1 stores the fields managed by the manager as a JSON object, representing the managed fields in a structured format. Optional; if omitted, computed by Kubernetes. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="manager" type="string">
-          The name of the manager (user or system) that last applied this field set. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
+          The name of the controller, actor, or client that last applied or owns the fields in this managed fields entry. Optional; if omitted, computed by Kubernetes. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="operation" type="string">
-          The operation that was performed on the managed field, such as 'Apply', 'Update', or 'Delete'. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
+          The operation type that was performed on the resource, such as 'Apply' or 'Update'. This is part of a managed field entry in metadata. Optional; if omitted, computed by Kubernetes. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="subresource" type="string">
-          The subresource of the resource that these managed fields apply to, such as 'status' or an empty string for the main resource. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
+          The subresource this managed fields entry applies to, such as 'scale' for the scale subresource. Empty string indicates the main resource. Optional; if omitted, computed by Kubernetes. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="time" type="string">
-          Time is the timestamp of when the managed fields entry was added. It records when the object was last modified by the manager. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
+          The timestamp at which the ManagedFields entry was processed. This is represented as a string in RFC3339 format. Optional; if omitted, computed by Kubernetes. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
@@ -150,22 +150,22 @@ description: "`kubernetes_coordination_lease_candidate` registers one real insta
       List of objects depended by this object. If ALL objects in the list have been deleted, this object will be garbage collected. If this object is managed by a controller, then an entry in this list will point to this controller, with the controller field set to true. There cannot be more than one managing controller. Optional.
       <Expandable title="properties">
         <ResponseField name="api_version" type="string">
-          The API version of the referent resource. This identifies the Kubernetes API version of the owner object. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
+          The API version of the owner resource. Optional; if omitted, computed by Kubernetes. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="block_owner_deletion" type="bool">
-          If true, blocks deletion of the owner object until this dependent resource is removed. This field is part of the OwnerReference in Kubernetes metadata and is used to prevent the owner from being deleted while this dependent exists. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
+          If true, and the owner has the 'foregroundDeletion' finalizer, the owner cannot be deleted until this reference is removed. Defaults to false. Optional; if omitted, computed by Kubernetes. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="controller" type="bool">
-          If true, this reference points to the managing controller. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
+          A boolean flag indicating whether the referenced object is the managing controller for the owner reference. When true, this owner reference is a controller. Optional; if omitted, computed by Kubernetes. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="kind" type="string">
-          The kind of the referenced owner object, e.g., 'Deployment' or 'ReplicaSet'. It identifies the Kubernetes resource type of the owner. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
+          Kind of the referenced owner object. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds Optional; if omitted, computed by Kubernetes. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="name" type="string">
-          The name of the referenced Kubernetes object, used to identify the exact owner resource in the OwnerReference. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
+          The name of the owner object referenced by this owner reference. It must match the name of the resource in the same API group and kind. Optional; if omitted, computed by Kubernetes. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
         </ResponseField>
         <ResponseField name="uid" type="string">
-          The UID of the object that this owner reference points to. This uniquely identifies the referenced object within its API group and resource type. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
+          The UID of the referenced owner object. Optional; if omitted, computed by Kubernetes. Optional; if omitted, computed by Kubernetes. **(AI-inferred)**
         </ResponseField>
       </Expandable>
     </ResponseField>
@@ -190,25 +190,51 @@ description: "`kubernetes_coordination_lease_candidate` registers one real insta
 </ResponseField>
 
 <ResponseField name="spec" type="object" required>
-  LeaseCandidateSpec is a specification of a Lease. Required.
+  specification of a horizontal pod autoscaler. Required.
   <Expandable title="properties">
-    <ResponseField name="binary_version" type="string" required>
-      binaryVersion is the binary version. It must be in a semver format without leading `v`. This field is required. Required.
+    <ResponseField name="max_replicas" type="number" required>
+      maxReplicas is the upper limit for the number of pods that can be set by the autoscaler; cannot be smaller than MinReplicas. Required.
     </ResponseField>
-    <ResponseField name="emulation_version" type="string">
-      emulationVersion is the emulation version. It must be in a semver format without leading `v`. EmulationVersion must be less than or equal to BinaryVersion. This field is required when strategy is "OldestEmulationVersion" Optional.
+    <ResponseField name="min_replicas" type="number">
+      minReplicas is the lower limit for the number of replicas to which the autoscaler can scale down. It defaults to 1 pod. minReplicas is allowed to be 0 if the alpha feature gate HPAScaleToZero is enabled and at least one Object or External metric is configured. Scaling is active as long as at least one metric value is available. Optional.
     </ResponseField>
-    <ResponseField name="lease_name" type="string" required>
-      leaseName is the name of the lease for which this candidate is contending. The limits on this field are the same as on Lease.name. Multiple lease candidates may reference the same Lease.name. This field is immutable. Required.
+    <ResponseField name="scale_target_ref" type="object" required>
+      CrossVersionObjectReference contains enough information to let you identify the referred resource. Required.
+      <Expandable title="properties">
+        <ResponseField name="api_version" type="string">
+          apiVersion is the API version of the referent Optional.
+        </ResponseField>
+        <ResponseField name="kind" type="string" required>
+          kind is the kind of the referent; More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds Required.
+        </ResponseField>
+        <ResponseField name="name" type="string" required>
+          name is the name of the referent; More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names Required.
+        </ResponseField>
+      </Expandable>
     </ResponseField>
-    <ResponseField name="ping_time" type="string">
-      MicroTime is version of Time with microsecond level precision. Optional.
+    <ResponseField name="target_cpuutilization_percentage" type="number">
+      targetCPUUtilizationPercentage is the target average CPU utilization (represented as a percentage of requested CPU) over all the pods; if not specified the default autoscaling policy will be used. Optional.
     </ResponseField>
-    <ResponseField name="renew_time" type="string">
-      MicroTime is version of Time with microsecond level precision. Optional.
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="status" type="object">
+  current status of a horizontal pod autoscaler Optional; if omitted, computed by Kubernetes.
+  <Expandable title="properties">
+    <ResponseField name="current_cpuutilization_percentage" type="number">
+      currentCPUUtilizationPercentage is the current average CPU utilization over all pods, represented as a percentage of requested CPU, e.g. 70 means that an average pod is using now 70% of its requested CPU. Optional.
     </ResponseField>
-    <ResponseField name="strategy" type="string" required>
-      strategy is the strategy that coordinated leader election will use for picking the leader. If multiple candidates for the same Lease return different strategies, the strategy provided by the candidate with the latest BinaryVersion will be used. If there is still conflict, this is a user error and coordinated leader election will not operate the Lease until resolved. Required.
+    <ResponseField name="current_replicas" type="number" required>
+      currentReplicas is the current number of replicas of pods managed by this autoscaler. Required.
+    </ResponseField>
+    <ResponseField name="desired_replicas" type="number" required>
+      desiredReplicas is the desired number of replicas of pods managed by this autoscaler. Required.
+    </ResponseField>
+    <ResponseField name="last_scale_time" type="string">
+      Time is a wrapper around time.Time which supports correct marshaling to YAML and JSON. Wrappers are provided for many of the factory methods that the time package offers. Optional.
+    </ResponseField>
+    <ResponseField name="observed_generation" type="number">
+      observedGeneration is the most recent generation observed by this autoscaler. Optional.
     </ResponseField>
   </Expandable>
 </ResponseField>
