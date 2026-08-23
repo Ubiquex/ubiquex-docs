@@ -17,7 +17,7 @@ Usage:
   python3 gen_golden_page.py <provider> <schema_name> <provider_display> <wire> \\
       --schema-dir /tmp/schema-dump --idents-path /tmp/<schema_name>_idents.json \\
       --intros-path <path-to-artifacts>/<provider>/intros.json \\
-      [--stack-name payments] [--bindings-status published|local_only] \\
+      [--stack-name example] [--bindings-status published|local_only] \\
       [--out-dir golden]
 
 Example (this session's real AWS candidate):
@@ -49,7 +49,7 @@ from gen_provider_docs import (
 # function, so there is exactly one place that decides what a
 # freshly-generated golden page looks like, not two that could drift.
 def generate(provider, schema_name, provider_display, wire, schema_dir, idents_path,
-             intros_path, stack_name="payments", bindings_status="published"):
+             intros_path, stack_name="example", bindings_status="published"):
     """Returns (page_text, slug, fields, intro_text_or_None). Raises
     SystemExit with a real, specific reason on any missing/mismatched
     real input -- never silently substitutes a guess."""
@@ -117,7 +117,7 @@ def main():
     p.add_argument("--schema-dir", required=True, help="directory containing <schema_name>/schema.json and <schema_name>/<wire>.json (see README.md)")
     p.add_argument("--idents-path", required=True, help="real extract_idents.py output JSON for this provider")
     p.add_argument("--intros-path", required=True, help="real artifacts/<provider>/intros.json path")
-    p.add_argument("--stack-name", default="payments")
+    p.add_argument("--stack-name", default="example")
     p.add_argument("--bindings-status", choices=["published", "local_only"], default="published")
     p.add_argument("--out-dir", default=os.path.join(os.path.dirname(__file__), "golden"))
     args = p.parse_args()

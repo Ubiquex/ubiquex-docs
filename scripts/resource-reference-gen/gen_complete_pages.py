@@ -11,7 +11,7 @@ run (schema dump -> extract_idents.py -> this).
 Usage:
   python3 gen_complete_pages.py --schema-dir DIR --idents-path FILE \\
       [--docs-root PATH] [--provider aws] [--schema-name aws] \\
-      [--provider-display AWS] [--stack-name payments] \\
+      [--provider-display AWS] [--stack-name example] \\
       <wire_type> [<wire_type> ...]
   python3 gen_complete_pages.py --schema-dir DIR --idents-path FILE \\
       --wires-file wires.txt   # one real wire type per line
@@ -54,7 +54,7 @@ INTRO_NOTE = "\n\n" + wrap_markdown(
 
 
 def generate_one(wire, docs_root, schema_dir, idents_all, provider, schema_name,
-                  provider_display, stack_name):
+                  provider_display, stack_name, bindings_status, add_intro_note=True):
     schema_path = os.path.join(schema_dir, f"{wire}.json")
     if not os.path.isfile(schema_path):
         return "skip", f"no schema dump at {schema_path}"
@@ -109,21 +109,30 @@ def generate_one(wire, docs_root, schema_dir, idents_all, provider, schema_name,
             intent_summary=f"{stack_name} own {go_local.replace('_', ' ')}",
             companion_markdown=companion_markdown,
             sdk_repo_id=sdk_repo_id,
+            bindings_status=bindings_status,
         )
     except Exception as e:
         return "error", str(e)
 
     original = open(out_path).read()
     marker_start = "## Example\n"
-    marker_end = "\n## Input properties"
-    if marker_start not in original or marker_end not in original:
+    # Two real, live page shapes follow "## Example": most resources
+    # split "## Input properties" / "## Output properties"; a real
+    # minority (every one of a resource's own fields is both readable
+    # and writable, so there's nothing to split) instead has a single
+    # "## Properties" section. Both are genuine, current templates, not
+    # a legacy one to migrate away from -- splice up to whichever one
+    # this page actually has.
+    end_markers = ["\n## Input properties", "\n## Properties"]
+    marker_end = next((m for m in end_markers if m in original), None)
+    if marker_start not in original or marker_end is None:
         return "error", "page doesn't match the expected splice shape"
     start = original.index(marker_start)
     end = original.index(marker_end)
 
     before = original[:start]
     after = original[end:]
-    if INTRO_NOTE.strip() not in before:
+    if add_intro_note and INTRO_NOTE.strip() not in before:
         before = before.rstrip("\n") + INTRO_NOTE + "\n\n"
 
     new_page = before + example_section + after
@@ -142,7 +151,16 @@ def main():
     p.add_argument("--provider", default="aws")
     p.add_argument("--schema-name", default="aws")
     p.add_argument("--provider-display", default="AWS")
-    p.add_argument("--stack-name", default="payments")
+    p.add_argument("--stack-name", default="example")
+    p.add_argument("--bindings-status", default="local_only", choices=["local_only", "published"],
+                    help="must match the EXISTING page's own real bindings_status (check its own "
+                         "'ubx sdk gen --only ...' vs 'jsr:@ubx/...' import comment first) -- "
+                         "build_resource_page_complete's own default ('published') silently "
+                         "produces the WRONG import style if this doesn't match")
+    p.add_argument("--no-intro-note", action="store_true",
+                    help="skip inserting INTRO_NOTE ('Every tab below is a complete, runnable "
+                         "program...') even when the existing page doesn't have it yet -- for a "
+                         "narrowly-scoped splice that must not add unrelated prose")
     args = p.parse_args()
 
     wires = list(args.wires)
@@ -158,6 +176,7 @@ def main():
         status, detail = generate_one(
             wire, args.docs_root, args.schema_dir, idents_all,
             args.provider, args.schema_name, args.provider_display, args.stack_name,
+            args.bindings_status, add_intro_note=not args.no_intro_note,
         )
         print(f"{status.upper()} {wire}: {detail}")
         results.append((wire, status, detail))

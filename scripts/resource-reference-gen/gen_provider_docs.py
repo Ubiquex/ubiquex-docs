@@ -717,13 +717,13 @@ def field_literal_with_preamble(f, lang):
             return TRUST_POLICY_PREAMBLE_TS, "trustPolicy"
         return TRUST_POLICY_PREAMBLE_PY, "trust_policy"
     if is_string and wire == "name":
-        # The resource's own instance name (the literal "ci-runner"
+        # The resource's own instance name (the literal "example"
         # second argument to resource()/ubx.Resource()) IS the real,
         # natural value for a "name" field specifically -- the original
         # literal_go/ts/py's own generic "example-name" fallback exists
         # for every OTHER "*_name"-suffixed field, where no such natural
         # value is available.
-        return None, '"ci-runner"'
+        return None, '"example"'
     if is_string and is_generic_policy_field(wire):
         if lang == "go":
             return ACCESS_POLICY_PREAMBLE_GO, "string(accessPolicy)"
@@ -737,10 +737,10 @@ def field_literal_with_preamble(f, lang):
         # resource family.
         return None, '"Managed by ubx."'
     if is_string and is_arn_like_field(wire):
-        v = '"arn:aws:iam::123456789012:policy/ci"'
+        v = '"arn:aws:iam::123456789012:policy/example"'
         return None, v
     if is_string and is_path_field(wire):
-        return None, '"/ci/"'
+        return None, '"/example/"'
     if is_number and is_duration_field(wire):
         return None, "7200"
     if is_map:
@@ -903,7 +903,7 @@ def wrap_markdown(text, width=65):
 KNOWN_FAMILY_MARKDOWN = {
     "aws_iam_role": lambda name_val: (
         'Attach a policy allowing it to send messages to '
-        '@payments.aws_sqs_queue.pipeline-events.'
+        '@example.aws_sqs_queue.pipeline-events.'
     ),
 }
 
@@ -1078,7 +1078,7 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
         go_lines.append("")
         go_lines.append("\t\t" + reindent(pre, "\t\t"))
     go_lines.append("")
-    go_lines.append(f'\t\tubx.Resource({go["package"]}.{go["binding"]}, "ci-runner", {go["package"]}.{go["config"]}{{')
+    go_lines.append(f'\t\tubx.Resource({go["package"]}.{go["binding"]}, "example", {go["package"]}.{go["config"]}{{')
     go_lines.extend(go_assigns)
     go_lines.append("\t\t})")
     go_lines.append("\t}))")
@@ -1111,7 +1111,7 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
         ts_lines.append("")
         ts_lines.append("  " + reindent(pre, "  "))
     ts_lines.append("")
-    ts_lines.append(f'  resource({ts["binding"]}, "ci-runner", {{')
+    ts_lines.append(f'  resource({ts["binding"]}, "example", {{')
     ts_lines.extend(ts_assigns)
     ts_lines.append("  });")
     ts_lines.append("});")
@@ -1143,7 +1143,7 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
         py_lines.append("")
         py_lines.append("    " + reindent(pre, "    "))
     py_lines.append("")
-    py_lines.append(f'    ubx.resource({py["binding"]}, "ci-runner", {py["config"]}(')
+    py_lines.append(f'    ubx.resource({py["binding"]}, "example", {py["config"]}(')
     py_lines.extend(py_assigns)
     py_lines.append("    ))")
     py_lines.append("")

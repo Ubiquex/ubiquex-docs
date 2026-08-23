@@ -15,7 +15,7 @@ real, full pipeline (schema dump -> extract_idents.py -> this).
 Usage:
   python3 gen_new_provider_pages.py <provider> <schema-name> <provider-display> \\
       <schema.json> <idents.json> \\
-      [--docs-root PATH] [--scratch-dir PATH] [--stack-name payments] \\
+      [--docs-root PATH] [--scratch-dir PATH] [--stack-name example] \\
       [--bindings-status published|local_only]
 
 Example (the real command this session used for Datadog):
@@ -43,7 +43,7 @@ def main():
     p.add_argument("idents_path", help="real extract_idents.py output JSON")
     p.add_argument("--docs-root", default=REPO_ROOT, help="real ubiquex-docs checkout root (default: this repo)")
     p.add_argument("--scratch-dir", default="/tmp", help="where to write the real nav fragment JSON (default: /tmp)")
-    p.add_argument("--stack-name", default="payments", help="real example stack name used across every generated program")
+    p.add_argument("--stack-name", default="example", help="real example stack name used across every generated program")
     p.add_argument("--intros-path", default=None,
                     help="artifacts/<provider>/intros.json (real, keyed by wire -- see real_intro_for) "
                          "to replace the generic boilerplate intro/frontmatter description. Omit to keep the boilerplate.")

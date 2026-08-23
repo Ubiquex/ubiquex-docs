@@ -244,7 +244,7 @@ def main():
             provider=provider,
             schema_name=family,
             provider_display=PROVIDER_DISPLAY[provider],
-            stack_name="payments",
+            stack_name="example",
             schema_path=family_schema_path,
             idents_path=family_idents_path,
             bindings_status="local_only",
