@@ -1,0 +1,132 @@
+---
+title: "datadog_ticket_creation_rule_response"
+description: "`datadog_ticket_creation_rule_response` is a real rule that automatically creates an external ticket (Jira..."
+---
+
+`datadog_ticket_creation_rule_response` is a real rule that automatically creates an external ticket (Jira, ServiceNow) when a real condition is met -- for example, automatically opening a Jira ticket the moment a Datadog incident is declared, using the linked `datadog_jira_issue_template_response`.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only datadog --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-datadog/sdk/go => ./local-sdk/datadog/sdk/go
+    package main
+
+    import (
+    	ticket "github.com/ubiquex/ubx-sdk-datadog/sdk/go/datadog/ticket"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own creation rule response"})
+
+    		ubx.Resource(ticket.CreationRuleResponse, "example", ticket.CreationRuleResponseConfig{
+    			Data:   map[string]any{"attributes": map[string]any{"name": "example-name"}},
+    			RuleId: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only datadog --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { CreationRuleResponse } from "./local-sdk/datadog/sdk/typescript/datadog/ticket/creation_rule_response.ts";
+
+    export default stack("example", () => {
+      intent({ summary: "example own creation rule response" });
+
+      resource(CreationRuleResponse, "example", {
+        data: { attributes: { name: "example-name" } },
+        ruleId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only datadog --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/datadog/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.datadog.ticket import CreationRuleResponse, CreationRuleResponseConfig
+
+    def describe():
+        ubx.intent("example own creation rule response")
+
+        ubx.resource(CreationRuleResponse, "example", CreationRuleResponseConfig(
+            data={"attributes": {"name": "example-name"}},
+            rule_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create datadog_ticket_creation_rule_response, with data a set
+    value, rule id example.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="data" type="object" required>
+  The data object for a ticket creation rule create or update request. Required.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="object" required>
+      Attributes for creating or updating a ticket creation rule. Required.
+      <Expandable title="properties">
+        <ResponseField name="action" type="object" required>
+          The action to take when the ticket creation rule matches a finding. Required.
+          <Expandable title="properties">
+            <ResponseField name="assignee_id" type="string">
+              The UUID of the default assignee for created tickets. Optional.
+            </ResponseField>
+            <ResponseField name="fields" type="any">
+              Custom fields of the Jira issue to create. For the list of available fields, see [Jira documentation](https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issues/#api-rest-api-2-issue-createmeta-projectidorkey-issuetypes-issuetypeid-get). Optional.
+            </ResponseField>
+            <ResponseField name="max_tickets_per_day" type="number" required>
+              The maximum number of tickets the rule may create per day. If exceeded, one final ticket will be created, explaining the limit was hit and link back to the responsible rule. Required.
+            </ResponseField>
+            <ResponseField name="project_id" type="string" required>
+              The UUID of the case management project. Required.
+            </ResponseField>
+            <ResponseField name="target" type="string" required>
+              The ticketing system to create tickets in. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="enabled" type="bool">
+          Whether the ticket creation rule is enabled. Optional.
+        </ResponseField>
+        <ResponseField name="name" type="string" required>
+          The name of the ticket creation rule. Required.
+        </ResponseField>
+        <ResponseField name="rule" type="object" required>
+          Defines the scope of findings to which the automation rule applies. Required.
+          <Expandable title="properties">
+            <ResponseField name="finding_types" type="list(string)" required>
+              The list of security finding types that the automation rule applies to. Required.
+            </ResponseField>
+            <ResponseField name="query" type="string">
+              A search query to further filter the findings matched by this rule. The `@workflow.*` namespace and `@status` fields are not permitted. For a reference of available fields, see the [Security Findings schema documentation](https://docs.datadoghq.com/security/guide/findings-schema/). Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      The JSON:API type for ticket creation rules. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="rule_id" type="string" required>
+  path parameter, not part of the API's own resource representation Required.
+</ResponseField>

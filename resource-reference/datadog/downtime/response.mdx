@@ -1,0 +1,282 @@
+---
+title: "datadog_downtime_response"
+description: "`datadog_downtime_response` is v2's own richer representation of a Datadog downtime -- a real, scheduled suppression window that mutes monitor alerts..."
+---
+
+`datadog_downtime_response` is v2's own richer representation of a Datadog downtime -- a real, scheduled suppression window that mutes monitor alerts for a specific scope (a host, a service, a tag) during planned maintenance, so expected changes don't page anyone.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only datadog --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-datadog/sdk/go => ./local-sdk/datadog/sdk/go
+    package main
+
+    import (
+    	downtime "github.com/ubiquex/ubx-sdk-datadog/sdk/go/datadog/downtime"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own response"})
+
+    		ubx.Resource(downtime.Response, "example", downtime.ResponseConfig{
+    			Data:       map[string]any{"attributes": map[string]any{"monitor_identifier": map[string]any{"monitor_id": 1}}},
+    			DowntimeId: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only datadog --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Response } from "./local-sdk/datadog/sdk/typescript/datadog/downtime/response.ts";
+
+    export default stack("example", () => {
+      intent({ summary: "example own response" });
+
+      resource(Response, "example", {
+        data: { attributes: { monitorIdentifier: { monitorId: 1 } } },
+        downtimeId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only datadog --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/datadog/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.datadog.downtime import Response, ResponseConfig
+
+    def describe():
+        ubx.intent("example own response")
+
+        ubx.resource(Response, "example", ResponseConfig(
+            data={"attributes": {"monitor_identifier": {"monitor_id": 1}}},
+            downtime_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create datadog_downtime_response, with data a set value, downtime
+    id example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="data" type="object" required>
+  Object to create a downtime. Required.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="object" required>
+      Downtime details. Required.
+      <Expandable title="properties">
+        <ResponseField name="display_timezone" type="string">
+          The timezone in which to display the downtime's start and end times in Datadog applications. This is not used as an offset for scheduling. Optional.
+        </ResponseField>
+        <ResponseField name="message" type="string">
+          A message to include with notifications for this downtime. Email notifications can be sent to specific users by using the same `@username` notation as events. Optional.
+        </ResponseField>
+        <ResponseField name="monitor_identifier" type="object" required>
+          Monitor identifier for the downtime. Required.
+          <Expandable title="properties">
+            <ResponseField name="monitor_id" type="number">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="monitor_tags" type="list(string)">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="mute_first_recovery_notification" type="bool">
+          If the first recovery notification during a downtime should be muted. Optional.
+        </ResponseField>
+        <ResponseField name="notify_end_states" type="list(string)">
+          States that will trigger a monitor notification when the `notify_end_types` action occurs. Optional.
+        </ResponseField>
+        <ResponseField name="notify_end_types" type="list(string)">
+          Actions that will trigger a monitor notification if the downtime is in the `notify_end_types` state. Optional.
+        </ResponseField>
+        <ResponseField name="schedule" type="object">
+          Schedule for the downtime. Optional.
+          <Expandable title="properties">
+            <ResponseField name="end" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="recurrences" type="list(object)">
+              Optional; if omitted, computed by Datadog.
+              <Expandable title="properties">
+                <ResponseField name="duration" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="rrule" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="start" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="start" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="timezone" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="scope" type="string" required>
+          The scope to which the downtime applies. Must follow the [common search syntax](https://docs.datadoghq.com/logs/explorer/search_syntax/). Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      Downtime resource type. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="downtime_id" type="string" required>
+  path parameter, not part of the API's own resource representation Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="included" type="list(object)">
+  Array of objects related to the downtime that the user requested. Computed by Datadog after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="object">
+      Optional; if omitted, computed by Datadog.
+      <Expandable title="properties">
+        <ResponseField name="created_at" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="disabled" type="bool">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="email" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="handle" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="icon" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="last_login_time" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="mfa_enabled" type="bool">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="modified_at" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="service_account" type="bool">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="status" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="title" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="uuid" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="verified" type="bool">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="id" type="string">
+      Optional; if omitted, computed by Datadog.
+    </ResponseField>
+    <ResponseField name="relationships" type="object">
+      Optional; if omitted, computed by Datadog.
+      <Expandable title="properties">
+        <ResponseField name="org" type="object">
+          Optional; if omitted, computed by Datadog.
+          <Expandable title="properties">
+            <ResponseField name="data" type="object">
+              Optional; if omitted, computed by Datadog.
+              <Expandable title="properties">
+                <ResponseField name="id" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="type" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="other_orgs" type="object">
+          Optional; if omitted, computed by Datadog.
+          <Expandable title="properties">
+            <ResponseField name="data" type="list(object)">
+              Optional; if omitted, computed by Datadog.
+              <Expandable title="properties">
+                <ResponseField name="id" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="type" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="other_users" type="object">
+          Optional; if omitted, computed by Datadog.
+          <Expandable title="properties">
+            <ResponseField name="data" type="list(object)">
+              Optional; if omitted, computed by Datadog.
+              <Expandable title="properties">
+                <ResponseField name="id" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="type" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="roles" type="object">
+          Optional; if omitted, computed by Datadog.
+          <Expandable title="properties">
+            <ResponseField name="data" type="list(object)">
+              Optional; if omitted, computed by Datadog.
+              <Expandable title="properties">
+                <ResponseField name="id" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="type" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      Optional; if omitted, computed by Datadog.
+    </ResponseField>
+  </Expandable>
+</ResponseField>

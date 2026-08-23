@@ -1,0 +1,151 @@
+---
+title: "datadog_postmortem_template_response"
+description: "`datadog_postmortem_template_response` is a real, reusable template a Datadog incident postmortem document is generated from -- the standard sections..."
+---
+
+`datadog_postmortem_template_response` is a real, reusable template a Datadog incident postmortem document is generated from -- the standard sections (timeline, root cause, action items) a team defines once and reuses for every incident writeup.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only datadog --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-datadog/sdk/go => ./local-sdk/datadog/sdk/go
+    package main
+
+    import (
+    	postmortem "github.com/ubiquex/ubx-sdk-datadog/sdk/go/datadog/postmortem"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own template response"})
+
+    		ubx.Resource(postmortem.TemplateResponse, "example", postmortem.TemplateResponseConfig{
+    			Data:       map[string]any{"attributes": map[string]any{"name": "example-name"}},
+    			TemplateId: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only datadog --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { TemplateResponse } from "./local-sdk/datadog/sdk/typescript/datadog/postmortem/template_response.ts";
+
+    export default stack("example", () => {
+      intent({ summary: "example own template response" });
+
+      resource(TemplateResponse, "example", {
+        data: { attributes: { name: "example-name" } },
+        templateId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only datadog --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/datadog/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.datadog.postmortem import TemplateResponse, TemplateResponseConfig
+
+    def describe():
+        ubx.intent("example own template response")
+
+        ubx.resource(TemplateResponse, "example", TemplateResponseConfig(
+            data={"attributes": {"name": "example-name"}},
+            template_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create datadog_postmortem_template_response, with data a set
+    value, template id example.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="data" type="object" required>
+  Data object for creating or updating a postmortem template. Required.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="object" required>
+      Attributes for creating or updating a postmortem template. Required.
+      <Expandable title="properties">
+        <ResponseField name="confluence_postmortem_settings" type="object">
+          Settings for a postmortem template stored in Confluence. Required when `location` is `confluence`. Optional.
+          <Expandable title="properties">
+            <ResponseField name="account_id" type="string" required>
+              The ID of the Confluence integration account. Required.
+            </ResponseField>
+            <ResponseField name="parent_id" type="string">
+              The ID of the parent Confluence page under which postmortems are created. Optional.
+            </ResponseField>
+            <ResponseField name="space_id" type="string" required>
+              The ID of the Confluence space where postmortems are created. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="content" type="string">
+          The templated content of the postmortem, supporting Markdown and incident template variables. Optional.
+        </ResponseField>
+        <ResponseField name="google_docs_postmortem_settings" type="object">
+          Settings for a postmortem template stored in Google Docs. Required when `location` is `google_docs`. Optional.
+          <Expandable title="properties">
+            <ResponseField name="account_id" type="string" required>
+              The ID of the Google Drive integration account. Required.
+            </ResponseField>
+            <ResponseField name="parent_folder_id" type="string" required>
+              The ID of the Google Drive folder where postmortems are created. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="is_default" type="string">
+          When set, marks this template as a default. The effective default for an incident type is the template with the most recent `is_default` timestamp. Set to `null` to unset. Optional.
+        </ResponseField>
+        <ResponseField name="location" type="string">
+          The location where the postmortem is created and stored. Optional.
+        </ResponseField>
+        <ResponseField name="name" type="string" required>
+          The name of the template. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="id" type="string">
+      The ID of the template. Required when updating. Optional.
+    </ResponseField>
+    <ResponseField name="relationships" type="object">
+      Relationships for a postmortem template. `incident_type` is required when creating a template and is immutable afterwards. Optional.
+      <Expandable title="properties">
+        <ResponseField name="incident_type" type="object">
+          Relationship to the incident type this template belongs to. Optional.
+          <Expandable title="properties">
+            <ResponseField name="data" type="object" required>
+              Incident type relationship data. Required.
+              <Expandable title="properties">
+                <Note>`data` recurs here (its own type contains itself); see the `data` field's own properties above for the repeating pattern.</Note>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      Postmortem template resource type. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="template_id" type="string" required>
+  path parameter, not part of the API's own resource representation Required.
+</ResponseField>

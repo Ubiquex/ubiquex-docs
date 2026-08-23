@@ -1,0 +1,136 @@
+---
+title: "datadog_automation_rule_response"
+description: "`datadog_automation_rule_response` is a real Datadog Case Management automation rule -- a trigger condition (a new case matching certain criteria)..."
+---
+
+`datadog_automation_rule_response` is a real Datadog Case Management automation rule -- a trigger condition (a new case matching certain criteria) paired with an action (assign, tag, notify) that runs automatically so a security or ops team doesn't have to triage every case by hand.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only datadog --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-datadog/sdk/go => ./local-sdk/datadog/sdk/go
+    package main
+
+    import (
+    	automation "github.com/ubiquex/ubx-sdk-datadog/sdk/go/datadog/automation"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own rule response"})
+
+    		ubx.Resource(automation.RuleResponse, "example", automation.RuleResponseConfig{
+    			Data:      map[string]any{"attributes": map[string]any{"name": "example-name"}},
+    			ProjectId: "example",
+    			RuleId:    "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only datadog --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { RuleResponse } from "./local-sdk/datadog/sdk/typescript/datadog/automation/rule_response.ts";
+
+    export default stack("example", () => {
+      intent({ summary: "example own rule response" });
+
+      resource(RuleResponse, "example", {
+        data: { attributes: { name: "example-name" } },
+        projectId: "example",
+        ruleId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only datadog --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/datadog/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.datadog.automation import RuleResponse, RuleResponseConfig
+
+    def describe():
+        ubx.intent("example own rule response")
+
+        ubx.resource(RuleResponse, "example", RuleResponseConfig(
+            data={"attributes": {"name": "example-name"}},
+            project_id="example",
+            rule_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create datadog_automation_rule_response, with data a set value,
+    project id example, rule id example.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="data" type="object" required>
+  Data object for creating an automation rule. Required.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="object" required>
+      Attributes required to create an automation rule. Required.
+      <Expandable title="properties">
+        <ResponseField name="action" type="object" required>
+          Defines what happens when the rule triggers. Combines an action type with action-specific configuration data. Required.
+          <Expandable title="properties">
+            <ResponseField name="data" type="object" required>
+              Configuration for the action to execute, dependent on the action type. Required.
+              <Expandable title="properties">
+                <Note>`data` recurs here (its own type contains itself); see the `data` field's own properties above for the repeating pattern.</Note>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="type" type="string" required>
+              The type of automated action to perform when the rule triggers. `EXECUTE_WORKFLOW` runs a Datadog workflow; `ASSIGN_AGENT` assigns an AI agent to the case. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="name" type="string" required>
+          Name of the automation rule. Required.
+        </ResponseField>
+        <ResponseField name="state" type="string">
+          Whether the automation rule is active. Enabled rules trigger on matching case events; disabled rules are inactive but preserve their configuration. Optional.
+        </ResponseField>
+        <ResponseField name="trigger" type="object" required>
+          Defines when the rule activates. Combines a trigger type (the case event to listen for) with optional trigger data (conditions that narrow when the trigger fires). Required.
+          <Expandable title="properties">
+            <ResponseField name="data" type="object">
+              Additional configuration for the trigger, dependent on the trigger type. For `STATUS_TRANSITIONED` triggers, specify `from_status_name` and `to_status_name`. For `ATTRIBUTE_VALUE_CHANGED` triggers, specify `field` and `change_type`. Optional.
+              <Expandable title="properties">
+                <Note>`data` recurs here (its own type contains itself); see the `data` field's own properties above for the repeating pattern.</Note>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="type" type="string" required>
+              The case event that activates the automation rule. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      JSON:API resource type for case automation rules. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="project_id" type="string" required>
+  path parameter, not part of the API's own resource representation Required.
+</ResponseField>
+
+<ResponseField name="rule_id" type="string" required>
+  path parameter, not part of the API's own resource representation Required.
+</ResponseField>

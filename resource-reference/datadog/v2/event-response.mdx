@@ -1,0 +1,125 @@
+---
+title: "datadog_v2_event_response"
+description: "`datadog_v2_event_response` is v2's own richer representation of a Datadog Event -- a real, timestamped occurrence (a deploy, an alert..."
+---
+
+`datadog_v2_event_response` is v2's own richer representation of a Datadog Event -- a real, timestamped occurrence (a deploy, an alert, a comment) posted to the Event stream, distinct from this same resource's plain `datadog_event_response` (v1) by carrying a real, structured `attributes` payload instead of v1's flatter shape.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only datadog --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-datadog/sdk/go => ./local-sdk/datadog/sdk/go
+    package main
+
+    import (
+    	v2 "github.com/ubiquex/ubx-sdk-datadog/sdk/go/datadog/v2"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own event response"})
+
+    		ubx.Resource(v2.EventResponse, "example", v2.EventResponseConfig{
+    			Data:    map[string]any{"attributes": map[string]any{"attributes": map[string]any{"author": map[string]any{"name": "example-name"}}}},
+    			EventId: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only datadog --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { EventResponse } from "./local-sdk/datadog/sdk/typescript/datadog/v2/event_response.ts";
+
+    export default stack("example", () => {
+      intent({ summary: "example own event response" });
+
+      resource(EventResponse, "example", {
+        data: { attributes: { attributes: { author: { name: "example-name" } } } },
+        eventId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only datadog --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/datadog/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.datadog.v2 import EventResponse, EventResponseConfig
+
+    def describe():
+        ubx.intent("example own event response")
+
+        ubx.resource(EventResponse, "example", EventResponseConfig(
+            data={"attributes": {"attributes": {"author": {"name": "example-name"}}}},
+            event_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create datadog_v2_event_response, with data a set value, event id
+    example.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="data" type="object" required>
+  An event object. Required.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="object" required>
+      Event attributes. Required.
+      <Expandable title="properties">
+        <ResponseField name="aggregation_key" type="string">
+          A string used for aggregation when [correlating](https://docs.datadoghq.com/service_management/events/correlation/) events. If you specify a key, events are deduplicated to alerts based on this key. Limited to 100 characters. Optional.
+        </ResponseField>
+        <ResponseField name="attributes" type="object" required>
+          JSON object for category-specific attributes. Schema is different per event category. Required.
+          <Expandable title="properties">
+            <Note>`attributes` recurs here (its own type contains itself); see the `attributes` field's own properties above for the repeating pattern.</Note>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="category" type="string" required>
+          Event category identifying the type of event. Required.
+        </ResponseField>
+        <ResponseField name="host" type="string">
+          Host name to associate with the event. Any tags associated with the host are also applied to this event. Limited to 255 characters. Optional.
+        </ResponseField>
+        <ResponseField name="integration_id" type="string">
+          Integration ID sourced from integration manifests. Optional.
+        </ResponseField>
+        <ResponseField name="message" type="string">
+          Free formed text associated with the event. It's suggested to use `data.attributes.attributes.custom` for well-structured attributes. Limited to 4000 characters. Optional.
+        </ResponseField>
+        <ResponseField name="tags" type="list(string)">
+          A list of tags associated with the event. Maximum of 100 tags allowed. Refer to [Tags docs](https://docs.datadoghq.com/getting_started/tagging/). Optional.
+        </ResponseField>
+        <ResponseField name="timestamp" type="string">
+          Timestamp when the event occurred. Must follow [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) format. For example `"2017-01-15T01:30:15.010000Z"`. Defaults to the timestamp of receipt. Limited to values no older than 18 hours. Optional.
+        </ResponseField>
+        <ResponseField name="title" type="string" required>
+          The title of the event. Limited to 500 characters. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      Entity type. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="event_id" type="string" required>
+  path parameter, not part of the API's own resource representation Required.
+</ResponseField>

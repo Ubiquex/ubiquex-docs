@@ -1,0 +1,238 @@
+---
+title: "datadog_incident_response"
+description: "`datadog_incident_response` is v2's own richer representation of a Datadog incident -- a real, declared operational event with its own severity..."
+---
+
+`datadog_incident_response` is v2's own richer representation of a Datadog incident -- a real, declared operational event with its own severity, timeline, responders, and postmortem, the central object Datadog Incident Management is built around.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only datadog --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-datadog/sdk/go => ./local-sdk/datadog/sdk/go
+    package main
+
+    import (
+    	incident "github.com/ubiquex/ubx-sdk-datadog/sdk/go/datadog/incident"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own response"})
+
+    		ubx.Resource(incident.Response, "example", incident.ResponseConfig{
+    			Data:       map[string]any{"attributes": map[string]any{"customer_impacted": true}},
+    			IncidentId: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only datadog --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Response } from "./local-sdk/datadog/sdk/typescript/datadog/incident/response.ts";
+
+    export default stack("example", () => {
+      intent({ summary: "example own response" });
+
+      resource(Response, "example", {
+        data: { attributes: { customerImpacted: true } },
+        incidentId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only datadog --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/datadog/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.datadog.incident import Response, ResponseConfig
+
+    def describe():
+        ubx.intent("example own response")
+
+        ubx.resource(Response, "example", ResponseConfig(
+            data={"attributes": {"customer_impacted": True}},
+            incident_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create datadog_incident_response, with data a set value, incident
+    id example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="data" type="object" required>
+  Incident data for a create request. Required.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="object" required>
+      The incident's attributes for a create request. Required.
+      <Expandable title="properties">
+        <ResponseField name="customer_impact_scope" type="string">
+          Required if `customer_impacted:"true"`. A summary of the impact customers experienced during the incident. Optional.
+        </ResponseField>
+        <ResponseField name="customer_impacted" type="bool" required>
+          A flag indicating whether the incident caused customer impact. Required.
+        </ResponseField>
+        <ResponseField name="fields" type="map(object)">
+          A condensed view of the user-defined fields for which to create initial selections. Optional.
+          <Expandable title="properties">
+            <ResponseField name="type" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="incident_type_uuid" type="string">
+          A unique identifier that represents an incident type. The default incident type will be used if this property is not provided. Optional.
+        </ResponseField>
+        <ResponseField name="initial_cells" type="list(object)">
+          An array of initial timeline cells to be placed at the beginning of the incident timeline. Optional.
+          <Expandable title="properties">
+            <ResponseField name="cell_type" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="content" type="object">
+              Optional; if omitted, computed by Datadog.
+              <Expandable title="properties">
+                <ResponseField name="content" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="important" type="bool">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="is_test" type="bool">
+          A flag indicating whether the incident is a test incident. Optional.
+        </ResponseField>
+        <ResponseField name="notification_handles" type="list(object)">
+          Notification handles that will be notified of the incident at creation. Optional.
+          <Expandable title="properties">
+            <ResponseField name="display_name" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="handle" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="title" type="string" required>
+          The title of the incident, which summarizes what happened. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="relationships" type="object">
+      The relationships the incident will have with other resources once created. Optional.
+      <Expandable title="properties">
+        <ResponseField name="commander_user" type="object" required>
+          Relationship to user. Required.
+          <Expandable title="properties">
+            <ResponseField name="data" type="object" required>
+              Relationship to user object. Required.
+              <Expandable title="properties">
+                <Note>`data` recurs here (its own type contains itself); see the `data` field's own properties above for the repeating pattern.</Note>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      Incident resource type. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="incident_id" type="string" required>
+  path parameter, not part of the API's own resource representation Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="included" type="list(object)">
+  Included related resources that the user requested. Computed by Datadog after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="object">
+      Optional; if omitted, computed by Datadog.
+      <Expandable title="properties">
+        <ResponseField name="email" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="handle" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="icon" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="uuid" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="id" type="string">
+      Optional; if omitted, computed by Datadog.
+    </ResponseField>
+    <ResponseField name="relationships" type="object">
+      Optional; if omitted, computed by Datadog.
+      <Expandable title="properties">
+        <ResponseField name="incident" type="object">
+          Optional; if omitted, computed by Datadog.
+          <Expandable title="properties">
+            <ResponseField name="data" type="object">
+              Optional; if omitted, computed by Datadog.
+              <Expandable title="properties">
+                <ResponseField name="id" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="type" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="last_modified_by_user" type="object">
+          Optional; if omitted, computed by Datadog.
+          <Expandable title="properties">
+            <ResponseField name="data" type="object">
+              Optional; if omitted, computed by Datadog.
+              <Expandable title="properties">
+                <ResponseField name="id" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="type" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      Optional; if omitted, computed by Datadog.
+    </ResponseField>
+  </Expandable>
+</ResponseField>

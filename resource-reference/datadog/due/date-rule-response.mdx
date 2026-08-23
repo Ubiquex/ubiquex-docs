@@ -1,0 +1,134 @@
+---
+title: "datadog_due_date_rule_response"
+description: "`datadog_due_date_rule_response` is a real rule that automatically assigns a due date to a Datadog Case Management case or Security Inbox finding based..."
+---
+
+`datadog_due_date_rule_response` is a real rule that automatically assigns a due date to a Datadog Case Management case or Security Inbox finding based on its own severity or type -- the mechanism behind Datadog's real SLA tracking for security and operational work.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only datadog --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-datadog/sdk/go => ./local-sdk/datadog/sdk/go
+    package main
+
+    import (
+    	due "github.com/ubiquex/ubx-sdk-datadog/sdk/go/datadog/due"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own date rule response"})
+
+    		ubx.Resource(due.DateRuleResponse, "example", due.DateRuleResponseConfig{
+    			Data:   map[string]any{"attributes": map[string]any{"name": "example-name"}},
+    			RuleId: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only datadog --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { DateRuleResponse } from "./local-sdk/datadog/sdk/typescript/datadog/due/date_rule_response.ts";
+
+    export default stack("example", () => {
+      intent({ summary: "example own date rule response" });
+
+      resource(DateRuleResponse, "example", {
+        data: { attributes: { name: "example-name" } },
+        ruleId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only datadog --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/datadog/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.datadog.due import DateRuleResponse, DateRuleResponseConfig
+
+    def describe():
+        ubx.intent("example own date rule response")
+
+        ubx.resource(DateRuleResponse, "example", DateRuleResponseConfig(
+            data={"attributes": {"name": "example-name"}},
+            rule_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create datadog_due_date_rule_response, with data a set value,
+    rule id example.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="data" type="object" required>
+  The data object for a due date rule create or update request. Required.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="object" required>
+      Attributes for creating or updating a due date rule. Required.
+      <Expandable title="properties">
+        <ResponseField name="action" type="object" required>
+          The action to take when the due date rule matches a finding. Required.
+          <Expandable title="properties">
+            <ResponseField name="due_days_per_severity" type="list(object)" required>
+              A list of severity-to-due-date mappings. Each severity may appear at most once. Required.
+              <Expandable title="properties">
+                <ResponseField name="due_in_days" type="number">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="severity" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="due_from" type="string" required>
+              The reference point from which the due date is calculated. When `fix_available` is selected but not applicable to the finding type, `first_seen` is used instead. Required.
+            </ResponseField>
+            <ResponseField name="reason_description" type="string">
+              An optional description providing more context for the due date assignment. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="enabled" type="bool">
+          Whether the due date rule is enabled. Optional.
+        </ResponseField>
+        <ResponseField name="name" type="string" required>
+          The name of the due date rule. Required.
+        </ResponseField>
+        <ResponseField name="rule" type="object" required>
+          Defines the scope of findings to which the automation rule applies. Required.
+          <Expandable title="properties">
+            <ResponseField name="finding_types" type="list(string)" required>
+              The list of security finding types that the automation rule applies to. Required.
+            </ResponseField>
+            <ResponseField name="query" type="string">
+              A search query to further filter the findings matched by this rule. The `@workflow.*` namespace and `@status` fields are not permitted. For a reference of available fields, see the [Security Findings schema documentation](https://docs.datadoghq.com/security/guide/findings-schema/). Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      The JSON:API type for due date rules. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="rule_id" type="string" required>
+  path parameter, not part of the API's own resource representation Required.
+</ResponseField>

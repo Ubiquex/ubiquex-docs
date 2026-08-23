@@ -1,0 +1,201 @@
+---
+title: "datadog_escalation_policy"
+description: "`datadog_escalation_policy` is a real Datadog On-Call escalation policy -- the ordered chain of who gets notified..."
+---
+
+`datadog_escalation_policy` is a real Datadog On-Call escalation policy -- the ordered chain of who gets notified, and after how long the alert escalates to the next person or team, if a page for an active incident goes unacknowledged.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only datadog --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-datadog/sdk/go => ./local-sdk/datadog/sdk/go
+    package main
+
+    import (
+    	escalation "github.com/ubiquex/ubx-sdk-datadog/sdk/go/datadog/escalation"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own policy"})
+
+    		ubx.Resource(escalation.Policy, "example", escalation.PolicyConfig{
+    			Data:     map[string]any{"attributes": map[string]any{"name": "example-name"}},
+    			PolicyId: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only datadog --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Policy } from "./local-sdk/datadog/sdk/typescript/datadog/escalation/policy.ts";
+
+    export default stack("example", () => {
+      intent({ summary: "example own policy" });
+
+      resource(Policy, "example", {
+        data: { attributes: { name: "example-name" } },
+        policyId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only datadog --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/datadog/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.datadog.escalation import Policy, PolicyConfig
+
+    def describe():
+        ubx.intent("example own policy")
+
+        ubx.resource(Policy, "example", PolicyConfig(
+            data={"attributes": {"name": "example-name"}},
+            policy_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create datadog_escalation_policy, with data a set value, policy
+    id example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="data" type="object" required>
+  Represents the data for creating an escalation policy, including its attributes, relationships, and resource type. Required.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="object" required>
+      Defines the attributes for creating an escalation policy, including its description, name, resolution behavior, retries, and steps. Required.
+      <Expandable title="properties">
+        <ResponseField name="name" type="string" required>
+          Specifies the name for the new escalation policy. Required.
+        </ResponseField>
+        <ResponseField name="resolve_page_on_policy_end" type="bool">
+          Indicates whether the page is automatically resolved when the policy ends. Optional.
+        </ResponseField>
+        <ResponseField name="retries" type="number">
+          Specifies how many times the escalation sequence is retried if there is no response. Optional.
+        </ResponseField>
+        <ResponseField name="steps" type="list(object)" required>
+          A list of escalation steps, each defining assignment, escalation timeout, and targets for the new policy. Required.
+          <Expandable title="properties">
+            <ResponseField name="assignment" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="escalate_after_seconds" type="number">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="targets" type="list(object)">
+              Optional; if omitted, computed by Datadog.
+              <Expandable title="properties">
+                <ResponseField name="config" type="object">
+                  Optional; if omitted, computed by Datadog.
+                  <Expandable title="properties">
+                    <ResponseField name="schedule" type="object">
+                      Optional; if omitted, computed by Datadog.
+                      <Expandable title="properties">
+                        <ResponseField name="position" type="string">
+                          Optional; if omitted, computed by Datadog.
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="id" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="type" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="relationships" type="object">
+      Represents relationships in an escalation policy creation request, including references to teams. Optional.
+      <Expandable title="properties">
+        <ResponseField name="teams" type="object">
+          Associates teams with this schedule in a data structure. Optional.
+          <Expandable title="properties">
+            <ResponseField name="data" type="list(object)">
+              An array of team references for this schedule. Optional.
+              <Expandable title="properties">
+                <Note>`data` recurs here (its own type contains itself); see the `data` field's own properties above for the repeating pattern.</Note>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      Indicates that the resource is of type `policies`. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="policy_id" type="string" required>
+  path parameter, not part of the API's own resource representation Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="included" type="list(object)">
+  Provides any included related resources, such as steps or targets, returned with the policy. Computed by Datadog after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="object">
+      Optional; if omitted, computed by Datadog.
+      <Expandable title="properties">
+        <ResponseField name="assignment" type="string">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+        <ResponseField name="escalate_after_seconds" type="number">
+          Optional; if omitted, computed by Datadog.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="id" type="string">
+      Optional; if omitted, computed by Datadog.
+    </ResponseField>
+    <ResponseField name="relationships" type="object">
+      Optional; if omitted, computed by Datadog.
+      <Expandable title="properties">
+        <ResponseField name="targets" type="object">
+          Optional; if omitted, computed by Datadog.
+          <Expandable title="properties">
+            <ResponseField name="data" type="list(object)">
+              Optional; if omitted, computed by Datadog.
+              <Expandable title="properties">
+                <ResponseField name="id" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="type" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      Optional; if omitted, computed by Datadog.
+    </ResponseField>
+  </Expandable>
+</ResponseField>

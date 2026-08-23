@@ -1,0 +1,170 @@
+---
+title: "datadog_execution_policy_response"
+description: "`datadog_execution_policy_response` is a real policy governing how a Datadog Workflow Automation workflow is allowed to run -- real constraints like..."
+---
+
+`datadog_execution_policy_response` is a real policy governing how a Datadog Workflow Automation workflow is allowed to run -- real constraints like which connections/credentials it may use and under what conditions, enforced by Datadog before a workflow executes.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only datadog --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-datadog/sdk/go => ./local-sdk/datadog/sdk/go
+    package main
+
+    import (
+    	execution "github.com/ubiquex/ubx-sdk-datadog/sdk/go/datadog/execution"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own policy response"})
+
+    		ubx.Resource(execution.PolicyResponse, "example", execution.PolicyResponseConfig{
+    			Data:     map[string]any{"attributes": map[string]any{"name": "example-name"}},
+    			PolicyId: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only datadog --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { PolicyResponse } from "./local-sdk/datadog/sdk/typescript/datadog/execution/policy_response.ts";
+
+    export default stack("example", () => {
+      intent({ summary: "example own policy response" });
+
+      resource(PolicyResponse, "example", {
+        data: { attributes: { name: "example-name" } },
+        policyId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only datadog --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/datadog/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.datadog.execution import PolicyResponse, PolicyResponseConfig
+
+    def describe():
+        ubx.intent("example own policy response")
+
+        ubx.resource(PolicyResponse, "example", PolicyResponseConfig(
+            data={"attributes": {"name": "example-name"}},
+            policy_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create datadog_execution_policy_response, with data a set value,
+    policy id example.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="data" type="object" required>
+  Object for a single execution policy. Required.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="object" required>
+      Attributes used to create or update an execution policy. Required.
+      <Expandable title="properties">
+        <ResponseField name="action_pattern" type="object" required>
+          The set of actions this policy applies to. Required.
+          <Expandable title="properties">
+            <ResponseField name="action_fqns" type="list(string)" required>
+              The fully qualified action names this policy matches. Use `*` to match all actions of the integration, or a fully qualified name prefixed with the integration's action namespace (for example `com.datadoghq.script.*` for the Script integration). Required.
+            </ResponseField>
+            <ResponseField name="integration" type="string" required>
+              The integration the action pattern applies to. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="effect" type="string" required>
+          Whether the policy allows or denies matching actions. Required.
+        </ResponseField>
+        <ResponseField name="name" type="string" required>
+          The name of the execution policy. Required.
+        </ResponseField>
+        <ResponseField name="scope" type="object">
+          Restricts where the policy applies. At most one of `kubernetes`, `scripts`, or `remote_action_rshell` can be set. An empty object means the policy has no scope restriction. Optional.
+          <Expandable title="properties">
+            <ResponseField name="kubernetes" type="object">
+              Restricts the policy to specific Kubernetes namespaces. Optional.
+              <Expandable title="properties">
+                <ResponseField name="rules" type="list(object)" required>
+                  The Kubernetes scope rules. Required.
+                  <Expandable title="properties">
+                    <ResponseField name="target_namespaces" type="list(string)">
+                      Optional; if omitted, computed by Datadog.
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="remote_action_rshell" type="object">
+              Restricts the policy to specific remote shell paths. Optional.
+              <Expandable title="properties">
+                <ResponseField name="rules" type="list(object)" required>
+                  The remote shell scope rules. Required.
+                  <Expandable title="properties">
+                    <ResponseField name="access" type="string">
+                      Optional; if omitted, computed by Datadog.
+                    </ResponseField>
+                    <ResponseField name="target_paths" type="list(string)">
+                      Optional; if omitted, computed by Datadog.
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="scripts" type="object">
+              Restricts the policy to specific scripts. Optional.
+              <Expandable title="properties">
+                <ResponseField name="rules" type="list(object)" required>
+                  The script scope rules. Required.
+                  <Expandable title="properties">
+                    <ResponseField name="target_script_names" type="list(string)">
+                      Optional; if omitted, computed by Datadog.
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="targets" type="list(object)">
+          The targets this policy applies to. Optional.
+          <Expandable title="properties">
+            <ResponseField name="agent_tags" type="list(string)">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="name" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      The type of the resource. The value should always be `execution_policy`. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="policy_id" type="string" required>
+  path parameter, not part of the API's own resource representation Required.
+</ResponseField>

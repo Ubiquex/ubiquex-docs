@@ -1,0 +1,163 @@
+---
+title: "datadog_logs_archive"
+description: "`datadog_logs_archive` is a real, configured long-term log archive -- where Datadog forwards a copy of ingested logs (to Amazon S3, Azure Blob Storage..."
+---
+
+`datadog_logs_archive` is a real, configured long-term log archive -- where Datadog forwards a copy of ingested logs (to Amazon S3, Azure Blob Storage, or Google Cloud Storage) for cheap, long-term retention and rehydration, outside Datadog's own indexed retention window.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only datadog --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-datadog/sdk/go => ./local-sdk/datadog/sdk/go
+    package main
+
+    import (
+    	logs "github.com/ubiquex/ubx-sdk-datadog/sdk/go/datadog/logs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own archive"})
+
+    		ubx.Resource(logs.Archive, "example", logs.ArchiveConfig{
+    			ArchiveId: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only datadog --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Archive } from "./local-sdk/datadog/sdk/typescript/datadog/logs/archive.ts";
+
+    export default stack("example", () => {
+      intent({ summary: "example own archive" });
+
+      resource(Archive, "example", {
+        archiveId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only datadog --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/datadog/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.datadog.logs import Archive, ArchiveConfig
+
+    def describe():
+        ubx.intent("example own archive")
+
+        ubx.resource(Archive, "example", ArchiveConfig(
+            archive_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create datadog_logs_archive, with archive id example.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="archive_id" type="string" required>
+  path parameter, not part of the API's own resource representation Required.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  The definition of an archive. Optional; if omitted, computed by Datadog.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="object">
+      The attributes associated with the archive. Optional.
+      <Expandable title="properties">
+        <ResponseField name="compression_method" type="string">
+          The type of compression for the archive. Optional.
+        </ResponseField>
+        <ResponseField name="destination" type="object" required>
+          An archive's destination. Required.
+          <Expandable title="properties">
+            <ResponseField name="bucket" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="container" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="encryption" type="object">
+              Optional; if omitted, computed by Datadog.
+              <Expandable title="properties">
+                <ResponseField name="key" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="type" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="integration" type="object">
+              Optional; if omitted, computed by Datadog.
+              <Expandable title="properties">
+                <ResponseField name="client_id" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="tenant_id" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="path" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="region" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="storage_account" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="storage_class" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="type" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="include_tags" type="bool">
+          To store the tags in the archive, set the value "true". If it is set to "false", the tags will be deleted when the logs are sent to the archive. Optional.
+        </ResponseField>
+        <ResponseField name="lookup_attributes" type="list(string)">
+          An array of attributes to use as lookup keys for the archive. Optional.
+        </ResponseField>
+        <ResponseField name="name" type="string" required>
+          The archive name. Required.
+        </ResponseField>
+        <ResponseField name="partitioning_attributes" type="list(string)">
+          An array of attributes to use as partition keys for the archive. The attribute used most frequently for querying should be first. Optional.
+        </ResponseField>
+        <ResponseField name="query" type="string" required>
+          The archive query/filter. Logs matching this query are included in the archive. Required.
+        </ResponseField>
+        <ResponseField name="rehydration_max_scan_size_in_gb" type="number">
+          Maximum scan size for rehydration from this archive. Optional.
+        </ResponseField>
+        <ResponseField name="rehydration_tags" type="list(string)">
+          An array of tags to add to rehydrated logs from an archive. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      The type of the resource. The value should always be archives. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>

@@ -1,0 +1,244 @@
+---
+title: "datadog_awsaccount_response"
+description: "`datadog_awsaccount_response` is a real AWS account connected to Datadog's own AWS integration -- the account ID, IAM role Datadog assumes..."
+---
+
+`datadog_awsaccount_response` is a real AWS account connected to Datadog's own AWS integration -- the account ID, IAM role Datadog assumes, and which AWS namespaces/services are enabled for metric collection from that specific account.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only datadog --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-datadog/sdk/go => ./local-sdk/datadog/sdk/go
+    package main
+
+    import (
+    	awsaccount "github.com/ubiquex/ubx-sdk-datadog/sdk/go/datadog/awsaccount"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own response"})
+
+    		ubx.Resource(awsaccount.Response, "example", awsaccount.ResponseConfig{
+    			AwsAccountConfigId: "example",
+    			Data:               map[string]any{"attributes": map[string]any{"auth_config": map[string]any{"access_key_id": "example"}}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only datadog --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Response } from "./local-sdk/datadog/sdk/typescript/datadog/awsaccount/response.ts";
+
+    export default stack("example", () => {
+      intent({ summary: "example own response" });
+
+      resource(Response, "example", {
+        awsAccountConfigId: "example",
+        data: { attributes: { authConfig: { accessKeyId: "example" } } },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only datadog --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/datadog/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.datadog.awsaccount import Response, ResponseConfig
+
+    def describe():
+        ubx.intent("example own response")
+
+        ubx.resource(Response, "example", ResponseConfig(
+            aws_account_config_id="example",
+            data={"attributes": {"auth_config": {"access_key_id": "example"}}},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create datadog_awsaccount_response, with aws account config id
+    example, data a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="aws_account_config_id" type="string" required>
+  path parameter, not part of the API's own resource representation Required.
+</ResponseField>
+
+<ResponseField name="data" type="object" required>
+  AWS Account Create Request data. Required.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="object" required>
+      The AWS Account Integration Config to be created. Required.
+      <Expandable title="properties">
+        <ResponseField name="account_tags" type="list(string)">
+          Tags to apply to all hosts and metrics reporting for this account. Defaults to `[]`. Optional.
+        </ResponseField>
+        <ResponseField name="auth_config" type="object" required>
+          AWS Authentication config. Required.
+          <Expandable title="properties">
+            <ResponseField name="access_key_id" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="external_id" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="role_name" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="secret_access_key" type="string">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="aws_account_id" type="string" required>
+          AWS Account ID. Required.
+        </ResponseField>
+        <ResponseField name="aws_partition" type="string" required>
+          AWS partition your AWS account is scoped to. Defaults to `aws`. See [Partitions](https://docs.aws.amazon.com/whitepapers/latest/aws-fault-isolation-boundaries/partitions.html) in the AWS documentation for more information. Required.
+        </ResponseField>
+        <ResponseField name="aws_regions" type="object">
+          AWS Regions to collect data from. Defaults to `include_all`. Optional.
+          <Expandable title="properties">
+            <ResponseField name="include_all" type="bool">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+            <ResponseField name="include_only" type="list(string)">
+              Optional; if omitted, computed by Datadog.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="logs_config" type="object">
+          AWS Logs Collection config. Optional.
+          <Expandable title="properties">
+            <ResponseField name="lambda_forwarder" type="object">
+              Log Autosubscription configuration for Datadog Forwarder Lambda functions. Automatically set up triggers for existing and new logs for some services, ensuring no logs from new resources are missed and saving time spent on manual configuration. Optional.
+              <Expandable title="properties">
+                <ResponseField name="lambdas" type="list(string)">
+                  List of Datadog Lambda Log Forwarder ARNs in your AWS account. Defaults to `[]`. Optional.
+                </ResponseField>
+                <ResponseField name="log_source_config" type="object">
+                  Log source configuration. Optional.
+                  <Expandable title="properties">
+                    <ResponseField name="tag_filters" type="list(object)">
+                      List of AWS log source tag filters. Defaults to `[]`. Optional.
+                      <Expandable title="properties">
+                        <ResponseField name="source" type="string">
+                          Optional; if omitted, computed by Datadog.
+                        </ResponseField>
+                        <ResponseField name="tags" type="list(string)">
+                          Optional; if omitted, computed by Datadog.
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="sources" type="list(string)">
+                  List of service IDs set to enable automatic log collection. Discover the list of available services with the [Get list of AWS log ready services](https://docs.datadoghq.com/api/latest/aws-logs-integration/#get-list-of-aws-log-ready-services) endpoint. Optional.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="metrics_config" type="object">
+          AWS Metrics Collection config. Optional.
+          <Expandable title="properties">
+            <ResponseField name="automute_enabled" type="bool">
+              Enable EC2 automute for AWS metrics. Defaults to `true`. Optional.
+            </ResponseField>
+            <ResponseField name="collect_cloudwatch_alarms" type="bool">
+              Enable CloudWatch alarms collection. Defaults to `false`. Optional.
+            </ResponseField>
+            <ResponseField name="collect_custom_metrics" type="bool">
+              Enable custom metrics collection. Defaults to `false`. Optional.
+            </ResponseField>
+            <ResponseField name="enabled" type="bool">
+              Enable AWS metrics collection. Defaults to `true`. Optional.
+            </ResponseField>
+            <ResponseField name="metric_name_filters" type="list(object)">
+              AWS CloudWatch metric name filters. Each filter applies to a single namespace. Exactly one of `include_only` or `exclude_only` must be set on each filter. Optional.
+              <Expandable title="properties">
+                <ResponseField name="exclude_only" type="list(string)">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="include_only" type="list(string)">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="namespace" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="namespace_filters" type="object">
+              AWS Metrics namespace filters. Defaults to `exclude_only`. Optional.
+              <Expandable title="properties">
+                <ResponseField name="exclude_only" type="list(string)">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="include_only" type="list(string)">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="tag_filters" type="list(object)">
+              AWS Metrics collection tag filters list. Defaults to `[]`. Optional.
+              <Expandable title="properties">
+                <ResponseField name="namespace" type="string">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="tags" type="list(string)">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="resources_config" type="object">
+          AWS Resources Collection config. Optional.
+          <Expandable title="properties">
+            <ResponseField name="cloud_security_posture_management_collection" type="bool">
+              Enable Cloud Security Management to scan AWS resources for vulnerabilities, misconfigurations, identity risks, and compliance violations. Defaults to `false`. Requires `extended_collection` to be set to `true`. Optional.
+            </ResponseField>
+            <ResponseField name="extended_collection" type="bool">
+              Whether Datadog collects additional attributes and configuration information about the resources in your AWS account. Defaults to `true`. Required for `cloud_security_posture_management_collection`. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="traces_config" type="object">
+          AWS Traces Collection config. Optional.
+          <Expandable title="properties">
+            <ResponseField name="xray_services" type="object">
+              AWS X-Ray services to collect traces from. Defaults to `include_only`. Optional.
+              <Expandable title="properties">
+                <ResponseField name="include_all" type="bool">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+                <ResponseField name="include_only" type="list(string)">
+                  Optional; if omitted, computed by Datadog.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      AWS Account resource type. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
