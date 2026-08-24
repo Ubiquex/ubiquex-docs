@@ -143,16 +143,48 @@ def azure_corrected_service(raw_service, family):
     return raw_service
 
 
+# Real, found-live regen gap: fields whose native (vendor-spec)
+# Description is non-empty but says nothing -- "Id", "CPU", "ARN",
+# "float" -- were never eligible for the artifact override below,
+# since the gate used to be "only fill when native is EMPTY". A
+# session hand-authored real, curated replacements for 1,169 such
+# fields and patched the already-published pages directly, but the
+# very next regen from the still-short-but-non-empty live vendor
+# schema would have silently reproduced the original one-word text on
+# every one of those pages, reverting the fix with no warning.
+#
+# Fixed by widening the gate to also fire when native text is shorter
+# than SHORT_NATIVE_THRESHOLD chars, the same "says nothing" cutoff
+# this session's own corpus-wide quality audit used to find these
+# fields in the first place -- not a new, disconnected magic number.
+#
+# Deliberately NOT "artifact always wins regardless of native content"
+# (the other option considered): that would make every one of this
+# corpus's ~131,000 non-vendor-spec artifact entries an unconditional,
+# permanent override, breaking the self-healing this gate currently
+# gives for free -- if a vendor later adds real, richer native text to
+# a field that was originally gap-filled, today's regen correctly
+# drops the stale artifact text once native stops being empty. A
+# length-threshold gate keeps that self-healing for the normal case
+# (native present and reasonably long -- left alone, exactly like
+# before) and only widens the override for the specific, narrow case
+# this bug is about: native present but still short. A field with no
+# matching artifact entry is untouched either way, at any length.
+SHORT_NATIVE_THRESHOLD = 15
+
+
 def inject_description(fields, wire, desc_by_key):
     """Walks fields (a real []ir.Field list, possibly nested via
     Type.Object/Type.Element.Object) and fills any field whose own
-    Description is empty from desc_by_key[f"{wire}.{dotted_path}"],
-    when a real, non-vendor-spec artifact entry exists for it."""
+    Description is empty OR shorter than SHORT_NATIVE_THRESHOLD chars
+    from desc_by_key[f"{wire}.{dotted_path}"], when a real,
+    non-vendor-spec artifact entry exists for it."""
 
     def walk(flist, path_prefix):
         for f in flist:
             path = f"{path_prefix}{f['WireName']}"
-            if not f.get("Description"):
+            native = (f.get("Description") or "").strip()
+            if not native or len(native) < SHORT_NATIVE_THRESHOLD:
                 entry = desc_by_key.get(f"{wire}.{path}")
                 if entry:
                     f["Description"] = entry["text"]
