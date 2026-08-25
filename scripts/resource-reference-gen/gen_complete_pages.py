@@ -192,9 +192,12 @@ def main():
     p.add_argument("--stack-name", default="example")
     p.add_argument("--bindings-status", default="local_only", choices=["local_only", "published"],
                     help="must match the EXISTING page's own real bindings_status (check its own "
-                         "'ubx sdk gen --only ...' vs 'jsr:@ubx/...' import comment first) -- "
-                         "build_resource_page_complete's own default ('published') silently "
-                         "produces the WRONG import style if this doesn't match")
+                         "TypeScript tab first: a '// ubx sdk gen --only ...' comment above a "
+                         "'./local-sdk/...' import means local_only; a bare '@ubx/sdk-<repo id>/...' "
+                         "import with no comment means published -- UBI-143 dropped the old "
+                         "'jsr:@ubx/...' form this used to say to look for, npm has no equivalent "
+                         "inline-resolving specifier) -- build_resource_page_complete's own default "
+                         "('published') silently produces the WRONG import style if this doesn't match")
     p.add_argument("--no-intro-note", action="store_true",
                     help="skip inserting INTRO_NOTE ('Every tab below is a complete, runnable "
                          "program...') even when the existing page doesn't have it yet -- for a "
