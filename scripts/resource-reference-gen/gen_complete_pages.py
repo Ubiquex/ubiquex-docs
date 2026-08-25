@@ -38,7 +38,9 @@ from gen_provider_docs import (
     render_generic_markdown_scenario,
     resolve_page_path,
     REAL_SDK_REPO_ID,
+    real_sdk_repo_url,
 )
+from fetch_published_idents import fresh_idents
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -173,7 +175,15 @@ def main():
     p.add_argument("wires", nargs="*", help="real wire types, e.g. aws_iam_role aws_sqs_queue")
     p.add_argument("--wires-file", help="path to a file with one real wire type per line")
     p.add_argument("--schema-dir", required=True, help="dir of real per-resource IR schema JSON dumps (see README.md)")
-    p.add_argument("--idents-path", required=True, help="real extract_idents.py output JSON")
+    p.add_argument("--idents-path", required=True,
+                    help="real extract_idents.py output JSON -- the real, per-language IDENTIFIER "
+                         "source (Binding/Config names, file paths) for every wire in this run, "
+                         "whether it ends up published or local_only. --bindings-status auto does "
+                         "NOT replace this: a not-yet-published resource still needs a real local "
+                         "`ubx sdk gen --out ./local-sdk` identifier set to render its own page at "
+                         "all (see README.md's own two-branch flow) -- auto only decides which "
+                         "LABEL a wire gets, against a separate, freshly fetched published-repo "
+                         "check, never which identifiers are used to render it")
     p.add_argument("--docs-root", default=REPO_ROOT, help="real ubiquex-docs checkout root (default: this repo)")
     p.add_argument("--provider", default="aws")
     p.add_argument("--schema-name", default="aws",
@@ -190,14 +200,23 @@ def main():
                          "was never populated with per-family entries for")
     p.add_argument("--provider-display", default="AWS")
     p.add_argument("--stack-name", default="example")
-    p.add_argument("--bindings-status", default="local_only", choices=["local_only", "published"],
-                    help="must match the EXISTING page's own real bindings_status (check its own "
-                         "TypeScript tab first: a '// ubx sdk gen --only ...' comment above a "
-                         "'./local-sdk/...' import means local_only; a bare '@ubx/sdk-<repo id>/...' "
-                         "import with no comment means published -- UBI-143 dropped the old "
-                         "'jsr:@ubx/...' form this used to say to look for, npm has no equivalent "
-                         "inline-resolving specifier) -- build_resource_page_complete's own default "
-                         "('published') silently produces the WRONG import style if this doesn't match")
+    p.add_argument("--bindings-status", default="auto", choices=["local_only", "published", "auto"],
+                    help="'auto' (default, UBI-185): computed PER WIRE against a freshly fetched "
+                         "clone of the real published repo (never a reused local one -- see "
+                         "fetch_published_idents.py) -- published if that exact wire resolves to a "
+                         "real Go+Python+TS identifier set there right now, local_only otherwise. "
+                         "This is what closed the actual drift found this session (aws/azure/github/"
+                         "datadog/kubernetes all had real published content days before their own "
+                         "docs pages knew it, and GCP Compute's own 81-of-95 split already proved a "
+                         "provider-wide flag is too coarse). 'local_only'/'published' remain as "
+                         "explicit overrides for a provider truly known to have no published repo "
+                         "at all (skips the fetch entirely) or a one-off manual correction -- pass "
+                         "one of these to force every wire in this run the same way, matching the "
+                         "old, pre-UBI-185 behavior exactly")
+    p.add_argument("--scratch-clone-dir",
+                    help="where --bindings-status auto fetches its fresh clone (default: "
+                         "<docs-root>/../.ubx-sdk-fresh-clones/<sdk-repo-id>, sibling to this repo "
+                         "so it survives across runs without living inside a tracked directory)")
     p.add_argument("--no-intro-note", action="store_true",
                     help="skip inserting INTRO_NOTE ('Every tab below is a complete, runnable "
                          "program...') even when the existing page doesn't have it yet -- for a "
@@ -210,6 +229,10 @@ def main():
     args = p.parse_args()
     if args.schema_name_map and not args.sdk_repo_id:
         p.error("--schema-name-map requires --sdk-repo-id")
+    if args.bindings_status == "auto" and not args.sdk_repo_id and args.schema_name not in REAL_SDK_REPO_ID:
+        p.error(f"--bindings-status auto needs a real sdk_repo_id to know which ubx-sdk-<X> repo "
+                 f"to fetch fresh -- pass --sdk-repo-id explicitly, or add {args.schema_name!r} to "
+                 f"REAL_SDK_REPO_ID first")
 
     wires = list(args.wires)
     if args.wires_file:
@@ -217,17 +240,39 @@ def main():
     if not wires:
         p.error("no wire types given -- pass some as arguments or via --wires-file")
 
+    # idents_all is always the real, per-language IDENTIFIER source (see
+    # --idents-path's own help) -- a not-yet-published resource still
+    # needs this to render its own local_only page. --bindings-status
+    # auto never substitutes for it; it only adds a second, separate
+    # check (published_wires, below) to decide which LABEL each wire
+    # gets.
     idents_all = json.load(open(args.idents_path))
     schema_name_map = json.load(open(args.schema_name_map)) if args.schema_name_map else {}
     out_path_map = json.load(open(args.out_path_map)) if args.out_path_map else {}
 
+    published_wires = None
+    if args.bindings_status == "auto":
+        sdk_repo_id = args.sdk_repo_id or REAL_SDK_REPO_ID[args.schema_name]
+        scratch = args.scratch_clone_dir or os.path.join(
+            args.docs_root, "..", ".ubx-sdk-fresh-clones", sdk_repo_id
+        )
+        print(f"--bindings-status auto: fetching a fresh clone of ubx-sdk-{sdk_repo_id} "
+              f"into {scratch} ...")
+        published_wires = set(fresh_idents(args.provider, real_sdk_repo_url(sdk_repo_id), scratch))
+        print(f"fresh fetch: {len(published_wires)} real published resources for ubx-sdk-{sdk_repo_id} "
+              f"as of right now")
+
     results = []
     for wire in wires:
         schema_name = schema_name_map.get(wire, args.schema_name)
+        if published_wires is not None:
+            wire_status = "published" if wire in published_wires else "local_only"
+        else:
+            wire_status = args.bindings_status
         status, detail = generate_one(
             wire, args.docs_root, args.schema_dir, idents_all,
             args.provider, schema_name, args.provider_display, args.stack_name,
-            args.bindings_status, add_intro_note=not args.no_intro_note,
+            wire_status, add_intro_note=not args.no_intro_note,
             sdk_repo_id_override=args.sdk_repo_id,
             out_path_override=out_path_map.get(wire),
         )

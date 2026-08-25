@@ -1291,16 +1291,24 @@ REAL_SDK_REPO_ID = {
     "github": "github",
     # UBI-175 Phase 4: azure's own OpenAPI/ARM-Compute-sourced schema_name
     # ("azure", [dynamic_providers.azure] in sdk/providers/.ubx/config) is
-    # a genuinely different real identity from "azurerm" above -- 19
-    # resources, zero overlap with the published ubx-sdk-azure-* repos'
-    # own azurerm_* content. No real ubx-sdk-azure-compute repo exists or
-    # is expected to (bindings_status=local_only is the only real mode
-    # this schema_name is ever generated under) -- "azure" here is a
-    # locally-consistent path segment matching the real local `ubx sdk
-    # gen --only azure` output already on disk, not a claim about a
-    # published repo.
+    # a genuinely different real identity from "azurerm" above -- zero
+    # overlap with azurerm_*. At Phase 4 no real ubx-sdk-azure-compute
+    # repo existed yet, so this was local_only-only -- since corrected:
+    # ubx-sdk-azure now covers the full real azure_* identity (1095
+    # resources, replacing azurerm_* entirely, UBI-143's own Decision 3),
+    # and docs/bindings-status-published switched this schema_name's own
+    # pages to published where the real content actually matches.
     "azure": "azure",
 }
+
+
+def real_sdk_repo_url(sdk_repo_id):
+    """The one, real, constant naming convention every ubx-sdk-<X> repo
+    follows (confirmed for all six: aws/azure/datadog/github/google/
+    kubernetes) -- used by --bindings-status auto (gen_complete_pages.py,
+    UBI-185) to know where to fetch a FRESH clone from, never guessed
+    or hand-typed per invocation."""
+    return f"https://github.com/Ubiquex/ubx-sdk-{sdk_repo_id}.git"
 
 
 def generate_richer_provider(docs_root, scratch_dir, provider, schema_name, provider_display,
