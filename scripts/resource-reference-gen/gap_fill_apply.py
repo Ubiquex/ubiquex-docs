@@ -37,24 +37,15 @@ from common_gcp_fields import COMMON_LEAF, COMMON_LEAF_TYPE_GUARD, JSON_SCHEMA_L
 from common_azure_fields import ARM_COMMON, ARM_NETWORK, ARM_FAMILY_LEAF
 
 
-def gcp_corrected_key(raw_wire, api_name):
-    # ubx-provider-dynamic's typeName synthesis doubles the API name when a
-    # config entry's own key duplicates the discovery doc's own doc.Name
-    # field -- e.g. raw google_lustre_lustre_instance corrected to
-    # google_lustre_instance. Confirmed against the real, already-migrated
-    # descriptions.json before relying on it (see STATE.md UBI-175 Phase A).
-    prefix = f"google_{api_name}_{api_name}_"
-    if raw_wire.startswith(prefix):
-        return f"google_{api_name}_" + raw_wire[len(prefix):]
-    return raw_wire
-
-
 def apply_gcp(family, gap):
-    api_name = family[len("google_"):] if family.startswith("google_") else family
+    # UBI-185: used to correct a doubled wire key here (ubx-provider-
+    # dynamic's own Discovery-Docs typeName synthesis doubling a family
+    # token) -- fixed at that real source now, so a fresh --list-
+    # undescribed gap dump's own wire keys already match
+    # descriptions.json's real keys directly, nothing left to correct.
     family_dict = GCP_FAMILY_LEAF.get(family, {})
     matched, unmatched = {}, []
-    for raw_wire, fields in gap.items():
-        wire = gcp_corrected_key(raw_wire, api_name)
+    for wire, fields in gap.items():
         for path, info in fields.items():
             leaf = path.split(".")[-1]
             full_key = f"{wire}.{path}"

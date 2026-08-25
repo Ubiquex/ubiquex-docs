@@ -7,18 +7,20 @@ Two real jobs, both grounded in already-established, real precedent:
 
 1. Merges every per-family `--dump-ir` schema.json (one real file per
    [dynamic_providers.<family>] entry) into one combined
-   {wire: {service, localName, ir}} dict, applying the SAME wire-key
-   doubling correction gap_fill_apply.py's own gcp_corrected_key
-   already established for GCP in Phase B (ubx-provider-dynamic's own
-   typeName synthesis doubles the API name when a config entry's key
-   duplicates the discovery doc's own doc.Name field -- e.g. raw
-   google_lustre_lustre_instance -> corrected google_lustre_instance)
-   -- extended here to ALSO correct localName the same way, since an
-   uncorrected localName would otherwise produce a doubled page path
-   (gcp/lustre/lustre-instance.mdx instead of the correct
-   gcp/lustre/instance.mdx) even after the wire key itself is fixed.
-   Azure keeps the raw wire type and localName as-is, per Phase B's own
-   established rule (no doubling pathology found there).
+   {wire: {service, localName, ir}} dict. UBI-185: this used to apply a
+   display-time doubling correction here (gcp_corrected_key/
+   gcp_corrected_local) for GCP's own real typeName-synthesis bug
+   (ubx-provider-dynamic's Discovery-Docs path doubled a family token
+   whenever a config entry's key duplicated the discovery doc's own
+   doc.Name field -- e.g. raw google_lustre_lustre_instance instead of
+   the real google_lustre_instance) -- that bug is now fixed at its own
+   real source (ubx-provider-dynamic, internal/typename), the same fix
+   already applied to Azure/Kubernetes/GitHub/Datadog's own OpenAPI/
+   Swagger path, so a fresh `--dump-ir` no longer produces the doubled
+   form at all. Masking it here after the fact was never a fix, just a
+   display-layer workaround -- removed, not replaced, now that the raw
+   wire key is already correct. GCP and Azure are both treated
+   identically now: the raw wire type and localName, as-is.
 
 2. Injects real Phase B/C description and intro text directly from
    artifacts/<provider>/descriptions.json into each field's own
@@ -42,31 +44,6 @@ Usage:
 import json
 import os
 import sys
-
-
-def gcp_corrected_key(raw_wire, api_name):
-    # Case-insensitive match on the doubled segment: found live
-    # (google_siteverification_siteVerification_web_resource) --
-    # ubx-provider-dynamic's own typeName synthesis doesn't always
-    # lowercase the doubled segment, so a case-sensitive prefix check
-    # silently missed this one real resource, leaving it uncorrected
-    # forever (no intro, no page -- intros.json/descriptions.json were
-    # authored against the corrected key this function never produced
-    # for it). A full scan of the live 782-resource GCP corpus found
-    # exactly one wire affected.
-    prefix = f"google_{api_name}_"
-    if raw_wire.startswith(prefix):
-        rest = raw_wire[len(prefix):]
-        if rest.lower().startswith(api_name.lower() + "_"):
-            return prefix + rest[len(api_name) + 1:]
-    return raw_wire
-
-
-def gcp_corrected_local(raw_local, api_name):
-    prefix = f"{api_name}_"
-    if raw_local.lower().startswith(prefix.lower()) and len(raw_local) > len(prefix):
-        return raw_local[len(prefix):]
-    return raw_local
 
 
 def _collapse_first_adjacent_repeat(tokens):
@@ -186,21 +163,12 @@ def main():
         if not os.path.exists(schema_path):
             continue
         schema = json.load(open(schema_path))
-        if provider == "gcp":
-            api_name = family[len("google_"):] if family.startswith("google_") else family
-        else:
-            api_name = None
 
         for raw_wire, rec in schema.items():
             service = rec["service"]
             local = rec["localName"]
             fields = rec["ir"]["Fields"]
-
-            if provider == "gcp":
-                wire = gcp_corrected_key(raw_wire, api_name)
-                local = gcp_corrected_local(local, api_name)
-            else:
-                wire = raw_wire
+            wire = raw_wire
 
             inject_description(fields, wire, desc_by_key)
 
