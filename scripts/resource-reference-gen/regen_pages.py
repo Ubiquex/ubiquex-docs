@@ -64,7 +64,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from build_regen_schema import (
-    gcp_corrected_key, gcp_corrected_local, inject_description,
+    inject_description,
     azure_corrected_wire, azure_corrected_local, azure_corrected_service,
 )
 from extract_idents import scan_go, scan_py, scan_ts
@@ -163,18 +163,9 @@ def main():
 
         corrected = {}
         wire_to_raw = {}
-        api_name = family[len("google_"):] if provider == "gcp" and family.startswith("google_") else family
         for raw_wire, rec in raw_schema.items():
             fields = rec["ir"]["Fields"]
-            if provider == "gcp":
-                wire = gcp_corrected_key(raw_wire, api_name)
-                local = gcp_corrected_local(rec["localName"], api_name)
-                service = rec["service"]
-                # GCP's descriptions.json was already authored against
-                # the corrected key (an established Phase B rule), so
-                # injection uses the corrected wire, same as before.
-                inject_description(fields, wire, desc_by_key)
-            elif provider == "azure":
+            if provider == "azure":
                 wire, wire_changed = azure_corrected_wire(raw_wire)
                 local, local_changed = azure_corrected_local(rec["localName"])
                 service = azure_corrected_service(rec["service"], family)
@@ -187,12 +178,20 @@ def main():
                 # miss every changed entry).
                 inject_description(fields, raw_wire, desc_by_key)
             else:
-                # AWS/Kubernetes: no wire/local/service doubling exists
-                # (confirmed live against artifacts/aws and artifacts/
-                # kubernetes' own descriptions.json keys) -- the raw wire
-                # straight out of --dump-ir needs no correction function.
-                # descriptions.json/intros.json were authored directly
-                # against this same raw wire for both.
+                # AWS/Kubernetes/GCP: no wire/local/service doubling
+                # exists -- the raw wire straight out of --dump-ir needs
+                # no correction function. AWS/Kubernetes never had the
+                # pathology (confirmed live against artifacts/aws and
+                # artifacts/kubernetes' own descriptions.json keys); GCP
+                # did (gcp_corrected_key/gcp_corrected_local, UBI-175
+                # Phase B), but that was always a display-layer
+                # workaround for a real bug in ubx-provider-dynamic's own
+                # Discovery-Docs typeName synthesis -- fixed at that real
+                # source now (UBI-185, internal/typename), so a fresh
+                # --dump-ir no longer produces the doubled form at all,
+                # and GCP's own descriptions.json (already authored
+                # against the corrected key) matches the now-undoubled
+                # raw wire directly, with nothing left to correct here.
                 wire = raw_wire
                 local = rec["localName"]
                 service = rec["service"]
