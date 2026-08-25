@@ -41,12 +41,56 @@ from gen_provider_docs import (
     field_literal_with_preamble,
     gofmt_lines,
     deno_fmt_lines,
+    normalize_schema_description,
     object_fields_of,
     pascal,
     camel,
     pick_richer_example_fields,
     type_str,
 )
+
+
+# The identical real reserved-word set sdk/codegen/templates/py/py.go's
+# own pythonKeywords resolves with a trailing underscore (real, live-
+# found case: Kubernetes' own real "continue" pagination-token field --
+# confirmed live via a full ast.parse sweep of this generator's own
+# output, "RoleConfig(continue=...)" is a genuine Python SyntaxError,
+# `continue` being a reserved statement keyword, not just an unusual
+# identifier). Keeping this a real, separate list (not importing Go)
+# mirrors that file's own doc comment: capitalized reserved words
+# (False/None/True) never collide with a wire name, so they're omitted.
+PYTHON_KEYWORDS = {
+    "and", "as", "assert", "async", "await",
+    "break", "class", "continue", "def", "del",
+    "elif", "else", "except", "finally", "for",
+    "from", "global", "if", "import", "in",
+    "is", "lambda", "nonlocal", "not", "or",
+    "pass", "raise", "return", "try", "while",
+    "with", "yield",
+}
+
+
+def python_identifier(wire_name):
+    return wire_name + "_" if wire_name in PYTHON_KEYWORDS else wire_name
+
+
+def python_module_ident(name):
+    """sdk/codegen/templates/py/py.go's own real pyModuleIdent, mirrored:
+    a real generated Python service/module DIRECTORY carries this same
+    escaping (unlike a field name, checked above) because "lambda" is
+    both a Python keyword and a real AWS service (aws_lambda_*) -- a
+    plain `from ubx.aws.data.lambda import ...` is a genuine
+    SyntaxError, confirmed live via this generator's own full ast.parse
+    sweep. The real generated Python tree names that directory
+    "lambda_", not "lambda" -- go/service_dir (this generator's own
+    ident source, scanned from the real Go tree, which has no such
+    restriction) must not be reused for Python's own import path
+    unescaped."""
+    if name in PYTHON_KEYWORDS:
+        return name + "_"
+    if name and name[0].isdigit():
+        return "_" + name
+    return name
 
 
 def data_field_desc(f):
@@ -58,7 +102,19 @@ def data_field_desc(f):
         qualifier = "Optional lookup argument."
     desc = (f.get("Description") or "").strip()
     if desc:
-        return f"{desc} {qualifier}"
+        # normalize_schema_description's own real, confirmed-live finding
+        # (gen_provider_docs.py's own doc comment on it) applies here
+        # identically: real vendor description text carries raw "<"/">"/
+        # "{"/"}" characters (HTML markup, placeholder notation) that MDX
+        # reads as JSX/live-expression syntax, not literal prose -- this
+        # driver's own real, full-scale run (7000+ data source pages)
+        # found 156 real pages break `mint validate` without this, the
+        # identical class of break the resource-side generator already
+        # guards against; this file's own render_data_field/data_field_desc
+        # never called it (a real, confirmed gap in the original one-
+        # category Amplify prototype, which never happened to include a
+        # description carrying this markup).
+        return f"{normalize_schema_description(desc)} {qualifier}"
     return qualifier
 
 
@@ -153,8 +209,8 @@ def build_data_source_page(wire, service, local, slug, fields, go, ts, py,
         pre, val = field_literal_with_preamble(f, "py")
         if pre and pre not in py_preambles:
             py_preambles.append(pre)
-        py_assigns.append(f"        {f['WireName']}={val},")
-    py_import_path = f'ubx.{schema_name}.data.{py["service_dir"]}'
+        py_assigns.append(f"        {python_identifier(f['WireName'])}={val},")
+    py_import_path = f'ubx.{python_module_ident(schema_name)}.data.{python_module_ident(py["service_dir"])}'
     py_lines = [
         "import ubx_sdk as ubx",
         f'from {py_import_path} import {py["binding"]}, {py["binding"]}Config',

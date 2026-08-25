@@ -1,0 +1,82 @@
+---
+title: "google_datalineage_config"
+description: "`google_datalineage_config` is a real, live lookup against Google Cloud, generated from google's own real schema -- read-only, never created or destroyed."
+---
+
+`google_datalineage_config` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against Google Cloud's own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    	datalineage "github.com/ubiquex/ubx-sdk-google/sdk/go/google/data/datalineage"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "look up google_datalineage_config"})
+
+    		ubx.Data(datalineage.Config, "example", datalineage.ConfigConfig{
+    			Name: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { data, intent, stack } from "@ubx/sdk";
+    import { Config } from "@ubx/sdk-google/google/data/datalineage/config";
+
+    export default stack("example", () => {
+      intent({ summary: "look up google_datalineage_config" });
+
+      data(Config, "example", {
+        name: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.google.data.datalineage import Config, ConfigConfig
+
+    def describe():
+        ubx.intent("look up google_datalineage_config")
+
+        ubx.data(Config, "example", ConfigConfig(
+            name="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+</Tabs>
+
+## Lookup arguments
+
+<ResponseField name="name" type="string" required>
+  Required lookup argument.
+</ResponseField>
+
+## Result properties
+
+<ResponseField name="etag" type="string">
+  Optional. `etag` is used for optimistic concurrency control as a way to help prevent simultaneous updates of a config from overwriting each other. It is required that systems make use of the `etag` in the read-modify-write cycle to perform config updates in order to avoid race conditions: An `etag` is returned in the response to `GetConfig`, and systems are expected to put that etag in the request to `UpdateConfig` to ensure that their change will be applied to the same version of the config. If an `etag` is not provided in the call to `UpdateConfig`, then the existing config, if any, will be overwritten. Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="ingestion" type="object">
+  Defines how Lineage should be ingested for a given resource. Returned by the lookup.
+  <Expandable title="properties">
+    <ResponseField name="rules" type="list(object)">
+      Optional. List of rules for Data Lineage ingestion. Optional lookup argument.
+    </ResponseField>
+  </Expandable>
+</ResponseField>

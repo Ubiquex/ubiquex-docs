@@ -1,0 +1,114 @@
+---
+title: "aws_opensearch_insights"
+description: "`aws_opensearch_insights` is a real, live lookup against AWS, generated from aws's own real schema -- read-only, never created or destroyed."
+---
+
+`aws_opensearch_insights` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against AWS's own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	opensearch "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/data/opensearch"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "look up aws_opensearch_insights"})
+
+    		ubx.Data(opensearch.Insights, "example", opensearch.InsightsConfig{
+    			Entity:     map[string]any{"type": "example"},
+    			MaxResults: 1,
+    			SortOrder:  "example",
+    			TimeRange:  map[string]any{"from": 1},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { data, intent, stack } from "@ubx/sdk";
+    import { Insights } from "@ubx/sdk-aws/aws/data/opensearch/insights";
+
+    export default stack("example", () => {
+      intent({ summary: "look up aws_opensearch_insights" });
+
+      data(Insights, "example", {
+        entity: { type: "example" },
+        maxResults: 1,
+        sortOrder: "example",
+        timeRange: { from: 1 },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.data.opensearch import Insights, InsightsConfig
+
+    def describe():
+        ubx.intent("look up aws_opensearch_insights")
+
+        ubx.data(Insights, "example", InsightsConfig(
+            entity={"type": "example"},
+            max_results=1,
+            sort_order="example",
+            time_range={"from": 1},
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+</Tabs>
+
+## Lookup arguments
+
+<ResponseField name="entity" type="object" required>
+  &lt;p&gt;Specifies the entity for which to retrieve insights. An entity can be an Amazon OpenSearch Service domain or an Amazon Web Services account.&lt;/p&gt; Required lookup argument.
+  <Expandable title="properties">
+    <ResponseField name="type" type="string" required>
+      &lt;p&gt;The type of entity for which to retrieve insights. Possible values are &lt;code&gt;Account&lt;/code&gt; and &lt;code&gt;DomainName&lt;/code&gt;.&lt;/p&gt; Required lookup argument.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      &lt;p&gt;The value of the entity, such as a domain name or Amazon Web Services account ID.&lt;/p&gt; Optional lookup argument.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="max_results" type="number">
+  &lt;p&gt;The maximum number of insights to return per page. Valid values are 1 to 500.&lt;/p&gt; Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="sort_order" type="string">
+  &lt;p&gt;The sort order for listing insights. Possible values are &lt;code&gt;ASC&lt;/code&gt; (ascending) and &lt;code&gt;DESC&lt;/code&gt; (descending).&lt;/p&gt; Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="time_range" type="object">
+  &lt;p&gt;Specifies the time range for filtering insights.&lt;/p&gt; Optional lookup argument.
+  <Expandable title="properties">
+    <ResponseField name="from" type="number" required>
+      Required lookup argument.
+    </ResponseField>
+    <ResponseField name="to" type="number" required>
+      Required lookup argument.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Result properties
+
+<ResponseField name="insights" type="list(object)">
+  &lt;p&gt;A list of insights.&lt;/p&gt; Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="next_token" type="string">
+  Returned by the lookup.
+</ResponseField>

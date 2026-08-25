@@ -1,0 +1,166 @@
+---
+title: "google_gkebackup_backup_plan_binding"
+description: "`google_gkebackup_backup_plan_binding` is a real, live lookup against Google Cloud, generated from google's own real schema -- read-only, never created or destroyed."
+---
+
+`google_gkebackup_backup_plan_binding` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against Google Cloud's own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    	gkebackup "github.com/ubiquex/ubx-sdk-google/sdk/go/google/data/gkebackup"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "look up google_gkebackup_backup_plan_binding"})
+
+    		ubx.Data(gkebackup.BackupPlanBinding, "example", gkebackup.BackupPlanBindingConfig{
+    			Name: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { data, intent, stack } from "@ubx/sdk";
+    import { BackupPlanBinding } from "@ubx/sdk-google/google/data/gkebackup/backup_plan_binding";
+
+    export default stack("example", () => {
+      intent({ summary: "look up google_gkebackup_backup_plan_binding" });
+
+      data(BackupPlanBinding, "example", {
+        name: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.google.data.gkebackup import BackupPlanBinding, BackupPlanBindingConfig
+
+    def describe():
+        ubx.intent("look up google_gkebackup_backup_plan_binding")
+
+        ubx.data(BackupPlanBinding, "example", BackupPlanBindingConfig(
+            name="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+</Tabs>
+
+## Lookup arguments
+
+<ResponseField name="name" type="string" required>
+  Required lookup argument.
+</ResponseField>
+
+## Result properties
+
+<ResponseField name="backup_plan" type="string">
+  Output only. Immutable. The fully qualified name of the BackupPlan bound with the parent BackupChannel. `projects/*/locations/*/backupPlans/&#123;backup_plan&#125;` Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="backup_plan_details" type="object">
+  Contains metadata about the backup plan/backup. Returned by the lookup.
+  <Expandable title="properties">
+    <ResponseField name="backup_config_details" type="object">
+      BackupConfigDetails defines the configuration of Backups created via this BackupPlan. Optional lookup argument.
+      <Expandable title="properties">
+        <ResponseField name="all_namespaces" type="bool">
+          Output only. If True, include all namespaced resources Returned by the lookup.
+        </ResponseField>
+        <ResponseField name="encryption_key" type="object">
+          Defined a customer managed encryption key that will be used to encrypt Backup artifacts. Optional lookup argument.
+          <Expandable title="properties">
+            <ResponseField name="gcp_kms_encryption_key" type="string">
+              Optional. Google Cloud KMS encryption key. Format: `projects/*/locations/*/keyRings/*/cryptoKeys/*` Optional lookup argument.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="include_secrets" type="bool">
+          Output only. This flag specifies whether Kubernetes Secret resources should be included when they fall into the scope of Backups. Default: False Returned by the lookup.
+        </ResponseField>
+        <ResponseField name="include_volume_data" type="bool">
+          Output only. This flag specifies whether volume data should be backed up when PVCs are included in the scope of a Backup. Default: False Returned by the lookup.
+        </ResponseField>
+        <ResponseField name="selected_applications" type="object">
+          A list of namespaced Kubernetes resources. Optional lookup argument.
+          <Expandable title="properties">
+            <ResponseField name="namespaced_names" type="list(object)">
+              Optional. A list of namespaced Kubernetes resources. Optional lookup argument.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="selected_namespaces" type="object">
+          A list of Kubernetes Namespaces. Optional lookup argument.
+          <Expandable title="properties">
+            <ResponseField name="namespaces" type="list(string)">
+              Optional. A list of Kubernetes Namespaces. Optional lookup argument.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="last_successful_backup" type="string">
+      Output only. The fully qualified name of the last successful Backup created under this BackupPlan. `projects/*/locations/*/backupPlans/*/backups/*` Returned by the lookup.
+    </ResponseField>
+    <ResponseField name="last_successful_backup_time" type="string">
+      Output only. Completion time of the last successful Backup. This is sourced from a successful Backup's complete_time field. Returned by the lookup.
+    </ResponseField>
+    <ResponseField name="next_scheduled_backup_time" type="string">
+      Output only. Start time of next scheduled backup under this BackupPlan by either cron_schedule or rpo config. This is sourced from BackupPlan. Returned by the lookup.
+    </ResponseField>
+    <ResponseField name="protected_pod_count" type="number">
+      Output only. The number of Kubernetes Pods backed up in the last successful Backup created via this BackupPlan. Returned by the lookup.
+    </ResponseField>
+    <ResponseField name="retention_policy_details" type="object">
+      RetentionPolicyDetails defines a Backup retention policy for a BackupPlan. Optional lookup argument.
+      <Expandable title="properties">
+        <ResponseField name="backup_delete_lock_days" type="number">
+          Optional. Minimum age for Backups created via this BackupPlan (in days). This field MUST be an integer value between 0-90 (inclusive). A Backup created under this BackupPlan will NOT be deletable until it reaches Backup's (create_time + backup_delete_lock_days). Updating this field of a BackupPlan does NOT affect existing Backups under it. Backups created AFTER a successful update will inherit the new value. Default: 0 (no delete blocking) Optional lookup argument.
+        </ResponseField>
+        <ResponseField name="backup_retain_days" type="number">
+          Optional. The default maximum age of a Backup created via this BackupPlan. This field MUST be an integer value &gt;= 0 and &lt;= 365. If specified, a Backup created under this BackupPlan will be automatically deleted after its age reaches (create_time + backup_retain_days). If not specified, Backups created under this BackupPlan will NOT be subject to automatic deletion. Default: 0 (no automatic deletion) Optional lookup argument.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="rpo_risk_level" type="number">
+      Output only. A number that represents the current risk level of this BackupPlan from RPO perspective with 1 being no risk and 5 being highest risk. Returned by the lookup.
+    </ResponseField>
+    <ResponseField name="state" type="string">
+      Output only. State of the BackupPlan. Returned by the lookup.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="cluster" type="string">
+  Output only. Immutable. The fully qualified name of the cluster that is being backed up Valid formats: - `projects/*/locations/*/clusters/*` - `projects/*/zones/*/clusters/*` Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="create_time" type="string">
+  Output only. The timestamp when this binding was created. Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="etag" type="string">
+  Output only. `etag` is used for optimistic concurrency control as a way to help prevent simultaneous updates of a BackupPlanBinding from overwriting each other. It is strongly suggested that systems make use of the 'etag' in the read-modify-write cycle to perform BackupPlanBinding updates in order to avoid race conditions: An `etag` is returned in the response to `GetBackupPlanBinding`, and systems are expected to put that etag in the request to `UpdateBackupPlanBinding` or `DeleteBackupPlanBinding` to ensure that their change will be applied to the same version of the resource. Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="uid" type="string">
+  Output only. Server generated global unique identifier of [UUID4](https://en.wikipedia.org/wiki/Universally_unique_identifier) Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="update_time" type="string">
+  Output only. The timestamp when this binding was created. Returned by the lookup.
+</ResponseField>

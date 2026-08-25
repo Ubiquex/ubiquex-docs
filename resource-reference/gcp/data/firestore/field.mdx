@@ -1,0 +1,99 @@
+---
+title: "google_firestore_field"
+description: "`google_firestore_field` is a real, live lookup against Google Cloud, generated from google's own real schema -- read-only, never created or destroyed."
+---
+
+`google_firestore_field` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against Google Cloud's own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    	firestore "github.com/ubiquex/ubx-sdk-google/sdk/go/google/data/firestore"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "look up google_firestore_field"})
+
+    		ubx.Data(firestore.Field, "example", firestore.FieldConfig{
+    			Name: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { data, intent, stack } from "@ubx/sdk";
+    import { Field } from "@ubx/sdk-google/google/data/firestore/field";
+
+    export default stack("example", () => {
+      intent({ summary: "look up google_firestore_field" });
+
+      data(Field, "example", {
+        name: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.google.data.firestore import Field, FieldConfig
+
+    def describe():
+        ubx.intent("look up google_firestore_field")
+
+        ubx.data(Field, "example", FieldConfig(
+            name="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+</Tabs>
+
+## Lookup arguments
+
+<ResponseField name="name" type="string" required>
+  Required lookup argument.
+</ResponseField>
+
+## Result properties
+
+<ResponseField name="index_config" type="object">
+  The index configuration for this field. Returned by the lookup.
+  <Expandable title="properties">
+    <ResponseField name="ancestor_field" type="string">
+      Output only. Specifies the resource name of the `Field` from which this field's index configuration is set (when `uses_ancestor_config` is true), or from which it *would* be set if this field had no index configuration (when `uses_ancestor_config` is false). Optional lookup argument.
+    </ResponseField>
+    <ResponseField name="indexes" type="list(object)">
+      The indexes supported for this field. Optional lookup argument.
+    </ResponseField>
+    <ResponseField name="reverting" type="bool">
+      Output only When true, the `Field`'s index configuration is in the process of being reverted. Once complete, the index config will transition to the same state as the field specified by `ancestor_field`, at which point `uses_ancestor_config` will be `true` and `reverting` will be `false`. Optional lookup argument.
+    </ResponseField>
+    <ResponseField name="uses_ancestor_config" type="bool">
+      Output only. When true, the `Field`'s index configuration is set from the configuration specified by the `ancestor_field`. When false, the `Field`'s index configuration is defined explicitly. Optional lookup argument.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="ttl_config" type="object">
+  The TTL (time-to-live) configuration for documents that have this `Field` set. A timestamp stored in a TTL-enabled field will be used to determine the expiration time of the document. The expiration time is the sum of the timestamp value and the `expiration_offset`. For Enterprise edition databases, the timestamp value may alternatively be stored in an array value in the TTL-enabled field. An expiration time in the past indicates that the document is eligible for immediate expiration. Using any other data type or leaving the field absent will disable expiration for the individual document. Returned by the lookup.
+  <Expandable title="properties">
+    <ResponseField name="expiration_offset" type="string">
+      Optional. The offset, relative to the timestamp value from the TTL-enabled field, used to determine the document's expiration time. `expiration_offset.seconds` must be between 0 and 2,147,483,647 inclusive. Values more precise than seconds are rejected. If unset, defaults to 0, in which case the expiration time is the same as the timestamp value from the TTL-enabled field. Optional lookup argument.
+    </ResponseField>
+    <ResponseField name="state" type="string">
+      Output only. The state of the TTL configuration. Returned by the lookup.
+    </ResponseField>
+  </Expandable>
+</ResponseField>

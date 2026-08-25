@@ -1,0 +1,91 @@
+---
+title: "aws_dms_table_statistics"
+description: "`aws_dms_table_statistics` is a real, live lookup against AWS, generated from aws's own real schema -- read-only, never created or destroyed."
+---
+
+`aws_dms_table_statistics` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against AWS's own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	dms "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/data/dms"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "look up aws_dms_table_statistics"})
+
+    		ubx.Data(dms.TableStatistics, "example", dms.TableStatisticsConfig{
+    			ReplicationTaskArn: "arn:aws:iam::123456789012:policy/example",
+    			Filters:            []map[string]any{{"name": "example-name"}},
+    			MaxRecords:         1,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { data, intent, stack } from "@ubx/sdk";
+    import { TableStatistics } from "@ubx/sdk-aws/aws/data/dms/table_statistics";
+
+    export default stack("example", () => {
+      intent({ summary: "look up aws_dms_table_statistics" });
+
+      data(TableStatistics, "example", {
+        replicationTaskArn: "arn:aws:iam::123456789012:policy/example",
+        filters: [{ name: "example-name" }],
+        maxRecords: 1,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.data.dms import TableStatistics, TableStatisticsConfig
+
+    def describe():
+        ubx.intent("look up aws_dms_table_statistics")
+
+        ubx.data(TableStatistics, "example", TableStatisticsConfig(
+            replication_task_arn="arn:aws:iam::123456789012:policy/example",
+            filters=[{"name": "example-name"}],
+            max_records=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+</Tabs>
+
+## Lookup arguments
+
+<ResponseField name="filters" type="list(object)">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="max_records" type="number">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="replication_task_arn" type="string" required>
+  Required lookup argument.
+</ResponseField>
+
+## Result properties
+
+<ResponseField name="marker" type="string">
+  Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="table_statistics" type="list(object)">
+  Returned by the lookup.
+</ResponseField>
