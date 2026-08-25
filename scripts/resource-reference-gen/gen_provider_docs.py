@@ -1098,7 +1098,15 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
         ts_import_path = f'./local-sdk/{schema_name}/sdk/typescript/{ts["file"]}'
         ts_lines.append(f"// {ts_gen_cmd}")
     else:
-        ts_import_path = f'jsr:@ubx/sdk-{sdk_repo_id}/{schema_name}/{ts["service_dir"]}/{os.path.splitext(os.path.basename(ts["file"]))[0]}'
+        # UBI-143: TypeScript now publishes to npm (@ubx/sdk-<repo id>),
+        # not JSR -- a bare specifier, matching Go's real module import
+        # path and Python's real package import above exactly (neither
+        # shows an install command either; both assume the reader has
+        # already `go get`/`pip install`ed the real published package).
+        # npm has no jsr:-style protocol specifier that resolves inline
+        # without a prior install step, so the parallel here is "already
+        # npm installed" + a bare import, never a registry-prefixed one.
+        ts_import_path = f'@ubx/sdk-{sdk_repo_id}/{schema_name}/{ts["service_dir"]}/{os.path.splitext(os.path.basename(ts["file"]))[0]}'
 
     ts_lines.extend([
         'import { intent, resource, stack } from "@ubx/sdk";',
