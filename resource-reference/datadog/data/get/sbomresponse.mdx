@@ -1,0 +1,126 @@
+---
+title: "datadog_get_sbomresponse"
+description: "`datadog_get_sbomresponse` is a real, live lookup against Datadog, generated from datadog's own real schema -- read-only, never created or destroyed."
+---
+
+`datadog_get_sbomresponse` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against Datadog's own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	get "github.com/ubiquex/ubx-sdk-datadog/sdk/go/datadog/data/get"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "look up datadog_get_sbomresponse"})
+
+    		ubx.Data(get.Sbomresponse, "example", get.SbomresponseConfig{
+    			AssetType: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { data, intent, stack } from "@ubx/sdk";
+    import { Sbomresponse } from "@ubx/sdk-datadog/datadog/data/get/sbomresponse";
+
+    export default stack("example", () => {
+      intent({ summary: "look up datadog_get_sbomresponse" });
+
+      data(Sbomresponse, "example", {
+        assetType: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.datadog.data.get import Sbomresponse, SbomresponseConfig
+
+    def describe():
+        ubx.intent("look up datadog_get_sbomresponse")
+
+        ubx.data(Sbomresponse, "example", SbomresponseConfig(
+            asset_type="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+</Tabs>
+
+## Lookup arguments
+
+<ResponseField name="asset_type" type="string" required>
+  The asset type Required lookup argument.
+</ResponseField>
+
+## Result properties
+
+<ResponseField name="data" type="object">
+  A single SBOM Returned by the lookup.
+  <Expandable title="properties">
+    <ResponseField name="attributes" type="object">
+      The JSON:API attributes of the SBOM. Optional lookup argument.
+      <Expandable title="properties">
+        <ResponseField name="bom_format" type="string" required>
+          Specifies the format of the BOM. This helps to identify the file as CycloneDX since BOM do not have a filename convention nor does JSON schema support namespaces. This value MUST be `CycloneDX`. Required lookup argument.
+        </ResponseField>
+        <ResponseField name="components" type="list(object)" required>
+          A list of software and hardware components. Required lookup argument.
+        </ResponseField>
+        <ResponseField name="dependencies" type="list(object)" required>
+          List of dependencies between components of the SBOM. Required lookup argument.
+        </ResponseField>
+        <ResponseField name="metadata" type="object" required>
+          Provides additional information about a BOM. Required lookup argument.
+          <Expandable title="properties">
+            <ResponseField name="authors" type="list(object)">
+              List of authors of the SBOM. Optional lookup argument.
+            </ResponseField>
+            <ResponseField name="component" type="object">
+              The component that the BOM describes. Optional lookup argument.
+              <Expandable title="properties">
+                <ResponseField name="name" type="string">
+                  The name of the component. This will often be a shortened, single name of the component. Optional lookup argument.
+                </ResponseField>
+                <ResponseField name="type" type="string">
+                  Specifies the type of the component. Optional lookup argument.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="timestamp" type="string">
+              The timestamp of the SBOM creation. Optional lookup argument.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="serial_number" type="string" required>
+          Every BOM generated has a unique serial number, even if the contents of the BOM have not changed overt time. The serial number follows [RFC-4122](https://datatracker.ietf.org/doc/html/rfc4122) Required lookup argument.
+        </ResponseField>
+        <ResponseField name="spec_version" type="string" required>
+          The version of the CycloneDX specification a BOM conforms to. Required lookup argument.
+        </ResponseField>
+        <ResponseField name="version" type="number" required>
+          It increments when a BOM is modified. The default value is 1. Required lookup argument.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="id" type="string">
+      The unique ID for this SBOM (it is equivalent to the `asset_name` or `asset_name@repo_digest` (Image) Optional lookup argument.
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      The JSON:API type. Optional lookup argument.
+    </ResponseField>
+  </Expandable>
+</ResponseField>

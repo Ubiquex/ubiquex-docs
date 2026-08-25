@@ -1,0 +1,109 @@
+---
+title: "aws_glue_connections"
+description: "`aws_glue_connections` is a real, live lookup against AWS, generated from aws's own real schema -- read-only, never created or destroyed."
+---
+
+`aws_glue_connections` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against AWS's own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	glue "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/data/glue"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "look up aws_glue_connections"})
+
+    		ubx.Data(glue.Connections, "example", glue.ConnectionsConfig{
+    			CatalogId:    "example",
+    			Filter:       map[string]any{"connection_schema_version": 1},
+    			HidePassword: true,
+    			MaxResults:   1,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { data, intent, stack } from "@ubx/sdk";
+    import { Connections } from "@ubx/sdk-aws/aws/data/glue/connections";
+
+    export default stack("example", () => {
+      intent({ summary: "look up aws_glue_connections" });
+
+      data(Connections, "example", {
+        catalogId: "example",
+        filter: { connectionSchemaVersion: 1 },
+        hidePassword: true,
+        maxResults: 1,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.data.glue import Connections, ConnectionsConfig
+
+    def describe():
+        ubx.intent("look up aws_glue_connections")
+
+        ubx.data(Connections, "example", ConnectionsConfig(
+            catalog_id="example",
+            filter={"connection_schema_version": 1},
+            hide_password=True,
+            max_results=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+</Tabs>
+
+## Lookup arguments
+
+<ResponseField name="catalog_id" type="string">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="filter" type="object">
+  &lt;p&gt;Filters the connection definitions that are returned by the &lt;code&gt;GetConnections&lt;/code&gt; API operation.&lt;/p&gt; Optional lookup argument.
+  <Expandable title="properties">
+    <ResponseField name="connection_schema_version" type="number">
+      Optional lookup argument.
+    </ResponseField>
+    <ResponseField name="connection_type" type="string">
+      Optional lookup argument.
+    </ResponseField>
+    <ResponseField name="match_criteria" type="list(string)">
+      Optional lookup argument.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="hide_password" type="bool">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="max_results" type="number">
+  Optional lookup argument.
+</ResponseField>
+
+## Result properties
+
+<ResponseField name="connection_list" type="list(object)">
+  Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="next_token" type="string">
+  Returned by the lookup.
+</ResponseField>

@@ -1,0 +1,131 @@
+---
+title: "aws_glue_plan"
+description: "`aws_glue_plan` is a real, live lookup against AWS, generated from aws's own real schema -- read-only, never created or destroyed."
+---
+
+`aws_glue_plan` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against AWS's own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	glue "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/data/glue"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "look up aws_glue_plan"})
+
+    		ubx.Data(glue.Plan, "example", glue.PlanConfig{
+    			Mapping:                  []map[string]any{{"source_path": "example"}},
+    			Source:                   map[string]any{"database_name": "example-database-name"},
+    			AdditionalPlanOptionsMap: map[string]string{"managed-by": "ubx"},
+    			Language:                 "example",
+    			Location:                 map[string]any{"dynamo_db": []map[string]any{{"name": "example-name"}}},
+    			Sinks:                    []map[string]any{{"database_name": "example-database-name"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { data, intent, stack } from "@ubx/sdk";
+    import { Plan } from "@ubx/sdk-aws/aws/data/glue/plan";
+
+    export default stack("example", () => {
+      intent({ summary: "look up aws_glue_plan" });
+
+      data(Plan, "example", {
+        mapping: [{ sourcePath: "example" }],
+        source: { databaseName: "example-database-name" },
+        additionalPlanOptionsMap: { "managed-by": "ubx" },
+        language: "example",
+        location: { dynamoDb: [{ name: "example-name" }] },
+        sinks: [{ databaseName: "example-database-name" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.data.glue import Plan, PlanConfig
+
+    def describe():
+        ubx.intent("look up aws_glue_plan")
+
+        ubx.data(Plan, "example", PlanConfig(
+            mapping=[{"source_path": "example"}],
+            source={"database_name": "example-database-name"},
+            additional_plan_options_map={"managed-by": "ubx"},
+            language="example",
+            location={"dynamo_db": [{"name": "example-name"}]},
+            sinks=[{"database_name": "example-database-name"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+</Tabs>
+
+## Lookup arguments
+
+<ResponseField name="additional_plan_options_map" type="map(string)">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="language" type="string">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="location" type="object">
+  &lt;p&gt;The location of resources.&lt;/p&gt; Optional lookup argument.
+  <Expandable title="properties">
+    <ResponseField name="dynamo_db" type="list(object)">
+      Optional lookup argument.
+    </ResponseField>
+    <ResponseField name="jdbc" type="list(object)">
+      Optional lookup argument.
+    </ResponseField>
+    <ResponseField name="s3" type="list(object)">
+      Optional lookup argument.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="mapping" type="list(object)" required>
+  Required lookup argument.
+</ResponseField>
+
+<ResponseField name="sinks" type="list(object)">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="source" type="object" required>
+  &lt;p&gt;Specifies a table definition in the Glue Data Catalog.&lt;/p&gt; Required lookup argument.
+  <Expandable title="properties">
+    <ResponseField name="database_name" type="string" required>
+      Required lookup argument.
+    </ResponseField>
+    <ResponseField name="table_name" type="string" required>
+      Required lookup argument.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Result properties
+
+<ResponseField name="python_script" type="string">
+  Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="scala_code" type="string">
+  Returned by the lookup.
+</ResponseField>

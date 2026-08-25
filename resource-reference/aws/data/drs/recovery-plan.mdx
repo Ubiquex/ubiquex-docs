@@ -1,0 +1,96 @@
+---
+title: "aws_drs_recovery_plan"
+description: "`aws_drs_recovery_plan` is a real, live lookup against AWS, generated from aws's own real schema -- read-only, never created or destroyed."
+---
+
+`aws_drs_recovery_plan` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against AWS's own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	drs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/data/drs"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "look up aws_drs_recovery_plan"})
+
+    		ubx.Data(drs.RecoveryPlan, "example", drs.RecoveryPlanConfig{
+    			RecoveryPlanArn: "arn:aws:iam::123456789012:policy/example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { data, intent, stack } from "@ubx/sdk";
+    import { RecoveryPlan } from "@ubx/sdk-aws/aws/data/drs/recovery_plan";
+
+    export default stack("example", () => {
+      intent({ summary: "look up aws_drs_recovery_plan" });
+
+      data(RecoveryPlan, "example", {
+        recoveryPlanArn: "arn:aws:iam::123456789012:policy/example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.data.drs import RecoveryPlan, RecoveryPlanConfig
+
+    def describe():
+        ubx.intent("look up aws_drs_recovery_plan")
+
+        ubx.data(RecoveryPlan, "example", RecoveryPlanConfig(
+            recovery_plan_arn="arn:aws:iam::123456789012:policy/example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+</Tabs>
+
+## Lookup arguments
+
+<ResponseField name="recovery_plan_arn" type="string" required>
+  Strict ARN type for Recovery Plan resources. Only allows safe characters in the resource portion  --  rejects HTML/script injection characters (&lt;, &gt;, ", ', etc.) per AWS API input validation standards. Resource portion allows: [A-Za-z0-9_/.-] which covers all DRS recovery plan resource identifiers (plan-xxx, st-xxx, exec-xxx, step-xxx). Required lookup argument.
+</ResponseField>
+
+## Result properties
+
+<ResponseField name="recovery_plan" type="object">
+  A Recovery Plan resource. Returned by the lookup.
+  <Expandable title="properties">
+    <ResponseField name="created_at" type="string" required>
+      Required lookup argument.
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      The description of a Recovery Plan. Optional lookup argument.
+    </ResponseField>
+    <ResponseField name="name" type="string" required>
+      The name of a Recovery Plan. Required lookup argument.
+    </ResponseField>
+    <ResponseField name="recovery_plan_arn" type="string" required>
+      Strict ARN type for Recovery Plan resources. Only allows safe characters in the resource portion  --  rejects HTML/script injection characters (&lt;, &gt;, ", ', etc.) per AWS API input validation standards. Resource portion allows: [A-Za-z0-9_/.-] which covers all DRS recovery plan resource identifiers (plan-xxx, st-xxx, exec-xxx, step-xxx). Required lookup argument.
+    </ResponseField>
+    <ResponseField name="status" type="string" required>
+      &lt;p&gt;Recovery Plan status. &lt;code&gt;ACTIVE&lt;/code&gt; means executable. &lt;code&gt;INVALID&lt;/code&gt; means the plan has no &lt;code&gt;SERVER&lt;/code&gt; type steps and cannot be executed.&lt;/p&gt; Required lookup argument.
+    </ResponseField>
+    <ResponseField name="tags" type="map(string)">
+      Optional lookup argument.
+    </ResponseField>
+    <ResponseField name="updated_at" type="string" required>
+      Required lookup argument.
+    </ResponseField>
+  </Expandable>
+</ResponseField>

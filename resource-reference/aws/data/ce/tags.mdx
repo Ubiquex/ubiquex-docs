@@ -1,0 +1,188 @@
+---
+title: "aws_ce_tags"
+description: "`aws_ce_tags` is a real, live lookup against AWS, generated from aws's own real schema -- read-only, never created or destroyed."
+---
+
+`aws_ce_tags` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against AWS's own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	ce "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/data/ce"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "look up aws_ce_tags"})
+
+    		ubx.Data(ce.Tags, "example", ce.TagsConfig{
+    			TimePeriod:     map[string]any{"end": "example"},
+    			BillingViewArn: "arn:aws:iam::123456789012:policy/example",
+    			Filter:         map[string]any{"and": []map[string]any{{}}},
+    			MaxResults:     1,
+    			SearchString:   "example",
+    			SortBy:         []map[string]any{{"key": "example"}},
+    			TagKey:         "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { data, intent, stack } from "@ubx/sdk";
+    import { Tags } from "@ubx/sdk-aws/aws/data/ce/tags";
+
+    export default stack("example", () => {
+      intent({ summary: "look up aws_ce_tags" });
+
+      data(Tags, "example", {
+        timePeriod: { end: "example" },
+        billingViewArn: "arn:aws:iam::123456789012:policy/example",
+        filter: { and: [{}] },
+        maxResults: 1,
+        searchString: "example",
+        sortBy: [{ key: "example" }],
+        tagKey: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.data.ce import Tags, TagsConfig
+
+    def describe():
+        ubx.intent("look up aws_ce_tags")
+
+        ubx.data(Tags, "example", TagsConfig(
+            time_period={"end": "example"},
+            billing_view_arn="arn:aws:iam::123456789012:policy/example",
+            filter={"and": [{}]},
+            max_results=1,
+            search_string="example",
+            sort_by=[{"key": "example"}],
+            tag_key="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+</Tabs>
+
+## Lookup arguments
+
+<ResponseField name="billing_view_arn" type="string">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="filter" type="object">
+  &lt;p&gt;Use &lt;code&gt;Expression&lt;/code&gt; to filter in various Cost Explorer APIs.&lt;/p&gt; &lt;p&gt;Not all &lt;code&gt;Expression&lt;/code&gt; types are supported in each API. Refer to the documentation for each specific API to see what is supported.&lt;/p&gt; &lt;p&gt;There are two patterns:&lt;/p&gt; &lt;ul&gt; &lt;li&gt; &lt;p&gt;Simple dimension values.&lt;/p&gt; &lt;ul&gt; &lt;li&gt; &lt;p&gt;There are three types of simple dimension values: &lt;code&gt;CostCategories&lt;/code&gt;, &lt;code&gt;Tags&lt;/code&gt;, and &lt;code&gt;Dimensions&lt;/code&gt;.&lt;/p&gt; &lt;ul&gt; &lt;li&gt; &lt;p&gt;Specify the &lt;code&gt;CostCategories&lt;/code&gt; field to define a filter that acts on Cost Categories.&lt;/p&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;Specify the &lt;code&gt;Tags&lt;/code&gt; field to define a filter that acts on Cost Allocation Tags.&lt;/p&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;Specify the &lt;code&gt;Dimensions&lt;/code&gt; field to define a filter that acts on the &lt;a href="https://docs.aws.amazon.com/aws-cost-management/latest/APIReference/API_DimensionValues.html"&gt; &lt;code&gt;DimensionValues&lt;/code&gt; &lt;/a&gt;.&lt;/p&gt; &lt;/li&gt; &lt;/ul&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;For each filter type, you can set the dimension name and values for the filters that you plan to use.&lt;/p&gt; &lt;ul&gt; &lt;li&gt; &lt;p&gt;For example, you can filter for &lt;code&gt;REGION==us-east-1 OR REGION==us-west-1&lt;/code&gt;. For &lt;code&gt;GetRightsizingRecommendation&lt;/code&gt;, the Region is a full name (for example, &lt;code&gt;REGION==US East (N. Virginia)&lt;/code&gt;.&lt;/p&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;The corresponding &lt;code&gt;Expression&lt;/code&gt; for this example is as follows: &lt;code&gt;&#123; "Dimensions": &#123; "Key": "REGION", "Values": [ "us-east-1", "us-west-1" ] &#125; &#125;&lt;/code&gt; &lt;/p&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;As shown in the previous example, lists of dimension values are combined with &lt;code&gt;OR&lt;/code&gt; when applying the filter.&lt;/p&gt; &lt;/li&gt; &lt;/ul&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;You can also set different match options to further control how the filter behaves. Not all APIs support match options. Refer to the documentation for each specific API to see what is supported.&lt;/p&gt; &lt;ul&gt; &lt;li&gt; &lt;p&gt;For example, you can filter for linked account names that start with "a".&lt;/p&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;The corresponding &lt;code&gt;Expression&lt;/code&gt; for this example is as follows: &lt;code&gt;&#123; "Dimensions": &#123; "Key": "LINKED_ACCOUNT_NAME", "MatchOptions": [ "STARTS_WITH" ], "Values": [ "a" ] &#125; &#125;&lt;/code&gt; &lt;/p&gt; &lt;/li&gt; &lt;/ul&gt; &lt;/li&gt; &lt;/ul&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;Compound &lt;code&gt;Expression&lt;/code&gt; types with logical operations.&lt;/p&gt; &lt;ul&gt; &lt;li&gt; &lt;p&gt;You can use multiple &lt;code&gt;Expression&lt;/code&gt; types and the logical operators &lt;code&gt;AND/OR/NOT&lt;/code&gt; to create a list of one or more &lt;code&gt;Expression&lt;/code&gt; objects. By doing this, you can filter by more advanced options.&lt;/p&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;For example, you can filter by &lt;code&gt;((REGION == us-east-1 OR REGION == us-west-1) OR (TAG.Type == Type1)) AND (USAGE_TYPE != DataTransfer)&lt;/code&gt;.&lt;/p&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;The corresponding &lt;code&gt;Expression&lt;/code&gt; for this example is as follows: &lt;code&gt;&#123; "And": [ &#123;"Or": [ &#123;"Dimensions": &#123; "Key": "REGION", "Values": [ "us-east-1", "us-west-1" ] &#125;&#125;, &#123;"Tags": &#123; "Key": "TagName", "Values": ["Value1"] &#125; &#125; ]&#125;, &#123;"Not": &#123;"Dimensions": &#123; "Key": "USAGE_TYPE", "Values": ["DataTransfer"] &#125;&#125;&#125; ] &#125; &lt;/code&gt; &lt;/p&gt; &lt;/li&gt; &lt;/ul&gt; &lt;note&gt; &lt;p&gt;Because each &lt;code&gt;Expression&lt;/code&gt; can have only one operator, the service returns an error if more than one is specified. The following example shows an &lt;code&gt;Expression&lt;/code&gt; object that creates an error: &lt;code&gt; &#123; "And": [ ... ], "Dimensions": &#123; "Key": "USAGE_TYPE", "Values": [ "DataTransfer" ] &#125; &#125; &lt;/code&gt; &lt;/p&gt; &lt;p&gt;The following is an example of the corresponding error message: &lt;code&gt;"Expression has more than one roots. Only one root operator is allowed for each expression: And, Or, Not, Dimensions, Tags, CostCategories"&lt;/code&gt; &lt;/p&gt; &lt;/note&gt; &lt;/li&gt; &lt;/ul&gt; &lt;note&gt; &lt;p&gt;For the &lt;code&gt;GetRightsizingRecommendation&lt;/code&gt; action, a combination of OR and NOT isn't supported. OR isn't supported between different dimensions, or dimensions and tags. NOT operators aren't supported. Dimensions are also limited to &lt;code&gt;LINKED_ACCOUNT&lt;/code&gt;, &lt;code&gt;REGION&lt;/code&gt;, or &lt;code&gt;RIGHTSIZING_TYPE&lt;/code&gt;.&lt;/p&gt; &lt;p&gt;For the &lt;code&gt;GetReservationPurchaseRecommendation&lt;/code&gt; action, only NOT is supported. AND and OR aren't supported. Dimensions are limited to &lt;code&gt;LINKED_ACCOUNT&lt;/code&gt;.&lt;/p&gt; &lt;/note&gt; Optional lookup argument.
+  <Expandable title="properties">
+    <ResponseField name="and" type="list(object)">
+      Optional lookup argument.
+    </ResponseField>
+    <ResponseField name="cost_categories" type="object">
+      &lt;p&gt;The Cost Categories values used for filtering the costs.&lt;/p&gt; &lt;p&gt;If &lt;code&gt;Values&lt;/code&gt; and &lt;code&gt;Key&lt;/code&gt; are not specified, the &lt;code&gt;ABSENT&lt;/code&gt; &lt;code&gt;MatchOption&lt;/code&gt; is applied to all Cost Categories. That is, it filters on resources that aren't mapped to any Cost Categories.&lt;/p&gt; &lt;p&gt;If &lt;code&gt;Values&lt;/code&gt; is provided and &lt;code&gt;Key&lt;/code&gt; isn't specified, the &lt;code&gt;ABSENT&lt;/code&gt; &lt;code&gt;MatchOption&lt;/code&gt; is applied to the Cost Categories &lt;code&gt;Key&lt;/code&gt; only. That is, it filters on resources without the given Cost Categories key.&lt;/p&gt; Optional lookup argument.
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          &lt;p&gt;The unique name of the cost category.&lt;/p&gt; Optional lookup argument.
+        </ResponseField>
+        <ResponseField name="match_options" type="list(string)">
+          Optional lookup argument.
+        </ResponseField>
+        <ResponseField name="values" type="list(string)">
+          Optional lookup argument.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="dimensions" type="object">
+      &lt;p&gt;The metadata that you can use to filter and group your results. You can use &lt;code&gt;GetDimensionValues&lt;/code&gt; to find specific values.&lt;/p&gt; Optional lookup argument.
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          Optional lookup argument.
+        </ResponseField>
+        <ResponseField name="match_options" type="list(string)">
+          Optional lookup argument.
+        </ResponseField>
+        <ResponseField name="values" type="list(string)">
+          Optional lookup argument.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="not" type="any">
+      &lt;p&gt;Use &lt;code&gt;Expression&lt;/code&gt; to filter in various Cost Explorer APIs.&lt;/p&gt; &lt;p&gt;Not all &lt;code&gt;Expression&lt;/code&gt; types are supported in each API. Refer to the documentation for each specific API to see what is supported.&lt;/p&gt; &lt;p&gt;There are two patterns:&lt;/p&gt; &lt;ul&gt; &lt;li&gt; &lt;p&gt;Simple dimension values.&lt;/p&gt; &lt;ul&gt; &lt;li&gt; &lt;p&gt;There are three types of simple dimension values: &lt;code&gt;CostCategories&lt;/code&gt;, &lt;code&gt;Tags&lt;/code&gt;, and &lt;code&gt;Dimensions&lt;/code&gt;.&lt;/p&gt; &lt;ul&gt; &lt;li&gt; &lt;p&gt;Specify the &lt;code&gt;CostCategories&lt;/code&gt; field to define a filter that acts on Cost Categories.&lt;/p&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;Specify the &lt;code&gt;Tags&lt;/code&gt; field to define a filter that acts on Cost Allocation Tags.&lt;/p&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;Specify the &lt;code&gt;Dimensions&lt;/code&gt; field to define a filter that acts on the &lt;a href="https://docs.aws.amazon.com/aws-cost-management/latest/APIReference/API_DimensionValues.html"&gt; &lt;code&gt;DimensionValues&lt;/code&gt; &lt;/a&gt;.&lt;/p&gt; &lt;/li&gt; &lt;/ul&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;For each filter type, you can set the dimension name and values for the filters that you plan to use.&lt;/p&gt; &lt;ul&gt; &lt;li&gt; &lt;p&gt;For example, you can filter for &lt;code&gt;REGION==us-east-1 OR REGION==us-west-1&lt;/code&gt;. For &lt;code&gt;GetRightsizingRecommendation&lt;/code&gt;, the Region is a full name (for example, &lt;code&gt;REGION==US East (N. Virginia)&lt;/code&gt;.&lt;/p&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;The corresponding &lt;code&gt;Expression&lt;/code&gt; for this example is as follows: &lt;code&gt;&#123; "Dimensions": &#123; "Key": "REGION", "Values": [ "us-east-1", "us-west-1" ] &#125; &#125;&lt;/code&gt; &lt;/p&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;As shown in the previous example, lists of dimension values are combined with &lt;code&gt;OR&lt;/code&gt; when applying the filter.&lt;/p&gt; &lt;/li&gt; &lt;/ul&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;You can also set different match options to further control how the filter behaves. Not all APIs support match options. Refer to the documentation for each specific API to see what is supported.&lt;/p&gt; &lt;ul&gt; &lt;li&gt; &lt;p&gt;For example, you can filter for linked account names that start with "a".&lt;/p&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;The corresponding &lt;code&gt;Expression&lt;/code&gt; for this example is as follows: &lt;code&gt;&#123; "Dimensions": &#123; "Key": "LINKED_ACCOUNT_NAME", "MatchOptions": [ "STARTS_WITH" ], "Values": [ "a" ] &#125; &#125;&lt;/code&gt; &lt;/p&gt; &lt;/li&gt; &lt;/ul&gt; &lt;/li&gt; &lt;/ul&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;Compound &lt;code&gt;Expression&lt;/code&gt; types with logical operations.&lt;/p&gt; &lt;ul&gt; &lt;li&gt; &lt;p&gt;You can use multiple &lt;code&gt;Expression&lt;/code&gt; types and the logical operators &lt;code&gt;AND/OR/NOT&lt;/code&gt; to create a list of one or more &lt;code&gt;Expression&lt;/code&gt; objects. By doing this, you can filter by more advanced options.&lt;/p&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;For example, you can filter by &lt;code&gt;((REGION == us-east-1 OR REGION == us-west-1) OR (TAG.Type == Type1)) AND (USAGE_TYPE != DataTransfer)&lt;/code&gt;.&lt;/p&gt; &lt;/li&gt; &lt;li&gt; &lt;p&gt;The corresponding &lt;code&gt;Expression&lt;/code&gt; for this example is as follows: &lt;code&gt;&#123; "And": [ &#123;"Or": [ &#123;"Dimensions": &#123; "Key": "REGION", "Values": [ "us-east-1", "us-west-1" ] &#125;&#125;, &#123;"Tags": &#123; "Key": "TagName", "Values": ["Value1"] &#125; &#125; ]&#125;, &#123;"Not": &#123;"Dimensions": &#123; "Key": "USAGE_TYPE", "Values": ["DataTransfer"] &#125;&#125;&#125; ] &#125; &lt;/code&gt; &lt;/p&gt; &lt;/li&gt; &lt;/ul&gt; &lt;note&gt; &lt;p&gt;Because each &lt;code&gt;Expression&lt;/code&gt; can have only one operator, the service returns an error if more than one is specified. The following example shows an &lt;code&gt;Expression&lt;/code&gt; object that creates an error: &lt;code&gt; &#123; "And": [ ... ], "Dimensions": &#123; "Key": "USAGE_TYPE", "Values": [ "DataTransfer" ] &#125; &#125; &lt;/code&gt; &lt;/p&gt; &lt;p&gt;The following is an example of the corresponding error message: &lt;code&gt;"Expression has more than one roots. Only one root operator is allowed for each expression: And, Or, Not, Dimensions, Tags, CostCategories"&lt;/code&gt; &lt;/p&gt; &lt;/note&gt; &lt;/li&gt; &lt;/ul&gt; &lt;note&gt; &lt;p&gt;For the &lt;code&gt;GetRightsizingRecommendation&lt;/code&gt; action, a combination of OR and NOT isn't supported. OR isn't supported between different dimensions, or dimensions and tags. NOT operators aren't supported. Dimensions are also limited to &lt;code&gt;LINKED_ACCOUNT&lt;/code&gt;, &lt;code&gt;REGION&lt;/code&gt;, or &lt;code&gt;RIGHTSIZING_TYPE&lt;/code&gt;.&lt;/p&gt; &lt;p&gt;For the &lt;code&gt;GetReservationPurchaseRecommendation&lt;/code&gt; action, only NOT is supported. AND and OR aren't supported. Dimensions are limited to &lt;code&gt;LINKED_ACCOUNT&lt;/code&gt;.&lt;/p&gt; &lt;/note&gt; Optional lookup argument.
+    </ResponseField>
+    <ResponseField name="or" type="list(object)">
+      Optional lookup argument.
+    </ResponseField>
+    <ResponseField name="tags" type="object">
+      &lt;p&gt;The values that are available for a tag.&lt;/p&gt; &lt;p&gt;If &lt;code&gt;Values&lt;/code&gt; and &lt;code&gt;Key&lt;/code&gt; aren't specified, the &lt;code&gt;ABSENT&lt;/code&gt; &lt;code&gt;MatchOption&lt;/code&gt; is applied to all tags. That is, it's filtered on resources with no tags.&lt;/p&gt; &lt;p&gt;If &lt;code&gt;Key&lt;/code&gt; is provided and &lt;code&gt;Values&lt;/code&gt; isn't specified, the &lt;code&gt;ABSENT&lt;/code&gt; &lt;code&gt;MatchOption&lt;/code&gt; is applied to the tag &lt;code&gt;Key&lt;/code&gt; only. That is, it's filtered on resources without the given tag key.&lt;/p&gt; Optional lookup argument.
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          Optional lookup argument.
+        </ResponseField>
+        <ResponseField name="match_options" type="list(string)">
+          Optional lookup argument.
+        </ResponseField>
+        <ResponseField name="values" type="list(string)">
+          Optional lookup argument.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="max_results" type="number">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="search_string" type="string">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="sort_by" type="list(object)">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="tag_key" type="string">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="time_period" type="object" required>
+  &lt;p&gt;The time period of the request. &lt;/p&gt; Required lookup argument.
+  <Expandable title="properties">
+    <ResponseField name="end" type="string" required>
+      Required lookup argument.
+    </ResponseField>
+    <ResponseField name="start" type="string" required>
+      Required lookup argument.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Result properties
+
+<ResponseField name="next_page_token" type="string">
+  Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="return_size" type="number">
+  Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="tags" type="list(string)">
+  Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="total_size" type="number">
+  Returned by the lookup.
+</ResponseField>
