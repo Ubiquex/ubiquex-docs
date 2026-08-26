@@ -33,6 +33,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gen_provider_docs import pascal
 from gen_data_source_pages import build_data_source_page
+from build_regen_schema import inject_description
 
 DOCS_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -219,6 +220,22 @@ def main():
     doc = json.load(open(docs_json_path))
     groups = provider_group(doc, provider_key)
 
+    # Data-source-specific intro/description artifact entries -- keyed
+    # data_<wire>, never the bare wire, because most providers' data
+    # sources share their resource's own literal wire type (confirmed
+    # live: 687/690 Azure, 44/46 AWS, 42/48 GitHub exact-path matches
+    # ARE the identical wire, not just a same-shaped one -- Kubernetes'
+    # 68/68 is the extreme case, not the exception). The bare-wire key
+    # already belongs to that resource's own real intro/description;
+    # writing data-source content under it would silently overwrite or
+    # collide with real, already-published resource content instead of
+    # adding new, separate content.
+    intros_path = os.path.join(DOCS_ROOT, "artifacts", provider_key, "intros.json")
+    intros = json.load(open(intros_path)) if os.path.exists(intros_path) else {}
+    desc_path = os.path.join(DOCS_ROOT, "artifacts", provider_key, "descriptions.json")
+    desc_raw = json.load(open(desc_path)) if os.path.exists(desc_path) else {}
+    desc_by_key = {k: v for k, v in desc_raw.items() if k.startswith("data_")}
+
     # dump-ir's own dict key, "data_" stripped, IS the real WireType --
     # verified live against the real generated Go source (this driver's
     # own doc comment). Build (wire -> meta) directly from that, no
@@ -246,6 +263,8 @@ def main():
 
         local = meta["localName"]
         fields = meta["ir"]["Fields"]
+        data_key = f"data_{wire}"
+        inject_description(fields, data_key, desc_by_key)
         slug = ident["local_slug"].replace("_", "-")
         go, ts, py = idents_for(ident["local_slug"], ident["service_dir"], ident["binding"], ident["config"])
         page = build_data_source_page(
@@ -253,7 +272,7 @@ def main():
             fields=fields, go=go, ts=ts, py=py,
             provider=provider_key, schema_name=cfg["schema_name"],
             provider_display=cfg["provider_display"], stack_name="example",
-            sdk_repo_id=cfg["sdk_repo_id"],
+            sdk_repo_id=cfg["sdk_repo_id"], intro_text=intros.get(data_key),
         )
         out_dir = os.path.join(DOCS_ROOT, "resource-reference", provider_key, "data", ident["service_dir"])
         os.makedirs(out_dir, exist_ok=True)

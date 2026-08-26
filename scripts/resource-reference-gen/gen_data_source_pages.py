@@ -37,16 +37,19 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from gen_provider_docs import (
     KIND_OBJECT,
+    ai_inferred_marker,
     fence,
     field_literal_with_preamble,
     gofmt_lines,
     deno_fmt_lines,
+    intro_and_description,
     normalize_schema_description,
     object_fields_of,
     pascal,
     camel,
     pick_richer_example_fields,
     type_str,
+    yaml_dq_escape,
 )
 
 
@@ -114,7 +117,7 @@ def data_field_desc(f):
         # never called it (a real, confirmed gap in the original one-
         # category Amplify prototype, which never happened to include a
         # description carrying this markup).
-        return f"{normalize_schema_description(desc)} {qualifier}"
+        return f"{normalize_schema_description(desc)}{ai_inferred_marker(f)} {qualifier}"
     return qualifier
 
 
@@ -144,7 +147,7 @@ def render_data_field(f, indent, depth=0, ancestor_names=()):
 
 def build_data_source_page(wire, service, local, slug, fields, go, ts, py,
                             provider, schema_name, provider_display,
-                            stack_name, sdk_repo_id):
+                            stack_name, sdk_repo_id, intro_text=None):
     lookup_fields = sorted([f for f in fields if f["Required"] or (not f["Computed"])], key=lambda f: f["WireName"])
     result_fields = sorted([f for f in fields if f["Computed"]], key=lambda f: f["WireName"])
     example_fields = pick_richer_example_fields(lookup_fields)
@@ -233,13 +236,29 @@ def build_data_source_page(wire, service, local, slug, fields, go, ts, py,
     lookup_section = "\n\n".join(render_data_field(f, 0) for f in lookup_fields) or "_This lookup takes no arguments._"
     result_section = "\n\n".join(render_data_field(f, 0) for f in result_fields) or "_No computed result fields._"
 
+    # Mirrors build_resource_page_complete's own real intro_text handling
+    # (gen_provider_docs.py) exactly: intro_text present (a real
+    # artifacts/<provider>/intros.json entry, keyed data_<wire> to stay
+    # collision-safe against a same-named resource -- confirmed live
+    # that most providers' data sources share their resource's own
+    # literal wire type, not just Kubernetes) replaces the generic
+    # three-line paragraph every data source page has rendered since
+    # this generator's own first version. Absent (a data source with no
+    # real intro yet) falls back to exactly that original paragraph --
+    # an honest gap, not a fabricated one.
+    if intro_text:
+        fm_description_raw, body = intro_and_description(intro_text)
+        fm_description = yaml_dq_escape(fm_description_raw)
+    else:
+        fm_description = f"`{wire}` is a real, live lookup against {provider_display}, generated from {schema_name}'s own real schema -- read-only, never created or destroyed."
+        body = f'`{wire}` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against {provider_display}\'s own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md\'s own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).'
+    body_block = f"\n{body}\n" if body else ""
+
     return f'''---
 title: "{wire}"
-description: "`{wire}` is a real, live lookup against {provider_display}, generated from {schema_name}'s own real schema -- read-only, never created or destroyed."
+description: "{fm_description}"
 ---
-
-`{wire}` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against {provider_display}'s own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
-
+{body_block}
 ## Example
 
 <Tabs>
