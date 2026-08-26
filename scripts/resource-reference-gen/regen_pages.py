@@ -79,19 +79,24 @@ SCRATCH_DIR = "/tmp/regen-scratch"
 PROVIDER_DISPLAY = {"gcp": "Google Cloud", "azure": "Microsoft Azure", "aws": "AWS", "kubernetes": "Kubernetes"}
 
 # The "already baked directly into the raw IR dump, do not re-inject"
-# source tag differs per provider: GCP/Azure/Kubernetes' artifacts use
-# "docs-vendor"; AWS's descriptions.json (Phase 5) uses "cfn" for the
-# real CloudFormation registry text, confirmed by direct comparison
-# against /tmp/aws-ir-dump/aws/schema.json -- cfn-sourced text is
-# already present verbatim in each field's own real Description, so
+# source tag is "vendor-spec" for every provider as of the docs-vendor/cfn
+# rename below -- GCP/Azure/Kubernetes' artifacts used to write
+# "docs-vendor"; AWS's descriptions.json (Phase 5) used to write "cfn"
+# for the real CloudFormation registry text. Both tags named the exact
+# same concept (the vendor's own machine-readable schema description
+# field, confirmed live via byte-for-byte comparison against each
+# provider's own real dump-ir output -- AWS's checked directly against
+# /tmp/aws-ir-dump/aws/schema.json) under two different, provider-
+# specific names -- one label now, everywhere. vendor-spec-sourced text
+# is already present verbatim in each field's own real Description, so
 # re-injecting it would be redundant (inject_description only fills
 # empty Description fields, so this is a correctness/clarity match,
 # not a behavior-critical one). Kubernetes' own OpenAPI spec carries
 # real per-field descriptive text for essentially everything (UBI-176:
 # the 21 resources recovered by the alpha/beta version-collision fix
 # needed 0/122 fields individually described -- all already
-# "docs-vendor", confirmed live against the real dump-ir output).
-SKIP_INJECTION_SOURCE = {"gcp": "docs-vendor", "azure": "docs-vendor", "aws": "cfn", "kubernetes": "docs-vendor"}
+# "vendor-spec", confirmed live against the real dump-ir output).
+SKIP_INJECTION_SOURCE = {"gcp": "vendor-spec", "azure": "vendor-spec", "aws": "vendor-spec", "kubernetes": "vendor-spec"}
 
 
 def main():

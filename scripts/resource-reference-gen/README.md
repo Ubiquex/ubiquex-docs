@@ -153,7 +153,7 @@ block NOT contained by a scroll wrapper, is not.
 ## A fix to an artifact does not reach already-published pages
 
 Real, standing gotcha, caught twice now (UBI-176's own 187 broken GCP
-vendor links, 31 published pages affected). `docs-vendor`-sourced
+vendor links, 31 published pages affected). `vendor-spec`-sourced
 description text is baked directly into each field's own real
 `Description` at `--dump-ir`/generation time, straight from the raw
 provider schema -- `regen_pages.py`'s own `inject_description` deliberately
@@ -164,7 +164,7 @@ generated before the edit -- the page's own `.mdx` file still carries
 the old, unfixed text verbatim, and nothing about `mint validate` or the
 JSON's own validity will ever surface that gap.
 
-**When fixing `docs-vendor` text (a broken link, a typo, anything baked
+**When fixing `vendor-spec` text (a broken link, a typo, anything baked
 directly into the raw schema dump), always check whether any already-
 published page carries the same broken text, and patch it too** -- grep
 the real `resource-reference/<provider>/**/*.mdx` tree for the same

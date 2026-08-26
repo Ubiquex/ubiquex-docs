@@ -26,8 +26,8 @@ Two real jobs, both grounded in already-established, real precedent:
    --descriptions-dir mechanism entirely (which expects one file per
    RAW, uncorrected family wire key, a real but avoidable extra
    indirection) since this script already has the corrected key each
-   field needs to look itself up under. Only source != "docs-vendor"
-   entries are injected (docs-vendor text already lives natively in
+   field needs to look itself up under. Only source != "vendor-spec"
+   entries are injected (vendor-spec text already lives natively in
    the dumped IR's own real Description field, sourced straight from
    the wire schema itself -- injecting it again would be redundant,
    never a fix for a real gap). A field that already carries a real,
@@ -147,7 +147,7 @@ def inject_description(fields, wire, desc_by_key):
     """Walks fields (a real []ir.Field list, possibly nested via
     Type.Object/Type.Element.Object) and fills any field whose own
     Description is empty from desc_by_key[f"{wire}.{dotted_path}"],
-    when a real, non-docs-vendor artifact entry exists for it."""
+    when a real, non-vendor-spec artifact entry exists for it."""
 
     def walk(flist, path_prefix):
         for f in flist:
@@ -173,9 +173,9 @@ def main():
     desc_path = os.path.join(here, "..", "..", "artifacts", provider, "descriptions.json")
     desc_raw = json.load(open(desc_path))
     desc_by_key = {
-        k: v for k, v in desc_raw.items() if v.get("source") != "docs-vendor"
+        k: v for k, v in desc_raw.items() if v.get("source") != "vendor-spec"
     }
-    print(f"loaded {len(desc_by_key)} non-docs-vendor description entries for {provider}")
+    print(f"loaded {len(desc_by_key)} non-vendor-spec description entries for {provider}")
 
     combined = {}
     families = sorted(
