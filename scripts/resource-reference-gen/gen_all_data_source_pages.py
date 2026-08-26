@@ -257,9 +257,6 @@ def main():
             continue
 
         gi, matched_dir = best_matching_group(groups, ident["service_dir"], ident["local_slug"])
-        if gi is None:
-            skipped_no_group.append(wire)
-            continue
 
         local = meta["localName"]
         fields = meta["ir"]["Fields"]
@@ -279,10 +276,19 @@ def main():
         out_path = os.path.join(out_dir, f"{slug}.mdx")
         with open(out_path, "w") as f:
             f.write(page)
+        written += 1
+
+        # Orphans (no sibling Resources group to nest under) were
+        # already placed into docs.json on their own, standalone group
+        # by UBI-189's separate placement pass (8ae6f8ae) -- this
+        # driver only needs to refresh their real page CONTENT at their
+        # real, already-existing path, never touch their nav placement.
+        if gi is None:
+            skipped_no_group.append(wire)
+            continue
         new_pages_by_group.setdefault(gi, []).append(
             f"resource-reference/{provider_key}/data/{ident['service_dir']}/{slug}"
         )
-        written += 1
 
     for gi, new_pages in new_pages_by_group.items():
         g = groups[gi]
@@ -304,7 +310,7 @@ def main():
 
     print(f"{provider_key}: wrote {written} pages across {len(new_pages_by_group)} groups")
     if skipped_no_group:
-        print(f"{provider_key}: {len(skipped_no_group)} data sources with no matching Resources group: {sorted(skipped_no_group)[:30]}{'...' if len(skipped_no_group) > 30 else ''}")
+        print(f"{provider_key}: {len(skipped_no_group)} orphan data sources written (content only, nav placement untouched, no matching Resources group): {sorted(skipped_no_group)[:30]}{'...' if len(skipped_no_group) > 30 else ''}")
     if skipped_no_ident:
         print(f"{provider_key}: {len(skipped_no_ident)} real Go data sources with no schema.json match: {skipped_no_ident[:20]}{'...' if len(skipped_no_ident) > 20 else ''}")
 
