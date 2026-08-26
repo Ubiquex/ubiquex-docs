@@ -1,0 +1,152 @@
+name: coverage-watch
+
+# UBI-187 Part 2: the docs equivalent of every ubx-sdk-<provider>
+# repo's own hash-watch.yml. hash-watch detects upstream SPEC drift
+# (the provider's own schema grew/changed) and opens a PR regenerating
+# bindings from it. This workflow detects DOCS drift instead: the
+# schema has grown or changed and the committed artifacts/pages never
+# caught up -- a resource with no intro, a page with no schema entry,
+# a depth-0 field nobody ever described. There is no single "regenerate
+# from a hash" fix here the way hash-watch has (each gap needs its own
+# real authored content, per provider, per resource), so this workflow
+# never opens a regen PR -- it opens/updates one real, standing GitHub
+# issue with the current report and fails loud, exactly the surfacing
+# mechanism the ticket asks for ("schema growth surfaces without
+# someone noticing by accident"), never a silent log line nobody reads.
+#
+# Runs coverage_check.py (scripts/resource-reference-gen/) against a
+# fresh `ubx sdk gen --dump-ir` of every declared provider in
+# ubiquex's own real, central sdk/providers/.ubx/config -- the SAME
+# central config every real regeneration this project has ever done
+# reads, not a synthetic per-provider reconstruction of it (unlike
+# hash-watch.yml, which only ever needs one provider's own schema_url
+# and can safely hand-build a minimal scratch config for it).
+
+on:
+  schedule:
+    - cron: "0 8 * * 1" # every Monday, 08:00 UTC -- after hash-watch's own 06:00 runs land any spec-drift PRs first
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  TRACKING_ISSUE_LABEL: docs-coverage-drift
+
+jobs:
+  coverage-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out ubiquex-docs
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check out ubiquex (to build ubx from source and get the real central provider config)
+        run: |
+          set -euo pipefail
+          # Same --recurse-submodules requirement as every other repo's
+          # own hash-watch.yml -- ubiquex's sdk/go, sdk/py, sdk/ts are
+          # real git submodules `go build ./cmd/ubx` needs populated.
+          git clone --depth=1 --recurse-submodules \
+            "https://github.com/Ubiquex/ubiquex.git" \
+            "${{ runner.temp }}/ubiquex-src"
+          git clone --depth=1 \
+            "https://github.com/Ubiquex/ubx-provider-dynamic.git" \
+            "${{ runner.temp }}/ubx-provider-dynamic-src"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ runner.temp }}/ubiquex-src/go.mod
+
+      - name: Build ubx
+        run: |
+          set -euo pipefail
+          go build -C "${{ runner.temp }}/ubiquex-src" -o "${{ runner.temp }}/ubx" ./cmd/ubx
+          "${{ runner.temp }}/ubx" version
+
+      - name: Dump the current schema for every declared provider
+        id: dump
+        env:
+          UBX_PROVIDER_DYNAMIC_REPO: ${{ runner.temp }}/ubx-provider-dynamic-src
+        run: |
+          set -euo pipefail
+          dump_root="${{ runner.temp }}/docs-dump"
+          mkdir -p "$dump_root"
+          # No --only: dumps every real [thirdparty_providers]/
+          # [dynamic_providers.*] entry declared in ubiquex's own
+          # checked-in sdk/providers/.ubx/config in one run, against
+          # the real, live upstream schema sources -- the same command
+          # this repo's own README.md names as the real, standard
+          # dump-ir invocation.
+          ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
+            "${{ runner.temp }}/ubx" sdk gen --dump-ir "$dump_root" --out "${{ runner.temp }}/ubx-gen-unused" )
+          echo "dump_root=$dump_root" >> "$GITHUB_OUTPUT"
+
+      - name: Run the coverage check
+        id: check
+        run: |
+          set +e
+          python3 scripts/resource-reference-gen/coverage_check.py \
+            --dump-root "${{ steps.dump.outputs.dump_root }}" \
+            --json "${{ runner.temp }}/coverage-report.json" \
+            > "${{ runner.temp }}/coverage-report.txt" 2>&1
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          cat "${{ runner.temp }}/coverage-report.txt"
+          set -e
+
+      - name: Find the existing tracking issue, if any
+        id: existing
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          number="$(gh issue list --label "$TRACKING_ISSUE_LABEL" --state open --json number --jq '.[0].number // empty')"
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update the tracking issue (real gaps found, or the check itself failed to run)
+        if: steps.check.outputs.exit_code != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          run_url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          {
+            if [ "${{ steps.check.outputs.exit_code }}" = "2" ]; then
+              echo "**coverage_check.py could not run to completion** (exit 2 -- a setup error, not a reported gap)."
+            else
+              echo "**Real coverage gaps found** against the current schema (exit 1)."
+            fi
+            echo
+            echo "Full workflow run: $run_url"
+            echo
+            echo '```'
+            cat "${{ runner.temp }}/coverage-report.txt"
+            echo '```'
+          } > "${{ runner.temp }}/issue-body.md"
+
+          if [ -n "${{ steps.existing.outputs.number }}" ]; then
+            gh issue comment "${{ steps.existing.outputs.number }}" --body-file "${{ runner.temp }}/issue-body.md"
+          else
+            gh issue create \
+              --title "Docs coverage drift: schema has ungenerated/undescribed content" \
+              --label "$TRACKING_ISSUE_LABEL" \
+              --body-file "${{ runner.temp }}/issue-body.md"
+          fi
+          exit 1
+
+      - name: Close the tracking issue (clean run, one existed from a prior drift)
+        if: steps.check.outputs.exit_code == '0' && steps.existing.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh issue comment "${{ steps.existing.outputs.number }}" \
+            --body "Clean as of $(date -u +%Y-%m-%dT%H:%M:%SZ) -- coverage_check.py found zero gaps against the current schema. Closing."
+          gh issue close "${{ steps.existing.outputs.number }}"

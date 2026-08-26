@@ -34,6 +34,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gen_provider_docs import pascal
 from gen_data_source_pages import build_data_source_page
 from build_regen_schema import inject_description
+from coverage_check import schema_entries_from_corrected, check_gaps, gap_count, print_report
 
 DOCS_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -249,6 +250,7 @@ def main():
     skipped_no_ident = []
     skipped_no_group = []
     new_pages_by_group = {}
+    written_records = {}  # UBI-187: wire -> meta for every page actually written this run
 
     for wire, ident in sorted(go_idents.items()):
         meta = by_wire.get(wire)
@@ -277,6 +279,7 @@ def main():
         with open(out_path, "w") as f:
             f.write(page)
         written += 1
+        written_records[wire] = meta
 
         # Orphans (no sibling Resources group to nest under) were
         # already placed into docs.json on their own, standalone group
@@ -313,6 +316,29 @@ def main():
         print(f"{provider_key}: {len(skipped_no_group)} orphan data sources written (content only, nav placement untouched, no matching Resources group): {sorted(skipped_no_group)[:30]}{'...' if len(skipped_no_group) > 30 else ''}")
     if skipped_no_ident:
         print(f"{provider_key}: {len(skipped_no_ident)} real Go data sources with no schema.json match: {skipped_no_ident[:20]}{'...' if len(skipped_no_ident) > 20 else ''}")
+
+    # UBI-187: same refusal regen_pages.py/gen_new_provider_pages.py
+    # apply -- report/fail rather than let this run silently ship a
+    # data source page with no real intro or an undescribed depth-0
+    # field. check_disk=False: this run's own pages were just written,
+    # so on-disk reachability is trivially satisfied here. No category
+    # check applies (schema_entries_from_corrected's is_ds=True makes
+    # check_gaps skip it, matching that categories.json is
+    # resource-only -- data sources always fall to default derivation
+    # by design, never a real gap).
+    if written_records:
+        coverage_entries = schema_entries_from_corrected(written_records, is_ds=True)
+        coverage_result = check_gaps(provider_key, coverage_entries, repo_root=DOCS_ROOT, check_disk=False)
+        coverage_gaps = gap_count(coverage_result)
+        if coverage_gaps:
+            print(f"\n{provider_key}: UBI-187 coverage check found {coverage_gaps} gap(s) in this run's own batch:")
+            print_report(coverage_result, quiet=False)
+            if not os.environ.get("UBX_DOCS_ALLOW_COVERAGE_GAPS"):
+                print(f"\n{provider_key}: refusing to finish with an uncovered page in this batch "
+                      f"(set UBX_DOCS_ALLOW_COVERAGE_GAPS=1 to override and report only)")
+                sys.exit(1)
+        else:
+            print(f"{provider_key}: UBI-187 coverage check clean for this run's {len(written_records)} data source(s)")
 
 
 if __name__ == "__main__":

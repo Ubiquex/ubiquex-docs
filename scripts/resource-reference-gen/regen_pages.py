@@ -70,6 +70,7 @@ from build_regen_schema import (
 from extract_idents import scan_go, scan_py, scan_ts
 import gen_provider_docs
 from gen_provider_docs import generate_richer_provider, rebuild_provider_index
+from coverage_check import schema_entries_from_corrected, check_gaps, gap_count, print_report
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DOCS_ROOT = REPO_ROOT
@@ -188,6 +189,7 @@ def main():
     skipped_no_sdk = []
     per_family_counts = {}
     renamed_wires = []
+    all_corrected = {}  # UBI-187: every wire this run actually regenerates, merged across families
 
     for i, family in enumerate(families, 1):
         schema_path = os.path.join(dump_dir, family, "schema.json")
@@ -269,6 +271,8 @@ def main():
             skipped_no_sdk.append((family, "zero resolvable wires after ident match"))
             continue
 
+        all_corrected.update(corrected)
+
         family_idents_path = os.path.join(SCRATCH_DIR, f"{family}.idents.json")
         json.dump(idents, open(family_idents_path, "w"))
         json.dump(corrected, open(family_schema_path, "w"))
@@ -311,6 +315,30 @@ def main():
     # file tree, never from this run's own families list alone, so it
     # can never discard a family this run didn't touch.
     rebuild_provider_index(docs_root=DOCS_ROOT, provider=provider, provider_display=PROVIDER_DISPLAY[provider])
+
+    # UBI-187: refuse to let this run silently ship a page with no real
+    # intro, no category, or a depth-0 field with no description --
+    # exactly the "template text and blank fields" failure mode the
+    # ticket names. Checked only against the wires this run itself just
+    # regenerated (all_corrected), not the whole provider corpus: a
+    # scoped regen has no business being blocked by a pre-existing,
+    # already-known gap elsewhere in the provider it didn't touch.
+    # check_disk=False because a page this run just wrote is trivially
+    # "on disk" -- that check exists for the standalone corpus-wide
+    # sweep, not a freshly-generated batch.
+    if all_corrected:
+        coverage_entries = schema_entries_from_corrected(all_corrected)
+        coverage_result = check_gaps(provider, coverage_entries, repo_root=DOCS_ROOT, check_disk=False)
+        coverage_gaps = gap_count(coverage_result)
+        if coverage_gaps:
+            print(f"\n{provider}: UBI-187 coverage check found {coverage_gaps} gap(s) in this run's own batch:")
+            print_report(coverage_result, quiet=False)
+            if not os.environ.get("UBX_DOCS_ALLOW_COVERAGE_GAPS"):
+                print(f"\n{provider}: refusing to finish with an uncovered page in this batch "
+                      f"(set UBX_DOCS_ALLOW_COVERAGE_GAPS=1 to override and report only)")
+                sys.exit(1)
+        else:
+            print(f"{provider}: UBI-187 coverage check clean for this run's {len(all_corrected)} regenerated wire(s)")
 
     json.dump(
         {
