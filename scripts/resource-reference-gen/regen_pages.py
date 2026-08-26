@@ -69,7 +69,7 @@ from build_regen_schema import (
 )
 from extract_idents import scan_go, scan_py, scan_ts
 import gen_provider_docs
-from gen_provider_docs import generate_richer_provider
+from gen_provider_docs import generate_richer_provider, rebuild_provider_index
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DOCS_ROOT = REPO_ROOT
@@ -300,6 +300,17 @@ def main():
         print(f"{provider}: {len(skipped_no_sdk)} families skipped entirely: {skipped_no_sdk}")
     if renamed_wires:
         print(f"{provider}: {len(renamed_wires)} wire/local names corrected for doubling")
+
+    # UBI-190 follow-up: generate_richer_provider itself no longer
+    # touches resource-reference/<provider>/index.mdx or any
+    # resource-reference/<provider>/<service>/index.mdx (see its own
+    # doc comment -- this is the real fix for the GCP-landing-page and
+    # google_dlp_job incidents). rebuild_provider_index is always safe
+    # to call here, whether families above covers one real family or
+    # every one of them: it derives both files from the REAL, current
+    # file tree, never from this run's own families list alone, so it
+    # can never discard a family this run didn't touch.
+    rebuild_provider_index(docs_root=DOCS_ROOT, provider=provider, provider_display=PROVIDER_DISPLAY[provider])
 
     json.dump(
         {

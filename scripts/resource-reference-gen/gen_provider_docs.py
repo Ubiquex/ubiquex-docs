@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Shared library for resource-reference/<provider> page generation --
 never run directly (no __main__ block, on purpose: this file is real,
-tracked tooling shared by two real entry points, gen_new_provider_pages.py
-(full-provider, a brand-new provider with no existing pages at all) and
+tracked tooling shared by three real entry points: gen_new_provider_pages.py
+(full-provider, a brand-new provider with no existing pages at all),
+regen_pages.py (one real family at a time, looping generate_richer_provider
+once per [dynamic_providers.<family>] entry -- the call shape that made the
+scope-leak bugs below real and live, not hypothetical), and
 gen_complete_pages.py (touch up one resource or a real batch at a time
 on an ALREADY-GENERATED provider, splicing ONLY the Example section --
-never used to onboard a new provider) -- both driven from a real
+never used to onboard a new provider) -- all driven from a real
 schema dump (see README.md's own "Regenerating schema/idents data"
 section) + real identifier extraction (extract_idents.py's own output,
 a real scan of the already-published SDK bindings repos, or a real
@@ -23,8 +26,23 @@ build` against its own literal output failed outright, and a resource
 whose example can't compile as shown must never be selectable as final
 output again, the founder's own explicit instruction. Every real,
 currently-live page across all six providers is on the complete tier.
+
+Scope discipline (added after three real incidents -- see this
+function's own doc comment and rebuild_provider_index's below): a
+third real entry point, regen_pages.py, calls generate_richer_provider
+ONCE PER real [dynamic_providers.<family>] entry, one real family's own
+resources at a time. generate_richer_provider's own schema argument is
+therefore, structurally, always ONE family's slice -- never the whole
+provider corpus -- even on a run whose families_file happens to list
+every family. It must never derive a SHARED, cross-family file (the
+provider-level index.mdx, a per-service index.mdx) from that slice
+alone: doing so silently discards every other family's own already-
+published card entries, keeping only whichever family a given call
+happened to process. rebuild_provider_index exists for exactly this
+reason -- ground truth is the real, current file tree, not any one
+call's own partial schema.
 """
-import json, os
+import glob, json, os
 
 KIND_INVALID, KIND_SCALAR, KIND_LIST, KIND_SET, KIND_MAP, KIND_OBJECT = 0, 1, 2, 3, 4, 5
 SCALAR_INVALID, SCALAR_STRING, SCALAR_NUMBER, SCALAR_BOOL, SCALAR_DYNAMIC = 0, 1, 2, 3, 4
@@ -1303,6 +1321,25 @@ REAL_SDK_REPO_ID = {
 }
 
 
+def _assert_within_scope(path, allowed_root):
+    """Hard refusal, not a soft warning: path must resolve to a real
+    descendant of allowed_root, or this raises and the caller's own run
+    stops before writing anything unaccounted for. Guards against a
+    slug/service value (wire-derived, but never fully trusted -- a
+    future provider's own real naming could produce "..", an empty
+    string, or an absolute-looking segment) resolving outside the one
+    directory a given call is allowed to touch. Real, not decorative:
+    verify_scope_guard.py's own real, checked-in run proves this
+    actually raises on a crafted "../" path, not just on paper."""
+    real_path = os.path.realpath(path)
+    real_root = os.path.realpath(allowed_root)
+    if real_path != real_root and not real_path.startswith(real_root + os.sep):
+        raise SystemExit(
+            f"scope guard: refusing to write {path!r} -- resolves to {real_path!r}, "
+            f"outside the declared scope root {real_root!r}"
+        )
+
+
 def generate_richer_provider(docs_root, scratch_dir, provider, schema_name, provider_display,
                               stack_name, schema_path, idents_path, bindings_status="published",
                               intros_by_provider=None):
@@ -1320,7 +1357,22 @@ def generate_richer_provider(docs_root, scratch_dir, provider, schema_name, prov
     docs_root/scratch_dir are real, caller-supplied paths (never hardcoded
     here) -- UBI-144 Phase 2's own finding: a hardcoded DOCS_ROOT pointing
     at the wrong, disconnected directory is exactly the kind of bug this
-    file being real, reviewable, tracked tooling is meant to prevent."""
+    file being real, reviewable, tracked tooling is meant to prevent.
+
+    Declared scope is exactly schema's own (service, local) pairs --
+    nothing else. This function never writes resource-reference/<provider>/
+    index.mdx or any resource-reference/<provider>/<service>/index.mdx:
+    those are shared, cross-call aggregate files a single schema slice
+    (one family, per regen_pages.py's own real call shape) cannot safely
+    reconstruct -- three real, live incidents (the GCP landing page
+    clobbered to just the last family processed; the google_dlp_job
+    rename's own collateral to the provider index; and the general risk
+    the founder named directly) all trace to this function once building
+    those files unconditionally from schema alone. Call
+    rebuild_provider_index (below) explicitly, separately, whenever the
+    real aggregate files need to reflect the real, current file tree --
+    it derives them from what is ACTUALLY on disk, never from one call's
+    own partial view."""
     if schema_name not in REAL_SDK_REPO_ID:
         raise SystemExit(
             f"no real, confirmed SDK repo id for schema_name {schema_name!r} in "
@@ -1380,7 +1432,9 @@ def generate_richer_provider(docs_root, scratch_dir, provider, schema_name, prov
                 bindings_status=bindings_status,
                 intro_text=real_intro_for(provider, wire, intros_by_provider or {}),
             )
-            with open(os.path.join(service_dir, f"{slug}.mdx"), "w") as fh:
+            resource_page_path = os.path.join(service_dir, f"{slug}.mdx")
+            _assert_within_scope(resource_page_path, out_root)
+            with open(resource_page_path, "w") as fh:
                 fh.write(page)
 
         title = service.title()
@@ -1389,27 +1443,15 @@ def generate_richer_provider(docs_root, scratch_dir, provider, schema_name, prov
         # (real, confirmed: google_firestore_index, and AWS's own live
         # corpus has the identical unresolved collision for
         # aws_resourceexplorer2_index/aws_s3vectors_index/aws_kendra_index)
-        # writes to the exact same path a service-level CardGroup landing
-        # page would use. Skip the landing page for that one service
-        # rather than silently clobbering the real resource page with it --
-        # the landing page is optional/orphaned from nav either way (see
-        # AWS precedent), the resource page is not.
+        # would write to the exact same path a service-level CardGroup
+        # landing page uses -- rebuild_provider_index's own identical
+        # guard skips the landing page for that one service rather than
+        # clobbering the real resource page with it. Computed here too
+        # (unused for a write any more, this function no longer writes
+        # that file at all -- kept only so card_entries/nav_groups below
+        # still reflect it correctly for this call's own return value).
         index_collision = "index" in slugs
 
-        if len(items) > 1 and not index_collision:
-            card_body = f"""---
-title: "{title}"
-description: "{provider_display} {title} resource types."
----
-
-<CardGroup cols={{2}}>
-"""
-            for (wire, local, _), slug in zip(items, slugs):
-                card_title = local.replace("_", " ").title()
-                card_body += f'  <Card title="{card_title}" href="/resource-reference/{provider}/{service}/{slug}">\n    {wire}\n  </Card>\n'
-            card_body += "</CardGroup>\n"
-            with open(os.path.join(service_dir, "index.mdx"), "w") as fh:
-                fh.write(card_body)
         if len(items) > 1:
             pages = [f"resource-reference/{provider}/{service}/{s}" for s in slugs]
             nav_groups.append({
@@ -1422,13 +1464,134 @@ description: "{provider_display} {title} resource types."
 
         card_entries.append((title, service, slugs[0], len(items)))
 
-    # top-level provider index.mdx
+    # UBI-190 follow-up: resource-reference/<provider>/index.mdx and
+    # resource-reference/<provider>/<service>/index.mdx are NEVER
+    # written here any more -- see this function's own doc comment.
+    # Three real incidents (GCP's landing page clobbered to the last
+    # family processed; google_dlp_job's rename discarding the other
+    # families' own provider-index cards; the founder's own general
+    # scope-leak finding) all trace to building those two files from
+    # schema alone, which -- every real caller confirmed (regen_pages.py
+    # loops one real family per call; even gen_new_provider_pages.py's
+    # own "brand-new provider" case is only actually complete the FIRST
+    # time it runs) -- is never guaranteed to be the provider's own
+    # complete, real corpus. Call rebuild_provider_index explicitly
+    # after this function, once real page-writing is done, to derive
+    # both files from the real, current file tree instead.
+    nav_fragment = {
+        "group": provider_display,
+        "root": f"resource-reference/{provider}/index",
+        "pages": nav_groups,
+    }
+    json.dump(nav_fragment, open(os.path.join(scratch_dir, f"{provider}_nav_fragment.json"), "w"), indent=2)
+    print(f"generated {len(schema)} resource pages across {len(by_service)} services for {provider} "
+          f"(resource-reference/{provider}/index.mdx and any resource-reference/{provider}/<service>/index.mdx "
+          f"NOT touched -- call rebuild_provider_index explicitly if this call's own family is meant to be "
+          f"the provider's real, complete corpus)")
+    return len(schema), len(by_service)
+
+
+def _read_page_title(path):
+    """Pulls the real "title: ..." frontmatter value straight back out
+    of an already-generated page -- the same real wire type
+    build_resource_page_complete wrote there in the first place, so
+    ground-truth reconstruction never has to re-derive it from the
+    filename (a slug is lossy: hyphens replace underscores, and
+    real_intro_for/card rendering both need the real wire, not a
+    guessed reversal of that replacement). Frontmatter is always the
+    first few lines (---, title, description, ---) -- reads a small,
+    fixed window rather than the whole file."""
+    with open(path) as fh:
+        head = [fh.readline() for _ in range(5)]
+    for line in head:
+        line = line.rstrip("\n")
+        if line.startswith('title: "') and line.endswith('"'):
+            return line[len('title: "'):-1]
+    raise ValueError(f"{path}: no real \"title: \\\"...\\\"\" frontmatter line found in the first 5 lines")
+
+
+def rebuild_provider_index(docs_root, provider, provider_display):
+    """The real fix for the scope-leak class generate_richer_provider's
+    own doc comment names: derives resource-reference/<provider>/
+    index.mdx and every resource-reference/<provider>/<service>/
+    index.mdx from the REAL, CURRENT file tree on disk -- never from
+    any one generation call's own partial schema. Safe to call after
+    ANY generate_richer_provider run, whether that run covered one
+    family or every family, because it never trusts what a single call
+    claims to have generated -- it reads what is actually there.
+
+    Deliberately independent of generate_richer_provider's own
+    schema/idents inputs -- this function's only real input is the
+    file tree itself, exactly the ground truth a card listing is
+    supposed to reflect. Byte-compatible with the format
+    generate_richer_provider used to write directly (same CardGroup
+    markup, same title-casing, same "N resource type(s) documented"
+    wording) so running this after a normal generation produces no
+    unrelated diff on services this run didn't touch."""
+    out_root = os.path.join(docs_root, "resource-reference", provider)
+    if not os.path.isdir(out_root):
+        raise SystemExit(f"rebuild_provider_index: {out_root!r} does not exist -- nothing to rebuild")
+
+    card_entries = []
+    services_written = 0
+
+    for service_dir in sorted(glob.glob(os.path.join(out_root, "*"))):
+        if not os.path.isdir(service_dir):
+            continue
+        service = os.path.basename(service_dir)
+        # "data" is UBI-178 piece 4's own real, separate namespace
+        # (resource-reference/<provider>/data/<service_dir>/...) --
+        # not a provider-level service directory itself, skipped here
+        # the same way it is everywhere else a provider's own top-level
+        # service list is enumerated.
+        if service == "data":
+            continue
+
+        resource_paths = sorted(
+            p for p in glob.glob(os.path.join(service_dir, "*.mdx"))
+            if os.path.basename(p) != "index.mdx"
+        )
+        if not resource_paths:
+            continue
+
+        items = []
+        for p in resource_paths:
+            slug = os.path.splitext(os.path.basename(p))[0]
+            wire = _read_page_title(p)
+            local = slug.replace("-", "_")
+            items.append((wire, local, slug))
+
+        title = service.title()
+        slugs = [slug for _, _, slug in items]
+        index_collision = "index" in slugs
+
+        if len(items) > 1 and not index_collision:
+            card_body = f"""---
+title: "{title}"
+description: "{provider_display} {title} resource types."
+---
+
+<CardGroup cols={{2}}>
+"""
+            for wire, local, slug in items:
+                card_title = local.replace("_", " ").title()
+                card_body += f'  <Card title="{card_title}" href="/resource-reference/{provider}/{service}/{slug}">\n    {wire}\n  </Card>\n'
+            card_body += "</CardGroup>\n"
+            index_path = os.path.join(service_dir, "index.mdx")
+            _assert_within_scope(index_path, out_root)
+            with open(index_path, "w") as fh:
+                fh.write(card_body)
+            services_written += 1
+
+        card_entries.append((title, service, slugs[0], len(items)))
+
+    total_resources = sum(count for _, _, _, count in card_entries)
     idx = f"""---
 title: "{provider_display}"
 description: "{provider_display} resource types, grouped by real service."
 ---
 
-{provider_display} covers {len(schema)} resource types (as of the
+{provider_display} covers {total_resources} resource types (as of the
 version this reference was generated from), sourced directly from
 {schema_source_label(provider)} via ubx-provider-dynamic, grouped here
 the same way the real generated bindings are, mechanically by
@@ -1438,18 +1601,18 @@ the real provider schema, not hand-authored.
 
 <CardGroup cols={{2}}>
 """
+    # card_entries is already in service-sorted order (built while
+    # walking sorted(glob.glob(...)) above) -- no re-sort here, matching
+    # generate_richer_provider's own original iteration order exactly.
     for title, service, first_slug, count in card_entries:
         noun = "resource type" if count == 1 else "resource types"
         idx += f'  <Card title="{title}" icon="cube" href="/resource-reference/{provider}/{service}/{first_slug}">\n    {count} {noun} documented\n  </Card>\n'
     idx += "</CardGroup>\n"
-    with open(os.path.join(out_root, "index.mdx"), "w") as fh:
+    provider_index_path = os.path.join(out_root, "index.mdx")
+    _assert_within_scope(provider_index_path, out_root)
+    with open(provider_index_path, "w") as fh:
         fh.write(idx)
 
-    nav_fragment = {
-        "group": provider_display,
-        "root": f"resource-reference/{provider}/index",
-        "pages": nav_groups,
-    }
-    json.dump(nav_fragment, open(os.path.join(scratch_dir, f"{provider}_nav_fragment.json"), "w"), indent=2)
-    print(f"generated {len(schema)} resource pages across {len(by_service)} services for {provider}")
-    return len(schema), len(by_service)
+    print(f"rebuild_provider_index: {provider}: {len(card_entries)} services, {total_resources} resource types, "
+          f"{services_written} per-service index.mdx written, provider index.mdx rebuilt from the real file tree")
+    return len(card_entries), total_resources

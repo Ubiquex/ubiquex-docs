@@ -29,7 +29,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
-from gen_provider_docs import generate_richer_provider
+from gen_provider_docs import generate_richer_provider, rebuild_provider_index
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -72,6 +72,15 @@ def main():
         intros_by_provider=intros_by_provider,
     )
     print(f"generated {n_resources} resource pages across {n_services} services for {args.provider}")
+
+    # UBI-190 follow-up: generate_richer_provider no longer writes
+    # resource-reference/<provider>/index.mdx or any per-service
+    # index.mdx itself -- rebuild_provider_index derives both from the
+    # real, current file tree instead, safe here too even though this
+    # tool's own real use case ("brand-new provider, no existing pages")
+    # usually means schema_path already covers the provider's own real,
+    # complete corpus on a first run.
+    rebuild_provider_index(docs_root=args.docs_root, provider=args.provider, provider_display=args.provider_display)
 
 
 if __name__ == "__main__":
