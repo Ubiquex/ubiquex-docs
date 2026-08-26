@@ -1,0 +1,91 @@
+---
+title: "aws_streams_dynamodb_streams"
+description: "`aws_streams_dynamodb_streams` is a real, live lookup against AWS, generated from aws's own real schema -- read-only, never created or destroyed."
+---
+
+`aws_streams_dynamodb_streams` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against AWS's own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	streams_dynamodb "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/data/streams_dynamodb"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "look up aws_streams_dynamodb_streams"})
+
+    		ubx.Data(streams_dynamodb.StreamsDynamodbStreams, "example", streams_dynamodb.StreamsDynamodbStreamsConfig{
+    			ExclusiveStartStreamArn: "arn:aws:iam::123456789012:policy/example",
+    			Limit:                   1,
+    			TableName:               "example-table-name",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { data, intent, stack } from "@ubx/sdk";
+    import { StreamsDynamodbStreams } from "@ubx/sdk-aws/aws/data/streams_dynamodb/streams_dynamodb_streams";
+
+    export default stack("example", () => {
+      intent({ summary: "look up aws_streams_dynamodb_streams" });
+
+      data(StreamsDynamodbStreams, "example", {
+        exclusiveStartStreamArn: "arn:aws:iam::123456789012:policy/example",
+        limit: 1,
+        tableName: "example-table-name",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.data.streams_dynamodb import StreamsDynamodbStreams, StreamsDynamodbStreamsConfig
+
+    def describe():
+        ubx.intent("look up aws_streams_dynamodb_streams")
+
+        ubx.data(StreamsDynamodbStreams, "example", StreamsDynamodbStreamsConfig(
+            exclusive_start_stream_arn="arn:aws:iam::123456789012:policy/example",
+            limit=1,
+            table_name="example-table-name",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+</Tabs>
+
+## Lookup arguments
+
+<ResponseField name="exclusive_start_stream_arn" type="string">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="limit" type="number">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="table_name" type="string">
+  Optional lookup argument.
+</ResponseField>
+
+## Result properties
+
+<ResponseField name="last_evaluated_stream_arn" type="string">
+  Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="streams" type="list(object)">
+  Returned by the lookup.
+</ResponseField>

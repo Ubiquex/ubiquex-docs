@@ -1,0 +1,122 @@
+---
+title: "github_cloud_agent"
+description: "`github_cloud_agent` is a real, live lookup against GitHub, generated from github's own real schema -- read-only, never created or destroyed."
+---
+
+`github_cloud_agent` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against GitHub's own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	cloud "github.com/ubiquex/ubx-sdk-github/sdk/go/github/data/cloud"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "look up github_cloud_agent"})
+
+    		ubx.Data(cloud.Agent, "example", cloud.AgentConfig{
+    			Owner: "example",
+    			Repo:  "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { data, intent, stack } from "@ubx/sdk";
+    import { Agent } from "@ubx/sdk-github/github/data/cloud/agent";
+
+    export default stack("example", () => {
+      intent({ summary: "look up github_cloud_agent" });
+
+      data(Agent, "example", {
+        owner: "example",
+        repo: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.github.data.cloud import Agent, AgentConfig
+
+    def describe():
+        ubx.intent("look up github_cloud_agent")
+
+        ubx.data(Agent, "example", AgentConfig(
+            owner="example",
+            repo="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+</Tabs>
+
+## Lookup arguments
+
+<ResponseField name="owner" type="string" required>
+  Required lookup argument.
+</ResponseField>
+
+<ResponseField name="repo" type="string" required>
+  Required lookup argument.
+</ResponseField>
+
+## Result properties
+
+<ResponseField name="custom_allowlist" type="list(string)">
+  A list of custom allowlist entries, as hosts or URLs, that the firewall will allow the Copilot cloud agent to access. Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="enabled_tools" type="object">
+  The enabled review tools for Copilot cloud agent. Returned by the lookup.
+  <Expandable title="properties">
+    <ResponseField name="codeql" type="bool" required>
+      Whether the CodeQL tool is enabled for the Copilot cloud agent. Required lookup argument.
+    </ResponseField>
+    <ResponseField name="copilot_code_review" type="bool" required>
+      Whether the Copilot code review tool is enabled for the Copilot cloud agent. Required lookup argument.
+    </ResponseField>
+    <ResponseField name="dependency_vulnerability_checks" type="bool" required>
+      Whether the dependency vulnerability checks tool is enabled for the Copilot cloud agent. Required lookup argument.
+    </ResponseField>
+    <ResponseField name="secret_scanning" type="bool" required>
+      Whether the secret scanning tool is enabled for the Copilot cloud agent. Required lookup argument.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="is_automations_enabled" type="bool">
+  Whether automations are enabled in this repository. When true, users can create automations that automatically run agents on a schedule or in response to events like new issues or updated pull requests. Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="is_firewall_enabled" type="bool">
+  Whether the firewall is enabled. Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="is_firewall_recommended_allowlist_enabled" type="bool">
+  Whether the firewall recommended allowlist is enabled. Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="mcp_configuration" type="any">
+  The user-supplied MCP server configuration for the repository, as a free-form JSON object. This will be set to `null` if no configuration has been set. The shape of a valid MCP configuration may evolve over time, so this property is intentionally not strictly typed. Clients should not assume a fixed schema. Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="require_actions_workflow_approval" type="bool">
+  Whether Actions workflow approval is required for Copilot cloud agent pull requests. Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="require_write_access_for_automation_triggers" type="bool">
+  Whether write access is required for automation triggers. When true, automations will only run if the user triggering the event has write access to the repository. When false, users can create automations that listen for events triggered by users without write access. Returned by the lookup.
+</ResponseField>

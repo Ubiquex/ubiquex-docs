@@ -1,0 +1,113 @@
+---
+title: "github_concurrency_group"
+description: "`github_concurrency_group` is a real, live lookup against GitHub, generated from github's own real schema -- read-only, never created or destroyed."
+---
+
+`github_concurrency_group` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against GitHub's own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	concurrency "github.com/ubiquex/ubx-sdk-github/sdk/go/github/data/concurrency"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "look up github_concurrency_group"})
+
+    		ubx.Data(concurrency.Group, "example", concurrency.GroupConfig{
+    			ConcurrencyGroupName: "example-concurrency-group-name",
+    			Owner:                "example",
+    			Repo:                 "example",
+    			AheadOfJob:           1,
+    			AheadOfRun:           1,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { data, intent, stack } from "@ubx/sdk";
+    import { Group } from "@ubx/sdk-github/github/data/concurrency/group";
+
+    export default stack("example", () => {
+      intent({ summary: "look up github_concurrency_group" });
+
+      data(Group, "example", {
+        concurrencyGroupName: "example-concurrency-group-name",
+        owner: "example",
+        repo: "example",
+        aheadOfJob: 1,
+        aheadOfRun: 1,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.github.data.concurrency import Group, GroupConfig
+
+    def describe():
+        ubx.intent("look up github_concurrency_group")
+
+        ubx.data(Group, "example", GroupConfig(
+            concurrency_group_name="example-concurrency-group-name",
+            owner="example",
+            repo="example",
+            ahead_of_job=1,
+            ahead_of_run=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+</Tabs>
+
+## Lookup arguments
+
+<ResponseField name="ahead_of_job" type="number">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="ahead_of_run" type="number">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="concurrency_group_name" type="string" required>
+  Required lookup argument.
+</ResponseField>
+
+<ResponseField name="owner" type="string" required>
+  Required lookup argument.
+</ResponseField>
+
+<ResponseField name="repo" type="string" required>
+  Required lookup argument.
+</ResponseField>
+
+## Result properties
+
+<ResponseField name="group_members" type="list(object)">
+  Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="group_name" type="string">
+  The name of the concurrency group. Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="group_url" type="string">
+  API URL for this concurrency group. Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="total_count" type="number">
+  Returned by the lookup.
+</ResponseField>
