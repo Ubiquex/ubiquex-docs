@@ -1,0 +1,81 @@
+---
+title: "github_selected_actions"
+description: "`github_selected_actions` is a real, live lookup against GitHub, generated from github's own real schema -- read-only, never created or destroyed."
+---
+
+`github_selected_actions` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against GitHub's own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	selected "github.com/ubiquex/ubx-sdk-github/sdk/go/github/data/selected"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "look up github_selected_actions"})
+
+    		ubx.Data(selected.Actions, "example", selected.ActionsConfig{
+    			Enterprise: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { data, intent, stack } from "@ubx/sdk";
+    import { Actions } from "@ubx/sdk-github/github/data/selected/actions";
+
+    export default stack("example", () => {
+      intent({ summary: "look up github_selected_actions" });
+
+      data(Actions, "example", {
+        enterprise: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.github.data.selected import Actions, ActionsConfig
+
+    def describe():
+        ubx.intent("look up github_selected_actions")
+
+        ubx.data(Actions, "example", ActionsConfig(
+            enterprise="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+</Tabs>
+
+## Lookup arguments
+
+<ResponseField name="enterprise" type="string" required>
+  Required lookup argument.
+</ResponseField>
+
+## Result properties
+
+<ResponseField name="github_owned_allowed" type="bool">
+  Whether GitHub-owned actions are allowed. For example, this includes the actions in the `actions` organization. Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="patterns_allowed" type="list(string)">
+  Specifies a list of string-matching patterns to allow specific action(s) and reusable workflow(s). Wildcards, tags, and SHAs are allowed. For example, `monalisa/octocat@*`, `monalisa/octocat@v2`, `monalisa/*`. Returned by the lookup.
+</ResponseField>
+
+<ResponseField name="verified_allowed" type="bool">
+  Whether actions from GitHub Marketplace verified creators are allowed. Set to `true` to allow all actions by GitHub Marketplace verified creators. Returned by the lookup.
+</ResponseField>

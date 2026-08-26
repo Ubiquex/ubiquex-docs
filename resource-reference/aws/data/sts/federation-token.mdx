@@ -1,0 +1,158 @@
+---
+title: "aws_sts_federation_token"
+description: "`aws_sts_federation_token` is a real, live lookup against AWS, generated from aws's own real schema -- read-only, never created or destroyed."
+---
+
+`aws_sts_federation_token` is a real, live data source: `ubx.Data`/`data`/`ubx.data` (per language) executes this lookup at resolve time, against AWS's own real API, and returns whatever it finds. It is never created, modified, or destroyed by ubx -- see [docs/schema.md's own "Amendment: data sources"] for the real wire shape this compiles to (`data_sources[]`, never `resources[]`).
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	sts "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/data/sts"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "look up aws_sts_federation_token"})
+
+    		accessPolicy, _ := json.Marshal(map[string]any{
+    			"Version": "2012-10-17",
+    			"Statement": []map[string]any{{
+    				"Effect":   "Allow",
+    				"Action":   "*",
+    				"Resource": "*",
+    			}},
+    		})
+
+    		ubx.Data(sts.FederationToken, "example", sts.FederationTokenConfig{
+    			Name:            "example",
+    			DurationSeconds: 7200,
+    			Policy:          string(accessPolicy),
+    			PolicyArns:      []map[string]any{{"arn": "example"}},
+    			Tags:            []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { data, intent, stack } from "@ubx/sdk";
+    import { FederationToken } from "@ubx/sdk-aws/aws/data/sts/federation_token";
+
+    export default stack("example", () => {
+      intent({ summary: "look up aws_sts_federation_token" });
+
+      const accessPolicy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: "*",
+          Resource: "*",
+        }],
+      });
+
+      data(FederationToken, "example", {
+        name: "example",
+        durationSeconds: 7200,
+        policy: accessPolicy,
+        policyArns: [{ arn: "example" }],
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.data.sts import FederationToken, FederationTokenConfig
+
+    def describe():
+        ubx.intent("look up aws_sts_federation_token")
+
+        access_policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*",
+            }],
+        })
+
+        ubx.data(FederationToken, "example", FederationTokenConfig(
+            name="example",
+            duration_seconds=7200,
+            policy=access_policy,
+            policy_arns=[{"arn": "example"}],
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+</Tabs>
+
+## Lookup arguments
+
+<ResponseField name="duration_seconds" type="number">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Required lookup argument.
+</ResponseField>
+
+<ResponseField name="policy" type="string">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="policy_arns" type="list(object)">
+  Optional lookup argument.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Optional lookup argument.
+</ResponseField>
+
+## Result properties
+
+<ResponseField name="credentials" type="object">
+  &lt;p&gt;Amazon Web Services credentials for API authentication.&lt;/p&gt; Returned by the lookup.
+  <Expandable title="properties">
+    <ResponseField name="access_key_id" type="string" required>
+      Required lookup argument.
+    </ResponseField>
+    <ResponseField name="expiration" type="string" required>
+      Required lookup argument.
+    </ResponseField>
+    <ResponseField name="secret_access_key" type="string" required>
+      Required lookup argument.
+    </ResponseField>
+    <ResponseField name="session_token" type="string" required>
+      Required lookup argument.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="federated_user" type="object">
+  &lt;p&gt;Identifiers for the federated user that is associated with the credentials.&lt;/p&gt; Returned by the lookup.
+  <Expandable title="properties">
+    <ResponseField name="arn" type="string" required>
+      Required lookup argument.
+    </ResponseField>
+    <ResponseField name="federated_user_id" type="string" required>
+      Required lookup argument.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="packed_policy_size" type="number">
+  Returned by the lookup.
+</ResponseField>
