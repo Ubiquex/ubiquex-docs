@@ -69,7 +69,8 @@ from build_regen_schema import (
 )
 from extract_idents import scan_go, scan_py, scan_ts
 import gen_provider_docs
-from gen_provider_docs import generate_richer_provider
+from gen_provider_docs import generate_richer_provider, rebuild_provider_index
+from coverage_check import schema_entries_from_corrected, check_gaps, gap_count, print_report
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DOCS_ROOT = REPO_ROOT
@@ -144,8 +145,43 @@ def main():
     # published-repo overlap check earlier this session found most of
     # them don't).
     sdk_repo_id = {"gcp": "google", "azure": "azure", "aws": "aws", "kubernetes": "kubernetes"}[provider]
+    # Real, confirmed live (UBI-189 follow-up): families_file's own Azure
+    # entries carry the identical doubling azure_corrected_wire already
+    # collapses for wire types (e.g. "azure_advisor_advisor", never a
+    # real [dynamic_providers.<name>] section -- `ubx sdk gen --only
+    # azure_advisor_advisor` silently matches zero providers, confirmed
+    # live against the real CLI, while `--only azure_advisor` matches
+    # the real one). schema_name feeds directly into every printed
+    # `--only`/import-path string generate_richer_provider renders
+    # (gen_provider_docs.py's own go_gen_cmd/go_pkg_import_path/
+    # ts_import_path/py_gen_cmd, all schema_name verbatim, never
+    # re-derived) -- collapsing here, at the one place a family name
+    # enters that rendering, means every future regeneration renders a
+    # command a reader can actually copy-paste and run, not just this
+    # one already-published corpus.
+    def azure_corrected_family(name):
+        # Fixed-point, not a single pass: azure_corrected_wire's own
+        # kusto one-off (a spurious leading "azure" token on top of the
+        # real adjacent-repeat) needs two collapses for a wire
+        # (azure_azure_kusto_kusto_cluster -> azure_kusto_kusto_cluster
+        # -> azure_kusto_cluster, UBI-189 follow-up's own real, found-
+        # live miss from stopping after one pass) -- no real declared
+        # family needs a second pass today (verified against all 603
+        # real azure_* [dynamic_providers.<name>] entries), but nothing
+        # here guarantees a future families_file never repeats the
+        # deeper form, and a second pass is a no-op on an
+        # already-correct name.
+        while True:
+            new_name, changed = azure_corrected_wire(name)
+            if not changed:
+                return name
+            name = new_name
+
+    corrected_family_of = {}
     for family in families:
-        gen_provider_docs.REAL_SDK_REPO_ID.setdefault(family, sdk_repo_id)
+        corrected_family = azure_corrected_family(family) if provider == "azure" else family
+        corrected_family_of[family] = corrected_family
+        gen_provider_docs.REAL_SDK_REPO_ID.setdefault(corrected_family, sdk_repo_id)
 
     total_resources = 0
     total_services = set()
@@ -153,6 +189,7 @@ def main():
     skipped_no_sdk = []
     per_family_counts = {}
     renamed_wires = []
+    all_corrected = {}  # UBI-187: every wire this run actually regenerates, merged across families
 
     for i, family in enumerate(families, 1):
         schema_path = os.path.join(dump_dir, family, "schema.json")
@@ -234,6 +271,8 @@ def main():
             skipped_no_sdk.append((family, "zero resolvable wires after ident match"))
             continue
 
+        all_corrected.update(corrected)
+
         family_idents_path = os.path.join(SCRATCH_DIR, f"{family}.idents.json")
         json.dump(idents, open(family_idents_path, "w"))
         json.dump(corrected, open(family_schema_path, "w"))
@@ -242,7 +281,7 @@ def main():
             docs_root=DOCS_ROOT,
             scratch_dir=SCRATCH_DIR,
             provider=provider,
-            schema_name=family,
+            schema_name=corrected_family_of[family],
             provider_display=PROVIDER_DISPLAY[provider],
             stack_name="example",
             schema_path=family_schema_path,
@@ -265,6 +304,41 @@ def main():
         print(f"{provider}: {len(skipped_no_sdk)} families skipped entirely: {skipped_no_sdk}")
     if renamed_wires:
         print(f"{provider}: {len(renamed_wires)} wire/local names corrected for doubling")
+
+    # UBI-190 follow-up: generate_richer_provider itself no longer
+    # touches resource-reference/<provider>/index.mdx or any
+    # resource-reference/<provider>/<service>/index.mdx (see its own
+    # doc comment -- this is the real fix for the GCP-landing-page and
+    # google_dlp_job incidents). rebuild_provider_index is always safe
+    # to call here, whether families above covers one real family or
+    # every one of them: it derives both files from the REAL, current
+    # file tree, never from this run's own families list alone, so it
+    # can never discard a family this run didn't touch.
+    rebuild_provider_index(docs_root=DOCS_ROOT, provider=provider, provider_display=PROVIDER_DISPLAY[provider])
+
+    # UBI-187: refuse to let this run silently ship a page with no real
+    # intro, no category, or a depth-0 field with no description --
+    # exactly the "template text and blank fields" failure mode the
+    # ticket names. Checked only against the wires this run itself just
+    # regenerated (all_corrected), not the whole provider corpus: a
+    # scoped regen has no business being blocked by a pre-existing,
+    # already-known gap elsewhere in the provider it didn't touch.
+    # check_disk=False because a page this run just wrote is trivially
+    # "on disk" -- that check exists for the standalone corpus-wide
+    # sweep, not a freshly-generated batch.
+    if all_corrected:
+        coverage_entries = schema_entries_from_corrected(all_corrected)
+        coverage_result = check_gaps(provider, coverage_entries, repo_root=DOCS_ROOT, check_disk=False)
+        coverage_gaps = gap_count(coverage_result)
+        if coverage_gaps:
+            print(f"\n{provider}: UBI-187 coverage check found {coverage_gaps} gap(s) in this run's own batch:")
+            print_report(coverage_result, quiet=False)
+            if not os.environ.get("UBX_DOCS_ALLOW_COVERAGE_GAPS"):
+                print(f"\n{provider}: refusing to finish with an uncovered page in this batch "
+                      f"(set UBX_DOCS_ALLOW_COVERAGE_GAPS=1 to override and report only)")
+                sys.exit(1)
+        else:
+            print(f"{provider}: UBI-187 coverage check clean for this run's {len(all_corrected)} regenerated wire(s)")
 
     json.dump(
         {

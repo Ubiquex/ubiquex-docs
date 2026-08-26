@@ -29,7 +29,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
-from gen_provider_docs import generate_richer_provider
+from gen_provider_docs import generate_richer_provider, rebuild_provider_index
+from coverage_check import build_schema_entries, check_gaps, gap_count, print_report
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -72,6 +73,34 @@ def main():
         intros_by_provider=intros_by_provider,
     )
     print(f"generated {n_resources} resource pages across {n_services} services for {args.provider}")
+
+    # UBI-190 follow-up: generate_richer_provider no longer writes
+    # resource-reference/<provider>/index.mdx or any per-service
+    # index.mdx itself -- rebuild_provider_index derives both from the
+    # real, current file tree instead, safe here too even though this
+    # tool's own real use case ("brand-new provider, no existing pages")
+    # usually means schema_path already covers the provider's own real,
+    # complete corpus on a first run.
+    rebuild_provider_index(docs_root=args.docs_root, provider=args.provider, provider_display=args.provider_display)
+
+    # UBI-187: same refusal regen_pages.py now applies -- report/fail
+    # rather than let a brand-new provider's own first pass silently
+    # ship a page with no real intro, no category, or an undescribed
+    # depth-0 field. check_disk=False: this run's own pages were just
+    # written, so on-disk reachability is trivially satisfied here.
+    schema = json.load(open(args.schema_path))
+    coverage_entries = build_schema_entries(args.provider, schema)
+    coverage_result = check_gaps(args.provider, coverage_entries, repo_root=args.docs_root, check_disk=False)
+    coverage_gaps = gap_count(coverage_result)
+    if coverage_gaps:
+        print(f"\n{args.provider}: UBI-187 coverage check found {coverage_gaps} gap(s) in this run's own batch:")
+        print_report(coverage_result, quiet=False)
+        if not os.environ.get("UBX_DOCS_ALLOW_COVERAGE_GAPS"):
+            print(f"\n{args.provider}: refusing to finish with an uncovered page in this batch "
+                  f"(set UBX_DOCS_ALLOW_COVERAGE_GAPS=1 to override and report only)")
+            sys.exit(1)
+    else:
+        print(f"{args.provider}: UBI-187 coverage check clean for this run's {len(coverage_entries)} wire(s)")
 
 
 if __name__ == "__main__":
