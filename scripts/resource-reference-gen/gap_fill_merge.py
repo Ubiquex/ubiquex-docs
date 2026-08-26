@@ -4,7 +4,7 @@ individual batch, {key: {source: "ai-individual"|"ai-dictionary", text}})
 into a provider's real artifacts/<provider>/descriptions.json, preserving
 its existing format (indent=1, sort_keys=True, one trailing newline).
 Skips (never overwrites) any key that already exists -- Phase B only ever
-fills a real, confirmed gap, never touches docs-vendor or previously
+fills a real, confirmed gap, never touches vendor-spec or previously
 authored ai/ai-individual/ai-dictionary content.
 
 Usage:

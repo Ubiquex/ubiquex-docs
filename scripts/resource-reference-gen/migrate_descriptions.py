@@ -148,7 +148,7 @@ def migrate_from_docs(provider_dir_filter, provider_display):
                 fields = parse_docs_page(full, provider_display)
                 for fpath, (text, is_ai) in fields.items():
                     key = f"{rtype}.{fpath}"
-                    source = "ai" if is_ai else "docs-vendor"
+                    source = "ai" if is_ai else "vendor-spec"
                     result[key] = {"text": text, "source": source}
                     stats["ai" if is_ai else "vendor"] += 1
     return result, stats
