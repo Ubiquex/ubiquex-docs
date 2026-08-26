@@ -144,8 +144,43 @@ def main():
     # published-repo overlap check earlier this session found most of
     # them don't).
     sdk_repo_id = {"gcp": "google", "azure": "azure", "aws": "aws", "kubernetes": "kubernetes"}[provider]
+    # Real, confirmed live (UBI-189 follow-up): families_file's own Azure
+    # entries carry the identical doubling azure_corrected_wire already
+    # collapses for wire types (e.g. "azure_advisor_advisor", never a
+    # real [dynamic_providers.<name>] section -- `ubx sdk gen --only
+    # azure_advisor_advisor` silently matches zero providers, confirmed
+    # live against the real CLI, while `--only azure_advisor` matches
+    # the real one). schema_name feeds directly into every printed
+    # `--only`/import-path string generate_richer_provider renders
+    # (gen_provider_docs.py's own go_gen_cmd/go_pkg_import_path/
+    # ts_import_path/py_gen_cmd, all schema_name verbatim, never
+    # re-derived) -- collapsing here, at the one place a family name
+    # enters that rendering, means every future regeneration renders a
+    # command a reader can actually copy-paste and run, not just this
+    # one already-published corpus.
+    def azure_corrected_family(name):
+        # Fixed-point, not a single pass: azure_corrected_wire's own
+        # kusto one-off (a spurious leading "azure" token on top of the
+        # real adjacent-repeat) needs two collapses for a wire
+        # (azure_azure_kusto_kusto_cluster -> azure_kusto_kusto_cluster
+        # -> azure_kusto_cluster, UBI-189 follow-up's own real, found-
+        # live miss from stopping after one pass) -- no real declared
+        # family needs a second pass today (verified against all 603
+        # real azure_* [dynamic_providers.<name>] entries), but nothing
+        # here guarantees a future families_file never repeats the
+        # deeper form, and a second pass is a no-op on an
+        # already-correct name.
+        while True:
+            new_name, changed = azure_corrected_wire(name)
+            if not changed:
+                return name
+            name = new_name
+
+    corrected_family_of = {}
     for family in families:
-        gen_provider_docs.REAL_SDK_REPO_ID.setdefault(family, sdk_repo_id)
+        corrected_family = azure_corrected_family(family) if provider == "azure" else family
+        corrected_family_of[family] = corrected_family
+        gen_provider_docs.REAL_SDK_REPO_ID.setdefault(corrected_family, sdk_repo_id)
 
     total_resources = 0
     total_services = set()
@@ -242,7 +277,7 @@ def main():
             docs_root=DOCS_ROOT,
             scratch_dir=SCRATCH_DIR,
             provider=provider,
-            schema_name=family,
+            schema_name=corrected_family_of[family],
             provider_display=PROVIDER_DISPLAY[provider],
             stack_name="example",
             schema_path=family_schema_path,
