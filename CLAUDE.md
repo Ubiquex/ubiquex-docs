@@ -15,6 +15,11 @@ flags, behaviors) update this repo in the SAME session they land in
   disconnected local copy under a similar-looking path is a real, previously
   hit mistake, not a hypothetical one.
 - NO AI attribution anywhere in commits or PR bodies.
+- If ever working from a feature branch instead of `main` directly: before
+  pushing more commits to it, confirm any PR on it is STILL open (`gh pr list
+  --state open` or `gh pr view <n>`) — a merged PR's branch looks identical to
+  any other from `git status` alone, and a push after merge lands nowhere
+  near `main`, silently.
 
 ## Content discipline
 
