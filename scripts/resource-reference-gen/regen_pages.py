@@ -71,6 +71,7 @@ from extract_idents import scan_go, scan_py, scan_ts
 import gen_provider_docs
 from gen_provider_docs import generate_richer_provider, rebuild_provider_index
 from coverage_check import schema_entries_from_corrected, check_gaps, gap_count, print_report
+from provenance_check import check_provenance, collect_provenance, write_provenance_record
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DOCS_ROOT = REPO_ROOT
@@ -140,6 +141,24 @@ def main():
 
     families = [l.strip() for l in open(families_file) if l.strip()]
     print(f"{provider}: {len(families)} families to regenerate")
+
+    # UBI-197: every real family's own dump-ir output AND its own
+    # --lang go --out repo directory each carry a real PROVENANCE.json
+    # (ubx sdk gen writes it as a sibling of both) -- refuses unless
+    # every one found is present, clean, pushed, and the whole batch
+    # names one agreed-on commit. A family whose own directory doesn't
+    # exist at all is a real, separate "no dump"/"no local-sdk output"
+    # gap the per-family loop below already reports (skipped_no_sdk) --
+    # not counted here, since a missing directory isn't unclean
+    # provenance, it's a different real problem with its own real
+    # report.
+    allow_dirty_provenance = "--allow-dirty-provenance" in sys.argv[5:]
+    provenance_dirs = []
+    for family in families:
+        for d in (os.path.join(dump_dir, family), os.path.join(sdk_dir, family)):
+            if os.path.isdir(d):
+                provenance_dirs.append(d)
+    commit = check_provenance(collect_provenance(provenance_dirs), allow_dirty=allow_dirty_provenance)
 
     # Each real per-family [dynamic_providers.<family>] entry is its own
     # local_only `--only <family>` target, but its eventual published
@@ -353,6 +372,13 @@ def main():
         open(os.path.join(SCRATCH_DIR, f"{provider}_regen_result.json"), "w"),
         indent=2,
     )
+
+    if total_resources:
+        prov_path = write_provenance_record(
+            DOCS_ROOT, provider, commit, "resource pages",
+            extra={"pages_written": total_resources, "families": len(families)},
+        )
+        print(f"{provider}: real provenance recorded ({commit}) -> {prov_path}")
 
 
 if __name__ == "__main__":

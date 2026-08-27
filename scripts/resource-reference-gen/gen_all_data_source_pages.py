@@ -35,6 +35,7 @@ from gen_provider_docs import pascal
 from gen_data_source_pages import build_data_source_page
 from build_regen_schema import inject_description
 from coverage_check import schema_entries_from_corrected, check_gaps, gap_count, print_report
+from provenance_check import check_provenance, collect_provenance, write_provenance_record
 
 DOCS_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -209,7 +210,23 @@ def best_matching_group(groups, service_dir, local_slug):
 
 def main():
     provider_key = sys.argv[1]
+    allow_dirty_provenance = "--allow-dirty-provenance" in sys.argv[2:]
     cfg = PROVIDERS[provider_key]
+
+    # UBI-197: this batch draws from two SEPARATE real `ubx sdk gen`
+    # invocations (--dump-ir for schema.json, --lang go --out for
+    # go_root) -- refuses unless both are present, clean, pushed, and
+    # name the identical commit, since two individually-clean halves
+    # from different commits are not one coherent batch. This is the
+    # real, root-cause fix for the exact failure this ticket started
+    # from: nothing previously recorded which real ubx-provider-dynamic
+    # commit produced the published data-source corpus at all.
+    dump_dir_path = os.path.join(DUMP_ROOT, cfg["dump_dir"])
+    go_repo_dir = os.path.dirname(os.path.dirname(cfg["go_root"]))
+    commit = check_provenance(
+        collect_provenance([dump_dir_path, go_repo_dir]),
+        allow_dirty=allow_dirty_provenance,
+    )
 
     schema_path = os.path.join(DUMP_ROOT, cfg["dump_dir"], "schema.json")
     schema = json.load(open(schema_path))
@@ -339,6 +356,13 @@ def main():
                 sys.exit(1)
         else:
             print(f"{provider_key}: UBI-187 coverage check clean for this run's {len(written_records)} data source(s)")
+
+    if written:
+        prov_path = write_provenance_record(
+            DOCS_ROOT, provider_key, commit, "data sources",
+            extra={"pages_written": written},
+        )
+        print(f"{provider_key}: real provenance recorded ({commit}) -> {prov_path}")
 
 
 if __name__ == "__main__":

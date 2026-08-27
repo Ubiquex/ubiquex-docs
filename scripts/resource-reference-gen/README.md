@@ -57,6 +57,19 @@ real provider now that all six source through `ubx-provider-dynamic` --
 kept in tree for now, not deleted, but should not be reached for by a
 new session; see its own doc comment.
 
+**UBI-197: `ubx sdk gen` also writes a real `PROVENANCE.json` sibling**
+(source, commit, dirty, unpushed -- which real `ubx-provider-dynamic`
+checkout state produced this dump) next to `schema.json` here, and next
+to every real `--out` repo directory step 2 below produces. `regen_pages.py`
+and `gen_all_data_source_pages.py` both read these back and refuse to
+run unless every one they find is present, clean, pushed, and the whole
+batch agrees on one commit -- real root-cause fix for the exact failure
+this ticket started from (the published data-source corpus was once
+built entirely from a real, unmerged WIP branch, with nothing anywhere
+recording that it happened). Pass `--allow-dirty-provenance` to either
+script for a deliberate local experiment that will never be committed;
+never pass it for a real batch meant to publish.
+
 ### 2. Extract real identifiers from the published bindings
 
 ```bash
