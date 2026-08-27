@@ -55,12 +55,20 @@ def verify(path, sdk_go_root, sdk_provider_go_root, provider_go_module):
     try:
         with open(os.path.join(tmpdir, "main.go"), "w") as fh:
             fh.write(body)
+        # Go's own semantic import versioning requires a v2+ module's own
+        # require directive to declare a matching major version (a plain
+        # "v0.0.0" is rejected outright once the import path itself ends
+        # "/vN" -- found live verifying AWS's own real /v2 module for the
+        # first time, never hit before since no other provider's module
+        # path carries a version suffix).
+        v_match = re.search(r"/v(\d+)$", provider_go_module)
+        provider_version = f"v{v_match.group(1)}.0.0" if v_match else "v0.0.0"
         gomod = f"""module resourcereferencegenverify
 
 go 1.23
 
 require github.com/ubiquex/ubx-sdk-go v0.0.0
-require {provider_go_module} v0.0.0
+require {provider_go_module} {provider_version}
 
 replace github.com/ubiquex/ubx-sdk-go => {sdk_go_root}
 replace {provider_go_module} => {sdk_provider_go_root}
