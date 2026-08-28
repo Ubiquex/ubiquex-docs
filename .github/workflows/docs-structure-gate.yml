@@ -1,0 +1,121 @@
+name: docs-structure-gate
+
+# The same real gap the golden-page CI gate closed for content drift:
+# `mint validate` and `mint broken-links` have existed as real commands
+# this whole project (docs/blueprint.md's own required verification bar
+# names both) but nothing ever ran them -- structural breakage (a build
+# error Mintlify itself would refuse to serve, a link pointing nowhere)
+# was only ever caught when someone happened to run one by hand. This
+# workflow is the wiring, not a new check.
+#
+# Two different real behaviors on purpose, not the same treatment
+# copy-pasted twice:
+#
+# `mint validate` FAILS the job. It checks the corpus can build at all,
+# currently clean (confirmed live before writing this workflow) -- any
+# future failure is real, new, actionable breakage, and a build gate
+# that only sometimes gates isn't one.
+#
+# `mint broken-links` does NOT fail the job. A real, fresh full-corpus
+# run (2026-08-28) found real, pre-existing broken links, entirely in
+# GCP resource-reference pages generated before this session and one
+# golden fixture, none introduced by anything this session touched.
+# coverage-watch.yml already reports 7,625 pre-existing content gaps
+# from the exact same corpus, some of which likely overlap this list.
+# Failing the job on push to main today would turn this gate
+# permanently red on debt nobody pushing an unrelated change can fix in
+# that push, exactly the "always red, so nobody can tell new breakage
+# from old debt" failure mode a real gate exists to prevent. So this
+# WARNS instead: real findings, opened or updated as one real, standing,
+# labeled GitHub issue every run, mirroring coverage-watch.yml's own
+# exact open/update-vs-create logic, never a silent log line nobody
+# reads -- surfaced loudly, just never blocking.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  TRACKING_ISSUE_LABEL: docs-structure-drift
+
+jobs:
+  structure-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out ubiquex-docs
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install mint
+        run: npm install -g mint
+
+      - name: mint validate (fails the job on any error)
+        run: mint validate
+
+      - name: mint broken-links (warns, never fails the job)
+        id: links
+        run: |
+          set +e
+          mint broken-links > /tmp/broken-links-report.txt 2>&1
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          cat /tmp/broken-links-report.txt
+          set -e
+
+      - name: Find the existing tracking issue, if any
+        id: existing
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          number="$(gh issue list --label "$TRACKING_ISSUE_LABEL" --state open --json number --jq '.[0].number // empty')"
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update the tracking issue (broken links found)
+        if: steps.links.outputs.exit_code != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          run_url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          {
+            echo "**mint broken-links found real broken links** against the current corpus."
+            echo
+            echo "This does not fail the build -- see docs-structure-gate.yml's own"
+            echo "header comment for why. Real, actionable content drift, tracked here"
+            echo "rather than silently reported to a log nobody reads."
+            echo
+            echo "Full workflow run: $run_url"
+            echo
+            echo '```'
+            cat /tmp/broken-links-report.txt
+            echo '```'
+          } > /tmp/issue-body.md
+
+          if [ -n "${{ steps.existing.outputs.number }}" ]; then
+            gh issue comment "${{ steps.existing.outputs.number }}" --body-file /tmp/issue-body.md
+          else
+            gh issue create \
+              --title "Docs structure drift: mint broken-links found real broken links" \
+              --label "$TRACKING_ISSUE_LABEL" \
+              --body-file /tmp/issue-body.md
+          fi
+
+      - name: Close the tracking issue (clean run, one existed from a prior drift)
+        if: steps.links.outputs.exit_code == '0' && steps.existing.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh issue comment "${{ steps.existing.outputs.number }}" \
+            --body "Clean as of $(date -u +%Y-%m-%dT%H:%M:%SZ) -- mint broken-links found zero broken links. Closing."
+          gh issue close "${{ steps.existing.outputs.number }}"
