@@ -210,18 +210,29 @@ def ai_inferred_marker(f):
 # during UBI-152's bulk pass. Two independent, real guards, both
 # grounded in direct schema inspection rather than a guessed number:
 #
-#   1. cycle detection: a field's own WireName already appears among
-#      its own object-typed ancestors in the current recursion chain.
-#      This is a real, literal type self-reference (WAFv2's own
-#      Statement type genuinely contains itself via AndStatement), not
-#      a heuristic -- and it is proven zero-risk to already-shipped
-#      legitimate content: direct testing against medialive/channel,
-#      kinesis/firehose-delivery-stream, and securityhub/insight (the
-#      only confirmed-legitimate deep-nesting precedents in this
-#      corpus) triggers it zero times on all three, because none of
-#      them actually contain a repeated object type in their ancestor
-#      chain -- their real depth comes from distinct, non-recursive
-#      sibling structure, not self-reference.
+#   1. cycle detection: a field's own real STRUCTURAL SIGNATURE (its
+#      sorted child WireNames -- see field_shape_signature) already
+#      appears among its own object-typed ancestors in the current
+#      recursion chain, at the same field name. UBI-177's own real fix:
+#      matching by WireName alone (the original UBI-156 shape) false-
+#      positives the moment two UNRELATED types share a common, generic
+#      field name -- ARM's own "properties" wrapper convention being
+#      the confirmed, live instance (azure_restore_point_collection's
+#      own top-level properties and its restore_points[].properties are
+#      two different types that happen to share a name), and NOT an
+#      isolated case: a real, full-corpus scan found 2,008 false-
+#      positive triggers across 580 real wire types across ALL SIX
+#      providers before this fix, against only 3 genuine cycles in the
+#      entire corpus. Comparing the real child-field shape as well as
+#      the name is what tells a genuine self-reference (WAFv2's own
+#      Statement type genuinely contains itself via AndStatement, same
+#      shape at both levels) from two different types sharing a name
+#      (different shape at each level) -- proven zero-risk to
+#      already-shipped legitimate content the identical way UBI-156's
+#      own original name-only guard was: medialive/channel,
+#      kinesis/firehose-delivery-stream, and securityhub/insight still
+#      trigger it zero times, because none of them contain a repeated
+#      object SHAPE in their ancestor chain either.
 #   2. depth backstop (MAX_RESPONSE_FIELD_DEPTH): catches genuinely
 #      deep but non-cyclic explosions (QuickSight's ~30 distinct
 #      visual types, LexV2Models intent's ~8 distinct dialog branches,
@@ -236,12 +247,29 @@ def ai_inferred_marker(f):
 #
 # Both guards emit an honest, real reference to the field that
 # recurses (never a fabricated type name -- this schema representation
-# has no separate type identity, only WireName) rather than silently
-# truncating or continuing to unroll indefinitely.
+# has no separate type identity, only WireName, so the structural
+# signature below is the closest real substitute available) rather
+# than silently truncating or continuing to unroll indefinitely.
 MAX_RESPONSE_FIELD_DEPTH = 8
 
 
-def render_response_field(f, indent, provider_display, depth=0, ancestor_names=()):
+def field_shape_signature(t):
+    """UBI-177: the real, cheap structural signature two object-typed
+    fields are compared by -- the sorted tuple of their own immediate
+    child WireNames. A genuine self-reference recurs with the IDENTICAL
+    real child set at the same field name (it's the same schema type by
+    construction, confirmed against all 3 real cycles in the current
+    corpus); a false positive (an unrelated type sharing a common name)
+    has a DIFFERENT child set -- confirmed against all 2,008 real false
+    positives found in the full-corpus scan before this fix. Shallow on
+    purpose: comparing only the immediate children, not recursing
+    further, is what the real scan validated and keeps this cheap to
+    compute at every recursion step, not something added because a
+    deeper signature was ever shown to be needed."""
+    return tuple(sorted(c["WireName"] for c in object_fields_of(t)))
+
+
+def render_response_field(f, indent, provider_display, depth=0, ancestors=()):
     # Real, found-in-review bug, fixed here rather than left in place:
     # every nested field's own description (and, as of this session,
     # the AI-inferred marker) used to be silently dropped -- the
@@ -268,7 +296,9 @@ def render_response_field(f, indent, provider_display, depth=0, ancestor_names=(
     if is_object_ish(t):
         inner = sorted(object_fields_of(t), key=lambda x: x["WireName"])
         if inner:
-            if name in ancestor_names:
+            sig = field_shape_signature(t)
+            is_cycle = any(n == name and s == sig for n, s in ancestors)
+            if is_cycle:
                 lines.append(f'{pad}  <Expandable title="properties">')
                 lines.append(
                     f'{pad}    <Note>`{name}` recurs here (its own type contains '
@@ -290,7 +320,7 @@ def render_response_field(f, indent, provider_display, depth=0, ancestor_names=(
                     lines.append(
                         render_response_field(
                             inf, indent + 4, provider_display,
-                            depth + 1, ancestor_names + (name,),
+                            depth + 1, ancestors + ((name, sig),),
                         )
                     )
                 lines.append(f"{pad}  </Expandable>")

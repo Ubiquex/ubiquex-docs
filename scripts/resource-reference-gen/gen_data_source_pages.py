@@ -40,6 +40,7 @@ from gen_provider_docs import (
     ai_inferred_marker,
     fence,
     field_literal_with_preamble,
+    field_shape_signature,
     gofmt_lines,
     deno_fmt_lines,
     intro_and_description,
@@ -121,7 +122,14 @@ def data_field_desc(f):
     return qualifier
 
 
-def render_data_field(f, indent, depth=0, ancestor_names=()):
+def render_data_field(f, indent, depth=0, ancestors=()):
+    # UBI-177: matches render_response_field's own real fix -- ancestors
+    # is (name, structural signature) pairs, not bare names, so an
+    # unrelated type sharing a common field name is never mistaken for a
+    # genuine self-reference. See field_shape_signature's own doc
+    # comment (gen_provider_docs.py) for the full real reasoning; this
+    # function shares that exact helper rather than a second, drifted
+    # copy of the same logic.
     pad = " " * indent
     name = f["WireName"]
     t = f["Type"]
@@ -132,14 +140,16 @@ def render_data_field(f, indent, depth=0, ancestor_names=()):
     if t["Kind"] == KIND_OBJECT:
         inner = sorted(object_fields_of(t), key=lambda x: x["WireName"])
         if inner:
-            if name in ancestor_names or depth >= 6:
+            sig = field_shape_signature(t)
+            is_cycle = any(n == name and s == sig for n, s in ancestors)
+            if is_cycle or depth >= 6:
                 lines.append(f'{pad}  <Expandable title="properties">')
                 lines.append(f'{pad}    <Note>Nested `{name}` structure omitted (recursive or deeply nested).</Note>')
                 lines.append(f"{pad}  </Expandable>")
             else:
                 lines.append(f'{pad}  <Expandable title="properties">')
                 for inf in inner:
-                    lines.append(render_data_field(inf, indent + 4, depth + 1, ancestor_names + (name,)))
+                    lines.append(render_data_field(inf, indent + 4, depth + 1, ancestors + ((name, sig),)))
                 lines.append(f"{pad}  </Expandable>")
     lines.append(f"{pad}</ResponseField>")
     return "\n".join(lines)
