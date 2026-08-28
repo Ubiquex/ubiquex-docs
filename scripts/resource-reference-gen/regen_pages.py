@@ -71,7 +71,7 @@ from extract_idents import scan_go, scan_py, scan_ts
 import gen_provider_docs
 from gen_provider_docs import generate_richer_provider, rebuild_provider_index
 from coverage_check import schema_entries_from_corrected, check_gaps, gap_count, print_report
-from provenance_check import check_provenance, collect_provenance, write_provenance_record
+from provenance_check import check_provenance, collect_provenance, schema_provenance_of, write_provenance_record
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DOCS_ROOT = REPO_ROOT
@@ -152,13 +152,23 @@ def main():
     # not counted here, since a missing directory isn't unclean
     # provenance, it's a different real problem with its own real
     # report.
+    # UBI-199: ALSO refuses unless every real directory's own
+    # PROVENANCE.json confirms the schema itself was genuinely pinned
+    # (source/version), not a live schema_url fetch that could have
+    # drifted between two separate ubx sdk gen invocations even against
+    # a clean, pinned tool commit -- see provenance_check.py's own
+    # updated doc comment for the real, confirmed Azure mechanism this
+    # closes.
     allow_dirty_provenance = "--allow-dirty-provenance" in sys.argv[5:]
+    allow_unpinned_schema = "--allow-unpinned-schema" in sys.argv[5:]
     provenance_dirs = []
     for family in families:
         for d in (os.path.join(dump_dir, family), os.path.join(sdk_dir, family)):
             if os.path.isdir(d):
                 provenance_dirs.append(d)
-    commit = check_provenance(collect_provenance(provenance_dirs), allow_dirty=allow_dirty_provenance)
+    prov_pairs = collect_provenance(provenance_dirs)
+    commit = check_provenance(prov_pairs, allow_dirty=allow_dirty_provenance, allow_unpinned_schema=allow_unpinned_schema)
+    schema_source, schema_version = schema_provenance_of(prov_pairs)
 
     # Each real per-family [dynamic_providers.<family>] entry is its own
     # local_only `--only <family>` target, but its eventual published
@@ -376,9 +386,10 @@ def main():
     if total_resources:
         prov_path = write_provenance_record(
             DOCS_ROOT, provider, commit, "resource pages",
-            extra={"pages_written": total_resources, "families": len(families)},
+            extra={"pages_written": total_resources, "families": len(families),
+                   "schema_source": schema_source, "schema_version": schema_version},
         )
-        print(f"{provider}: real provenance recorded ({commit}) -> {prov_path}")
+        print(f"{provider}: real provenance recorded ({commit}, schema {schema_source}@{schema_version}) -> {prov_path}")
 
 
 if __name__ == "__main__":

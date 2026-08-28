@@ -35,26 +35,30 @@ from gen_provider_docs import pascal
 from gen_data_source_pages import build_data_source_page
 from build_regen_schema import inject_description
 from coverage_check import schema_entries_from_corrected, check_gaps, gap_count, print_report
-from provenance_check import check_provenance, collect_provenance, write_provenance_record
+from provenance_check import check_provenance, collect_provenance, schema_provenance_of, write_provenance_record
 
 DOCS_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# UBI-199: dump_dir/go_root deliberately do NOT live here. They used to
+# (hardcoded /tmp/reconcile2-<provider> scratch paths, decoupled from
+# `ubiquex`'s own sdk/providers/.ubx/config), which meant this driver
+# could read output generated from a live, unpinned fetch even after the
+# config itself was pinned -- nothing forced the two to correspond. Now
+# required as real CLI arguments every invocation (matching
+# regen_pages.py's own already-established --dump-dir/--go-root shape,
+# never a silently-reused default), and check_provenance below refuses
+# unless that directory's own PROVENANCE.json confirms the schema was
+# genuinely pinned, not just that the ubx-provider-dynamic tool was
+# clean. go_dir/schema_name/provider_display/sdk_repo_id are real,
+# stable identity, not paths -- unaffected, stay here.
 PROVIDERS = {
-    "aws": dict(dump_dir="aws", go_root="/tmp/reconcile2-aws/aws/sdk/go", go_dir="aws",
-                schema_name="aws", provider_display="AWS", sdk_repo_id="aws"),
-    "azure": dict(dump_dir="azure", go_root="/tmp/reconcile2-azure/azure/sdk/go", go_dir="azure",
-                  schema_name="azure", provider_display="Microsoft Azure", sdk_repo_id="azure"),
-    "gcp": dict(dump_dir="google", go_root="/tmp/reconcile2-gcp/google/sdk/go", go_dir="google",
-                schema_name="google", provider_display="Google Cloud", sdk_repo_id="google"),
-    "kubernetes": dict(dump_dir="kubernetes", go_root="/tmp/reconcile2-k8s/kubernetes/sdk/go", go_dir="kubernetes",
-                        schema_name="kubernetes", provider_display="Kubernetes", sdk_repo_id="kubernetes"),
-    "github": dict(dump_dir="github", go_root="/tmp/reconcile2-github/github/sdk/go", go_dir="github",
-                    schema_name="github", provider_display="GitHub", sdk_repo_id="github"),
-    "datadog": dict(dump_dir="datadog", go_root="/tmp/reconcile2-datadog/datadog/sdk/go", go_dir="datadog",
-                     schema_name="datadog", provider_display="Datadog", sdk_repo_id="datadog"),
+    "aws": dict(go_dir="aws", schema_name="aws", provider_display="AWS", sdk_repo_id="aws"),
+    "azure": dict(go_dir="azure", schema_name="azure", provider_display="Microsoft Azure", sdk_repo_id="azure"),
+    "gcp": dict(go_dir="google", schema_name="google", provider_display="Google Cloud", sdk_repo_id="google"),
+    "kubernetes": dict(go_dir="kubernetes", schema_name="kubernetes", provider_display="Kubernetes", sdk_repo_id="kubernetes"),
+    "github": dict(go_dir="github", schema_name="github", provider_display="GitHub", sdk_repo_id="github"),
+    "datadog": dict(go_dir="datadog", schema_name="datadog", provider_display="Datadog", sdk_repo_id="datadog"),
 }
-
-DUMP_ROOT = "/tmp/docs-dump"
 
 
 def resolve_config_name(text, binding):
@@ -209,30 +213,49 @@ def best_matching_group(groups, service_dir, local_slug):
 
 
 def main():
-    provider_key = sys.argv[1]
-    allow_dirty_provenance = "--allow-dirty-provenance" in sys.argv[2:]
+    # UBI-199: dump_dir/go_root are real, required, explicit CLI
+    # arguments -- matching regen_pages.py's own established
+    # --dump-dir/--go-root shape exactly, never a hardcoded scratch
+    # default. An operator names a real directory every invocation,
+    # consciously, rather than a stale default silently getting reused.
+    if len(sys.argv) < 4 or sys.argv[1].startswith("--"):
+        sys.exit(
+            "usage: gen_all_data_source_pages.py <provider> <dump_dir> <go_root> "
+            "[--allow-dirty-provenance] [--allow-unpinned-schema]\n"
+            "  dump_dir: the real --dump-ir output directory for <provider> "
+            "(a real ubx sdk gen --dump-ir run's own <dir>/<provider>)\n"
+            "  go_root:  the real --lang go --out output's own sdk/go directory "
+            "for <provider> (<dir>/<provider>/sdk/go)"
+        )
+    provider_key, dump_dir_path, go_root = sys.argv[1:4]
+    allow_dirty_provenance = "--allow-dirty-provenance" in sys.argv[4:]
+    allow_unpinned_schema = "--allow-unpinned-schema" in sys.argv[4:]
     cfg = PROVIDERS[provider_key]
 
     # UBI-197: this batch draws from two SEPARATE real `ubx sdk gen`
     # invocations (--dump-ir for schema.json, --lang go --out for
     # go_root) -- refuses unless both are present, clean, pushed, and
     # name the identical commit, since two individually-clean halves
-    # from different commits are not one coherent batch. This is the
-    # real, root-cause fix for the exact failure this ticket started
-    # from: nothing previously recorded which real ubx-provider-dynamic
-    # commit produced the published data-source corpus at all.
-    dump_dir_path = os.path.join(DUMP_ROOT, cfg["dump_dir"])
-    go_repo_dir = os.path.dirname(os.path.dirname(cfg["go_root"]))
+    # from different commits are not one coherent batch. UBI-199: ALSO
+    # refuses unless both confirm the schema itself was genuinely
+    # pinned (source/version), not a live schema_url fetch that could
+    # have drifted between the two separate invocations even against a
+    # clean, pinned tool commit -- the real, confirmed Azure mechanism
+    # that produced 908 miscategorized pages the first time.
+    go_repo_dir = os.path.dirname(os.path.dirname(go_root))
+    prov_pairs = collect_provenance([dump_dir_path, go_repo_dir])
     commit = check_provenance(
-        collect_provenance([dump_dir_path, go_repo_dir]),
+        prov_pairs,
         allow_dirty=allow_dirty_provenance,
+        allow_unpinned_schema=allow_unpinned_schema,
     )
+    schema_source, schema_version = schema_provenance_of(prov_pairs)
 
-    schema_path = os.path.join(DUMP_ROOT, cfg["dump_dir"], "schema.json")
+    schema_path = os.path.join(dump_dir_path, "schema.json")
     schema = json.load(open(schema_path))
     ds_entries = {k: v for k, v in schema.items() if v.get("namespace") == "data"}
 
-    go_idents = scan_go_data(cfg["go_root"], cfg["go_dir"])
+    go_idents = scan_go_data(go_root, cfg["go_dir"])
 
     docs_json_path = os.path.join(DOCS_ROOT, "docs.json")
     doc = json.load(open(docs_json_path))
@@ -360,9 +383,9 @@ def main():
     if written:
         prov_path = write_provenance_record(
             DOCS_ROOT, provider_key, commit, "data sources",
-            extra={"pages_written": written},
+            extra={"pages_written": written, "schema_source": schema_source, "schema_version": schema_version},
         )
-        print(f"{provider_key}: real provenance recorded ({commit}) -> {prov_path}")
+        print(f"{provider_key}: real provenance recorded ({commit}, schema {schema_source}@{schema_version}) -> {prov_path}")
 
 
 if __name__ == "__main__":

@@ -28,6 +28,22 @@ artifact (the docs corpus), the same posture CI's own
 --require-clean-provenance already established for the six
 ubx-sdk-<provider> repos, not the interactive-local-iteration posture
 `ubx sdk gen`'s own bare invocation defaults to.
+
+UBI-199: a real, separate, distinct failure mode found live -- a tool
+checkout being clean and pushed says nothing about whether the SCHEMA
+it fetched was pinned or live. Azure's own real upstream OpenAPI spec
+moved between two separate `ubx sdk gen` invocations (--dump-ir,
+--lang go --out) run minutes apart, against a genuinely clean tool
+commit both times -- the tool-only check above passed cleanly while the
+two invocations silently disagreed on which wires were resources vs.
+data sources, which is what produced 908 miscategorized docs pages.
+`ubx sdk gen` now also stamps schema_pinned/schema_source/
+schema_version (or schema_url when live) into the same PROVENANCE.json,
+per provider -- this module refuses on an unpinned or missing value the
+same way it already refuses on dirty/missing tool provenance. Missing
+is deliberate: every PROVENANCE.json written before this fix has no
+schema_pinned key at all, and that must read as unknown, never as
+implicitly pinned.
 """
 import json
 import os
@@ -62,16 +78,23 @@ def collect_provenance(dirs):
     return [(d, _read_provenance(os.path.join(d, "PROVENANCE.json"))) for d in dirs]
 
 
-def check_provenance(pairs, allow_dirty=False):
+def check_provenance(pairs, allow_dirty=False, allow_unpinned_schema=False):
     """pairs: collect_provenance's own real output. Refuses (raises
     ProvenanceError) unless every directory has a real record, every
     record confirms a clean(): local-checkout, not dirty, not unpushed
     (allow_dirty=True downgrades dirty/unpushed to a warning instead --
     real escape hatch for a deliberate local experiment, never the
-    default for a real batch meant to be committed), and every clean
-    record names the SAME real commit -- a batch drawing from two
-    different real commits is not one coherent corpus, even if each half
-    is individually clean.
+    default for a real batch meant to be committed), every clean record
+    names the SAME real commit -- a batch drawing from two different
+    real commits is not one coherent corpus, even if each half is
+    individually clean -- AND (UBI-199) every record's own schema was
+    genuinely pinned (allow_unpinned_schema=True downgrades this to a
+    warning too, the identical real escape hatch, never the default),
+    agreeing on the SAME real source/version -- a batch where even one
+    real member fetched its schema live, or where members were pinned
+    to genuinely different versions, is not one coherent, reproducible
+    corpus either, the same real reasoning as the commit check just
+    applied one layer up.
 
     Returns the single, agreed-on commit string on success.
     """
@@ -112,7 +135,54 @@ def check_provenance(pairs, allow_dirty=False):
             f"ubx-provider-dynamic commits. Re-run the whole batch back-to-back against one commit."
         )
 
+    # UBI-199: schema_pinned absent (every real PROVENANCE.json written
+    # before this fix) or explicitly False both mean "not pinned" here --
+    # a missing key is never treated as implicitly pinned.
+    unpinned = [(d, rec) for d, rec in pairs if not rec.get("schema_pinned")]
+    if unpinned and not allow_unpinned_schema:
+        d, rec = unpinned[0]
+        reason = "no schema_pinned field at all (generated before UBI-199's provenance fix)" if "schema_pinned" not in rec else (
+            f"schema_url={rec.get('schema_url')!r} (a real, live, unpinned fetch)"
+        )
+        raise ProvenanceError(
+            f"{len(unpinned)} of {len(pairs)} real directories carry unpinned schema provenance "
+            f"-- first: {d} ({reason}). This batch produces a real, published artifact whose two "
+            f"separate ubx sdk gen invocations (--dump-ir, --lang go --out) must see byte-identical "
+            f"input to agree with each other -- a live schema_url fetch can drift between the two "
+            f"runs even against a clean, pinned tool commit (UBI-197's own real Azure finding). "
+            f"Re-run against a pinned [dynamic_providers.<name>] entry (source/version, see "
+            f"sdk/providers/.ubx/config), or pass allow_unpinned_schema=True for a deliberate local "
+            f"experiment that will never be committed."
+        )
+
+    schema_pins = {
+        (rec.get("schema_source"), rec.get("schema_version"))
+        for d, rec in pairs if rec.get("schema_pinned")
+    }
+    if len(schema_pins) > 1:
+        raise ProvenanceError(
+            f"real directories in this batch disagree on schema source/version: "
+            f"{sorted(schema_pins)} -- this batch is not one coherent, reproducible fetch. "
+            f"Re-run the whole batch against one real, pinned source/version."
+        )
+
     return next(iter(commits)) if commits else None
+
+
+def schema_provenance_of(pairs):
+    """The single, agreed-on (schema_source, schema_version) pair across
+    pairs -- callers use this AFTER check_provenance has already
+    confirmed the batch agrees, to thread the real pin into their own
+    write_provenance_record's extra dict. (None, None) when nothing in
+    pairs is pinned -- only reachable when check_provenance was called
+    with allow_unpinned_schema=True."""
+    pins = {
+        (rec.get("schema_source"), rec.get("schema_version"))
+        for d, rec in pairs if rec and rec.get("schema_pinned")
+    }
+    if not pins:
+        return None, None
+    return next(iter(pins))
 
 
 def write_provenance_record(docs_root, provider_key, commit, artifact, extra=None):

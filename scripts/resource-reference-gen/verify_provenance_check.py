@@ -16,12 +16,28 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from provenance_check import ProvenanceError, check_provenance, collect_provenance, write_provenance_record
+from provenance_check import ProvenanceError, check_provenance, collect_provenance, schema_provenance_of, write_provenance_record
 
-CLEAN = {"source": "local-checkout", "repo_path": "/repo", "commit": "aaa111", "dirty": False, "unpushed": False}
-DIRTY = {"source": "local-checkout", "repo_path": "/repo", "commit": "aaa111", "dirty": True, "unpushed": False}
-UNPUSHED = {"source": "local-checkout", "repo_path": "/repo", "commit": "aaa111", "dirty": False, "unpushed": True}
-OTHER_COMMIT = {"source": "local-checkout", "repo_path": "/repo", "commit": "bbb222", "dirty": False, "unpushed": False}
+# UBI-199: every fixture below carries a real, pinned schema_pinned/
+# schema_source/schema_version -- these existing cases are about the
+# TOOL-provenance checks (dirty/unpushed/disagreeing commit), so they
+# need to stay pinned-clean on the schema axis or the new check (added
+# below, tested separately) would refuse them for an unrelated reason.
+CLEAN = {"source": "local-checkout", "repo_path": "/repo", "commit": "aaa111", "dirty": False, "unpushed": False,
+         "schema_pinned": True, "schema_source": "ubiquex/azure", "schema_version": "1.0.0"}
+DIRTY = {"source": "local-checkout", "repo_path": "/repo", "commit": "aaa111", "dirty": True, "unpushed": False,
+         "schema_pinned": True, "schema_source": "ubiquex/azure", "schema_version": "1.0.0"}
+UNPUSHED = {"source": "local-checkout", "repo_path": "/repo", "commit": "aaa111", "dirty": False, "unpushed": True,
+            "schema_pinned": True, "schema_source": "ubiquex/azure", "schema_version": "1.0.0"}
+OTHER_COMMIT = {"source": "local-checkout", "repo_path": "/repo", "commit": "bbb222", "dirty": False, "unpushed": False,
+                "schema_pinned": True, "schema_source": "ubiquex/azure", "schema_version": "1.0.0"}
+
+# UBI-199: schema-provenance-specific fixtures.
+NO_SCHEMA_FIELD = {"source": "local-checkout", "repo_path": "/repo", "commit": "aaa111", "dirty": False, "unpushed": False}
+LIVE_SCHEMA = {"source": "local-checkout", "repo_path": "/repo", "commit": "aaa111", "dirty": False, "unpushed": False,
+               "schema_pinned": False, "schema_url": "https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/x.json"}
+PINNED_OTHER_VERSION = {"source": "local-checkout", "repo_path": "/repo", "commit": "aaa111", "dirty": False, "unpushed": False,
+                         "schema_pinned": True, "schema_source": "ubiquex/azure", "schema_version": "0.9.0"}
 
 
 _case_counter = [0]
@@ -91,12 +107,42 @@ def main():
         dirs = make_dirs(root, [CLEAN, DIRTY])
         expect_ok("dirty allowed via allow_dirty=True", lambda: check_provenance(collect_provenance(dirs), allow_dirty=True))
 
+        # UBI-199: schema-source provenance -- the whole reason it exists,
+        # a live fetch was invisible to every check above (a clean, pushed
+        # tool commit says nothing about the schema it fetched).
+        dirs = make_dirs(root, [CLEAN, NO_SCHEMA_FIELD])
+        expect_error("one missing schema_pinned field (pre-UBI-199 record)",
+                     lambda: check_provenance(collect_provenance(dirs)), "unpinned schema provenance")
+
+        dirs = make_dirs(root, [CLEAN, LIVE_SCHEMA])
+        expect_error("one real live schema_url fetch",
+                     lambda: check_provenance(collect_provenance(dirs)), "unpinned schema provenance")
+
+        dirs = make_dirs(root, [CLEAN, PINNED_OTHER_VERSION])
+        expect_error("two real pinned sources disagreeing on version",
+                     lambda: check_provenance(collect_provenance(dirs)), "disagree on schema source/version")
+
+        dirs = make_dirs(root, [CLEAN, LIVE_SCHEMA])
+        expect_ok("live schema allowed via allow_unpinned_schema=True",
+                  lambda: check_provenance(collect_provenance(dirs), allow_unpinned_schema=True))
+
+        dirs = make_dirs(root, [CLEAN, CLEAN])
+        pairs = collect_provenance(dirs)
+        check_provenance(pairs)
+        schema_source, schema_version = schema_provenance_of(pairs)
+        if schema_source != "ubiquex/azure" or schema_version != "1.0.0":
+            print(f"FAIL schema_provenance_of: got ({schema_source!r}, {schema_version!r}), want the real, agreed pin")
+            sys.exit(1)
+        print(f"PASS schema_provenance_of: ({schema_source}, {schema_version})")
+
         dirs = make_dirs(root, [CLEAN, CLEAN])
         commit = check_provenance(collect_provenance(dirs))
         docs_root = os.path.join(root, "docs")
-        out_path = write_provenance_record(docs_root, "fixture-provider", commit, "resource pages", extra={"families": 2})
+        out_path = write_provenance_record(docs_root, "fixture-provider", commit, "resource pages",
+                                            extra={"families": 2, "schema_source": "ubiquex/azure", "schema_version": "1.0.0"})
         written = json.load(open(out_path))
-        if written["ubx_provider_dynamic_commit"] != "aaa111" or written["artifact"] != "resource pages" or written["families"] != 2:
+        if (written["ubx_provider_dynamic_commit"] != "aaa111" or written["artifact"] != "resource pages"
+                or written["families"] != 2 or written["schema_source"] != "ubiquex/azure" or written["schema_version"] != "1.0.0"):
             print(f"FAIL write_provenance_record: wrong content written: {written}")
             sys.exit(1)
         print(f"PASS write_provenance_record: {out_path} -> {written}")
