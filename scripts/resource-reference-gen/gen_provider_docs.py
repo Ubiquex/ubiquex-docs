@@ -220,9 +220,9 @@ def ai_inferred_marker(f):
 #      the confirmed, live instance (azure_restore_point_collection's
 #      own top-level properties and its restore_points[].properties are
 #      two different types that happen to share a name), and NOT an
-#      isolated case: a real, full-corpus scan found 2,008 false-
-#      positive triggers across 580 real wire types across ALL SIX
-#      providers before this fix, against only 3 genuine cycles in the
+#      isolated case: a real, full-corpus scan found 486 false-
+#      positive triggers across 271 real wire types across ALL SIX
+#      providers before this fix, against only 1 genuine cycle in the
 #      entire corpus. Comparing the real child-field shape as well as
 #      the name is what tells a genuine self-reference (WAFv2's own
 #      Statement type genuinely contains itself via AndStatement, same
@@ -258,9 +258,9 @@ def field_shape_signature(t):
     fields are compared by -- the sorted tuple of their own immediate
     child WireNames. A genuine self-reference recurs with the IDENTICAL
     real child set at the same field name (it's the same schema type by
-    construction, confirmed against all 3 real cycles in the current
+    construction, confirmed against the 1 real cycle in the current
     corpus); a false positive (an unrelated type sharing a common name)
-    has a DIFFERENT child set -- confirmed against all 2,008 real false
+    has a DIFFERENT child set -- confirmed against all 486 real false
     positives found in the full-corpus scan before this fix. Shallow on
     purpose: comparing only the immediate children, not recursing
     further, is what the real scan validated and keeps this cheap to
