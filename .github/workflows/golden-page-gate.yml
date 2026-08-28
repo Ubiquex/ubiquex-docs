@@ -1,0 +1,120 @@
+name: golden-page-gate
+
+# UBI-175: "Every regeneration diffs against them. A changed golden
+# page fails the build until the diff is reviewed and accepted." --
+# verify_against_golden.py has existed since 2026-08-22/23
+# (scripts/resource-reference-gen/golden/, one committed reference page
+# per provider) but was never wired into anything that runs it. A
+# verification mechanism nothing runs is the same as not having one --
+# this workflow is that wiring, not a new check.
+#
+# Real pipeline, same three real steps scripts/resource-reference-gen/
+# README.md already documents by hand (dump schema, extract real
+# identifiers from a fresh local generation, then diff): build ubx from
+# source, dump-ir once for every declared provider, then for each of the
+# six real providers named in golden/manifest.json, generate fresh local
+# go/py/ts bindings and extract their real identifiers -- matching
+# README.md's own documented local-generation path exactly, run against
+# a fresh local build regardless of a provider's own published status,
+# so this gate never depends on network access to any published
+# registry. Providers are re-pinned already (UBI-197/199), so every
+# `--only <name>` call below resolves a real, cached snapshot -- no live
+# vendor fetch.
+#
+# Fails the job (nonzero exit from verify_against_golden.py) the moment
+# any of the six candidates differs from its committed golden page or
+# fails one of the script's own static checks -- this IS the build gate
+# the ticket asked for, not a report that opens an issue later.
+
+on:
+  pull_request:
+    paths:
+      - "resource-reference/**"
+      - "artifacts/**"
+      - "scripts/resource-reference-gen/**"
+  push:
+    branches: [main]
+    paths:
+      - "resource-reference/**"
+      - "artifacts/**"
+      - "scripts/resource-reference-gen/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  golden-page-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out ubiquex-docs
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check out ubiquex (to build ubx from source and get the real central provider config)
+        run: |
+          set -euo pipefail
+          git clone --depth=1 --recurse-submodules \
+            "https://github.com/Ubiquex/ubiquex.git" \
+            "${{ runner.temp }}/ubiquex-src"
+          git clone --depth=1 \
+            "https://github.com/Ubiquex/ubx-provider-dynamic.git" \
+            "${{ runner.temp }}/ubx-provider-dynamic-src"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ runner.temp }}/ubiquex-src/go.mod
+
+      - name: Build ubx
+        run: |
+          set -euo pipefail
+          go build -C "${{ runner.temp }}/ubiquex-src" -o "${{ runner.temp }}/ubx" ./cmd/ubx
+          "${{ runner.temp }}/ubx" version
+
+      - name: Dump the current schema for every declared provider
+        id: dump
+        env:
+          UBX_PROVIDER_DYNAMIC_REPO: ${{ runner.temp }}/ubx-provider-dynamic-src
+        run: |
+          set -euo pipefail
+          dump_root="${{ runner.temp }}/golden-dump"
+          mkdir -p "$dump_root"
+          ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
+            "${{ runner.temp }}/ubx" sdk gen --dump-ir "$dump_root" --out "${{ runner.temp }}/ubx-gen-unused" )
+          echo "dump_root=$dump_root" >> "$GITHUB_OUTPUT"
+
+      - name: Generate fresh local bindings and extract real identifiers, per golden candidate
+        id: idents
+        env:
+          UBX_PROVIDER_DYNAMIC_REPO: ${{ runner.temp }}/ubx-provider-dynamic-src
+        run: |
+          set -euo pipefail
+          idents_dir="${{ runner.temp }}/golden-idents"
+          mkdir -p "$idents_dir"
+          # schema_name (ubx sdk gen --only value), matching
+          # golden/manifest.json's own real candidates exactly -- update
+          # this list if a candidate is added for a new provider.
+          for name in aws azure datadog github google kubernetes; do
+            local_sdk="${{ runner.temp }}/golden-local-sdk-$name"
+            mkdir -p "$local_sdk"
+            ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
+              "${{ runner.temp }}/ubx" sdk gen --only "$name" --lang go --out "$local_sdk" && \
+              "${{ runner.temp }}/ubx" sdk gen --only "$name" --lang py --out "$local_sdk" && \
+              "${{ runner.temp }}/ubx" sdk gen --only "$name" --lang ts --out "$local_sdk" )
+            python3 scripts/resource-reference-gen/extract_idents.py "$name" \
+              "$local_sdk/$name/sdk/go" "$local_sdk/$name/sdk/python" "$local_sdk/$name/sdk/typescript" \
+              "$idents_dir/${name}_idents.json"
+          done
+          echo "idents_dir=$idents_dir" >> "$GITHUB_OUTPUT"
+
+      - name: Verify every golden candidate against its committed reference page
+        run: |
+          python3 scripts/resource-reference-gen/verify_against_golden.py \
+            --schema-dir "${{ steps.dump.outputs.dump_root }}" \
+            --idents-dir "${{ steps.idents.outputs.idents_dir }}" \
+            --artifacts-root artifacts
