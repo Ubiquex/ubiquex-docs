@@ -1064,7 +1064,9 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
         if pre and pre not in go_preambles:
             go_preambles.append(pre)
         go_assigns.append(f"\t\t\t{pascal(f['WireName'])}: {val},")
-    go_pkg_import_path = f'github.com/ubiquex/ubx-sdk-{sdk_repo_id}/sdk/go/{schema_name}/{go["service_dir"]}'
+    go_module_major = REAL_SDK_GO_MODULE_MAJOR.get(schema_name, "")
+    go_module_major_seg = f"{go_module_major}/" if go_module_major else ""
+    go_pkg_import_path = f'github.com/ubiquex/ubx-sdk-{sdk_repo_id}/sdk/go/{go_module_major_seg}{schema_name}/{go["service_dir"]}'
     # "json.Marshal(" (not just a "trustPolicy"-prefix check, which
     # missed the SECOND real preamble that also needs this import,
     # accessPolicy -- a real bug this batch's own verification pass
@@ -1318,6 +1320,20 @@ REAL_SDK_REPO_ID = {
     # gen --only azure` output already on disk, not a claim about a
     # published repo.
     "azure": "azure",
+}
+
+# REAL_SDK_GO_MODULE_MAJOR -- real, confirmed Go module major-version path
+# segment per schema_name, verified live against the real Go module proxy
+# (proxy.golang.org), not inferred. Only needed once a provider's real
+# published Go module has crossed into v2+ (Go module semantics require
+# the major version in the import path from v2 onward) -- aws confirmed
+# live at v2.1.0 with module path .../sdk/go/v2 (UBI-202: go_pkg_import_path
+# below omitted this for every provider, so aws's own generated Go examples
+# named a package path -- .../sdk/go/aws/<service> -- that `go get` can't
+# resolve against the real, live v2 module; every other provider verified
+# still pre-v2, no segment needed, absent here reads as "" by default).
+REAL_SDK_GO_MODULE_MAJOR = {
+    "aws": "v2",
 }
 
 
