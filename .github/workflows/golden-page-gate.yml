@@ -76,7 +76,7 @@ jobs:
           go build -C "${{ runner.temp }}/ubiquex-src" -o "${{ runner.temp }}/ubx" ./cmd/ubx
           "${{ runner.temp }}/ubx" version
 
-      - name: Dump the current schema for every declared provider
+      - name: Dump the current schema, one provider at a time
         id: dump
         env:
           UBX_PROVIDER_DYNAMIC_REPO: ${{ runner.temp }}/ubx-provider-dynamic-src
@@ -84,8 +84,22 @@ jobs:
           set -euo pipefail
           dump_root="${{ runner.temp }}/golden-dump"
           mkdir -p "$dump_root"
-          ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
-            "${{ runner.temp }}/ubx" sdk gen --dump-ir "$dump_root" --out "${{ runner.temp }}/ubx-gen-unused" )
+          # UBI-175: the first real dispatched run of this workflow was
+          # killed (exit 143) partway through a single --dump-ir call
+          # covering all six providers at once -- coverage-watch.yml's
+          # own identical single-call pattern had never actually been
+          # run in CI either (zero prior runs), so this was a real,
+          # previously-undiscovered resource ceiling on the standard
+          # runner, not something specific to this workflow. Splitting
+          # into one --only <name> call per provider keeps only one
+          # provider's own translated schema in memory at a time --
+          # Azure alone is 1.6M+ real fields, the AWS+Azure+Google
+          # combined peak a single bulk call held is what most plausibly
+          # exceeded the runner's real, available memory.
+          for name in aws azure datadog github google kubernetes; do
+            ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
+              "${{ runner.temp }}/ubx" sdk gen --only "$name" --dump-ir "$dump_root" --out "${{ runner.temp }}/ubx-gen-unused" )
+          done
           echo "dump_root=$dump_root" >> "$GITHUB_OUTPUT"
 
       - name: Generate fresh local bindings and extract real identifiers, per golden candidate
