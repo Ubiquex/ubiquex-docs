@@ -70,7 +70,7 @@ jobs:
           go build -C "${{ runner.temp }}/ubiquex-src" -o "${{ runner.temp }}/ubx" ./cmd/ubx
           "${{ runner.temp }}/ubx" version
 
-      - name: Dump the current schema for every declared provider
+      - name: Dump the current schema, one provider at a time
         id: dump
         env:
           UBX_PROVIDER_DYNAMIC_REPO: ${{ runner.temp }}/ubx-provider-dynamic-src
@@ -78,14 +78,31 @@ jobs:
           set -euo pipefail
           dump_root="${{ runner.temp }}/docs-dump"
           mkdir -p "$dump_root"
-          # No --only: dumps every real [thirdparty_providers]/
-          # [dynamic_providers.*] entry declared in ubiquex's own
-          # checked-in sdk/providers/.ubx/config in one run, against
-          # the real, live upstream schema sources -- the same command
-          # this repo's own README.md names as the real, standard
-          # dump-ir invocation.
-          ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
-            "${{ runner.temp }}/ubx" sdk gen --dump-ir "$dump_root" --out "${{ runner.temp }}/ubx-gen-unused" )
+          # UBI-175: this workflow's own single bulk --dump-ir call
+          # (dumping every declared provider in one process) had never
+          # actually completed a real run in CI -- checked via `gh run
+          # list`, zero prior runs ever, despite this workflow being
+          # relied on as "wired into CI" since UBI-187. Dispatched a
+          # real run while building golden-page-gate.yml (a separate,
+          # near-identical workflow) and confirmed live it dies partway
+          # through ("The operation was canceled" -- a real resource
+          # ceiling on the standard runner, not code). Splitting into
+          # one --only <name> call per provider keeps only one
+          # provider's own translated schema in memory at a time --
+          # Azure alone is 1.6M+ real fields, the combined peak a
+          # single bulk call held is what most plausibly exceeded the
+          # runner's real, available memory. coverage_check.py's own
+          # --dump-root already expects exactly this per-provider
+          # <dump_dir>/schema.json shape either way -- no change needed
+          # downstream. This trades the old genericity (every declared
+          # provider, no hardcoded list) for reliability -- if a new
+          # provider is added to sdk/providers/.ubx/config, it needs
+          # adding to the loop below too, matching golden-page-gate.yml's
+          # own identical list and identical maintenance note.
+          for name in aws azure datadog github google kubernetes; do
+            ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
+              "${{ runner.temp }}/ubx" sdk gen --only "$name" --dump-ir "$dump_root" --out "${{ runner.temp }}/ubx-gen-unused" )
+          done
           echo "dump_root=$dump_root" >> "$GITHUB_OUTPUT"
 
       - name: Run the coverage check
