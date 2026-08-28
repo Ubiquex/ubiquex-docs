@@ -1,0 +1,154 @@
+---
+title: "aws_data_exchange_event_action"
+description: "`aws_data_exchange_event_action` automatically runs a real action, exporting to S3, for instance..."
+---
+
+`aws_data_exchange_event_action` automatically runs a real action, exporting to S3, for instance, whenever a specific event happens to an `aws_data_exchange_data_set`, a new revision being published, rather than a provider or receiver watching for that event and acting manually.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	dataexchange "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/dataexchange"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own event action"})
+
+    		ubx.Resource(dataexchange.EventAction, "example", dataexchange.EventActionConfig{
+    			Action: map[string]any{"export_revision_to_s3": map[string]any{"revision_destination": map[string]any{"bucket": "example"}}},
+    			Event:  map[string]any{"revision_published": map[string]any{"data_set_id": "example"}},
+    			Tags:   []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { EventAction } from "@ubx/sdk-aws/aws/dataexchange/event_action";
+
+    export default stack("example", () => {
+      intent({ summary: "example own event action" });
+
+      resource(EventAction, "example", {
+        action: {
+          exportRevisionToS3: { revisionDestination: { bucket: "example" } },
+        },
+        event: { revisionPublished: { dataSetId: "example" } },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.dataexchange import EventAction, EventActionConfig
+
+    def describe():
+        ubx.intent("example own event action")
+
+        ubx.resource(EventAction, "example", EventActionConfig(
+            action={"export_revision_to_s3": {"revision_destination": {"bucket": "example"}}},
+            event={"revision_published": {"data_set_id": "example"}},
+            tags=[{"key": "example"}],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_data_exchange_event_action, with action a set value,
+    event a set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="action" type="object" required>
+  What occurs after a certain event. Required.
+  <Expandable title="properties">
+    <ResponseField name="export_revision_to_s3" type="object">
+      Details of the operation to be performed by the job. Optional.
+      <Expandable title="properties">
+        <ResponseField name="encryption" type="object">
+          Encryption configuration of the export job. Optional.
+          <Expandable title="properties">
+            <ResponseField name="kms_key_arn" type="string">
+              The Amazon Resource Name (ARN) of the AWS KMS key you want to use to encrypt the Amazon S3 objects. Optional.
+            </ResponseField>
+            <ResponseField name="type" type="string" required>
+              The type of server side encryption used for encrypting the objects in Amazon S3. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="revision_destination" type="object" required>
+          A revision destination is the Amazon S3 bucket folder destination to where the export will be sent. Required.
+          <Expandable title="properties">
+            <ResponseField name="bucket" type="string" required>
+              The Amazon S3 bucket that is the destination for the event action. Required.
+            </ResponseField>
+            <ResponseField name="key_pattern" type="string">
+              A string representing the pattern for generated names of the individual assets in the revision. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="event" type="object" required>
+  What occurs to start an action. Required.
+  <Expandable title="properties">
+    <ResponseField name="revision_published" type="object">
+      Information about the published revision. Optional.
+      <Expandable title="properties">
+        <ResponseField name="data_set_id" type="string" required>
+          The data set ID of the published revision. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags for the event action. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Key of a tag attached to an AWS Data Exchange event action, used to categorize, organize, and manage event actions within your AWS account. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The ARN for the event action. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  The date and time that the event action was created, in ISO 8601 format. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="event_action_id" type="string">
+  The unique identifier for the event action. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  The date and time that the event action was last updated, in ISO 8601 format. Computed by AWS after `ship`.
+</ResponseField>
