@@ -40,3 +40,11 @@ flags, behaviors) update this repo in the SAME session they land in
   this twice before either was actually true, both times because the edits
   landed in an unconnected local copy at a similar-looking path, not this
   real repo.
+- An architectural change to this repo's own pipeline (a new artifact
+  type, a change to the coverage check, a change to provenance
+  enforcement, a new generation mechanism) is documented in
+  `ubiquex-internals` (the developer documentation site) in the same
+  body of work, never a follow-up — a bug fix inside an
+  already-documented mechanism doesn't qualify (matches `ubiquex`
+  CLAUDE.md rule 10; `ubiquex-internals`' own `Docs Pipeline` page is
+  the real target).
