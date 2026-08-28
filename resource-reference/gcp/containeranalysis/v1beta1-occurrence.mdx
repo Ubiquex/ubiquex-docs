@@ -167,7 +167,42 @@ description: "`google_containeranalysis_v1beta1_occurrence` records a single ins
     <ResponseField name="attestation" type="object">
       Occurrence that represents a single "attestation". The authenticity of an attestation can be verified using the attached signature. If the verifier trusts the public key of the signer, then verifying the signature is sufficient to establish trust. In this circumstance, the authority to which this attestation is attached is primarily useful for look-up (how to find this attestation if you already know the authority and artifact to be verified) and intent (which authority was this attestation intended to sign for). Optional.
       <Expandable title="properties">
-        <Note>`attestation` recurs here (its own type contains itself); see the `attestation` field's own properties above for the repeating pattern.</Note>
+        <ResponseField name="generic_signed_attestation" type="object">
+          An attestation wrapper that uses the Grafeas `Signature` message. This attestation must define the `serialized_payload` that the `signatures` verify and any metadata necessary to interpret that plaintext. The signatures should always be over the `serialized_payload` bytestring. Optional.
+          <Expandable title="properties">
+            <ResponseField name="content_type" type="string">
+              Type (for example schema) of the attestation payload that was signed. The verifier must ensure that the provided type is one that the verifier supports, and that the attestation payload is a valid instantiation of that type (for example by validating a JSON schema). Optional.
+            </ResponseField>
+            <ResponseField name="serialized_payload" type="string">
+              The serialized payload that is verified by one or more `signatures`. The encoding and semantic meaning of this payload must match what is set in `content_type`. Optional.
+            </ResponseField>
+            <ResponseField name="signatures" type="list(object)">
+              One or more signatures over `serialized_payload`. Verifier implementations should consider this attestation message verified if at least one `signature` verifies `serialized_payload`. See `Signature` in common.proto for more details on signature structure and verification. Optional.
+              <Expandable title="properties">
+                <ResponseField name="public_key_id" type="string">
+                  Optional; if omitted, computed by Google Cloud.
+                </ResponseField>
+                <ResponseField name="signature" type="string">
+                  Optional; if omitted, computed by Google Cloud.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="pgp_signed_attestation" type="object">
+          An attestation wrapper with a PGP-compatible signature. This message only supports `ATTACHED` signatures, where the payload that is signed is included alongside the signature itself in the same file. Optional.
+          <Expandable title="properties">
+            <ResponseField name="content_type" type="string">
+              Type (for example schema) of the attestation payload that was signed. The verifier must ensure that the provided type is one that the verifier supports, and that the attestation payload is a valid instantiation of that type (for example by validating a JSON schema). Optional.
+            </ResponseField>
+            <ResponseField name="pgp_key_id" type="string">
+              The cryptographic fingerprint of the key used to generate the signature, as output by, e.g. `gpg --list-keys`. This should be the version 4, full 160-bit fingerprint, expressed as a 40 character hexadecimal string. See https://tools.ietf.org/html/rfc4880#section-12.2 for details. Implementations may choose to acknowledge "LONG", "SHORT", or other abbreviated key IDs, but only the full fingerprint is guaranteed to work. In gpg, the full fingerprint can be retrieved from the `fpr` field returned when calling --list-keys with --with-colons. For example: ``` gpg --with-colons --with-fingerprint --force-v4-certs \ --list-keys attester@example.com tru::1:1513631572:0:3:1:5 pub:...... fpr:::::::::24FF6481B76AC91E66A00AC657A93A81EF3AE6FB: ``` Above, the fingerprint is `24FF6481B76AC91E66A00AC657A93A81EF3AE6FB`. Optional.
+            </ResponseField>
+            <ResponseField name="signature" type="string">
+              Required. The raw content of the signature, as output by GNU Privacy Guard (GPG) or equivalent. Since this message only supports attached signatures, the payload that was signed must be attached. While the signature format supported is dependent on the verification implementation, currently only ASCII-armored (`--armor` to gpg), non-clearsigned (`--sign` rather than `--clearsign` to gpg) are supported. Concretely, `gpg --sign --armor --output=signature.gpg payload.json` will create the signature content expected in this field in `signature.gpg` for the `payload.json` attestation payload. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
@@ -601,7 +636,27 @@ description: "`google_containeranalysis_v1beta1_occurrence` records a single ins
     <ResponseField name="deployment" type="object">
       The period during which some deployable was active in a runtime. Optional.
       <Expandable title="properties">
-        <Note>`deployment` recurs here (its own type contains itself); see the `deployment` field's own properties above for the repeating pattern.</Note>
+        <ResponseField name="address" type="string">
+          Address of the runtime element hosting this deployment. Optional.
+        </ResponseField>
+        <ResponseField name="config" type="string">
+          Configuration used to create this deployment. Optional.
+        </ResponseField>
+        <ResponseField name="deploy_time" type="string">
+          Required. Beginning of the lifetime of this deployment. Optional.
+        </ResponseField>
+        <ResponseField name="platform" type="string">
+          Platform hosting this deployment. Optional.
+        </ResponseField>
+        <ResponseField name="resource_uri" type="list(string)">
+          Output only. Resource URI for the artifact being deployed taken from the deployable field with the same name. Optional.
+        </ResponseField>
+        <ResponseField name="undeploy_time" type="string">
+          End of the lifetime of this deployment. Optional.
+        </ResponseField>
+        <ResponseField name="user_email" type="string">
+          Identity of the user that triggered this deployment. Optional.
+        </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
@@ -613,7 +668,37 @@ description: "`google_containeranalysis_v1beta1_occurrence` records a single ins
     <ResponseField name="derived_image" type="object">
       Derived describes the derived image portion (Occurrence) of the DockerImage relationship. This image would be produced from a Dockerfile with FROM . Optional.
       <Expandable title="properties">
-        <Note>`derived_image` recurs here (its own type contains itself); see the `derived_image` field's own properties above for the repeating pattern.</Note>
+        <ResponseField name="base_resource_url" type="string">
+          Output only. This contains the base image URL for the derived image occurrence. Optional.
+        </ResponseField>
+        <ResponseField name="distance" type="number">
+          Output only. The number of layers by which this image differs from the associated image basis. Optional.
+        </ResponseField>
+        <ResponseField name="fingerprint" type="object">
+          A set of properties that uniquely identify a given Docker image. Optional.
+          <Expandable title="properties">
+            <ResponseField name="v1_name" type="string">
+              Required. The layer ID of the final layer in the Docker image's v1 representation. Optional.
+            </ResponseField>
+            <ResponseField name="v2_blob" type="list(string)">
+              Required. The ordered list of v2 blobs that represent a given image. Optional.
+            </ResponseField>
+            <ResponseField name="v2_name" type="string">
+              Output only. The name of the image's v2 blobs computed via: [bottom] := v2_blobbottom := sha256(v2_blob[N] + " " + v2_name[N+1]) Only the name of the final blob is kept. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="layer_info" type="list(object)">
+          This contains layer-specific metadata, if populated it has length "distance" and is ordered with [distance] being the layer immediately following the base image and [1] being the final layer. Optional.
+          <Expandable title="properties">
+            <ResponseField name="arguments" type="string">
+              Optional; if omitted, computed by Google Cloud.
+            </ResponseField>
+            <ResponseField name="directive" type="string">
+              Optional; if omitted, computed by Google Cloud.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
@@ -625,7 +710,79 @@ description: "`google_containeranalysis_v1beta1_occurrence` records a single ins
     <ResponseField name="discovered" type="object">
       Provides information about the analysis status of a discovered resource. Optional.
       <Expandable title="properties">
-        <Note>`discovered` recurs here (its own type contains itself); see the `discovered` field's own properties above for the repeating pattern.</Note>
+        <ResponseField name="analysis_completed" type="object">
+          Indicates which analysis completed successfully. Multiple types of analysis can be performed on a single resource. Optional.
+          <Expandable title="properties">
+            <ResponseField name="analysis_type" type="list(string)">
+              Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="analysis_error" type="list(object)">
+          Indicates any errors encountered during analysis of a resource. There could be 0 or more of these errors. Optional.
+          <Expandable title="properties">
+            <ResponseField name="code" type="number">
+              Optional; if omitted, computed by Google Cloud.
+            </ResponseField>
+            <ResponseField name="details" type="list(map(any))">
+              Optional; if omitted, computed by Google Cloud.
+            </ResponseField>
+            <ResponseField name="message" type="string">
+              Optional; if omitted, computed by Google Cloud.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="analysis_status" type="string">
+          The status of discovery for the resource. Optional.
+        </ResponseField>
+        <ResponseField name="analysis_status_error" type="object">
+          The `Status` type defines a logical error model that is suitable for different programming environments, including REST APIs and RPC APIs. It is used by [gRPC](https://github.com/grpc). Each `Status` message contains three pieces of data: error code, error message, and error details. You can find out more about this error model and how to work with it in the [API Design Guide](https://cloud.google.com/apis/design/errors). Optional.
+          <Expandable title="properties">
+            <ResponseField name="code" type="number">
+              The status code, which should be an enum value of google.rpc.Code. Optional.
+            </ResponseField>
+            <ResponseField name="details" type="list(map(any))">
+              A list of messages that carry the error details. There is a common set of message types for APIs to use. Optional.
+            </ResponseField>
+            <ResponseField name="message" type="string">
+              A developer-facing error message, which should be in English. Any user-facing error message should be localized and sent in the google.rpc.Status.details field, or localized by the client. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="continuous_analysis" type="string">
+          Whether the resource is continuously analyzed. Optional.
+        </ResponseField>
+        <ResponseField name="files" type="list(object)">
+          Files that make up the resource described by the occurrence. Optional.
+          <Expandable title="properties">
+            <ResponseField name="digest" type="map(string)">
+              Optional; if omitted, computed by Google Cloud.
+            </ResponseField>
+            <ResponseField name="name" type="string">
+              Optional; if omitted, computed by Google Cloud.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="last_analysis_time" type="string">
+          The last time continuous analysis was done for this resource. Deprecated, do not use. Optional.
+        </ResponseField>
+        <ResponseField name="last_scan_time" type="string">
+          The last time this resource was scanned. Optional.
+        </ResponseField>
+        <ResponseField name="last_vulnerability_update_time" type="string">
+          The last time vulnerability scan results changed. Optional.
+        </ResponseField>
+        <ResponseField name="sbom_status" type="object">
+          The status of an SBOM generation. Optional.
+          <Expandable title="properties">
+            <ResponseField name="error" type="string">
+              If there was an error generating an SBOM, this will indicate what that error was. Optional.
+            </ResponseField>
+            <ResponseField name="sbom_state" type="string">
+              The progress of the SBOM generation. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
@@ -660,7 +817,80 @@ description: "`google_containeranalysis_v1beta1_occurrence` records a single ins
     <ResponseField name="installation" type="object">
       This represents how a particular software package may be installed on a system. Optional.
       <Expandable title="properties">
-        <Note>`installation` recurs here (its own type contains itself); see the `installation` field's own properties above for the repeating pattern.</Note>
+        <ResponseField name="architecture" type="string">
+          Output only. The CPU architecture for which packages in this distribution channel were built. Architecture will be blank for language packages. Computed by Google Cloud after `ship`.
+        </ResponseField>
+        <ResponseField name="cpe_uri" type="string">
+          Output only. The cpe_uri in [CPE format](https://cpe.mitre.org/specification/) denoting the package manager version distributing a package. The cpe_uri will be blank for language packages. Computed by Google Cloud after `ship`.
+        </ResponseField>
+        <ResponseField name="license" type="object">
+          License information. Optional.
+          <Expandable title="properties">
+            <ResponseField name="comments" type="string">
+              Comments Optional.
+            </ResponseField>
+            <ResponseField name="expression" type="string">
+              Often a single license can be used to represent the licensing terms. Sometimes it is necessary to include a choice of one or more licenses or some combination of license identifiers. Examples: "LGPL-2.1-only OR MIT", "LGPL-2.1-only AND MIT", "GPL-2.0-or-later WITH Bison-exception-2.2". Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="location" type="list(object)">
+          All of the places within the filesystem versions of this package have been found. Optional.
+          <Expandable title="properties">
+            <ResponseField name="cpe_uri" type="string">
+              Optional; if omitted, computed by Google Cloud.
+            </ResponseField>
+            <ResponseField name="path" type="string">
+              Optional; if omitted, computed by Google Cloud.
+            </ResponseField>
+            <ResponseField name="version" type="object">
+              Optional; if omitted, computed by Google Cloud.
+              <Expandable title="properties">
+                <ResponseField name="epoch" type="number">
+                  Optional; if omitted, computed by Google Cloud.
+                </ResponseField>
+                <ResponseField name="inclusive" type="bool">
+                  Optional; if omitted, computed by Google Cloud.
+                </ResponseField>
+                <ResponseField name="kind" type="string">
+                  Optional; if omitted, computed by Google Cloud.
+                </ResponseField>
+                <ResponseField name="name" type="string">
+                  Optional; if omitted, computed by Google Cloud.
+                </ResponseField>
+                <ResponseField name="revision" type="string">
+                  Optional; if omitted, computed by Google Cloud.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Required. Output only. The name of the installed package. Computed by Google Cloud after `ship`.
+        </ResponseField>
+        <ResponseField name="package_type" type="string">
+          Output only. The type of package; whether native or non native (e.g., ruby gems, node.js packages, etc.). Computed by Google Cloud after `ship`.
+        </ResponseField>
+        <ResponseField name="version" type="object">
+          Version contains structured information about the version of a package. Optional.
+          <Expandable title="properties">
+            <ResponseField name="epoch" type="number">
+              Used to correct mistakes in the version numbering scheme. Optional.
+            </ResponseField>
+            <ResponseField name="inclusive" type="bool">
+              Whether this version is specifying part of an inclusive range. Grafeas does not have the capability to specify version ranges; instead we have fields that specify start version and end versions. At times this is insufficient - we also need to specify whether the version is included in the range or is excluded from the range. This boolean is expected to be set to true when the version is included in a range. Optional.
+            </ResponseField>
+            <ResponseField name="kind" type="string">
+              Required. Distinguishes between sentinel MIN/MAX versions and normal versions. Optional.
+            </ResponseField>
+            <ResponseField name="name" type="string">
+              Required only when version kind is NORMAL. The main part of the version name. Optional.
+            </ResponseField>
+            <ResponseField name="revision" type="string">
+              The iteration of the package build from the above version. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
       </Expandable>
     </ResponseField>
   </Expandable>
