@@ -82,24 +82,26 @@ jobs:
           # (dumping every declared provider in one process) had never
           # actually completed a real run in CI -- checked via `gh run
           # list`, zero prior runs ever, despite this workflow being
-          # relied on as "wired into CI" since UBI-187. Dispatched a
-          # real run while building golden-page-gate.yml (a separate,
-          # near-identical workflow) and confirmed live it dies partway
-          # through ("The operation was canceled" -- a real resource
-          # ceiling on the standard runner, not code). Splitting into
-          # one --only <name> call per provider keeps only one
-          # provider's own translated schema in memory at a time --
-          # Azure alone is 1.6M+ real fields, the combined peak a
-          # single bulk call held is what most plausibly exceeded the
-          # runner's real, available memory. coverage_check.py's own
-          # --dump-root already expects exactly this per-provider
-          # <dump_dir>/schema.json shape either way -- no change needed
-          # downstream. This trades the old genericity (every declared
-          # provider, no hardcoded list) for reliability -- if a new
-          # provider is added to sdk/providers/.ubx/config, it needs
-          # adding to the loop below too, matching golden-page-gate.yml's
-          # own identical list and identical maintenance note.
-          for name in aws azure datadog github google kubernetes; do
+          # relied on as "wired into CI" since UBI-187. Splitting into
+          # one --only <name> call per provider did NOT fix it either --
+          # a second, solo real run (no other workflow competing) still
+          # died, specifically while processing azure. Measured directly:
+          # a local `ubx sdk gen --only azure --dump-ir` run alone peaks
+          # at 12.5GB real memory (/usr/bin/time -l, UBI-204) -- Azure's
+          # own real schema is 1.6M+ fields, by far the largest of the
+          # six, more than a standard GitHub-hosted runner can reliably
+          # give one job. Azure excluded from this loop until UBI-204
+          # lands a real fix -- named here, not silently dropped.
+          # coverage_check.py's own --dump-root already expects exactly
+          # this per-provider <dump_dir>/schema.json shape either way --
+          # no change needed downstream. This trades the old genericity
+          # (every declared provider, no hardcoded list) for reliability
+          # -- if a new provider is added to sdk/providers/.ubx/config,
+          # it needs adding to the loop below too, matching
+          # golden-page-gate.yml's own identical list and maintenance
+          # note.
+          # azure excluded -- see the note above.
+          for name in aws datadog github google kubernetes; do
             ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
               "${{ runner.temp }}/ubx" sdk gen --only "$name" --dump-ir "$dump_root" --out "${{ runner.temp }}/ubx-gen-unused" )
           done
@@ -109,8 +111,10 @@ jobs:
         id: check
         run: |
           set +e
+          # --only excludes azure -- UBI-204, see the dump step above.
           python3 scripts/resource-reference-gen/coverage_check.py \
             --dump-root "${{ steps.dump.outputs.dump_root }}" \
+            --only aws,datadog,github,gcp,kubernetes \
             --json "${{ runner.temp }}/coverage-report.json" \
             > "${{ runner.temp }}/coverage-report.txt" 2>&1
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
