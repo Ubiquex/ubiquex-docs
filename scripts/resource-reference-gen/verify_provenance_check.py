@@ -16,7 +16,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from provenance_check import ProvenanceError, check_provenance, collect_provenance, schema_provenance_of, write_provenance_record
+from provenance_check import ProvenanceError, check_provenance, check_staleness, collect_provenance, schema_provenance_of, write_provenance_record
 
 # UBI-199: every fixture below carries a real, pinned schema_pinned/
 # schema_source/schema_version -- these existing cases are about the
@@ -146,6 +146,44 @@ def main():
             print(f"FAIL write_provenance_record: wrong content written: {written}")
             sys.exit(1)
         print(f"PASS write_provenance_record: {out_path} -> {written}")
+
+        # UBI-200: check_staleness's own real classification logic,
+        # exercised hermetically via a real, deterministic fake
+        # fetch_latest -- no mocking framework, a plain injected
+        # function, matching this file's own "no mocks" convention
+        # just moved to the network boundary's own real seam.
+        def fake_fetch_latest(source):
+            return {
+                "ubiquex/azure": "v1.0.0",   # matches CLEAN's own real pin -> checked
+                "ubiquex/stale-provider": "v2.0.0",  # disagrees -> stale
+            }.get(source)  # anything else -> None -> unknown
+
+        STALE_REC = {"source": "local-checkout", "repo_path": "/repo", "commit": "aaa111", "dirty": False,
+                     "unpushed": False, "schema_pinned": True, "schema_source": "ubiquex/stale-provider",
+                     "schema_version": "1.0.0"}
+        UNKNOWN_SOURCE_REC = {"source": "local-checkout", "repo_path": "/repo", "commit": "aaa111", "dirty": False,
+                               "unpushed": False, "schema_pinned": True, "schema_source": "ubiquex/no-such-repo",
+                               "schema_version": "1.0.0"}
+
+        dirs = make_dirs(root, [CLEAN, STALE_REC, UNKNOWN_SOURCE_REC, LIVE_SCHEMA])
+        pairs = collect_provenance(dirs)
+        result = check_staleness(pairs, fetch_latest=fake_fetch_latest)
+        if len(result["checked"]) != 1 or result["checked"][0][1] != "ubiquex/azure":
+            print(f"FAIL check_staleness checked: {result['checked']}")
+            sys.exit(1)
+        if len(result["stale"]) != 1 or result["stale"][0][1] != "ubiquex/stale-provider" or result["stale"][0][3] != "2.0.0":
+            print(f"FAIL check_staleness stale: {result['stale']}")
+            sys.exit(1)
+        if len(result["unknown"]) != 1 or result["unknown"][0][1] != "ubiquex/no-such-repo":
+            print(f"FAIL check_staleness unknown: {result['unknown']}")
+            sys.exit(1)
+        # LIVE_SCHEMA's own record has schema_pinned=False -- must be
+        # skipped entirely, never counted as checked/stale/unknown.
+        total_seen = len(result["checked"]) + len(result["stale"]) + len(result["unknown"])
+        if total_seen != 3:
+            print(f"FAIL check_staleness: unpinned record leaked into results, total_seen={total_seen}")
+            sys.exit(1)
+        print(f"PASS check_staleness: {len(result['checked'])} checked, {len(result['stale'])} stale, {len(result['unknown'])} unknown, unpinned correctly excluded")
 
         print("\nALL PASS")
     finally:

@@ -185,6 +185,97 @@ def schema_provenance_of(pairs):
     return next(iter(pins))
 
 
+def real_latest_schema_release(schema_source):
+    """schema_source is the real, recorded pin string (`"ubiquex/aws"`) --
+    its own second segment IS the real `ubx-schema-<name>` repo's short
+    name, no separate mapping table needed (`resource-reference/`'s own
+    directory name for a provider can differ, `gcp` vs. the real
+    `ubiquex/google` pin, confirmed live -- reading straight out of the
+    recorded string avoids a second, potentially-disagreeing source of
+    truth for that mapping). Returns the real, current latest release
+    tag (e.g. `"v1.1.0"`), or None if the live query itself failed
+    (network, auth, rate limit, or a schema repo with no releases yet)
+    -- None is a real "unknown", never treated as "not stale" by a
+    caller (UBI-200's own point: a check that can't tell must say so,
+    not default to "clean").
+    """
+    import subprocess
+
+    name = schema_source.split("/")[-1] if schema_source else None
+    if not name:
+        return None
+    out = subprocess.run(
+        ["gh", "api", f"repos/Ubiquex/ubx-schema-{name}/releases/latest", "--jq", ".tag_name"],
+        capture_output=True, text=True,
+    )
+    if out.returncode != 0:
+        return None
+    return out.stdout.strip() or None
+
+
+def check_staleness(pairs, fetch_latest=real_latest_schema_release):
+    """UBI-200: check_provenance's own real bar is "was this directory's
+    schema ever pinned" -- it has no way to tell a directory pinned to
+    `1.0.0` from one pinned to `1.0.0` while `1.1.0` has since been
+    published. This is a genuinely different, live, external question
+    ("is there a newer real snapshot now"), so it is checked here,
+    separately, never folded into check_provenance's own hard refusal
+    -- the comparison target is each real `ubx-schema-<name>` repo's
+    own current GitHub Release, queried live, NOT `ubiquex`'s own
+    `sdk/providers/.ubx/config` (confirmed, not assumed: `ubiquex`'s
+    own pin can itself lag a schema repo's real latest release, which
+    would make that comparison target report false-clean on exactly
+    the case this check exists to catch, and it would only relocate
+    this same staleness problem one repo up rather than closing it).
+
+    fetch_latest is injectable (defaults to the real, live
+    real_latest_schema_release) so this function's own real
+    classification logic (checked/stale/unknown) can be exercised
+    hermetically against a real, deterministic fake, without mocking
+    the network boundary itself -- matching this file's own "no mocks"
+    testing convention, just moving the seam to a plain function
+    parameter instead.
+
+    pairs: collect_provenance's own real output. Returns a dict with
+    three real, DISTINCT lists, never collapsed into one pass/fail
+    verdict, because "found nothing to check" and "checked everything
+    and it's current" are different states a caller must be able to
+    tell apart (the same failure class as a coverage check reporting
+    clean because it found zero pages, or a filter reporting zero
+    matches because it looked in the wrong place):
+
+    - "checked": (dir, schema_source, recorded_version, latest_version)
+      for every real record whose live query succeeded and versions
+      match
+    - "stale": the same shape, for every real record whose recorded
+      version disagrees with the real, current latest
+    - "unknown": (dir, schema_source, recorded_version) for every real
+      record whose live query itself failed -- reported, never
+      silently treated as either stale or clean
+    """
+    checked, stale, unknown = [], [], []
+    seen_sources = {}
+    for d, rec in pairs:
+        if not rec or not rec.get("schema_pinned"):
+            continue
+        source = rec.get("schema_source")
+        version = rec.get("schema_version")
+        if not source or not version:
+            continue
+        if source not in seen_sources:
+            seen_sources[source] = fetch_latest(source)
+        latest = seen_sources[source]
+        if latest is None:
+            unknown.append((d, source, version))
+            continue
+        latest_stripped = latest.lstrip("v")
+        if latest_stripped != version:
+            stale.append((d, source, version, latest_stripped))
+        else:
+            checked.append((d, source, version, latest_stripped))
+    return {"checked": checked, "stale": stale, "unknown": unknown}
+
+
 def write_provenance_record(docs_root, provider_key, commit, artifact, extra=None):
     """Writes the real, committed resource-reference/<provider_key>/
     PROVENANCE.json this batch's own check_provenance just confirmed --

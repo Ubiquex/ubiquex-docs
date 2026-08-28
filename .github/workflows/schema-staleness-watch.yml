@@ -1,0 +1,135 @@
+name: schema-staleness-watch
+
+# UBI-200: check_provenance (UBI-197/199) already refuses a batch whose
+# schema was never genuinely pinned. It has no way to tell a directory
+# pinned to 1.0.0 from one pinned to 1.0.0 while 1.1.0 has since been
+# published -- a real, different, live, external question. This
+# workflow closes that gap.
+#
+# Comparison target is each real ubx-schema-<name> repo's own current
+# GitHub Release, queried live -- deliberately NOT ubiquex's own
+# sdk/providers/.ubx/config. ubiquex's own pin can itself lag a schema
+# repo's real latest release, which would make that comparison target
+# report false-clean on exactly the case this workflow exists to
+# catch, and it would only relocate this same staleness problem one
+# repo up rather than closing it (see provenance_check.py's own
+# check_staleness doc comment for the full real reasoning).
+#
+# Reads real, committed resource-reference/<provider>/PROVENANCE.json
+# files. As of this workflow's own first run, zero exist anywhere in
+# this corpus -- the write path (write_provenance_record) landed with
+# UBI-199 and is real and reachable (confirmed directly against both
+# real drivers before writing this workflow), it simply has not been
+# exercised by a full regeneration since. staleness_check.py's own
+# exit code 3 means exactly that -- NOTHING WAS CHECKED, not "checked
+# and clean" -- and this workflow reports that state explicitly and
+# loudly, never silently treating an empty result as a clean pass. A
+# check that reports clean because it found nothing is the same
+# failure class as a coverage check that reports clean because it
+# looked in the wrong place.
+#
+# Warns, never fails the job -- matching coverage-watch.yml's own real
+# open/update-one-tracking-issue mechanism, but not its job-failure
+# behavior: this check is inherently non-hermetic (a live GitHub API
+# call per provider, "is something newer real" has no local answer),
+# and a check that can permanently redden the build the moment it
+# lands, before anyone has acted on a first real finding, is the same
+# problem docs-structure-gate.yml's own mint-broken-links step was
+# built to avoid.
+
+on:
+  schedule:
+    - cron: "0 8 * * 3" # weekly, Wednesday 08:00 UTC -- offset from coverage-watch's own Monday and sync-drift-watch's own daily run
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  TRACKING_ISSUE_LABEL: schema-staleness-drift
+
+jobs:
+  staleness-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out ubiquex-docs
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run the staleness check
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          python3 scripts/resource-reference-gen/staleness_check.py \
+            > "${{ runner.temp }}/staleness-report.txt" 2>&1
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          cat "${{ runner.temp }}/staleness-report.txt"
+          set -e
+
+      - name: Find the existing tracking issue, if any
+        id: existing
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          number="$(gh issue list --label "$TRACKING_ISSUE_LABEL" --state open --json number --jq '.[0].number // empty')"
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update the tracking issue (not clean)
+        if: steps.check.outputs.exit_code != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          run_url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          {
+            if [ "${{ steps.check.outputs.exit_code }}" = "3" ]; then
+              echo "**Zero real PROVENANCE.json records exist -- NOTHING WAS CHECKED.**"
+              echo
+              echo "This is not the same as clean. Either no full regeneration has run"
+              echo "through regen_pages.py/gen_all_data_source_pages.py since the UBI-199"
+              echo "provenance fix landed, or staleness_check.py is looking in the wrong"
+              echo "place -- verify which, do not assume the former without checking."
+            elif [ "${{ steps.check.outputs.exit_code }}" = "2" ]; then
+              echo "**Staleness check inconclusive** -- every live query to a real"
+              echo "ubx-schema-<name> repo failed (network/auth/rate-limit), none"
+              echo "confirmed either stale or current."
+            else
+              echo "**Real schema staleness found** -- a directory's recorded"
+              echo "schema_version is behind that schema repo's own real, current"
+              echo "latest release."
+            fi
+            echo
+            echo "Full workflow run: $run_url"
+            echo
+            echo '```'
+            cat "${{ runner.temp }}/staleness-report.txt"
+            echo '```'
+          } > "${{ runner.temp }}/issue-body.md"
+
+          if [ -n "${{ steps.existing.outputs.number }}" ]; then
+            gh issue comment "${{ steps.existing.outputs.number }}" --body-file "${{ runner.temp }}/issue-body.md"
+          else
+            gh issue create \
+              --title "Schema staleness: a pinned directory may be behind the real, current release" \
+              --label "$TRACKING_ISSUE_LABEL" \
+              --body-file "${{ runner.temp }}/issue-body.md"
+          fi
+
+      - name: Close the tracking issue (genuinely clean, one existed from a prior drift)
+        if: steps.check.outputs.exit_code == '0' && steps.existing.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh issue comment "${{ steps.existing.outputs.number }}" \
+            --body "Clean as of $(date -u +%Y-%m-%dT%H:%M:%SZ) -- every real, pinned directory found matches its schema repo's own current latest release. Closing."
+          gh issue close "${{ steps.existing.outputs.number }}"
