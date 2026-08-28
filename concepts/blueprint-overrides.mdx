@@ -1,0 +1,94 @@
+---
+title: "Overriding a Blueprint's Internals"
+description: "Patch a resolved attribute a blueprint's author owns, without forking the blueprint."
+---
+
+A blueprint's own internal resource attributes belong to whoever
+authored it, not whoever calls it. Only the parameters it declares are
+meant to be editable by a caller. But real infrastructure drifts, and a
+caller sometimes needs to adopt a value the blueprint never exposed as a
+parameter at all. Without a source-of-truth text the caller owns, that
+adoption can't survive the next time this same document calls the same
+blueprint again.
+
+## How it works
+
+`override(address, {field: value, ...})` patches a resolved attribute by
+address, applied after a blueprint call expands, before the resolver
+runs. The same shape exists in all three calling mediums:
+
+```go
+sdk.Override("payments.aws_sqs_queue.pipeline-events",
+	map[string]any{"message_retention_seconds": 1209600})
+```
+
+```d2
+fix: "fix pipeline-events" {
+  class: ubx_override
+  address: "payments.aws_sqs_queue.pipeline-events"
+  message_retention_seconds: "1209600"
+}
+```
+
+```md
+Override the pipeline-events queue's message_retention_seconds to 1209600.
+```
+
+The diagram medium's own override node only ever encodes string-valued
+config, matching how every other non-reference attribute value in that
+medium already works, a number or object-valued override needs Go, TS,
+or Python instead. The markdown medium is the only call site that goes
+through AI at all, and even there it's a thin mapping, one prose
+sentence to one `overrides[]` entry, never a re-draft of any attribute
+that sentence didn't name.
+
+An override's config keys are top-level wire attribute names, replacing
+that attribute's whole value, never a deep merge into part of it, so
+overriding one key of a nested object means supplying that object's
+complete new value.
+
+## What this doesn't do
+
+An override only ever targets a resource created within the SAME
+resolving document, a blueprint call's own just-expanded output, or an
+ordinary resource the same document hand-authors. It does not
+retroactively patch an address that already exists in the ledger from
+an earlier resolve or ship. Pointing an override at an already-shipped
+address with no matching resource in the current document fails
+cleanly, naming exactly that, never a silent no-op.
+
+This is forward-looking insurance, not a live patch: the override
+travels with the calling stack's own source, so the NEXT time this
+document calls the blueprint again, a fresh environment, a
+disaster-recovery rebuild, a sibling stack, the drifted-to value is
+baked in from the start. Adopting a real drifted value this way means
+terminating the drifted resource and recreating it through a document
+that now carries the override, not patching it in place.
+
+**A real, currently open security gap, stated plainly rather than
+glossed over:** nothing today stops an override from touching a field a
+blueprint author might want protected by policy. The policy engine that
+would enforce that doesn't exist yet, so every override currently
+succeeds regardless of what it targets. This is a documented, real
+limitation, not a false guarantee.
+
+## Generating overrides from real drift
+
+Writing one by hand isn't the only way to get one. `ubx render --md
+--sync-overrides` walks a stack's actual drift and generates the correct
+override statement for every drifted resource, mechanically, zero AI,
+in whichever medium the calling stack is already authored in. See
+[`ubx render`](/cli-reference/render) for the full flag reference,
+including `--from-drift` for a single address and `--write` to append
+the generated statement directly into the calling stack's own source.
+
+## Why it matters
+
+A caller gets a real, durable way to say "this one attribute should be
+different here" without forking the blueprint or waiting for its author
+to add a new parameter for something that may only ever come up once.
+
+## See also
+
+- [Blueprints](/concepts/blueprints)
+- [`ubx render`](/cli-reference/render)
