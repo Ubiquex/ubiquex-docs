@@ -1556,20 +1556,46 @@ def _read_page_title(path):
     raise ValueError(f"{path}: no real \"title: \\\"...\\\"\" frontmatter line found in the first 5 lines")
 
 
-def rebuild_provider_index(docs_root, provider, provider_display):
-    """The real fix for the scope-leak class generate_richer_provider's
-    own doc comment names: derives resource-reference/<provider>/
-    index.mdx and every resource-reference/<provider>/<service>/
-    index.mdx from the REAL, CURRENT file tree on disk -- never from
-    any one generation call's own partial schema. Safe to call after
-    ANY generate_richer_provider run, whether that run covered one
-    family or every family, because it never trusts what a single call
-    claims to have generated -- it reads what is actually there.
+def _is_landing_page(path):
+    """UBI-207's own real, structural classifier -- the identical test
+    commit e667fd502's own doc comment described when it removed every
+    per-service landing page ("click to expand not navigate"): a
+    landing page has a real <CardGroup> and no ## Example section; a
+    real resource page has ## Example and never a CardGroup. Filename
+    alone ("index.mdx") is NOT a safe signal -- nine real resources in
+    the current corpus (aws_kendra_index, aws_qbusiness_index,
+    aws_opensearchserverless_index, aws_resourceexplorer2_index,
+    aws_s3vectors_index, google_aiplatform_index, google_datastore_index,
+    google_firestore_index, datadog_logs_index) write to exactly that
+    filename, and a real per-service landing page, when this function
+    used to write one, wrote to that identical filename too."""
+    text = open(path).read()
+    return "<CardGroup" in text and "## Example" not in text
 
-    Deliberately independent of generate_richer_provider's own
-    schema/idents inputs -- this function's only real input is the
-    file tree itself, exactly the ground truth a card listing is
-    supposed to reflect. Byte-compatible with the format
+
+def rebuild_provider_index(docs_root, provider, provider_display):
+    """UBI-207: rebuilds ONLY resource-reference/<provider>/index.mdx
+    (the provider's own real overview page) from the REAL, CURRENT file
+    tree on disk -- never from any one generation call's own partial
+    schema, and never any resource-reference/<provider>/<service>/
+    index.mdx. This function used to write those too, resurrecting the
+    per-service landing pages commit e667fd502 deliberately removed
+    ("click to expand not navigate" -- clicking a sidebar group header
+    should expand it, not navigate to a generic CardGroup page) on any
+    run that touched a provider, and along the way clobbering any real
+    resource whose own local name happens to be "index" (see
+    _is_landing_page's own doc comment for the real, current list).
+    Both were real, live, confirmed incidents (UBI-207), not
+    hypothetical -- the removal decision is UX, not a bug, so the fix
+    is deletion of that write path entirely, not a safer version of it.
+
+    Still safe to call after ANY generate_richer_provider run, whether
+    that run covered one family or every family, because it never
+    trusts what a single call claims to have generated -- it reads what
+    is actually there. Deliberately independent of generate_richer_
+    provider's own schema/idents inputs -- this function's only real
+    input is the file tree itself, exactly the ground truth a card
+    listing is supposed to reflect. Byte-compatible with the format
     generate_richer_provider used to write directly (same CardGroup
     markup, same title-casing, same "N resource type(s) documented"
     wording) so running this after a normal generation produces no
@@ -1579,7 +1605,6 @@ def rebuild_provider_index(docs_root, provider, provider_display):
         raise SystemExit(f"rebuild_provider_index: {out_root!r} does not exist -- nothing to rebuild")
 
     card_entries = []
-    services_written = 0
 
     for service_dir in sorted(glob.glob(os.path.join(out_root, "*"))):
         if not os.path.isdir(service_dir):
@@ -1595,7 +1620,7 @@ def rebuild_provider_index(docs_root, provider, provider_display):
 
         resource_paths = sorted(
             p for p in glob.glob(os.path.join(service_dir, "*.mdx"))
-            if os.path.basename(p) != "index.mdx"
+            if not _is_landing_page(p)
         )
         if not resource_paths:
             continue
@@ -1609,25 +1634,6 @@ def rebuild_provider_index(docs_root, provider, provider_display):
 
         title = service.title()
         slugs = [slug for _, _, slug in items]
-        index_collision = "index" in slugs
-
-        if len(items) > 1 and not index_collision:
-            card_body = f"""---
-title: "{title}"
-description: "{provider_display} {title} resource types."
----
-
-<CardGroup cols={{2}}>
-"""
-            for wire, local, slug in items:
-                card_title = local.replace("_", " ").title()
-                card_body += f'  <Card title="{card_title}" href="/resource-reference/{provider}/{service}/{slug}">\n    {wire}\n  </Card>\n'
-            card_body += "</CardGroup>\n"
-            index_path = os.path.join(service_dir, "index.mdx")
-            _assert_within_scope(index_path, out_root)
-            with open(index_path, "w") as fh:
-                fh.write(card_body)
-            services_written += 1
 
         card_entries.append((title, service, slugs[0], len(items)))
 
@@ -1660,5 +1666,5 @@ the real provider schema, not hand-authored.
         fh.write(idx)
 
     print(f"rebuild_provider_index: {provider}: {len(card_entries)} services, {total_resources} resource types, "
-          f"{services_written} per-service index.mdx written, provider index.mdx rebuilt from the real file tree")
+          f"provider index.mdx rebuilt from the real file tree (no per-service index.mdx touched, UBI-207)")
     return len(card_entries), total_resources
