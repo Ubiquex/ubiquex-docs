@@ -19,14 +19,14 @@ description: "`aws_route53_recovery_control_safety_rule` defines a real constrai
 
     func main() {
     	ubx.Main(ubx.Stack("example", func() {
-    		ubx.Intent(ubx.IntentInfo{Summary: "example own recovery control safety rule"})
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own safety rule"})
 
     		ubx.Resource(route53recoverycontrol.SafetyRule, "example", route53recoverycontrol.SafetyRuleConfig{
     			Name:            "example",
-    			AssertionRule:   map[string]any{"asserted_controls": []string{"example"}},
+    			AssertionRule:   map[string]any{"asserted_controls": []string{"example"}, "wait_period_ms": 1},
     			ControlPanelArn: "arn:aws:iam::123456789012:policy/example",
-    			GatingRule:      map[string]any{"gating_controls": []string{"example"}},
-    			RuleConfig:      map[string]any{"inverted": true},
+    			GatingRule:      map[string]any{"gating_controls": []string{"example"}, "target_controls": []string{"example"}, "wait_period_ms": 1},
+    			RuleConfig:      map[string]any{"inverted": true, "threshold": 1, "type": "example"},
     			Tags:            []map[string]any{{"key": "example"}},
     		})
     	}))
@@ -39,14 +39,18 @@ description: "`aws_route53_recovery_control_safety_rule` defines a real constrai
     import { SafetyRule } from "@ubx/sdk-aws/aws/route53recoverycontrol/safety_rule";
 
     export default stack("example", () => {
-      intent({ summary: "example own recovery control safety rule" });
+      intent({ summary: "example own safety rule" });
 
       resource(SafetyRule, "example", {
         name: "example",
-        assertionRule: { assertedControls: ["example"] },
+        assertionRule: { assertedControls: ["example"], waitPeriodMs: 1 },
         controlPanelArn: "arn:aws:iam::123456789012:policy/example",
-        gatingRule: { gatingControls: ["example"] },
-        ruleConfig: { inverted: true },
+        gatingRule: {
+          gatingControls: ["example"],
+          targetControls: ["example"],
+          waitPeriodMs: 1,
+        },
+        ruleConfig: { inverted: true, threshold: 1, type: "example" },
         tags: [{ key: "example" }],
       });
     });
@@ -55,18 +59,19 @@ description: "`aws_route53_recovery_control_safety_rule` defines a real constrai
   <Tab title="Python">
     ```python
     import ubx_sdk as ubx
-    from ubx.aws.route53recoverycontrol.safety_rule import SafetyRule, SafetyRuleConfig
+    from ubx.aws.route53recoverycontrol import SafetyRule, SafetyRuleConfig
+    from ubx.aws.route53recoverycontrol.safety_rule import SafetyRule_AssertionRule, SafetyRule_GatingRule, SafetyRule_RuleConfig, SafetyRule_Tags
 
     def describe():
-        ubx.intent("example own recovery control safety rule")
+        ubx.intent("example own safety rule")
 
         ubx.resource(SafetyRule, "example", SafetyRuleConfig(
             name="example",
-            assertion_rule={"asserted_controls": ["example"]},
+            assertion_rule=SafetyRule_AssertionRule(asserted_controls=["example"], wait_period_ms=1),
             control_panel_arn="arn:aws:iam::123456789012:policy/example",
-            gating_rule={"gating_controls": ["example"]},
-            rule_config={"inverted": True},
-            tags=[{"key": "example"}],
+            gating_rule=SafetyRule_GatingRule(gating_controls=["example"], target_controls=["example"], wait_period_ms=1),
+            rule_config=SafetyRule_RuleConfig(inverted=True, threshold=1, type="example"),
+            tags=[SafetyRule_Tags(key="example")],
         ))
 
     if __name__ == "__main__":
