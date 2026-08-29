@@ -13,19 +13,21 @@ description: "`github_environment` looks up a real, already-defined named deploy
     package main
 
     import (
-    	environment "github.com/ubiquex/ubx-sdk-github/sdk/go/github/data/environment"
+    	environment "github.com/ubiquex/ubx-sdk-github/sdk/go/github/environment"
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
     func main() {
     	ubx.Main(ubx.Stack("example", func() {
-    		ubx.Intent(ubx.IntentInfo{Summary: "look up github_environment"})
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own environment"})
 
-    		ubx.Data(environment.Environment, "example", environment.EnvironmentConfig{
-    			Owner:   "example",
-    			Repo:    "example",
-    			Page:    1,
-    			PerPage: 1,
+    		ubx.Resource(environment.Environment, "example", environment.EnvironmentConfig{
+    			EnvironmentName:   "example-environment-name",
+    			Owner:             "example",
+    			Repo:              "example",
+    			PreventSelfReview: true,
+    			Reviewers:         []map[string]any{{"id": 1}},
+    			WaitTimer:         1,
     		})
     	}))
     }
@@ -33,18 +35,20 @@ description: "`github_environment` looks up a real, already-defined named deploy
   </Tab>
   <Tab title="TypeScript">
     ```typescript
-    import { data, intent, stack } from "@ubx/sdk";
     // ubx sdk gen --only github --lang ts --out ./local-sdk
-    import { Environment } from "./local-sdk/github/sdk/typescript/github/data/environment/environment.ts";
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Environment } from "./local-sdk/github/sdk/typescript/github/environment/environment.ts";
 
     export default stack("example", () => {
-      intent({ summary: "look up github_environment" });
+      intent({ summary: "example own environment" });
 
-      data(Environment, "example", {
+      resource(Environment, "example", {
+        environmentName: "example-environment-name",
         owner: "example",
         repo: "example",
-        page: 1,
-        perPage: 1,
+        preventSelfReview: true,
+        reviewers: [{ id: 1 }],
+        waitTimer: 1,
       });
     });
     ```
@@ -54,20 +58,30 @@ description: "`github_environment` looks up a real, already-defined named deploy
     # ubx sdk gen --only github --lang py --out ./local-sdk
     # export PYTHONPATH=./local-sdk/github/sdk/python:$PYTHONPATH
     import ubx_sdk as ubx
-    from ubx.github.data.environment import Environment, EnvironmentConfig
+    from ubx.github.environment import Environment, EnvironmentConfig
+    from ubx.github.environment.environment import Environment_Reviewers
 
     def describe():
-        ubx.intent("look up github_environment")
+        ubx.intent("example own environment")
 
-        ubx.data(Environment, "example", EnvironmentConfig(
+        ubx.resource(Environment, "example", EnvironmentConfig(
+            environment_name="example-environment-name",
             owner="example",
             repo="example",
-            page=1,
-            per_page=1,
+            prevent_self_review=True,
+            reviewers=[Environment_Reviewers(id=1)],
+            wait_timer=1,
         ))
 
     if __name__ == "__main__":
         ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create github_environment, with environment name
+    example-environment-name, owner example, repo example, prevent
+    self review true, reviewers a set value, wait timer 1.
     ```
   </Tab>
 </Tabs>
