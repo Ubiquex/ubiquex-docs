@@ -14,20 +14,32 @@ gcp/compute/*.mdx and the azure_virtual_machine.mdx precedent already
 show real intros and the correct published/local_only split). Callers
 must exclude them from the family list passed in.
 
-bindings_status is local_only for every page this writes. A real check
-against the published ubx-sdk-google clone found 175/656 non-Compute
-GCP wire keys present by name -- but the repo is 8 days stale and an
-earlier, deeper check in this same session already found real field-
-level mismatches even on keys that superficially match (e.g.
-google_agent_identity_auth_provider vs. the current correct
-google_agentidentity_auth_provider) -- so this does NOT selectively use
-"published" for that 26.7%. That finding is reported, not acted on
-silently; a real per-resource published split (mirroring the Phase 6
-Compute precedent exactly) is left as explicit follow-up work for the
-founder to greenlight. ubx-sdk-azure's published content is 100% under
-its own separate "azurerm" identity (sdk/go/azurerm/**), zero overlap
-with the "azure" dynamic schema_name at all -- so Azure has no such
-question to begin with.
+bindings_status defaults to local_only ONLY for a wire that has never
+had a real page before. UBI-214: this used to be hardcoded local_only
+for every page unconditionally -- a real, confirmed data-loss bug, since
+it would silently downgrade every one of the 9,623 real pages UBI-196
+deliberately, verifiably flipped to "published" back to local_only on
+the very next full regen. Fixed via corpus_index.py's own real scan of
+the CURRENTLY COMMITTED tree, done once per provider before any page is
+written: a wire already carrying a real page keeps that page's own real,
+current bindings_status; only a wire with no existing page at all gets
+the honest local_only default. The GCP-specific caveat from before this
+fix (a real check against the published ubx-sdk-google clone found
+175/656 non-Compute GCP wire keys present by name, but the repo was 8
+days stale with real field-level mismatches even on keys that
+superficially matched) is why this reads the COMMITTED PAGE's own
+already-verified status rather than re-deriving "published" from a
+fresh SDK-repo scan on every regen -- UBI-196's own verification is
+trusted here, not re-litigated.
+
+UBI-214: also reconciles stale duplicate pages -- a wire whose service-
+directory derivation changed since its page was first generated (a
+real, recurring pattern: azure_corrected_wire's own collapsing, UBI-151's
+escape-undo, the appflow/appsync-style collapses a real AWS regen
+surfaced) used to get a fresh page at the new path while the old one
+stayed published, live in navigation, forever. Reported every run
+(corpus_index.py's own wire-identity index makes this free to check);
+only actually deleted with --reconcile-stale-paths.
 
 AWS is the third provider (added for the resource-reference/aws split
 and CFN-sourced regeneration): a single real [dynamic_providers.aws]
@@ -57,6 +69,12 @@ Usage:
   python3 regen_pages.py azure /tmp/azure-ir-dump /tmp/local-sdk-azure /tmp/families_azure.txt
   python3 regen_pages.py aws /tmp/aws-ir-dump /tmp/local-sdk-aws /tmp/families_aws.txt
   python3 regen_pages.py kubernetes /tmp/k8s-ir-dump /tmp/local-sdk-k8s /tmp/families_k8s.txt
+
+  Add --reconcile-stale-paths to any of the above to also delete a
+  stale old-path duplicate once its wire's new page is confirmed
+  written, updating docs.json nav + redirects (see
+  reconcile_stale_paths.py). Without the flag, stale duplicates are
+  still detected and reported every run, just never deleted.
 """
 import json
 import os
@@ -72,6 +90,8 @@ import gen_provider_docs
 from gen_provider_docs import generate_richer_provider, rebuild_provider_index
 from coverage_check import schema_entries_from_corrected, check_gaps, gap_count, print_report
 from provenance_check import check_provenance, collect_provenance, schema_provenance_of, write_provenance_record
+from corpus_index import scan_provider_corpus
+from reconcile_stale_paths import apply_reconciliation
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DOCS_ROOT = REPO_ROOT
@@ -102,7 +122,16 @@ SKIP_INJECTION_SOURCE = {"gcp": "vendor-spec", "azure": "vendor-spec", "aws": "v
 
 def main():
     provider, dump_dir, sdk_dir, families_file = sys.argv[1:5]
+    reconcile_stale_paths = "--reconcile-stale-paths" in sys.argv[5:]
     os.makedirs(SCRATCH_DIR, exist_ok=True)
+
+    # UBI-214: real, one-time scan of the CURRENTLY COMMITTED corpus,
+    # before this run writes anything -- the shared answer both real
+    # fixes need: does this wire already have a page, and if so where
+    # and in what bindings_status. See corpus_index.py's own doc
+    # comment for why this has to run before the write loop, not after.
+    wire_index = scan_provider_corpus(DOCS_ROOT, provider)
+    print(f"{provider}: indexed {len(wire_index)} real, currently-committed page(s) by wire identity")
 
     here = os.path.dirname(os.path.abspath(__file__))
     desc_path = os.path.join(here, "..", "..", "artifacts", provider, "descriptions.json")
@@ -224,6 +253,8 @@ def main():
     per_family_counts = {}
     renamed_wires = []
     all_corrected = {}  # UBI-187: every wire this run actually regenerates, merged across families
+    published_preserved = 0  # UBI-214: wires whose real existing "published" status carried forward
+    stale_duplicates = []  # UBI-214: [(old_rel_path, new_rel_path, wire), ...]
 
     for i, family in enumerate(families, 1):
         schema_path = os.path.join(dump_dir, family, "schema.json")
@@ -311,6 +342,22 @@ def main():
         json.dump(idents, open(family_idents_path, "w"))
         json.dump(corrected, open(family_schema_path, "w"))
 
+        # UBI-214: real per-wire bindings_status -- a wire this batch is
+        # about to regenerate that already has a real, currently-
+        # committed page keeps that page's own real bindings_status; a
+        # wire with no existing page (genuinely new) still gets the
+        # honest "local_only" default. See generate_richer_provider's
+        # own doc comment for why this is a {wire: status} map rather
+        # than the single flat string every other real caller still
+        # passes.
+        per_wire_bindings_status = {
+            wire: wire_index[wire]["bindings_status"]
+            for wire in corrected if wire in wire_index
+        }
+        published_preserved += sum(
+            1 for s in per_wire_bindings_status.values() if s == "published"
+        )
+
         n_resources, n_services = generate_richer_provider(
             docs_root=DOCS_ROOT,
             scratch_dir=SCRATCH_DIR,
@@ -320,15 +367,24 @@ def main():
             stack_name="example",
             schema_path=family_schema_path,
             idents_path=family_idents_path,
-            bindings_status="local_only",
+            bindings_status=per_wire_bindings_status,
             intros_by_provider=intros_by_provider,
         )
         total_resources += n_resources
         per_family_counts[family] = n_resources
         for wire, rec in corrected.items():
             slug = rec["localName"].replace("_", "-")
-            wire_to_page[wire] = f"resource-reference/{provider}/{rec['service']}/{slug}.mdx"
+            new_path = f"resource-reference/{provider}/{rec['service']}/{slug}.mdx"
+            wire_to_page[wire] = new_path
             total_services.add(rec["service"])
+            # UBI-214: this same wire already had a real page, at a
+            # DIFFERENT path -- the old one is now stale (this run just
+            # wrote the current, correct one). Wire-identity match only
+            # (same bar UBI-209 already used for 274 real page moves
+            # this session), never content diffing.
+            existing = wire_index.get(wire)
+            if existing and existing["path"] != new_path:
+                stale_duplicates.append((existing["path"], new_path, wire))
 
         if i % 20 == 0 or i == len(families):
             print(f"  [{i}/{len(families)}] {family}: {n_resources} resources ({total_resources} total so far)")
@@ -338,6 +394,28 @@ def main():
         print(f"{provider}: {len(skipped_no_sdk)} families skipped entirely: {skipped_no_sdk}")
     if renamed_wires:
         print(f"{provider}: {len(renamed_wires)} wire/local names corrected for doubling")
+
+    # UBI-214: always reported, zero or not -- a report that only speaks
+    # when something is wrong reads the same as a report that isn't
+    # running, which is exactly the failure mode that let 137 real
+    # stale duplicates and the bindings_status default both go unnoticed
+    # this long.
+    print(f"{provider}: bindings_status preserved as published for {published_preserved} "
+          f"already-published wire(s) this run touched")
+    print(f"{provider}: {len(stale_duplicates)} stale duplicate page(s) found "
+          f"(old path still on disk, same wire now regenerated at a different path)")
+    if stale_duplicates:
+        for old_p, new_p, wire in stale_duplicates[:20]:
+            print(f"  {wire}: {old_p} -> {new_p}")
+        if len(stale_duplicates) > 20:
+            print(f"  ... and {len(stale_duplicates) - 20} more")
+        if reconcile_stale_paths:
+            result = apply_reconciliation(DOCS_ROOT, stale_duplicates, write=True)
+            print(f"{provider}: reconciled {result['count']} stale duplicate(s), "
+                  f"{result['nav_references_updated']} real docs.json nav reference(s) updated, "
+                  f"old paths deleted, redirects added")
+        else:
+            print(f"{provider}: not deleted -- rerun with --reconcile-stale-paths to apply")
 
     # UBI-190 follow-up: generate_richer_provider itself no longer
     # touches resource-reference/<provider>/index.mdx or any

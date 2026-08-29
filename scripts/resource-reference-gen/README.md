@@ -190,6 +190,50 @@ same fix applied to the artifact) is the correct, minimal fix -- verified
 this way for UBI-176 (193 occurrences found baked into 31 live pages,
 separate from and in addition to the 187 in the artifact itself).
 
+## A full regen used to silently discard published bindings_status and abandon stale duplicate pages
+
+Two real, related gotchas in `regen_pages.py` itself, fixed together (UBI-214)
+since both are answered by the same question: does this wire already have a
+page, and if so where and in what `bindings_status`. That question is now
+answered once, per provider, at the start of a regen, by
+`corpus_index.scan_provider_corpus` -- a real index of the CURRENTLY
+COMMITTED tree, keyed by wire identity (see `real_wire_of`, not bare title:
+a resource and its own same-named data source share identical bare `title:`
+text and would otherwise collide).
+
+**1. bindings_status data loss.** `regen_pages.py` used to hardcode
+`bindings_status="local_only"` for every page it wrote, unconditionally. A
+full regen would silently downgrade every one of the 9,623 pages UBI-196
+deliberately, verifiably flipped to `"published"` back to `local_only`,
+discarding real, already-verified work with no signal anywhere that it had
+happened. Fixed: `regen_pages.py` now looks up each wire's own existing
+`bindings_status` in the corpus index before writing, and only falls back to
+`local_only` for a wire with no existing page. Verified live against a real
+AWS regen: 1,700 already-published wires correctly preserved as published.
+
+**2. Stale duplicate pages.** A wire whose service-directory derivation
+improves (an established, recurring pattern in this pipeline) gets a fresh
+page at the new, correct path on regen, but nothing used to delete the old
+one -- confirmed live: 148 of a real AWS regen's new pages were exactly this,
+and the old path was still live in `docs.json` navigation, not dead content.
+137 of these had already been fixed once by hand in UBI-202 and simply
+recurred on the next regen. Fixed: `regen_pages.py` now detects, for every
+wire it writes, whether the corpus index already has that wire at a
+DIFFERENT path, and reports it. Pass `--reconcile-stale-paths` to actually
+delete the old file, update every `docs.json` navigation reference, and add
+a redirect from the old published URL to the new one -- the same
+wire-identity move mechanism UBI-209 used for 274 real page moves earlier
+this project. Without the flag, `regen_pages.py` only reports the count and
+leaves the old pages in place, since deleting files and rewriting navigation
+is not something a report-only run should ever do silently.
+
+`scripts/resource-reference-gen/check_duplicate_wires.py` is a standalone,
+read-only detector for the same stale-duplicate condition, usable outside a
+regen (e.g. as a scheduled CI gate, mirroring `coverage-watch.yml`'s own
+shape) -- it always prints a real per-provider wire count and duplicate
+count, including zero, since a check that only speaks when something is
+wrong reads the same as a check that isn't running.
+
 ## Real, deliberate scope limits -- read before extending
 
 - **`MAX_RICH_FIELDS = 8`** (`gen_provider_docs.py`): required fields +

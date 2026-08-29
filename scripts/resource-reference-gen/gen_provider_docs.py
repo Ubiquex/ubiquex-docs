@@ -1784,6 +1784,23 @@ def generate_richer_provider(docs_root, scratch_dir, provider, schema_name, prov
             go = idents[wire]["go"]
             py = idents[wire]["py"]
             ts = idents[wire]["ts"]
+            # UBI-214: bindings_status may be a plain string (every
+            # other real caller -- gen_new_provider_pages.py onboarding
+            # a brand-new provider with no existing pages to preserve,
+            # verify_scope_guard.py's own test fixture) or a real
+            # {wire: status} map (regen_pages.py's own real fix for the
+            # data-loss risk this ticket named: a wire this run is
+            # about to regenerate may already have a real, verified
+            # "published" page under a DIFFERENT wire key than this
+            # function ever sees directly, so the caller resolves it
+            # via corpus_index.py before calling in, not here). A wire
+            # missing from the map (genuinely new, never had a page)
+            # falls back to "local_only" -- the correct, honest default
+            # this function's own doc comment already established.
+            this_bindings_status = (
+                bindings_status.get(wire, "local_only")
+                if isinstance(bindings_status, dict) else bindings_status
+            )
 
             example_fields = pick_richer_example_fields(fields)
             go_values_by_name = {}
@@ -1807,7 +1824,7 @@ def generate_richer_provider(docs_root, scratch_dir, provider, schema_name, prov
                 provider_display=provider_display, stack_name=stack_name,
                 intent_summary=f"{stack_name} own {local.replace('_', ' ')}",
                 companion_markdown=companion_markdown, sdk_repo_id=sdk_repo_id,
-                bindings_status=bindings_status,
+                bindings_status=this_bindings_status,
                 intro_text=real_intro_for(provider, wire, intros_by_provider or {}),
             )
             resource_page_path = os.path.join(service_dir, f"{slug}.mdx")
