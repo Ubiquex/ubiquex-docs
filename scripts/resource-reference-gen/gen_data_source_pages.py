@@ -51,6 +51,8 @@ from gen_provider_docs import (
     pick_richer_example_fields,
     type_str,
     yaml_dq_escape,
+    _PY_PATH_STACK,
+    _PY_NESTED_CLASSES_USED,
 )
 
 
@@ -217,6 +219,16 @@ def build_data_source_page(wire, service, local, slug, fields, go, ts, py,
     ts_block = fence("typescript", deno_fmt_lines(ts_lines))
 
     # --- Python ---
+    # UBI-208: seeded exactly like build_resource_page_complete's own
+    # Python block -- a nested-object lookup field reaches the SAME
+    # literal_py, which constructs a real dataclass and records its own
+    # class name in _PY_NESTED_CLASSES_USED as a side effect. Without
+    # this seed/collect step (the gap this data-source generator had
+    # until now), that construction was emitted with no matching
+    # import -- syntactically valid, a real NameError at execution.
+    _PY_PATH_STACK.clear()
+    _PY_PATH_STACK.append(py["binding"])
+    _PY_NESTED_CLASSES_USED.clear()
     py_preambles, py_assigns = [], []
     for f in example_fields:
         pre, val = field_literal_with_preamble(f, "py")
@@ -224,9 +236,10 @@ def build_data_source_page(wire, service, local, slug, fields, go, ts, py,
             py_preambles.append(pre)
         py_assigns.append(f"        {python_identifier(f['WireName'])}={val},")
     py_import_path = f'ubx.{python_module_ident(schema_name)}.data.{python_module_ident(py["service_dir"])}'
+    py_nested_import = "".join(f", {name}" for name in _PY_NESTED_CLASSES_USED)
     py_lines = [
         "import ubx_sdk as ubx",
-        f'from {py_import_path} import {py["binding"]}, {py["binding"]}Config',
+        f'from {py_import_path} import {py["binding"]}, {py["binding"]}Config{py_nested_import}',
         "",
         "def describe():",
         f'    ubx.intent("look up {wire}")',
