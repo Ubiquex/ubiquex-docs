@@ -97,6 +97,67 @@ def scan_go(root, provider):
         }
     return out
 
+FIELD_SPEC_ENTRY_RE = re.compile(
+    r'"(\w+)":\s*ubx\.FieldSpec\(\s*wire_name="([^"]+)"\s*(?:,\s*kind="(\w+)"\s*)?(?:,\s*fields=(_\w+)\s*)?,?\s*\)',
+    re.S,
+)
+
+
+def _py_fields_blocks(text, root_binding_kind):
+    """UBI-211: maps every real `_XxxFields = {...}` dict variable name
+    to its own list of (py_field_name, wire_name, kind,
+    referenced_fields_var_or_None) entries, plus a synthetic "__root__"
+    key for the real ResourceBinding/DataSourceBinding's own top-level
+    fields={...} block -- ground truth for what class name the real
+    codegen actually minted for a given nested field, read directly
+    rather than reconstructed by a second, path-based naming
+    implementation (the UBI-197 divergence risk this sidesteps)."""
+    blocks = {}
+    for m in re.finditer(r'^(_\w+Fields) = \{\n(.*?)\n\}\n', text, re.M | re.S):
+        blocks[m.group(1)] = FIELD_SPEC_ENTRY_RE.findall(m.group(2))
+    root_m = re.search(
+        r'= ubx\.' + root_binding_kind + r'\(\s*\n\s*wire_type="[^"]+",\s*\n\s*fields=\{\n(.*?)\n    \},\n\)',
+        text, re.S,
+    )
+    if root_m:
+        blocks["__root__"] = FIELD_SPEC_ENTRY_RE.findall(root_m.group(1))
+    return blocks
+
+
+def _class_name_from_fields_var(var):
+    assert var.startswith("_") and var.endswith("Fields"), var
+    return var[1:-len("Fields")]
+
+
+def _build_nested_field_map(blocks, fields_var, visited=frozenset(), depth=0):
+    # A real generated file is finite source, not a runtime cycle, but a
+    # genuinely self-referential schema shape (Kubernetes PodSpec, see
+    # UBI-177) means this guard is defensive, not decorative.
+    if fields_var in visited or depth > 40:
+        return {}
+    visited = visited | {fields_var}
+    out = {}
+    for py_name, wire_name, kind, ref in blocks.get(fields_var, []):
+        node = {}
+        if ref:
+            node["class"] = _class_name_from_fields_var(ref)
+            node["fields"] = _build_nested_field_map(blocks, ref, visited, depth + 1)
+        out[wire_name] = node
+    return out
+
+
+def parse_nested_fields(text, root_binding_kind):
+    """Real per-wire nested-class name map, keyed by real wire name at
+    each level (see gen_provider_docs.py's literal_py, which walks this
+    with the field's own real wire-name path rather than a computed
+    PascalCase path). Returns None if the file carries no matching root
+    binding block at all."""
+    blocks = _py_fields_blocks(text, root_binding_kind)
+    if "__root__" not in blocks:
+        return None
+    return _build_nested_field_map(blocks, "__root__")
+
+
 def scan_py(root, provider):
     out = {}
     for f in sorted(glob.glob(root + f"/ubx/{provider}/**/*.py", recursive=True)):
@@ -130,6 +191,45 @@ def scan_py(root, provider):
             "service_dir": service_dir,
             "binding": binding,
             "config": resolve_config_py(text, binding),
+            "nested_fields": parse_nested_fields(text, "ResourceBinding"),
+        }
+    return out
+
+
+def scan_py_data(root, provider):
+    """UBI-211: the data-source counterpart to scan_py, scoped to the
+    real /data/ subtree the same way gen_all_data_source_pages.py's own
+    scan_go_data is -- data-source idents are otherwise built purely by
+    naming convention (idents_for()), never by scanning the real .py
+    file, so this is the only source of a real nested_fields map for
+    data-source pages."""
+    out = {}
+    for f in sorted(glob.glob(root + f"/ubx/{provider}/data/**/*.py", recursive=True)):
+        if f.endswith("__init__.py"):
+            continue
+        text = open(f).read()
+        m = re.search(r'wire_type="([^"]+)"', text)
+        if not m:
+            continue
+        wire = m.group(1)
+        bm = re.search(r'^(\w+) = ubx\.DataSourceBinding\(', text, re.M)
+        if not bm:
+            continue
+        binding = bm.group(1)
+        rel = os.path.relpath(f, root)
+        if wire in out:
+            raise SystemExit(
+                f"scan_py_data: {wire!r} claimed by both {out[wire]['file']!r} and {rel!r} -- "
+                "two real DataSourceBinding files sharing one WireType, refusing rather than "
+                "silently picking one (UBI-203)"
+            )
+        module = rel[len("ubx/"):-3].replace("/", ".")
+        out[wire] = {
+            "file": rel,
+            "module": "ubx." + module,
+            "binding": binding,
+            "config": resolve_config_py(text, binding),
+            "nested_fields": parse_nested_fields(text, "DataSourceBinding"),
         }
     return out
 

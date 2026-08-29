@@ -53,6 +53,7 @@ from gen_provider_docs import (
     yaml_dq_escape,
     _PY_PATH_STACK,
     _PY_NESTED_CLASSES_USED,
+    _PY_NESTED_FIELD_MAP,
 )
 
 
@@ -226,9 +227,16 @@ def build_data_source_page(wire, service, local, slug, fields, go, ts, py,
     # this seed/collect step (the gap this data-source generator had
     # until now), that construction was emitted with no matching
     # import -- syntactically valid, a real NameError at execution.
+    #
+    # UBI-211: _PY_PATH_STACK holds real wire names (not a binding-name-
+    # seeded PascalCase path) and is resolved against _PY_NESTED_FIELD_MAP
+    # (py["nested_fields"], the data source's own real FieldSpec tree --
+    # see extract_idents.py's scan_py_data), the identical mechanism
+    # build_resource_page_complete uses.
     _PY_PATH_STACK.clear()
-    _PY_PATH_STACK.append(py["binding"])
     _PY_NESTED_CLASSES_USED.clear()
+    _PY_NESTED_FIELD_MAP.clear()
+    _PY_NESTED_FIELD_MAP.update(py.get("nested_fields") or {})
     py_preambles, py_assigns = [], []
     for f in example_fields:
         pre, val = field_literal_with_preamble(f, "py")
@@ -236,10 +244,35 @@ def build_data_source_page(wire, service, local, slug, fields, go, ts, py,
             py_preambles.append(pre)
         py_assigns.append(f"        {python_identifier(f['WireName'])}={val},")
     py_import_path = f'ubx.{python_module_ident(schema_name)}.data.{python_module_ident(py["service_dir"])}'
-    py_nested_import = "".join(f", {name}" for name in _PY_NESTED_CLASSES_USED)
-    py_lines = [
+    py_config_name = py.get("config") or f'{py["binding"]}Config'
+    # UBI-211: real, confirmed live (aws_sts_federation_token's own
+    # policy preamble) -- build_resource_page_complete already checks
+    # for a real json.dumps( preamble and imports json when needed; this
+    # data-source generator never did, a real NameError at execution for
+    # any data source whose lookup config needs a JSON-encoded preamble.
+    needs_json_py = any("json.dumps(" in p for p in py_preambles)
+    py_lines = []
+    if needs_json_py:
+        py_lines.append("import json")
+    py_lines += [
         "import ubx_sdk as ubx",
-        f'from {py_import_path} import {py["binding"]}, {py["binding"]}Config{py_nested_import}',
+        f'from {py_import_path} import {py["binding"]}, {py_config_name}',
+    ]
+    if _PY_NESTED_CLASSES_USED:
+        # UBI-211: the package-level __init__.py only re-exports each
+        # data source's own top-level Binding/Config (confirmed against
+        # the real ubx-sdk-aws-py package: `from .certificates import
+        # Certificates, CertificatesConfig`, nothing else) -- same real
+        # gap build_resource_page_complete's own doc comment already
+        # covers for resources. A nested dataclass (e.g.
+        # Certificates_Includes) is only reachable from its own real
+        # submodule, py["module"], never the package -- the prior single
+        # shared import line produced a syntactically valid but real
+        # ImportError at execution for every data-source page with any
+        # nested object field at all, independent of whether the class
+        # name itself was right.
+        py_lines.append(f'from {py["module"]} import {", ".join(_PY_NESTED_CLASSES_USED)}')
+    py_lines += [
         "",
         "def describe():",
         f'    ubx.intent("look up {wire}")',
@@ -248,7 +281,7 @@ def build_data_source_page(wire, service, local, slug, fields, go, ts, py,
         py_lines.append("")
         py_lines.append("    " + pre.replace("\n", "\n    "))
     py_lines.append("")
-    py_lines.append(f'    ubx.data({py["binding"]}, "example", {py["binding"]}Config(')
+    py_lines.append(f'    ubx.data({py["binding"]}, "example", {py_config_name}(')
     py_lines.extend(py_assigns)
     py_lines.append("    ))")
     py_lines.append("")

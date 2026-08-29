@@ -36,6 +36,7 @@ from gen_data_source_pages import build_data_source_page
 from build_regen_schema import inject_description
 from coverage_check import schema_entries_from_corrected, check_gaps, gap_count, print_report
 from provenance_check import check_provenance, collect_provenance, schema_provenance_of, write_provenance_record
+from extract_idents import scan_py_data
 
 DOCS_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -115,11 +116,22 @@ def scan_go_data(root, provider_dir):
     return out
 
 
-def idents_for(local_slug, service_dir, binding, config):
+def idents_for(local_slug, service_dir, binding, config, nested_fields=None, py_module=None, py_config=None):
     go = {"service_dir": service_dir, "package": service_dir, "binding": binding, "config": config,
           "file": f"{service_dir}/{local_slug}.go"}
     ts = {"service_dir": service_dir, "binding": binding, "file": f"{service_dir}/{local_slug}.ts"}
-    py = {"service_dir": service_dir, "binding": binding, "file": f"{service_dir}/{local_slug}.py"}
+    py = {"service_dir": service_dir, "binding": binding, "file": f"{service_dir}/{local_slug}.py",
+          "nested_fields": nested_fields, "module": py_module,
+          # UBI-211: real, confirmed live -- aws_kendra_query_suggestions'
+          # own real Config class is genuinely named
+          # QuerySuggestionsConfig_ (trailing-underscore-suffixed, a
+          # real collision with the SEPARATE aws_kendra_query_suggestions_
+          # config data source's own binding, also named
+          # QuerySuggestionsConfig at package level) -- the naive
+          # `binding + "Config"` guess this replaces silently imported
+          # and called the WRONG symbol (a DataSourceBinding instance,
+          # not the Config class), a real TypeError at execution.
+          "config": py_config if py_config is not None else config}
     return go, ts, py
 
 
@@ -269,6 +281,11 @@ def main():
     ds_entries = {k: v for k, v in schema.items() if v.get("namespace") == "data"}
 
     go_idents = scan_go_data(go_root, cfg["go_dir"])
+    # UBI-211: sibling of go_root under the same real multi-lang `ubx sdk
+    # gen` output (<dir>/<provider>/sdk/{go,python,typescript}) -- the
+    # same layout build_resource_idents already relies on in ubi208_regen.py.
+    py_root = os.path.join(os.path.dirname(go_root), "python")
+    py_data_idents = scan_py_data(py_root, cfg["schema_name"])
 
     docs_json_path = os.path.join(DOCS_ROOT, "docs.json")
     doc = json.load(open(docs_json_path))
@@ -318,7 +335,23 @@ def main():
         data_key = f"data_{wire}"
         inject_description(fields, data_key, desc_by_key)
         slug = ident["local_slug"].replace("_", "-")
-        go, ts, py = idents_for(ident["local_slug"], ident["service_dir"], ident["binding"], ident["config"])
+        # UBI-211: py_module comes from the real SCANNED python file path
+        # (scan_py_data), not reconstructed from the go-scanned
+        # local_slug -- the two languages' own codegen make independent
+        # collision-avoidance naming decisions (real, confirmed live:
+        # aws_ssm_maintenance_windows's own real Go file is
+        # maintenance_windows_.go, trailing-underscore-suffixed for a Go-
+        # side collision, while the real published Python file is
+        # maintenance_windows.py, no suffix at all -- reusing the go-side
+        # name for the python import path is a real, wrong guess).
+        py_data_ident = py_data_idents.get(wire, {})
+        nested_fields = py_data_ident.get("nested_fields")
+        py_module = py_data_ident.get("module")
+        py_config = py_data_ident.get("config")
+        go, ts, py = idents_for(
+            ident["local_slug"], ident["service_dir"], ident["binding"], ident["config"],
+            nested_fields=nested_fields, py_module=py_module, py_config=py_config,
+        )
         page = build_data_source_page(
             wire=wire, service=meta["service"], local=local, slug=slug,
             fields=fields, go=go, ts=ts, py=py,

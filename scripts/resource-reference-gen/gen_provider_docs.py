@@ -873,18 +873,41 @@ def pick_inner_example_fields(inner_fields):
 # _serialize_config) requires dataclasses.is_dataclass(value) for every
 # KIND_OBJECT field -- a plain dict literal raises TypeError at real
 # execution time (the ticket's own measured google_aiplatform_deployment_
-# resource_pool failure). The real generated nested dataclass's own name
-# is deterministic (sdk/codegen/templates/py/py.go's pyFieldMeta:
-# pathPrefix + "_" + PascalCase(wireName), pathPrefix starting at the
-# resource's own binding name and extending one segment per nesting
-# level) EXCEPT when two nested fields in the same resource share an
-# identical structural shape, where codegen dedups to the first name
-# minted -- a narrow, accepted gap: the runtime itself only matches
-# dataclass FIELD NAMES against the FieldMap, never class identity (same
-# doc comment), so this reproduces the real, correct construction for
-# every non-dedup-collision case, which is the overwhelming majority.
+# resource_pool failure).
+#
+# UBI-211: the real generated nested dataclass's own name is NOT simply
+# pathPrefix + "_" + PascalCase(wireName) -- sdk/codegen/templates/py/
+# py.go's pyFieldMeta dedups two nested fields that share an identical
+# structural shape to ONE real class, named for whichever occurrence is
+# minted first, which a path-based reconstruction only matches by
+# coincidence. Reproducing that dedup algorithm here would risk the
+# same two-independent-implementations divergence that caused UBI-197,
+# so instead _PY_PATH_STACK holds the real WIRE-NAME path (not a
+# PascalCase reconstruction) and is resolved against
+# _PY_NESTED_FIELD_MAP -- the real FieldSpec tree read directly out of
+# the generated .py source by extract_idents.py's parse_nested_fields,
+# via each field's own real `fields=_XxxFields` cross-reference. This is
+# ground truth, not a guess, for every field the real generated artifact
+# actually contains.
 _PY_PATH_STACK = []
 _PY_NESTED_CLASSES_USED = []
+_PY_NESTED_FIELD_MAP = {}
+
+
+def _py_resolve_class_name(wire):
+    node_map = _PY_NESTED_FIELD_MAP
+    node = None
+    path = _PY_PATH_STACK + [wire]
+    for seg in path:
+        node = node_map.get(seg)
+        if node is None:
+            raise KeyError(
+                f"no real nested class for wire path {path!r} -- the real generated "
+                "artifact's own FieldSpec tree doesn't contain this path (UBI-211: "
+                "_PY_NESTED_FIELD_MAP must be built from the real generated .py source)"
+            )
+        node_map = node.get("fields", {})
+    return node["class"]
 
 
 def _py_class_literal(class_name, inner_fields):
@@ -1035,10 +1058,9 @@ def literal_py(f):
             # KIND_OBJECT field would use -- pyFieldMeta itself recurses
             # into a list/set's element type without extending
             # pathPrefix past the list/set field's own wireName.
-            seg = pascal(wire)
-            class_name = "_".join(_PY_PATH_STACK + [seg])
+            class_name = _py_resolve_class_name(wire)
             inner = pick_inner_example_fields(el["Object"])
-            _PY_PATH_STACK.append(seg)
+            _PY_PATH_STACK.append(wire)
             try:
                 return f"[{_py_class_literal(class_name, inner)}]"
             finally:
@@ -1048,10 +1070,9 @@ def literal_py(f):
         el = t["Element"]
         return '{"key": "value"}'
     if t["Kind"] == KIND_OBJECT:
-        seg = pascal(wire)
-        class_name = "_".join(_PY_PATH_STACK + [seg])
+        class_name = _py_resolve_class_name(wire)
         inner = pick_inner_example_fields(t["Object"])
-        _PY_PATH_STACK.append(seg)
+        _PY_PATH_STACK.append(wire)
         try:
             return _py_class_literal(class_name, inner)
         finally:
@@ -1312,13 +1333,16 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
     ts_block = fence("typescript", deno_fmt_lines(ts_lines))
 
     # --- Python: real, complete program ---
-    # UBI-208: seeded with the resource's own real binding name, since
-    # _PY_PATH_STACK's own path segments (see literal_py) are built on
-    # top of it exactly as sdk/codegen/templates/py/py.go's pyFieldMeta
-    # does (pathPrefix starts at the resource's own pascalName).
+    # UBI-211: _PY_PATH_STACK now holds real wire names, resolved
+    # against _PY_NESTED_FIELD_MAP (py["nested_fields"], the resource's
+    # own real FieldSpec tree read out of the generated .py source) --
+    # it starts empty, since nested_fields' own top-level keys already
+    # are the resource's real top-level wire names, with no binding-name
+    # prefix layer (see literal_py, _py_resolve_class_name).
     _PY_PATH_STACK.clear()
-    _PY_PATH_STACK.append(py["binding"])
     _PY_NESTED_CLASSES_USED.clear()
+    _PY_NESTED_FIELD_MAP.clear()
+    _PY_NESTED_FIELD_MAP.update(py.get("nested_fields") or {})
     py_preambles, py_assigns = [], []
     for f in example_fields:
         pre, val = field_literal_with_preamble(f, "py")
