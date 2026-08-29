@@ -609,7 +609,24 @@ def pick_richer_example_fields(fields):
         key=lambda f: f["WireName"],
     )
     picked = required + name_field + optional_pure
-    return picked[:MAX_RICH_FIELDS]
+    if picked:
+        return picked[:MAX_RICH_FIELDS]
+    # UBI-209: real, found-live gap -- a resource whose only top-level
+    # field is BOTH Optional and Computed (a real, common shape: an ARM
+    # "Contract" wrapper's own top-level `properties`, settable on
+    # create but also server-computed if omitted) satisfies none of the
+    # three buckets above, since optional_pure explicitly excludes
+    # Computed fields. Confirmed live: 125 of 136 real Azure API
+    # Management "_contract" resources hit this, rendering a fully
+    # empty Config{}/Config()/{} example -- syntactically valid, useless
+    # to a reader. pick_inner_example_fields (the nested-level sibling
+    # of this function) already has the identical one-field fallback
+    # for the same reason ("so a reader still sees a real, non-empty
+    # illustration") -- this mirrors it at the top level rather than
+    # leaving the gap only half-closed.
+    if fields:
+        return [sorted(fields, key=lambda f: f["WireName"])[0]]
+    return []
 
 
 # UBI-144 Phase 1: richer, more realistic literal values for the SAME
