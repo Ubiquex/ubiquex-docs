@@ -42,7 +42,7 @@ import sys
 import tempfile
 
 
-def verify(path, sdk_ts_root, sdk_provider_ts_root):
+def verify(path, sdk_ts_root, sdk_provider_ts_root, local_sdk_root=None):
     """Checks the LITERAL, unmodified page content -- no synthetic
     wrapper, ever, matching verify_go_blocks.py's own real, hard-learned
     discipline (its own doc comment: a wrapped fragment only ever proves
@@ -66,6 +66,20 @@ def verify(path, sdk_ts_root, sdk_provider_ts_root):
 
         with open(os.path.join(tmpdir, "deno.json"), "w") as fh:
             fh.write('{\n  "workspace": ["./members/runtime", "./members/provider"]\n}\n')
+
+        # local_only pages import via a real relative path, "./local-
+        # sdk/<schema>/sdk/typescript/...", matching the exact "ubx sdk
+        # gen --out ./local-sdk" comment line every such page carries --
+        # not a bare specifier the workspace above resolves at all.
+        # local_sdk_root is expected to already have this same shape
+        # (<schema>/sdk/typescript/...), so a single symlink at
+        # "./local-sdk" makes every such import resolve to real,
+        # freshly-generated source.
+        if "./local-sdk/" in body:
+            if local_sdk_root is None:
+                return "fail", "page imports ./local-sdk/... but no --local-sdk-root was given"
+            os.symlink(local_sdk_root, os.path.join(tmpdir, "local-sdk"))
+
         with open(os.path.join(tmpdir, "main.ts"), "w") as fh:
             fh.write(body)
 
@@ -87,12 +101,16 @@ def main():
     p.add_argument("--sdk-provider-ts-root", required=True,
                     help="real local checkout of the provider's own TypeScript bindings "
                     "(e.g. ~/Ubiquex/ubx-sdk-google-ts) -- no default, see module docstring")
+    p.add_argument("--local-sdk-root",
+                    help="real directory shaped <schema>/sdk/typescript/... (a real 'ubx sdk gen "
+                    "--lang ts --out' tree) -- required only for local_only pages, which import "
+                    "via a real relative './local-sdk/...' path rather than a bare specifier")
     args = p.parse_args()
 
     fails = []
     checked = 0
     for path in args.pages:
-        status, detail = verify(path, args.sdk_ts_root, args.sdk_provider_ts_root)
+        status, detail = verify(path, args.sdk_ts_root, args.sdk_provider_ts_root, args.local_sdk_root)
         if status == "skip":
             print(f"SKIP {path}: {detail}")
             continue
