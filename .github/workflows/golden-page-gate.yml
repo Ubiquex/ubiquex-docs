@@ -89,21 +89,20 @@ jobs:
           set -euo pipefail
           dump_root="${{ runner.temp }}/golden-dump"
           mkdir -p "$dump_root"
-          # UBI-175: the first real dispatched run of this workflow was
-          # killed partway through a single --dump-ir call covering all
-          # six providers at once. Splitting into one --only <name> call
-          # per provider did NOT fix it -- a second real run still died,
-          # solo, with no other workflow competing, specifically while
-          # processing Azure. Measured directly, not guessed: a local
-          # `ubx sdk gen --only azure --dump-ir` run alone peaks at
-          # 12.5GB real memory (/usr/bin/time -l, UBI-204) -- Azure's
-          # own real schema is 1.6M+ fields, by far the largest of the
-          # six. That exceeds what a standard GitHub-hosted runner can
-          # reliably give one job. Azure is excluded from this loop
-          # until UBI-204 lands a real fix (streaming dump-ir, a larger
-          # runner, or reducing Azure's own peak) -- named here, not
-          # silently dropped, and re-add it the moment that's true.
-          for name in aws datadog github google kubernetes; do
+          # UBI-175/UBI-204: the first real dispatched run of this
+          # workflow was killed partway through a single --dump-ir call
+          # covering all six providers at once. Splitting into one
+          # --only <name> call per provider did NOT fix it either -- a
+          # second real run still died, solo, with no other workflow
+          # competing, specifically while processing Azure, whose own
+          # real schema is 1.6M+ fields, by far the largest of the six.
+          # Azure was excluded from this loop while UBI-204 was open.
+          # UBI-204's real fix (cli/sdk.go's combined schema.json dump-ir
+          # write switched from json.MarshalIndent to compact
+          # json.Marshal -- indentation was the dominant memory cost, not
+          # the data itself) measured Azure's own real peak at 3.09GB
+          # against this runner's 16GB, real margin -- re-included here.
+          for name in aws azure datadog github google kubernetes; do
             ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
               "${{ runner.temp }}/ubx" sdk gen --only "$name" --dump-ir "$dump_root" --out "${{ runner.temp }}/ubx-gen-unused" )
           done
@@ -120,10 +119,8 @@ jobs:
           # schema_name (ubx sdk gen --only value), matching
           # golden/manifest.json's own real candidates exactly -- update
           # this list if a candidate is added for a new provider. azure
-          # excluded here too, same real memory reason as the dump step
-          # above (UBI-204) -- --lang go/py/ts against azure alone hits
-          # the identical wall.
-          for name in aws datadog github google kubernetes; do
+          # re-included -- UBI-204's real fix, see the dump step above.
+          for name in aws azure datadog github google kubernetes; do
             local_sdk="${{ runner.temp }}/golden-local-sdk-$name"
             mkdir -p "$local_sdk"
             ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
@@ -138,9 +135,9 @@ jobs:
 
       - name: Verify every golden candidate against its committed reference page
         run: |
-          # --only excludes azure -- UBI-204, see the dump step above.
+          # azure re-included -- UBI-204, see the dump step above.
           python3 scripts/resource-reference-gen/verify_against_golden.py \
             --schema-dir "${{ steps.dump.outputs.dump_root }}" \
             --idents-dir "${{ steps.idents.outputs.idents_dir }}" \
             --artifacts-root artifacts \
-            --only aws,datadog,github,gcp,kubernetes
+            --only aws,azure,datadog,github,gcp,kubernetes

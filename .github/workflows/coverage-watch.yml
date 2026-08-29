@@ -85,13 +85,9 @@ jobs:
           # relied on as "wired into CI" since UBI-187. Splitting into
           # one --only <name> call per provider did NOT fix it either --
           # a second, solo real run (no other workflow competing) still
-          # died, specifically while processing azure. Measured directly:
-          # a local `ubx sdk gen --only azure --dump-ir` run alone peaks
-          # at 12.5GB real memory (/usr/bin/time -l, UBI-204) -- Azure's
-          # own real schema is 1.6M+ fields, by far the largest of the
-          # six, more than a standard GitHub-hosted runner can reliably
-          # give one job. Azure excluded from this loop until UBI-204
-          # lands a real fix -- named here, not silently dropped.
+          # died, specifically while processing azure, whose own real
+          # schema is 1.6M+ fields, by far the largest of the six. Azure
+          # was excluded from this loop while UBI-204 was open.
           # coverage_check.py's own --dump-root already expects exactly
           # this per-provider <dump_dir>/schema.json shape either way --
           # no change needed downstream. This trades the old genericity
@@ -100,8 +96,11 @@ jobs:
           # it needs adding to the loop below too, matching
           # golden-page-gate.yml's own identical list and maintenance
           # note.
-          # azure excluded -- see the note above.
-          for name in aws datadog github google kubernetes; do
+          # UBI-204's real fix (cli/sdk.go's combined schema.json dump-ir
+          # write switched from json.MarshalIndent to compact
+          # json.Marshal) measured Azure's own real peak at 3.09GB
+          # against this runner's 16GB -- azure re-included below.
+          for name in aws azure datadog github google kubernetes; do
             ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
               "${{ runner.temp }}/ubx" sdk gen --only "$name" --dump-ir "$dump_root" --out "${{ runner.temp }}/ubx-gen-unused" )
           done
@@ -111,10 +110,10 @@ jobs:
         id: check
         run: |
           set +e
-          # --only excludes azure -- UBI-204, see the dump step above.
+          # azure re-included -- UBI-204, see the dump step above.
           python3 scripts/resource-reference-gen/coverage_check.py \
             --dump-root "${{ steps.dump.outputs.dump_root }}" \
-            --only aws,datadog,github,gcp,kubernetes \
+            --only aws,azure,datadog,github,gcp,kubernetes \
             --json "${{ runner.temp }}/coverage-report.json" \
             > "${{ runner.temp }}/coverage-report.txt" 2>&1
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
