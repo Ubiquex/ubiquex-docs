@@ -119,8 +119,32 @@ def scan_go_data(root, provider_dir):
 def idents_for(local_slug, service_dir, binding, config, nested_fields=None, py_module=None, py_config=None):
     go = {"service_dir": service_dir, "package": service_dir, "binding": binding, "config": config,
           "file": f"{service_dir}/{local_slug}.go"}
-    ts = {"service_dir": service_dir, "binding": binding, "file": f"{service_dir}/{local_slug}.ts"}
-    py = {"service_dir": service_dir, "binding": binding, "file": f"{service_dir}/{local_slug}.py",
+    # UBI-209: real, confirmed live -- datadog_case_link's own real Go
+    # package directory is "case_" (Go escapes "case" as a reserved
+    # switch-statement keyword, mirroring the identical real divergence
+    # UBI-211 already found for aws_ssm_maintenance_windows_), but the
+    # real published Python AND TypeScript directories are both plain
+    # "case" -- neither language reserves it. Reusing the go-scanned
+    # service_dir for Python's own primary import path produced a real
+    # ModuleNotFoundError, and for TypeScript's own import path a real
+    # deno check "module not found" -- the same class of bug UBI-211
+    # already fixed for Python's own NESTED-class import specifically;
+    # this closes the identical gap for the PRIMARY import path in both
+    # languages. The real scanned py_module (built from the real python
+    # file's own path, see scan_py_data) is ground truth when available;
+    # TypeScript is assumed to agree with Python's own escaping decision
+    # here rather than Go's, confirmed true for every real divergence
+    # found so far (Go is consistently the one applying reserved-word
+    # escaping that Python/TS don't need) -- not verified against a
+    # dedicated real TS directory scan, since none exists for data
+    # sources the way scan_py_data now does for Python.
+    py_service_dir = service_dir
+    if py_module:
+        parts = py_module.split(".")
+        if len(parts) >= 2:
+            py_service_dir = parts[-2]
+    ts = {"service_dir": py_service_dir, "binding": binding, "file": f"{py_service_dir}/{local_slug}.ts"}
+    py = {"service_dir": py_service_dir, "binding": binding, "file": f"{py_service_dir}/{local_slug}.py",
           "nested_fields": nested_fields, "module": py_module,
           # UBI-211: real, confirmed live -- aws_kendra_query_suggestions'
           # own real Config class is genuinely named
