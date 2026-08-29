@@ -74,9 +74,16 @@ def scan_go_data(root, provider_dir):
     """extract_idents.scan_go's own real pattern, matching
     ubx.DataSourceBinding instead of ubx.ResourceBinding, scoped to the
     real /data/ subtree every data-source-mode file lands under. Keyed
-    by the real WireType field -- ground truth."""
+    by the real WireType field -- ground truth. UBI-203: sorted glob +
+    a loud refusal on a genuine same-wire collision, matching the fix
+    applied to extract_idents.py's own scan_go/scan_py/scan_ts (this
+    function was already immune to THAT ticket's specific resource-vs-
+    data-source collision, since it only ever matches DataSourceBinding
+    files in the first place -- this is the same defense-in-depth
+    against glob.glob()'s own undefined order, for the separate,
+    narrower case of two data sources sharing one wire)."""
     out = {}
-    for f in glob.glob(root + f"/{provider_dir}/data/**/*.go", recursive=True):
+    for f in sorted(glob.glob(root + f"/{provider_dir}/data/**/*.go", recursive=True)):
         text = open(f).read()
         m = re.search(r'WireType:\s*"([^"]+)"', text)
         if not m:
@@ -91,6 +98,12 @@ def scan_go_data(root, provider_dir):
         parts = rel.split("/")
         service_dir = parts[2]  # "<provider>/data/<service_dir>/<file>.go"
         local_slug = os.path.splitext(parts[-1])[0]
+        if wire in out:
+            raise SystemExit(
+                f"scan_go_data: {wire!r} claimed by both {out[wire]['file']!r} and {rel!r} -- "
+                "two real DataSourceBinding files sharing one WireType, refusing rather than "
+                "silently picking one (UBI-203)"
+            )
         out[wire] = {
             "file": rel,
             "package": pkg_m.group(1) if pkg_m else None,

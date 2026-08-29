@@ -32,7 +32,7 @@ def resolve_config_py(text, binding):
 
 def scan_go(root, provider):
     out = {}
-    for f in glob.glob(root + f"/{provider}/**/*.go", recursive=True):
+    for f in sorted(glob.glob(root + f"/{provider}/**/*.go", recursive=True)):
         # NOT filtering "*_test.go" here -- real, confirmed finding: these
         # SDK repos carry zero genuine Go unit tests, but DO carry real
         # generated resource files whose own wire-derived local name
@@ -64,10 +64,30 @@ def scan_go(root, provider):
         # PodV1Config in the file -- a real, confirmed collision, not
         # hypothetical).
         bm = re.search(r'var (\w+) = ubx\.ResourceBinding\{', text)
+        if not bm:
+            # UBI-203, real, confirmed live (Datadog's datadog_monitor,
+            # Kubernetes' kubernetes_apps_replica_set): a resource and its
+            # own same-named data source can share the identical
+            # WireType -- the `m` match above fires on either file, but
+            # only a real `ubx.ResourceBinding{...}` declaration is what
+            # THIS scanner's every real caller wants (data sources go
+            # through the separate, already-safe scan_go_data in
+            # gen_all_data_source_pages.py). Registering a null
+            # binding/config here used to let a DataSourceBinding file
+            # silently win or lose a same-wire race depending on
+            # glob.glob()'s own undefined order -- skip it outright
+            # instead, so the outcome is correct, not merely sorted.
+            continue
+        binding = bm.group(1)
         pkg_m = re.search(r'^package (\w+)', text, re.M)
         rel = os.path.relpath(f, root)
         service_dir = rel.split("/")[1]
-        binding = bm.group(1) if bm else None
+        if wire in out:
+            raise SystemExit(
+                f"scan_go: {wire!r} claimed by both {out[wire]['file']!r} and {rel!r} -- "
+                "two real ResourceBinding files sharing one WireType, refusing rather than "
+                "silently picking one (UBI-203)"
+            )
         out[wire] = {
             "file": rel,
             "package": pkg_m.group(1) if pkg_m else None,
@@ -79,7 +99,7 @@ def scan_go(root, provider):
 
 def scan_py(root, provider):
     out = {}
-    for f in glob.glob(root + f"/ubx/{provider}/**/*.py", recursive=True):
+    for f in sorted(glob.glob(root + f"/ubx/{provider}/**/*.py", recursive=True)):
         if f.endswith("__init__.py"):
             continue
         text = open(f).read()
@@ -88,10 +108,22 @@ def scan_py(root, provider):
             continue
         wire = m.group(1)
         bm = re.search(r'^(\w+) = ubx\.ResourceBinding\(', text, re.M)
+        if not bm:
+            # UBI-203: same real resource/data-source WireType collision
+            # as scan_go above -- skip a DataSourceBinding file outright
+            # rather than register a null binding/config that could win
+            # a same-wire race depending on glob order.
+            continue
+        binding = bm.group(1)
         rel = os.path.relpath(f, root)
         service_dir = rel.split("/")[2]
         module = rel[len("ubx/"):-3].replace("/", ".")
-        binding = bm.group(1) if bm else None
+        if wire in out:
+            raise SystemExit(
+                f"scan_py: {wire!r} claimed by both {out[wire]['file']!r} and {rel!r} -- "
+                "two real ResourceBinding files sharing one WireType, refusing rather than "
+                "silently picking one (UBI-203)"
+            )
         out[wire] = {
             "file": rel,
             "module": "ubx." + module,
@@ -103,7 +135,7 @@ def scan_py(root, provider):
 
 def scan_ts(root, provider):
     out = {}
-    for f in glob.glob(root + f"/{provider}/**/*.ts", recursive=True):
+    for f in sorted(glob.glob(root + f"/{provider}/**/*.ts", recursive=True)):
         # Same real "doc.ts" bug as scan_go's own "doc.go" filter above
         # (a substring-suffix check, not an exact-filename check) --
         # removed for the same reason: the wireType-match requirement
@@ -115,14 +147,26 @@ def scan_ts(root, provider):
             continue
         wire = m.group(1)
         bm = re.search(r'export const (\w+): ResourceBinding', text)
+        if not bm:
+            # UBI-203: same real resource/data-source WireType collision
+            # as scan_go above -- skip a DataSourceBinding file outright
+            # rather than register a null binding/config that could win
+            # a same-wire race depending on glob order.
+            continue
+        binding = bm.group(1)
         rel = os.path.relpath(f, root)
         service_dir = rel.split("/")[1]
-        binding = bm.group(1) if bm else None
+        if wire in out:
+            raise SystemExit(
+                f"scan_ts: {wire!r} claimed by both {out[wire]['file']!r} and {rel!r} -- "
+                "two real ResourceBinding files sharing one WireType, refusing rather than "
+                "silently picking one (UBI-203)"
+            )
         out[wire] = {
             "file": rel,
             "service_dir": service_dir,
             "binding": binding,
-            "config": (binding + "Config") if binding else None,
+            "config": binding + "Config",
         }
     return out
 
