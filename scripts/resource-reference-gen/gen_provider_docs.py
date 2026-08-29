@@ -653,9 +653,27 @@ def pick_richer_example_fields(fields):
         [f for f in fields if f["Optional"] and not f["Computed"] and not f["Required"] and f["WireName"] != "name"],
         key=lambda f: f["WireName"],
     )
-    picked = required + name_field + optional_pure
+    # UBI-212: real, confirmed live -- the old `(required + name_field +
+    # optional_pure)[:MAX_RICH_FIELDS]` capped the COMBINED list, which
+    # silently truncates real REQUIRED fields whenever a resource has
+    # more than MAX_RICH_FIELDS of them on its own (aws_lambda_microvm_image
+    # has 13 -- alphabetical truncation at 8 dropped
+    # environment_variables/hooks/logging/name/resources, all Required,
+    # producing a real `deno check` "missing the following properties"
+    # failure; aws_license_manager_license's own `validity` hit the same
+    # cap). A Required field is required regardless of how many siblings
+    # it has -- every one of them must appear, uncapped, matching
+    # pick_inner_example_fields' own established "ALL of them, no cap"
+    # rule for the identical reason (see that function's own doc
+    # comment). The cap now only bounds how many OPTIONAL extras get
+    # added on top, which is what it was always meant to bound (a
+    # resource with dozens of optional fields producing an unreadable
+    # wall of config) -- never the required set itself.
+    extra = name_field + optional_pure
+    budget = max(0, MAX_RICH_FIELDS - len(required))
+    picked = required + extra[:budget]
     if picked:
-        return picked[:MAX_RICH_FIELDS]
+        return picked
     # UBI-209: real, found-live gap -- a resource whose only top-level
     # field is BOTH Optional and Computed (a real, common shape: an ARM
     # "Contract" wrapper's own top-level `properties`, settable on
@@ -882,7 +900,25 @@ def field_literal_with_preamble(f, lang):
         return None, '"/example/"'
     if is_number and is_duration_field(wire):
         return None, "7200"
-    if is_map:
+    # UBI-212: real, confirmed live -- this "managed-by": "ubx" placeholder
+    # is only a valid literal when the map's own VALUE type is a plain
+    # scalar (a tags/labels-shaped map, the real, recurring case this was
+    # written for). A map whose Element is itself KIND_OBJECT (real,
+    # confirmed: azure_automation_openapi_connection_type's own
+    # `properties.field_definitions`, gcp_bigtableadmin_instance's own
+    # `clusters`) needs a real nested-object value at that position, not a
+    # flat string -- a bare string there is a real `deno check` failure
+    # (every Config field is unioned with `Computed<T>` in the real
+    # generated TS, so a wrong-shaped value's own error message names
+    # `ComputedMarker`, the other half of that union, not just the
+    # expected object type) and a real Python `TypeError` at execution
+    # (`_serialize_config`'s own map branch requires
+    # `dataclasses.is_dataclass` on each value exactly like it does for a
+    # plain object field, sdk/py/ubx_sdk/__init__.py's own real map
+    # handling). Falls through to literal_go/ts/py below, which build the
+    # real nested value via the same pick_inner_example_fields/
+    # _object_literal machinery list/set-of-object elements already use.
+    if is_map and t["Element"]["Kind"] == KIND_SCALAR:
         if lang == "go":
             return None, 'map[string]string{"managed-by": "ubx"}'
         if lang == "ts":
@@ -1057,6 +1093,16 @@ def literal_go(f):
         el = t["Element"]
         if el["Kind"] == KIND_SCALAR and el["Scalar"] == SCALAR_STRING:
             return 'map[string]string{"key": "value"}'
+        if el["Kind"] == KIND_OBJECT:
+            # UBI-212: real object-shaped map value -- every Config field
+            # is typed `any` in the real generated Go (goFieldMeta's own
+            # doc comment), so a flat map[string]any{"key": "value"} was
+            # never a real Go compile error the way it is in TS, but it's
+            # still the wrong shape. Same construction as a list/set's own
+            # object element, just wrapped as this one map key's value.
+            inner = pick_inner_example_fields(el["Object"])
+            pairs = ", ".join(f'"{i["WireName"]}": {literal_go(i)}' for i in inner)
+            return f'map[string]any{{"key": map[string]any{{{pairs}}}}}'
         return 'map[string]any{"key": "value"}'
     if t["Kind"] == KIND_OBJECT:
         inner = pick_inner_example_fields(t["Object"])
@@ -1088,8 +1134,19 @@ def literal_ts(f):
         return '["example"]'
     if t["Kind"] == KIND_MAP:
         el = t["Element"]
-        if el["Kind"] == KIND_SCALAR and el["Scalar"] == SCALAR_STRING:
-            return '{ key: "value" }'
+        if el["Kind"] == KIND_OBJECT:
+            # UBI-212: real, confirmed live -- a map field is typed
+            # `Record<string, V> | Computed<Record<string, V>>` in the
+            # real generated TS (configFieldLine, applied uniformly
+            # regardless of V's own shape), and when V is itself an
+            # object interface (not a plain scalar), a flat `{ key:
+            # "value" }` string literal is a real `deno check` failure
+            # (real cases: azure_automation_openapi_connection_type's own
+            # `properties.field_definitions`, gcp_bigtableadmin_instance's
+            # own `clusters`). Same construction as a list/set's own
+            # object element, wrapped as this one map key's value.
+            inner = pick_inner_example_fields(el["Object"])
+            return f"{{ key: {_object_literal(inner, literal_ts, 'ts')} }}"
         return '{ key: "value" }'
     if t["Kind"] == KIND_OBJECT:
         inner = pick_inner_example_fields(t["Object"])
@@ -1130,6 +1187,26 @@ def literal_py(f):
         return '["example"]'
     if t["Kind"] == KIND_MAP:
         el = t["Element"]
+        if el["Kind"] == KIND_OBJECT:
+            # UBI-212: real, confirmed live -- the real generated
+            # `_serialize_config` (sdk/py/ubx_sdk/__init__.py) walks a map
+            # field's own values through _serialize_config too when its
+            # FieldSpec declares nested fields, which requires
+            # `dataclasses.is_dataclass` on each value exactly like a
+            # plain object field does -- a flat `{"key": "value"}` dict
+            # raises a real TypeError at execution, not just a `deno
+            # check` failure (real cases: azure_automation_openapi_
+            # connection_type's own `properties.field_definitions`,
+            # gcp_bigtableadmin_instance's own `clusters`). Same real
+            # nested-class resolution a list/set's own object element
+            # already uses, wrapped as this one map key's value.
+            class_name = _py_resolve_class_name(wire)
+            inner = pick_inner_example_fields(el["Object"])
+            _PY_PATH_STACK.append(wire)
+            try:
+                return f'{{"key": {_py_class_literal(class_name, inner)}}}'
+            finally:
+                _PY_PATH_STACK.pop()
         return '{"key": "value"}'
     if t["Kind"] == KIND_OBJECT:
         class_name = _py_resolve_class_name(wire)
