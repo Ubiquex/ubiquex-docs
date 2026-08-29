@@ -48,6 +48,35 @@ KIND_INVALID, KIND_SCALAR, KIND_LIST, KIND_SET, KIND_MAP, KIND_OBJECT = 0, 1, 2,
 SCALAR_INVALID, SCALAR_STRING, SCALAR_NUMBER, SCALAR_BOOL, SCALAR_DYNAMIC = 0, 1, 2, 3, 4
 
 
+# UBI-208 follow-up: sdk/codegen/templates/py/py.go's own real
+# pythonIdentifier -- a wire name colliding with a Python reserved
+# keyword gets a trailing underscore, mirrored here since a generated
+# dataclass's own field name (and this renderer's own construction
+# calls, which must use the SAME identifier) needs the identical
+# escape. Real, found-in-review case: aws_app_flow_connector's own
+# nested `lambda` field -- `Connector_ConnectorProvisioningConfig_
+# Lambda(lambda="example")` is a real SyntaxError (a bare `lambda=` in
+# a call's own keyword-argument position), not a missing-class import
+# -- ast.parse alone doesn't cover keyword-argument names either,
+# same class of gap as the ticket's own "real toolchain, not ast.parse
+# alone" finding. Same set gen_data_source_pages.py's own
+# PYTHON_KEYWORDS already uses (capitalized reserved words -- False/
+# None/True -- never collide with a wire name, omitted there too).
+PYTHON_KEYWORDS = {
+    "and", "as", "assert", "async", "await",
+    "break", "class", "continue", "def", "del",
+    "elif", "else", "except", "finally", "for",
+    "from", "global", "if", "import", "in",
+    "is", "lambda", "nonlocal", "not", "or",
+    "pass", "raise", "return", "try", "while",
+    "with", "yield",
+}
+
+
+def python_identifier(wire):
+    return wire + "_" if wire in PYTHON_KEYWORDS else wire
+
+
 def pascal(wire):
     return "".join(p.capitalize() for p in wire.split("_") if p)
 
@@ -863,7 +892,7 @@ def _py_class_literal(class_name, inner_fields):
         _PY_NESTED_CLASSES_USED.append(class_name)
     if not inner_fields:
         return f"{class_name}()"
-    pairs = ", ".join(f"{i['WireName']}={literal_py(i)}" for i in inner_fields)
+    pairs = ", ".join(f"{python_identifier(i['WireName'])}={literal_py(i)}" for i in inner_fields)
     return f"{class_name}({pairs})"
 
 
@@ -1295,7 +1324,7 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
         pre, val = field_literal_with_preamble(f, "py")
         if pre and pre not in py_preambles:
             py_preambles.append(pre)
-        py_assigns.append(f"        {f['WireName']}={val},")
+        py_assigns.append(f"        {python_identifier(f['WireName'])}={val},")
     py_module_root = py["module"].rsplit(".", 1)[0]
     needs_json_py = any("json.dumps(" in p for p in py_preambles)
 
