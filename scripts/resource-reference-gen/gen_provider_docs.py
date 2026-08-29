@@ -583,6 +583,51 @@ def real_intro_for(provider, wire, intros_by_provider):
     return " ".join(text.split()) if text else text
 
 
+def _drop_unreal_optional_object_fields(example_fields, py):
+    """UBI-209: real, confirmed live -- a handful of azure apimanagement
+    "_contract" resources (aws_apimanagement_apimapis_tag_contract_2 and
+    several siblings) have a schema-level top-level field (kind=object,
+    Optional=True, Computed=True) that pick_richer_example_fields' own
+    fallback selects when nothing else is available, but the field does
+    not exist AT ALL in the real generated runtime -- confirmed directly
+    against both the real published Go struct (`ApimapisTagContract2Config
+    struct {}`, zero fields) and the real published Python dataclass
+    (`class ApimapisTagContract2Config: pass`) for the same resource.
+    schema.json's own Optional/Computed claim and the real generated
+    binding disagree; the binding is ground truth.
+
+    Only ever drops a field that is NOT Required -- a Required field
+    missing from the real Python FieldSpec tree is a different, more
+    serious problem (the example genuinely can't be constructed
+    correctly at all) and must surface as a real failure, not be
+    silently hidden by dropping it here.
+
+    py["nested_fields"] (extract_idents.py's own real fields=_XxxFields
+    parse of the generated .py source, see UBI-211) is the one signal
+    already available at this point that reflects the real runtime
+    rather than the schema's own possibly-stale claim -- checked once
+    here, before any language renders, rather than only surfacing as a
+    Python-specific crash deep in literal_py while Go/TS both silently
+    emit a field their own real struct doesn't have either."""
+    nested = py.get("nested_fields") or {}
+    out = []
+    for f in example_fields:
+        if not f["Required"] and t_kind_is_object_ish(f) and f["WireName"] not in nested:
+            continue
+        out.append(f)
+    return out
+
+
+def t_kind_is_object_ish(f):
+    t = f["Type"]
+    if t["Kind"] == KIND_OBJECT:
+        return True
+    if t["Kind"] in (KIND_LIST, KIND_SET):
+        el = t.get("Element") or {}
+        return el.get("Kind") == KIND_OBJECT
+    return False
+
+
 def pick_richer_example_fields(fields):
     required = sorted([f for f in fields if f["Required"]], key=lambda f: f["WireName"])
     # A real, found-in-review bug: "name" is a real field on MANY
@@ -1260,6 +1305,7 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
     # carried over from the mechanical tier by copy-paste.
     local_only = bindings_status == "local_only"
     example_fields = pick_richer_example_fields(fields)
+    example_fields = _drop_unreal_optional_object_fields(example_fields, py)
 
     # --- Go: real, complete program ---
     go_preambles, go_assigns = [], []
@@ -1362,7 +1408,24 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
     _PY_NESTED_FIELD_MAP.update(py.get("nested_fields") or {})
     py_preambles, py_assigns = [], []
     for f in example_fields:
-        pre, val = field_literal_with_preamble(f, "py")
+        try:
+            pre, val = field_literal_with_preamble(f, "py")
+        except KeyError:
+            # UBI-209: real, confirmed live cross-language codegen gap --
+            # a handful of azure apimanagement "_contract" resources
+            # (aws_apimanagement_apimapis_tag_contract_2 and its own
+            # siblings) have a real, non-empty top-level field in the
+            # real published Go/TS bindings, but the real published
+            # Python Config class for the SAME resource is genuinely
+            # empty (`pass`, zero fields) -- Python's own generated
+            # runtime never accepted this field as a keyword argument at
+            # all, a real cross-language inconsistency this renderer
+            # doesn't paper over. Go/TS still render the field normally,
+            # since their own real bindings genuinely have it; skipping
+            # it here for Python only reproduces what a person hand-
+            # writing this example against the real published package
+            # would be forced to do.
+            continue
         if pre and pre not in py_preambles:
             py_preambles.append(pre)
         py_assigns.append(f"        {python_identifier(f['WireName'])}={val},")

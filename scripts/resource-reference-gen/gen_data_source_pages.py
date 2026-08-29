@@ -54,6 +54,7 @@ from gen_provider_docs import (
     _PY_PATH_STACK,
     _PY_NESTED_CLASSES_USED,
     _PY_NESTED_FIELD_MAP,
+    _drop_unreal_optional_object_fields,
 )
 
 
@@ -164,6 +165,7 @@ def build_data_source_page(wire, service, local, slug, fields, go, ts, py,
     lookup_fields = sorted([f for f in fields if f["Required"] or (not f["Computed"])], key=lambda f: f["WireName"])
     result_fields = sorted([f for f in fields if f["Computed"]], key=lambda f: f["WireName"])
     example_fields = pick_richer_example_fields(lookup_fields)
+    example_fields = _drop_unreal_optional_object_fields(example_fields, py)
 
     # --- Go ---
     go_preambles, go_assigns = [], []
@@ -239,7 +241,15 @@ def build_data_source_page(wire, service, local, slug, fields, go, ts, py,
     _PY_NESTED_FIELD_MAP.update(py.get("nested_fields") or {})
     py_preambles, py_assigns = [], []
     for f in example_fields:
-        pre, val = field_literal_with_preamble(f, "py")
+        try:
+            pre, val = field_literal_with_preamble(f, "py")
+        except KeyError:
+            # UBI-209: same real cross-language codegen gap as
+            # build_resource_page_complete's own identical catch -- a
+            # field the real published Go/TS bindings genuinely have can
+            # be absent from the real published Python Config class
+            # entirely. Skip it for Python only; Go/TS render normally.
+            continue
         if pre and pre not in py_preambles:
             py_preambles.append(pre)
         py_assigns.append(f"        {python_identifier(f['WireName'])}={val},")
