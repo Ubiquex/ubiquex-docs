@@ -802,16 +802,102 @@ def field_literal_with_preamble(f, lang):
     return None, fn(f)
 
 
-def pick_inner_example_field(inner_fields):
-    if not inner_fields:
-        return None
-    by_name = {f["WireName"]: f for f in inner_fields}
+def pick_inner_example_fields(inner_fields):
+    """UBI-208: returns every field a nested object literal must render
+    to stay CORRECT, not just illustrative -- omitting even one real
+    Required sibling produces a construction that renders cleanly and
+    fails on execution (the exact, real, measured Azure firewall-rule
+    case: `endIpAddress` alone, `startIpAddress` required but silently
+    dropped by the old single-field pick). Real, found-live bug in the
+    single-field predecessor this replaces, same shape as
+    pick_richer_example_fields' own already-fixed top-level bug:
+    checking only `WireName == "name"` unconditionally, before checking
+    settability at all, picked a pure-Computed "name" field (real,
+    confirmed: github_content's own `author.name`/`committer.name`,
+    both real API-assigned output fields, not real request input) --
+    the exact TypeScript deno-check failure that started this
+    investigation.
+
+    Real, current selection: every settable (Required, or effectively-
+    Optional -- eff_flags' own established test, matching Input
+    properties' own real selection) Required field, ALL of them, no
+    cap -- a required field is required regardless of how many
+    siblings it has. If nothing is Required, "name" alone when present
+    and settable (the identical single-field precedent's own real
+    "name" special case, still valid once genuinely optional). If
+    neither, one representative settable field, matching the original
+    single-field behavior for a purely-optional nested object, so a
+    reader still sees a real, non-empty illustration."""
+    settable = [f for f in inner_fields if f["Required"] or eff_flags(f)[1]]
+    if not settable:
+        return []
+    required = sorted([f for f in settable if f["Required"]], key=lambda f: f["WireName"])
+    if required:
+        return required
+    by_name = {f["WireName"]: f for f in settable}
     if "name" in by_name:
-        return by_name["name"]
-    req = sorted([f for f in inner_fields if f["Required"]], key=lambda f: f["WireName"])
-    if req:
-        return req[0]
-    return sorted(inner_fields, key=lambda f: f["WireName"])[0]
+        return [by_name["name"]]
+    return [sorted(settable, key=lambda f: f["WireName"])[0]]
+
+
+# UBI-208: Python's own generated runtime (sdk/py/ubx_sdk/__init__.py's
+# _serialize_config) requires dataclasses.is_dataclass(value) for every
+# KIND_OBJECT field -- a plain dict literal raises TypeError at real
+# execution time (the ticket's own measured google_aiplatform_deployment_
+# resource_pool failure). The real generated nested dataclass's own name
+# is deterministic (sdk/codegen/templates/py/py.go's pyFieldMeta:
+# pathPrefix + "_" + PascalCase(wireName), pathPrefix starting at the
+# resource's own binding name and extending one segment per nesting
+# level) EXCEPT when two nested fields in the same resource share an
+# identical structural shape, where codegen dedups to the first name
+# minted -- a narrow, accepted gap: the runtime itself only matches
+# dataclass FIELD NAMES against the FieldMap, never class identity (same
+# doc comment), so this reproduces the real, correct construction for
+# every non-dedup-collision case, which is the overwhelming majority.
+_PY_PATH_STACK = []
+_PY_NESTED_CLASSES_USED = []
+
+
+def _py_class_literal(class_name, inner_fields):
+    if class_name not in _PY_NESTED_CLASSES_USED:
+        _PY_NESTED_CLASSES_USED.append(class_name)
+    if not inner_fields:
+        return f"{class_name}()"
+    pairs = ", ".join(f"{i['WireName']}={literal_py(i)}" for i in inner_fields)
+    return f"{class_name}({pairs})"
+
+
+def _scalar_element_literal(scalar_kind, lang):
+    """UBI-208: a list/set's own element literal, real per real Scalar
+    kind -- the single hardcoded '["example"]'-shaped catch-all this
+    replaces rendered a string literal for EVERY element type,
+    including number/bool, a real, confirmed TypeScript deno-check
+    failure (github_organization_actions_secret's own
+    `selectedRepositoryIds: number[]`, rendered `["example"]`)."""
+    if scalar_kind == SCALAR_NUMBER:
+        return "1"
+    if scalar_kind == SCALAR_BOOL:
+        return {"go": "true", "ts": "true", "py": "True"}[lang]
+    return '"example"'
+
+
+def _object_literal(inner_fields, render_one, lang):
+    """UBI-208: renders every field pick_inner_example_fields chose,
+    not just the first -- omitting a real Required sibling produces a
+    construction that renders cleanly and fails on execution (the real,
+    measured Azure firewall-rule case: `endIpAddress` alone,
+    `startIpAddress` required but silently dropped by the single-field
+    predecessor)."""
+    if not inner_fields:
+        return {"go": "map[string]any{}", "ts": "{}", "py": "{}"}[lang]
+    if lang == "go":
+        pairs = ", ".join(f'"{i["WireName"]}": {render_one(i)}' for i in inner_fields)
+        return f"map[string]any{{{pairs}}}"
+    if lang == "ts":
+        pairs = ", ".join(f"{camel(i['WireName'])}: {render_one(i)}" for i in inner_fields)
+        return f"{{ {pairs} }}"
+    pairs = ", ".join(f'"{i["WireName"]}": {render_one(i)}' for i in inner_fields)
+    return f"{{{pairs}}}"
 
 
 def literal_go(f):
@@ -830,13 +916,28 @@ def literal_go(f):
         return '"example"'
     if t["Kind"] in (KIND_LIST, KIND_SET):
         el = t["Element"]
-        if el["Kind"] == KIND_SCALAR and el["Scalar"] == SCALAR_STRING:
-            return '[]string{"example"}'
+        if el["Kind"] == KIND_SCALAR:
+            if el["Scalar"] == SCALAR_STRING:
+                return '[]string{"example"}'
+            # UBI-208: NUMBER/BOOL elements previously fell through to
+            # this same []string{"example"} literal -- wrong content
+            # (a string where a number/bool belongs), not a compile
+            # error, since the real generated field type is `any`
+            # (confirmed against ubx-sdk-github's repository.go) and
+            # so accepts []any just as well as []string.
+            return f"[]any{{{_scalar_element_literal(el['Scalar'], 'go')}}}"
         if el["Kind"] == KIND_OBJECT:
-            inner = pick_inner_example_field(el["Object"])
-            if inner is None:
-                return "[]map[string]any{{}}"
-            return f'[]map[string]any{{{{"{inner["WireName"]}": {literal_go(inner)}}}}}'
+            # Go's own composite-literal elision (the element type is
+            # already known from []map[string]any{}, so a nested
+            # map[string]any{} inside doesn't repeat its own type name)
+            # -- matches every other []map[string]any{{...}} literal
+            # already in this file (see the Statement preambles above).
+            # _object_literal's own map[string]any{...} wrapper would
+            # double up here into the still-valid but non-idiomatic
+            # map[string]any{map[string]any{...}}.
+            inner = pick_inner_example_fields(el["Object"])
+            pairs = ", ".join(f'"{i["WireName"]}": {literal_go(i)}' for i in inner)
+            return f"[]map[string]any{{{{{pairs}}}}}"
         return '[]string{"example"}'
     if t["Kind"] == KIND_MAP:
         el = t["Element"]
@@ -844,10 +945,8 @@ def literal_go(f):
             return 'map[string]string{"key": "value"}'
         return 'map[string]any{"key": "value"}'
     if t["Kind"] == KIND_OBJECT:
-        inner = pick_inner_example_field(t["Object"])
-        if inner is None:
-            return "map[string]any{}"
-        return f'map[string]any{{"{inner["WireName"]}": {literal_go(inner)}}}'
+        inner = pick_inner_example_fields(t["Object"])
+        return _object_literal(inner, literal_go, "go")
     return '"example"'
 
 
@@ -867,13 +966,11 @@ def literal_ts(f):
         return '"example"'
     if t["Kind"] in (KIND_LIST, KIND_SET):
         el = t["Element"]
-        if el["Kind"] == KIND_SCALAR and el["Scalar"] == SCALAR_STRING:
-            return '["example"]'
+        if el["Kind"] == KIND_SCALAR:
+            return f"[{_scalar_element_literal(el['Scalar'], 'ts')}]"
         if el["Kind"] == KIND_OBJECT:
-            inner = pick_inner_example_field(el["Object"])
-            if inner is None:
-                return "[{}]"
-            return f'[{{ {camel(inner["WireName"])}: {literal_ts(inner)} }}]'
+            inner = pick_inner_example_fields(el["Object"])
+            return f"[{_object_literal(inner, literal_ts, 'ts')}]"
         return '["example"]'
     if t["Kind"] == KIND_MAP:
         el = t["Element"]
@@ -881,10 +978,8 @@ def literal_ts(f):
             return '{ key: "value" }'
         return '{ key: "value" }'
     if t["Kind"] == KIND_OBJECT:
-        inner = pick_inner_example_field(t["Object"])
-        if inner is None:
-            return "{}"
-        return f'{{ {camel(inner["WireName"])}: {literal_ts(inner)} }}'
+        inner = pick_inner_example_fields(t["Object"])
+        return _object_literal(inner, literal_ts, "ts")
     return '"example"'
 
 
@@ -904,22 +999,34 @@ def literal_py(f):
         return '"example"'
     if t["Kind"] in (KIND_LIST, KIND_SET):
         el = t["Element"]
-        if el["Kind"] == KIND_SCALAR and el["Scalar"] == SCALAR_STRING:
-            return '["example"]'
+        if el["Kind"] == KIND_SCALAR:
+            return f"[{_scalar_element_literal(el['Scalar'], 'py')}]"
         if el["Kind"] == KIND_OBJECT:
-            inner = pick_inner_example_field(el["Object"])
-            if inner is None:
-                return "[{}]"
-            return f'[{{"{inner["WireName"]}": {literal_py(inner)}}}]'
+            # Same wire (not a deeper path segment) as a direct
+            # KIND_OBJECT field would use -- pyFieldMeta itself recurses
+            # into a list/set's element type without extending
+            # pathPrefix past the list/set field's own wireName.
+            seg = pascal(wire)
+            class_name = "_".join(_PY_PATH_STACK + [seg])
+            inner = pick_inner_example_fields(el["Object"])
+            _PY_PATH_STACK.append(seg)
+            try:
+                return f"[{_py_class_literal(class_name, inner)}]"
+            finally:
+                _PY_PATH_STACK.pop()
         return '["example"]'
     if t["Kind"] == KIND_MAP:
         el = t["Element"]
         return '{"key": "value"}'
     if t["Kind"] == KIND_OBJECT:
-        inner = pick_inner_example_field(t["Object"])
-        if inner is None:
-            return "{}"
-        return f'{{"{inner["WireName"]}": {literal_py(inner)}}}'
+        seg = pascal(wire)
+        class_name = "_".join(_PY_PATH_STACK + [seg])
+        inner = pick_inner_example_fields(t["Object"])
+        _PY_PATH_STACK.append(seg)
+        try:
+            return _py_class_literal(class_name, inner)
+        finally:
+            _PY_PATH_STACK.pop()
     return '"example"'
 
 
@@ -1176,6 +1283,13 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
     ts_block = fence("typescript", deno_fmt_lines(ts_lines))
 
     # --- Python: real, complete program ---
+    # UBI-208: seeded with the resource's own real binding name, since
+    # _PY_PATH_STACK's own path segments (see literal_py) are built on
+    # top of it exactly as sdk/codegen/templates/py/py.go's pyFieldMeta
+    # does (pathPrefix starts at the resource's own pascalName).
+    _PY_PATH_STACK.clear()
+    _PY_PATH_STACK.append(py["binding"])
+    _PY_NESTED_CLASSES_USED.clear()
     py_preambles, py_assigns = [], []
     for f in example_fields:
         pre, val = field_literal_with_preamble(f, "py")
@@ -1194,6 +1308,14 @@ def build_resource_page_complete(wire, service, local, slug, fields, go, py, ts,
         py_lines.append("import json")
     py_lines.append("import ubx_sdk as ubx")
     py_lines.append(f'from {py_module_root} import {py["binding"]}, {py["config"]}')
+    if _PY_NESTED_CLASSES_USED:
+        # UBI-208: the package-level __init__.py only re-exports each
+        # resource's own top-level Binding/Config (confirmed against the
+        # real ubx-sdk-google-py package: `from .ai_deployment_resource_
+        # pool import AiDeploymentResourcePool, AiDeploymentResourcePool
+        # Config`, nothing else) -- a nested dataclass is only reachable
+        # from its own real submodule, py["module"], never the package.
+        py_lines.append(f'from {py["module"]} import {", ".join(_PY_NESTED_CLASSES_USED)}')
     py_lines.append("")
     py_lines.append("def describe():")
     py_lines.append(f'    ubx.intent({json.dumps(intent_summary)})')
