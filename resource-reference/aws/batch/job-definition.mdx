@@ -28,7 +28,7 @@ description: "`aws_batch_job_definition` is the real template AWS Batch launches
     			EcsProperties:                map[string]any{"task_properties": []map[string]any{{"containers": []map[string]any{{"name": "example-name"}}}}},
     			EksProperties:                map[string]any{"pod_properties": map[string]any{"containers": []map[string]any{{"name": "example-name"}}}},
     			JobDefinitionName:            "example-job-definition-name",
-    			NodeProperties:               map[string]any{"main_node": 1},
+    			NodeProperties:               map[string]any{"main_node": 1, "node_range_properties": []map[string]any{{"consumable_resource_properties": map[string]any{"consumable_resource_list": []map[string]any{{"consumable_resource": "example"}}}}}, "num_nodes": 1},
     			Parameters:                   "example",
     		})
     	}))
@@ -56,7 +56,15 @@ description: "`aws_batch_job_definition` is the real template AWS Batch launches
           podProperties: { containers: [{ name: "example-name" }] },
         },
         jobDefinitionName: "example-job-definition-name",
-        nodeProperties: { mainNode: 1 },
+        nodeProperties: {
+          mainNode: 1,
+          nodeRangeProperties: [{
+            consumableResourceProperties: {
+              consumableResourceList: [{ consumableResource: "example" }],
+            },
+          }],
+          numNodes: 1,
+        },
         parameters: "example",
       });
     });
@@ -65,19 +73,20 @@ description: "`aws_batch_job_definition` is the real template AWS Batch launches
   <Tab title="Python">
     ```python
     import ubx_sdk as ubx
-    from ubx.aws.batch.job_definition import JobDefinition, JobDefinitionConfig
+    from ubx.aws.batch import JobDefinition, JobDefinitionConfig
+    from ubx.aws.batch.job_definition import JobDefinition_ConsumableResourceProperties, JobDefinition_ConsumableResourceProperties_ConsumableResourceList, JobDefinition_ContainerProperties, JobDefinition_EcsProperties, JobDefinition_EcsProperties_TaskProperties, JobDefinition_EcsProperties_TaskProperties_Containers, JobDefinition_EksProperties, JobDefinition_EksProperties_PodProperties, JobDefinition_EksProperties_PodProperties_Containers, JobDefinition_NodeProperties, JobDefinition_NodeProperties_NodeRangeProperties
 
     def describe():
         ubx.intent("example own job definition")
 
         ubx.resource(JobDefinition, "example", JobDefinitionConfig(
             type="example",
-            consumable_resource_properties={"consumable_resource_list": [{"consumable_resource": "example"}]},
-            container_properties={"image": "example"},
-            ecs_properties={"task_properties": [{"containers": [{"name": "example-name"}]}]},
-            eks_properties={"pod_properties": {"containers": [{"name": "example-name"}]}},
+            consumable_resource_properties=JobDefinition_ConsumableResourceProperties(consumable_resource_list=[JobDefinition_ConsumableResourceProperties_ConsumableResourceList(consumable_resource="example")]),
+            container_properties=JobDefinition_ContainerProperties(image="example"),
+            ecs_properties=JobDefinition_EcsProperties(task_properties=[JobDefinition_EcsProperties_TaskProperties(containers=[JobDefinition_EcsProperties_TaskProperties_Containers(name="example-name")])]),
+            eks_properties=JobDefinition_EksProperties(pod_properties=JobDefinition_EksProperties_PodProperties(containers=[JobDefinition_EksProperties_PodProperties_Containers(name="example-name")])),
             job_definition_name="example-job-definition-name",
-            node_properties={"main_node": 1},
+            node_properties=JobDefinition_NodeProperties(main_node=1, node_range_properties=[JobDefinition_NodeProperties_NodeRangeProperties(consumable_resource_properties=JobDefinition_ConsumableResourceProperties(consumable_resource_list=[JobDefinition_ConsumableResourceProperties_ConsumableResourceList(consumable_resource="example")]))], num_nodes=1),
             parameters="example",
         ))
 

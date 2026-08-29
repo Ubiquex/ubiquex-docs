@@ -19,13 +19,13 @@ description: "`aws_kafka_connect_connector` runs a real, managed Kafka Connect c
 
     func main() {
     	ubx.Main(ubx.Stack("example", func() {
-    		ubx.Intent(ubx.IntentInfo{Summary: "example own connect connector"})
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own connector"})
 
     		ubx.Resource(kafkaconnect.Connector, "example", kafkaconnect.ConnectorConfig{
-    			Capacity:                         map[string]any{"auto_scaling": map[string]any{"max_worker_count": 1}},
+    			Capacity:                         map[string]any{"auto_scaling": map[string]any{"max_worker_count": 1, "mcu_count": 1, "min_worker_count": 1, "scale_in_policy": map[string]any{"cpu_utilization_percentage": 1}, "scale_out_policy": map[string]any{"cpu_utilization_percentage": 1}}},
     			ConnectorConfiguration:           "example",
     			ConnectorName:                    "example-connector-name",
-    			KafkaCluster:                     map[string]any{"apache_kafka_cluster": map[string]any{"bootstrap_servers": "example"}},
+    			KafkaCluster:                     map[string]any{"apache_kafka_cluster": map[string]any{"bootstrap_servers": "example", "vpc": map[string]any{"security_groups": []string{"example"}, "subnets": []string{"example"}}}},
     			KafkaClusterClientAuthentication: map[string]any{"authentication_type": "example"},
     			KafkaClusterEncryptionInTransit:  map[string]any{"encryption_type": "example"},
     			KafkaConnectVersion:              "example",
@@ -41,13 +41,26 @@ description: "`aws_kafka_connect_connector` runs a real, managed Kafka Connect c
     import { Connector } from "@ubx/sdk-aws/aws/kafkaconnect/connector";
 
     export default stack("example", () => {
-      intent({ summary: "example own connect connector" });
+      intent({ summary: "example own connector" });
 
       resource(Connector, "example", {
-        capacity: { autoScaling: { maxWorkerCount: 1 } },
+        capacity: {
+          autoScaling: {
+            maxWorkerCount: 1,
+            mcuCount: 1,
+            minWorkerCount: 1,
+            scaleInPolicy: { cpuUtilizationPercentage: 1 },
+            scaleOutPolicy: { cpuUtilizationPercentage: 1 },
+          },
+        },
         connectorConfiguration: "example",
         connectorName: "example-connector-name",
-        kafkaCluster: { apacheKafkaCluster: { bootstrapServers: "example" } },
+        kafkaCluster: {
+          apacheKafkaCluster: {
+            bootstrapServers: "example",
+            vpc: { securityGroups: ["example"], subnets: ["example"] },
+          },
+        },
         kafkaClusterClientAuthentication: { authenticationType: "example" },
         kafkaClusterEncryptionInTransit: { encryptionType: "example" },
         kafkaConnectVersion: "example",
@@ -59,20 +72,21 @@ description: "`aws_kafka_connect_connector` runs a real, managed Kafka Connect c
   <Tab title="Python">
     ```python
     import ubx_sdk as ubx
-    from ubx.aws.kafkaconnect.connector import Connector, ConnectorConfig
+    from ubx.aws.kafkaconnect import Connector, ConnectorConfig
+    from ubx.aws.kafkaconnect.connector import Connector_Capacity, Connector_Capacity_AutoScaling, Connector_Capacity_AutoScaling_ScaleInPolicy, Connector_KafkaCluster, Connector_KafkaCluster_ApacheKafkaCluster, Connector_KafkaCluster_ApacheKafkaCluster_Vpc, Connector_KafkaClusterClientAuthentication, Connector_KafkaClusterEncryptionInTransit, Connector_Plugins, Connector_Plugins_CustomPlugin
 
     def describe():
-        ubx.intent("example own connect connector")
+        ubx.intent("example own connector")
 
         ubx.resource(Connector, "example", ConnectorConfig(
-            capacity={"auto_scaling": {"max_worker_count": 1}},
+            capacity=Connector_Capacity(auto_scaling=Connector_Capacity_AutoScaling(max_worker_count=1, mcu_count=1, min_worker_count=1, scale_in_policy=Connector_Capacity_AutoScaling_ScaleInPolicy(cpu_utilization_percentage=1), scale_out_policy=Connector_Capacity_AutoScaling_ScaleInPolicy(cpu_utilization_percentage=1))),
             connector_configuration="example",
             connector_name="example-connector-name",
-            kafka_cluster={"apache_kafka_cluster": {"bootstrap_servers": "example"}},
-            kafka_cluster_client_authentication={"authentication_type": "example"},
-            kafka_cluster_encryption_in_transit={"encryption_type": "example"},
+            kafka_cluster=Connector_KafkaCluster(apache_kafka_cluster=Connector_KafkaCluster_ApacheKafkaCluster(bootstrap_servers="example", vpc=Connector_KafkaCluster_ApacheKafkaCluster_Vpc(security_groups=["example"], subnets=["example"]))),
+            kafka_cluster_client_authentication=Connector_KafkaClusterClientAuthentication(authentication_type="example"),
+            kafka_cluster_encryption_in_transit=Connector_KafkaClusterEncryptionInTransit(encryption_type="example"),
             kafka_connect_version="example",
-            plugins=[{"custom_plugin": {"custom_plugin_arn": "example"}}],
+            plugins=[Connector_Plugins(custom_plugin=Connector_Plugins_CustomPlugin(custom_plugin_arn="example"))],
         ))
 
     if __name__ == "__main__":

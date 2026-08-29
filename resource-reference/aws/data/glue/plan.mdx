@@ -11,7 +11,7 @@ description: "`aws_glue_plan` reads a real, generated Glue ETL script plan mappi
     package main
 
     import (
-    	glue "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/data/glue"
+    	glue "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/data/glue"
     	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
     )
 
@@ -21,7 +21,7 @@ description: "`aws_glue_plan` reads a real, generated Glue ETL script plan mappi
 
     		ubx.Data(glue.Plan, "example", glue.PlanConfig{
     			Mapping:                  []map[string]any{{"source_path": "example"}},
-    			Source:                   map[string]any{"database_name": "example-database-name"},
+    			Source:                   map[string]any{"database_name": "example-database-name", "table_name": "example-table-name"},
     			AdditionalPlanOptionsMap: map[string]string{"managed-by": "ubx"},
     			Language:                 "example",
     			Location:                 map[string]any{"dynamo_db": []map[string]any{{"name": "example-name"}}},
@@ -41,7 +41,10 @@ description: "`aws_glue_plan` reads a real, generated Glue ETL script plan mappi
 
       data(Plan, "example", {
         mapping: [{ sourcePath: "example" }],
-        source: { databaseName: "example-database-name" },
+        source: {
+          databaseName: "example-database-name",
+          tableName: "example-table-name",
+        },
         additionalPlanOptionsMap: { "managed-by": "ubx" },
         language: "example",
         location: { dynamoDb: [{ name: "example-name" }] },
@@ -54,17 +57,18 @@ description: "`aws_glue_plan` reads a real, generated Glue ETL script plan mappi
     ```python
     import ubx_sdk as ubx
     from ubx.aws.data.glue import Plan, PlanConfig
+    from ubx.aws.data.glue.plan import Plan_Mapping, Plan_Sinks, Plan_Location, Plan_Location_DynamoDb
 
     def describe():
         ubx.intent("look up aws_glue_plan")
 
         ubx.data(Plan, "example", PlanConfig(
-            mapping=[{"source_path": "example"}],
-            source={"database_name": "example-database-name"},
+            mapping=[Plan_Mapping(source_path="example")],
+            source=Plan_Sinks(database_name="example-database-name", table_name="example-table-name"),
             additional_plan_options_map={"managed-by": "ubx"},
             language="example",
-            location={"dynamo_db": [{"name": "example-name"}]},
-            sinks=[{"database_name": "example-database-name"}],
+            location=Plan_Location(dynamo_db=[Plan_Location_DynamoDb(name="example-name")]),
+            sinks=[Plan_Sinks(database_name="example-database-name")],
         ))
 
     if __name__ == "__main__":
