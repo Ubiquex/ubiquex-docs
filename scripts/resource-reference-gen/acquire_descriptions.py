@@ -107,6 +107,24 @@ def acquire_descriptions(provider, version, cache_root=None):
     return dest_dir
 
 
+def resolve_descriptions_path(provider_key, docs_root):
+    """UBI-102: a pinned corpus (env UBX_DESCRIPTIONS_PIN_<PROVIDER>=<version>)
+    takes priority over this repo's own local artifacts/<provider>/
+    descriptions.json -- the migration path off the two
+    independently-maintained copies, provider by provider, without
+    breaking the providers not yet migrated (unset env var, unchanged
+    behavior, the exact local file this function always read). Shared
+    by both regen_pages.py (resource pages) and
+    gen_all_data_source_pages.py (data source pages, all six providers)
+    so the two real docs-generation pipelines can never resolve a given
+    provider's pin differently."""
+    pin_version = os.environ.get(f"UBX_DESCRIPTIONS_PIN_{provider_key.upper()}")
+    if pin_version:
+        pinned_dir = acquire_descriptions(provider_key, pin_version)
+        return os.path.join(pinned_dir, f"{provider_key}.json")
+    return os.path.join(docs_root, "artifacts", provider_key, "descriptions.json")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("provider")

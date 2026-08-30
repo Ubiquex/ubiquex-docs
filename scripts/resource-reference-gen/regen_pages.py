@@ -92,6 +92,7 @@ from coverage_check import schema_entries_from_corrected, check_gaps, gap_count,
 from provenance_check import check_provenance, collect_provenance, schema_provenance_of, write_provenance_record
 from corpus_index import scan_provider_corpus
 from reconcile_stale_paths import apply_reconciliation
+from acquire_descriptions import resolve_descriptions_path
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DOCS_ROOT = REPO_ROOT
@@ -134,7 +135,7 @@ def main():
     print(f"{provider}: indexed {len(wire_index)} real, currently-committed page(s) by wire identity")
 
     here = os.path.dirname(os.path.abspath(__file__))
-    desc_path = os.path.join(here, "..", "..", "artifacts", provider, "descriptions.json")
+    desc_path = resolve_descriptions_path(provider, DOCS_ROOT)
     desc_raw = json.load(open(desc_path))
     skip_source = SKIP_INJECTION_SOURCE[provider]
     desc_by_key = {k: v for k, v in desc_raw.items() if v.get("source") != skip_source}
