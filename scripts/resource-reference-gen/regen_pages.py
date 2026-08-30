@@ -32,6 +32,27 @@ already-verified status rather than re-deriving "published" from a
 fresh SDK-repo scan on every regen -- UBI-196's own verification is
 trusted here, not re-litigated.
 
+UBI-222: a wire with NO existing committed page gets a real, live
+check against its own provider's real published ubx-sdk-<provider>
+repo (fetch_published_idents.py's own fresh_idents, the identical
+mechanism gen_complete_pages.py's own "auto" mode already trusts for
+github/datadog) before falling back to "local_only" -- never a bare
+default. DigitalOcean's own real, live example: onboarded, its SDK
+published (v1.0.0 on all three registries) and its FIRST-EVER docs
+regen both happened in the same session, so there was never a
+"committed page to preserve" moment for this mechanism's own existing
+preserve-only logic to catch -- every DigitalOcean page defaulted to
+local_only, silently wrong, despite the real package already being
+live by the time the pages were written. This does not reopen the
+GCP concern the paragraph above raises (a name-only match against a
+stale clone): fresh_idents requires a wire to resolve as a real
+identifier in Go, Python, AND TypeScript simultaneously in a freshly
+fetched (never reused) checkout, the same real, field-level bar
+UBI-196's own one-time flip used, not a name-only guess. Only checked
+when at least one wire this run would otherwise regenerate has no
+existing page at all -- an ordinary regen touching only already-known
+wires never pays this real network cost.
+
 UBI-214: also reconciles stale duplicate pages -- a wire whose service-
 directory derivation changed since its page was first generated (a
 real, recurring pattern: azure_corrected_wire's own collapsing, UBI-151's
@@ -102,6 +123,7 @@ from provenance_check import check_provenance, collect_provenance, schema_proven
 from corpus_index import scan_provider_corpus
 from reconcile_stale_paths import apply_reconciliation
 from acquire_descriptions import resolve_descriptions_path
+from fetch_published_idents import fresh_idents
 import providers as providers_registry
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -142,6 +164,19 @@ SKIP_INJECTION_SOURCE = {k: providers_registry.skip_injection_source(k) for k in
 def main():
     provider, dump_dir, sdk_dir, families_file = sys.argv[1:5]
     reconcile_stale_paths = "--reconcile-stale-paths" in sys.argv[5:]
+    # UBI-222: a real, explicit, whole-batch override for a deliberate
+    # one-off correction -- forces every wire this run touches through
+    # the live-fetch check below, not just wires with no existing page.
+    # For a provider whose own committed pages ALREADY carry a wrong
+    # bindings_status baked in before this file's own live-fetch fix
+    # existed (DigitalOcean's own real case: its SDK published and its
+    # first-ever docs regen both happened before this mechanism could
+    # catch it, so every one of its wires is now "already decided,
+    # wrongly" from the ordinary preserve logic's own point of view) --
+    # never the default, since it defeats UBI-214's own real point
+    # (trusting an already-verified decision) for every wire, not just
+    # the ones that need it.
+    recompute_bindings_status = "--recompute-bindings-status" in sys.argv[5:]
     os.makedirs(SCRATCH_DIR, exist_ok=True)
 
     # UBI-214: real, one-time scan of the CURRENTLY COMMITTED corpus,
@@ -151,6 +186,9 @@ def main():
     # comment for why this has to run before the write loop, not after.
     wire_index = scan_provider_corpus(DOCS_ROOT, provider)
     print(f"{provider}: indexed {len(wire_index)} real, currently-committed page(s) by wire identity")
+    if recompute_bindings_status:
+        print(f"{provider}: --recompute-bindings-status set -- every wire this run touches gets "
+              f"a fresh live-fetch check, not just wires with no existing page")
 
     here = os.path.dirname(os.path.abspath(__file__))
     desc_path = resolve_descriptions_path(provider, DOCS_ROOT, SDK_REPO_ID[provider])
@@ -273,7 +311,24 @@ def main():
     renamed_wires = []
     all_corrected = {}  # UBI-187: every wire this run actually regenerates, merged across families
     published_preserved = 0  # UBI-214: wires whose real existing "published" status carried forward
+    published_freshly_confirmed = 0  # UBI-222: brand-new wires confirmed published via a live fetch
     stale_duplicates = []  # UBI-214: [(old_rel_path, new_rel_path, wire), ...]
+
+    # UBI-222: lazy, cached across every family this provider run touches
+    # -- fetched at most once, only if at least one wire this run would
+    # otherwise regenerate has no existing committed page (see this
+    # file's own doc comment above for why never touching an already-
+    # decided wire matters).
+    _fresh_idents_cache = {}
+
+    def fresh_published_idents_for(provider_key):
+        if provider_key not in _fresh_idents_cache:
+            repo_url = f"https://github.com/Ubiquex/ubx-sdk-{SDK_REPO_ID[provider_key]}.git"
+            scratch_path = os.path.join(SCRATCH_DIR, f"published-idents-{provider_key}")
+            print(f"{provider_key}: fetching real, live published idents from {repo_url} "
+                  f"(at least one wire this run has no existing committed page)")
+            _fresh_idents_cache[provider_key] = fresh_idents(SDK_REPO_ID[provider_key], repo_url, scratch_path)
+        return _fresh_idents_cache[provider_key]
 
     for i, family in enumerate(families, 1):
         schema_path = os.path.join(dump_dir, family, "schema.json")
@@ -363,19 +418,30 @@ def main():
 
         # UBI-214: real per-wire bindings_status -- a wire this batch is
         # about to regenerate that already has a real, currently-
-        # committed page keeps that page's own real bindings_status; a
-        # wire with no existing page (genuinely new) still gets the
-        # honest "local_only" default. See generate_richer_provider's
-        # own doc comment for why this is a {wire: status} map rather
-        # than the single flat string every other real caller still
-        # passes.
+        # committed page keeps that page's own real bindings_status,
+        # UNLESS --recompute-bindings-status overrides that trust for
+        # this whole run. See generate_richer_provider's own doc
+        # comment for why this is a {wire: status} map rather than the
+        # single flat string every other real caller still passes.
         per_wire_bindings_status = {
             wire: wire_index[wire]["bindings_status"]
-            for wire in corrected if wire in wire_index
+            for wire in corrected if wire in wire_index and not recompute_bindings_status
         }
         published_preserved += sum(
             1 for s in per_wire_bindings_status.values() if s == "published"
         )
+
+        # UBI-222: a wire with no existing page (or every wire, under
+        # --recompute-bindings-status) gets a real, live check against
+        # its own provider's real published repo before falling back to
+        # local_only -- see this file's own doc comment above.
+        new_wires = [wire for wire in corrected if wire not in per_wire_bindings_status]
+        if new_wires:
+            published_idents = fresh_published_idents_for(provider)
+            for wire in new_wires:
+                if wire in published_idents:
+                    per_wire_bindings_status[wire] = "published"
+                    published_freshly_confirmed += 1
 
         n_resources, n_services = generate_richer_provider(
             docs_root=DOCS_ROOT,
@@ -421,6 +487,8 @@ def main():
     # this long.
     print(f"{provider}: bindings_status preserved as published for {published_preserved} "
           f"already-published wire(s) this run touched")
+    print(f"{provider}: bindings_status freshly confirmed published via a live fetch for "
+          f"{published_freshly_confirmed} brand-new wire(s) with no prior committed page")
     print(f"{provider}: {len(stale_duplicates)} stale duplicate page(s) found "
           f"(old path still on disk, same wire now regenerated at a different path)")
     if stale_duplicates:
