@@ -1,0 +1,160 @@
+---
+title: "digitalocean_user"
+description: "`digitalocean_user` looks up a real, already-created database user inside a managed database cluster -- the credential a client authenticates with..."
+---
+
+`digitalocean_user` looks up a real, already-created database user inside a managed database cluster -- the credential a client authenticates with, distinct from the cluster's own default admin user.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only digitalocean --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-digitalocean/sdk/go => ./local-sdk/digitalocean/sdk/go
+    package main
+
+    import (
+    	databases "github.com/ubiquex/ubx-sdk-digitalocean/sdk/go/digitalocean/databases"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own user"})
+
+    		ubx.Resource(databases.User, "example", databases.UserConfig{
+    			DatabaseClusterUuid: "example",
+    			Username:            "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only digitalocean --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { User } from "./local-sdk/digitalocean/sdk/typescript/digitalocean/databases/user.ts";
+
+    export default stack("example", () => {
+      intent({ summary: "example own user" });
+
+      resource(User, "example", {
+        databaseClusterUuid: "example",
+        username: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only digitalocean --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/digitalocean/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.digitalocean.databases import User, UserConfig
+
+    def describe():
+        ubx.intent("example own user")
+
+        ubx.resource(User, "example", UserConfig(
+            database_cluster_uuid="example",
+            username="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create digitalocean_user, with database cluster uuid example,
+    username example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="database_cluster_uuid" type="string" required>
+  path parameter, not part of the API's own resource representation Required.
+</ResponseField>
+
+<ResponseField name="username" type="string" required>
+  path parameter, not part of the API's own resource representation Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="user" type="object">
+  The database user's own real, current representation. Computed by DigitalOcean after `ship`. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="access_cert" type="string">
+      Access certificate for TLS client authentication. (Kafka only) Computed by DigitalOcean after `ship`.
+    </ResponseField>
+    <ResponseField name="access_key" type="string">
+      Access key for TLS client authentication. (Kafka only) Computed by DigitalOcean after `ship`.
+    </ResponseField>
+    <ResponseField name="mysql_settings" type="object">
+      Optional.
+      <Expandable title="properties">
+        <ResponseField name="auth_plugin" type="string" required>
+          A string specifying the authentication method to be used for connections to the MySQL user account. The valid values are `mysql_native_password` or `caching_sha2_password`. If excluded when creating a new user, the default for the version of MySQL in use will be used. As of MySQL 8.0, the default is `caching_sha2_password`. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="name" type="string" required>
+      The name of a database user. Required.
+    </ResponseField>
+    <ResponseField name="password" type="string">
+      A randomly generated password for the database user.&lt;br&gt;Requires `database:view_credentials` scope. Computed by DigitalOcean after `ship`.
+    </ResponseField>
+    <ResponseField name="role" type="string">
+      A string representing the database user's role. The value will be either "primary" or "normal". Computed by DigitalOcean after `ship`.
+    </ResponseField>
+    <ResponseField name="settings" type="object">
+      Optional.
+      <Expandable title="properties">
+        <ResponseField name="acl" type="list(object)">
+          ACLs (Access Control Lists) specifying permissions on topics within a Kafka cluster. Optional.
+          <Expandable title="properties">
+            <ResponseField name="id" type="string">
+              Optional; if omitted, computed by DigitalOcean.
+            </ResponseField>
+            <ResponseField name="permission" type="string">
+              Optional; if omitted, computed by DigitalOcean.
+            </ResponseField>
+            <ResponseField name="topic" type="string">
+              Optional; if omitted, computed by DigitalOcean.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="mongo_user_settings" type="object">
+          MongoDB-specific settings for the user. This option is not currently supported for other database engines. Optional.
+          <Expandable title="properties">
+            <ResponseField name="databases" type="list(string)">
+              A list of databases to which the user should have access. When the database is set to `admin`, the user will have access to all databases based on the user's role i.e. a user with the role `readOnly` assigned to the `admin` database will have read access to all databases. Optional.
+            </ResponseField>
+            <ResponseField name="role" type="string">
+              The role to assign to the user with each role mapping to a MongoDB built-in role. `readOnly` maps to a [read](https://www.mongodb.com/docs/manual/reference/built-in-roles/#mongodb-authrole-read) role. `readWrite` maps to a [readWrite](https://www.mongodb.com/docs/manual/reference/built-in-roles/#mongodb-authrole-readWrite) role. `dbAdmin` maps to a [dbAdmin](https://www.mongodb.com/docs/manual/reference/built-in-roles/#mongodb-authrole-dbAdmin) role. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="opensearch_acl" type="list(object)">
+          ACLs (Access Control Lists) specifying permissions on index within a OpenSearch cluster. Optional.
+          <Expandable title="properties">
+            <ResponseField name="index" type="string">
+              Optional; if omitted, computed by DigitalOcean.
+            </ResponseField>
+            <ResponseField name="permission" type="string">
+              Optional; if omitted, computed by DigitalOcean.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="pg_allow_replication" type="bool">
+          For PostgreSQL clusters, set to `true` to grant the user replication privileges. When omitted on create or update, the value defaults to `false` and replication privileges are not granted. This option is not currently supported for other database engines. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>

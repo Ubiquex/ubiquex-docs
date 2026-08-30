@@ -173,6 +173,7 @@ def all_titles_with_paths(docs_root, provider):
 PROVIDER_TAB_NAMES = {
     "aws": "AWS", "azure": "Azure", "gcp": "GCP",
     "kubernetes": "Kubernetes", "github": "GitHub", "datadog": "Datadog",
+    "digitalocean": "DigitalOcean",
 }
 
 

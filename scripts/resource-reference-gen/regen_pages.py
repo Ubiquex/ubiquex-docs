@@ -64,6 +64,15 @@ corrected wire (Kubernetes' typeNames were never doubled the way GCP's
 own dynamic-provider synthesis is), descriptions.json/intros.json
 authored directly against it.
 
+DigitalOcean (UBI-222: the runbook's own first provider onboarded end
+to end through this exact chain) is the fifth provider, and shares
+AWS's/Kubernetes' own "no correction needed" shape exactly: a single
+real [dynamic_providers.digitalocean] entry, one literal
+"digitalocean" line in the families_file, raw wire IS the corrected
+wire (DigitalOcean's own OpenAPI spec has neither GCP's per-family
+doubling nor Azure's raw-wire-doubling pathology), descriptions.json/
+intros.json authored directly against it.
+
 Usage:
   python3 regen_pages.py gcp /tmp/gcp-ir-dump /tmp/local-sdk-gcp /tmp/families_gcp.txt
   python3 regen_pages.py azure /tmp/azure-ir-dump /tmp/local-sdk-azure /tmp/families_azure.txt
@@ -98,12 +107,12 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 DOCS_ROOT = REPO_ROOT
 SCRATCH_DIR = "/tmp/regen-scratch"
 
-PROVIDER_DISPLAY = {"gcp": "Google Cloud", "azure": "Microsoft Azure", "aws": "AWS", "kubernetes": "Kubernetes"}
+PROVIDER_DISPLAY = {"gcp": "Google Cloud", "azure": "Microsoft Azure", "aws": "AWS", "kubernetes": "Kubernetes", "digitalocean": "DigitalOcean"}
 
 # The real published SDK repo's own short name (sdk/providers/.ubx/config's
 # own "NAMING" rule) -- differs from this docs repo's own internal
 # provider key exactly once, for GCP ("gcp" here, "google" the real repo).
-SDK_REPO_ID = {"gcp": "google", "azure": "azure", "aws": "aws", "kubernetes": "kubernetes"}
+SDK_REPO_ID = {"gcp": "google", "azure": "azure", "aws": "aws", "kubernetes": "kubernetes", "digitalocean": "digitalocean"}
 
 # The "already baked directly into the raw IR dump, do not re-inject"
 # source tag is "vendor-spec" for every provider as of the docs-vendor/cfn
@@ -123,7 +132,7 @@ SDK_REPO_ID = {"gcp": "google", "azure": "azure", "aws": "aws", "kubernetes": "k
 # the 21 resources recovered by the alpha/beta version-collision fix
 # needed 0/122 fields individually described -- all already
 # "vendor-spec", confirmed live against the real dump-ir output).
-SKIP_INJECTION_SOURCE = {"gcp": "vendor-spec", "azure": "vendor-spec", "aws": "vendor-spec", "kubernetes": "vendor-spec"}
+SKIP_INJECTION_SOURCE = {"gcp": "vendor-spec", "azure": "vendor-spec", "aws": "vendor-spec", "kubernetes": "vendor-spec", "digitalocean": "vendor-spec"}
 
 
 def main():
@@ -213,7 +222,7 @@ def main():
     # that ubx-sdk-google/-azure actually contain this family today (the
     # published-repo overlap check earlier this session found most of
     # them don't).
-    sdk_repo_id = {"gcp": "google", "azure": "azure", "aws": "aws", "kubernetes": "kubernetes"}[provider]
+    sdk_repo_id = {"gcp": "google", "azure": "azure", "aws": "aws", "kubernetes": "kubernetes", "digitalocean": "digitalocean"}[provider]
     # Real, confirmed live (UBI-189 follow-up): families_file's own Azure
     # entries carry the identical doubling azure_corrected_wire already
     # collapses for wire types (e.g. "azure_advisor_advisor", never a

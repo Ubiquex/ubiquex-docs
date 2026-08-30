@@ -1,0 +1,195 @@
+---
+title: "digitalocean_batch"
+description: "`digitalocean_batch` looks up a real, already-submitted Gradient AI Platform batch inference job -- a large set of inference requests processed..."
+---
+
+`digitalocean_batch` looks up a real, already-submitted Gradient AI Platform batch inference job -- a large set of inference requests processed together against a completion window, cheaper than the same requests run one at a time.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only digitalocean --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-digitalocean/sdk/go => ./local-sdk/digitalocean/sdk/go
+    package main
+
+    import (
+    	batchinference "github.com/ubiquex/ubx-sdk-digitalocean/sdk/go/digitalocean/batchinference"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own batch"})
+
+    		ubx.Resource(batchinference.Batch, "example", batchinference.BatchConfig{
+    			CompletionWindow: "example",
+    			FileId:           "example",
+    			Provider:         "example",
+    			RequestId:        "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only digitalocean --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Batch } from "./local-sdk/digitalocean/sdk/typescript/digitalocean/batchinference/batch.ts";
+
+    export default stack("example", () => {
+      intent({ summary: "example own batch" });
+
+      resource(Batch, "example", {
+        completionWindow: "example",
+        fileId: "example",
+        provider: "example",
+        requestId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only digitalocean --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/digitalocean/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.digitalocean.batchinference import Batch, BatchConfig
+
+    def describe():
+        ubx.intent("example own batch")
+
+        ubx.resource(Batch, "example", BatchConfig(
+            completion_window="example",
+            file_id="example",
+            provider="example",
+            request_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create digitalocean_batch, with completion window example, file
+    id example, provider example, request id example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="completion_window" type="string" required>
+  Time window in which the job must complete. Jobs that do not finish in time transition to `expired`. Required.
+</ResponseField>
+
+<ResponseField name="endpoint" type="string">
+  Inference endpoint each request is dispatched to. **Required when `provider` is `openai` and must match the `url` on every JSONL line. Must be omitted when `provider` is `anthropic`.** Optional; if omitted, computed by DigitalOcean.
+</ResponseField>
+
+<ResponseField name="file_id" type="string" required>
+  The `file_id` returned by `POST /v1/batches/files`. Required.
+</ResponseField>
+
+<ResponseField name="metadata" type="map(string)">
+  Optional string-valued metadata to attach to the job. Optional; if omitted, computed by DigitalOcean.
+</ResponseField>
+
+<ResponseField name="provider" type="string" required>
+  The inference provider whose JSONL schema the input file conforms to. `openai` follows the OpenAI Batch API input schema (`custom_id`, `method`, `url`, `body`); `anthropic` follows the Anthropic Message Batches JSONL conventions. Required.
+</ResponseField>
+
+<ResponseField name="request_id" type="string" required>
+  Client-supplied idempotency key. Retries with the same value return the existing job instead of creating a duplicate. Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="batch_id" type="string">
+  Unique identifier for the batch job. Computed by DigitalOcean after `ship`.
+</ResponseField>
+
+<ResponseField name="cancelled_at" type="string">
+  A time value given in ISO8601 combined date and time format that represents when this batch job was cancelled, if it was. Computed by DigitalOcean after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="completed_at" type="string">
+  A time value given in ISO8601 combined date and time format that represents when this batch job completed. Computed by DigitalOcean after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  A time value given in ISO8601 combined date and time format that represents when this batch job was created. Computed by DigitalOcean after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="endpoint" type="string">
+  Inference endpoint each request is dispatched to. **Required when `provider` is `openai` and must match the `url` on every JSONL line. Must be omitted when `provider` is `anthropic`.** Optional; if omitted, computed by DigitalOcean.
+</ResponseField>
+
+<ResponseField name="error_file_id" type="string">
+  Error sidecar file. Null when no errors were produced. Computed by DigitalOcean after `ship`.
+</ResponseField>
+
+<ResponseField name="errors" type="list(object)">
+  Top-level errors that prevented the batch from completing. Computed by DigitalOcean after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="code" type="string">
+      Optional; if omitted, computed by DigitalOcean.
+    </ResponseField>
+    <ResponseField name="line" type="number">
+      Optional; if omitted, computed by DigitalOcean.
+    </ResponseField>
+    <ResponseField name="message" type="string">
+      Optional; if omitted, computed by DigitalOcean.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="expires_at" type="string">
+  Derived from `created_at` plus `completion_window`. Computed by DigitalOcean after `ship`.
+</ResponseField>
+
+<ResponseField name="failed_at" type="string">
+  A time value given in ISO8601 combined date and time format that represents when this batch job failed, if it did. Computed by DigitalOcean after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="finalizing_at" type="string">
+  A time value given in ISO8601 combined date and time format that represents when this batch job entered its finalizing state. Computed by DigitalOcean after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="in_progress_at" type="string">
+  A time value given in ISO8601 combined date and time format that represents when this batch job began processing. Computed by DigitalOcean after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="input_file_id" type="string">
+  The uploaded JSONL input file. Computed by DigitalOcean after `ship`.
+</ResponseField>
+
+<ResponseField name="metadata" type="map(string)">
+  Optional string-valued metadata to attach to the job. Optional; if omitted, computed by DigitalOcean.
+</ResponseField>
+
+<ResponseField name="output_file_id" type="string">
+  Output JSONL file. Populated once the job completes. Computed by DigitalOcean after `ship`.
+</ResponseField>
+
+<ResponseField name="request_counts" type="object">
+  Aggregate request counts. Computed by DigitalOcean after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="completed" type="number">
+      Optional.
+    </ResponseField>
+    <ResponseField name="failed" type="number">
+      Optional.
+    </ResponseField>
+    <ResponseField name="total" type="number">
+      Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Lifecycle status. Terminal states: `completed`, `failed`, `expired`, `cancelled`. Computed by DigitalOcean after `ship`.
+</ResponseField>

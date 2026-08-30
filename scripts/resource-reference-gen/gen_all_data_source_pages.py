@@ -66,6 +66,7 @@ PROVIDERS = {
     "kubernetes": dict(go_dir="kubernetes", schema_name="kubernetes", provider_display="Kubernetes", sdk_repo_id="kubernetes"),
     "github": dict(go_dir="github", schema_name="github", provider_display="GitHub", sdk_repo_id="github"),
     "datadog": dict(go_dir="datadog", schema_name="datadog", provider_display="Datadog", sdk_repo_id="datadog"),
+    "digitalocean": dict(go_dir="digitalocean", schema_name="digitalocean", provider_display="DigitalOcean", sdk_repo_id="digitalocean"),
 }
 
 

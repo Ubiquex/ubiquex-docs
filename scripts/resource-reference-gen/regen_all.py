@@ -66,16 +66,17 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SCRATCH_DIR = "/tmp/regen-scratch"
 
 # provider -> real, human display name (rebuild_provider_index/
-# rebuild_provider_nav's own required arg) -- only for the four
+# rebuild_provider_nav's own required arg) -- only for the five
 # providers regen_pages.py covers; the other two run data-source-only.
 RESOURCE_REGEN_PROVIDERS = {
     "aws": "AWS",
     "azure": "Microsoft Azure",
     "gcp": "Google Cloud",
     "kubernetes": "Kubernetes",
+    "digitalocean": "DigitalOcean",
 }
 DATA_SOURCE_ONLY_PROVIDERS = ["github", "datadog"]
-ALL_PROVIDERS = ["aws", "azure", "gcp", "kubernetes", "github", "datadog"]
+ALL_PROVIDERS = ["aws", "azure", "gcp", "kubernetes", "github", "datadog", "digitalocean"]
 
 # gcp's own docs-internal key differs from the real published SDK repo's
 # own short name ("google") that --dump-root/--local-sdk-root are
