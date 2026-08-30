@@ -37,23 +37,13 @@ from build_regen_schema import inject_description
 from coverage_check import schema_entries_from_corrected, check_gaps, gap_count, print_report
 from provenance_check import check_provenance, collect_provenance, schema_provenance_of, write_provenance_record
 from extract_idents import scan_py_data
-from acquire_descriptions import acquire_descriptions
+from acquire_descriptions import resolve_descriptions_path as _resolve_descriptions_path
 
 DOCS_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def resolve_descriptions_path(provider_key):
-    """UBI-102: a pinned corpus (env UBX_DESCRIPTIONS_PIN_<PROVIDER>=<version>)
-    takes priority over this repo's own local artifacts/<provider>/
-    descriptions.json -- the migration path off the two
-    independently-maintained copies, provider by provider, without
-    breaking the five not yet migrated (unset env var, unchanged
-    behavior, the exact local file this function always read)."""
-    pin_version = os.environ.get(f"UBX_DESCRIPTIONS_PIN_{provider_key.upper()}")
-    if pin_version:
-        pinned_dir = acquire_descriptions(provider_key, pin_version)
-        return os.path.join(pinned_dir, f"{provider_key}.json")
-    return os.path.join(DOCS_ROOT, "artifacts", provider_key, "descriptions.json")
+    return _resolve_descriptions_path(provider_key, DOCS_ROOT)
 
 # UBI-199: dump_dir/go_root deliberately do NOT live here. They used to
 # (hardcoded /tmp/reconcile2-<provider> scratch paths, decoupled from
