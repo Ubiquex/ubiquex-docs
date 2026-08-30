@@ -1,0 +1,194 @@
+name: resource-reference-regen
+
+# UBI-137: automates Resource Reference regeneration end to end, wired
+# up per UBI-216's own decided chain (schema publishes -> SDK
+# regenerates and publishes -> coverage check reports which new
+# resources lack artifacts -> Claude Code writes them in batches with a
+# manifest -> only then does docs regeneration run) and this ticket's
+# own approved design. Every hop opens a PR, never self-merged.
+# Artifacts are mandatory: a resource missing an intro, category, or a
+# depth-0 field description is EXCLUDED from this run's own batch by
+# stage_gap_free.py, never shipped with a gap -- UBX_DOCS_ALLOW_COVERAGE_GAPS
+# is never set anywhere in this workflow. That override exists for a
+# human running a deliberate, one-off experiment; an automated chain
+# setting it would silently reintroduce exactly the gap-shipping this
+# mechanism exists to prevent.
+#
+# Four providers (aws, azure, gcp, kubernetes) get real resource-page
+# regeneration via regen_pages.py. github/datadog do not yet -- their
+# own ongoing regen uses a different, less mature mechanism with no
+# coverage-gap staging path. A real, named gap: reported in every run's
+# own step summary (regen_all.py's own "not_covered" field), never
+# silently scoped out. Data-source pages ARE covered for all six.
+#
+# This run's own per-provider outcome is always written to the step
+# summary, whether or not anything was eligible -- a run that only
+# speaks when something changed reads identically to a run that isn't
+# running, which has misled this project before (UBI-214).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "artifacts/**"
+  schedule:
+    - cron: "0 8 * * 2" # Tuesday 08:00 UTC -- a full day after hash-watch's own Monday 06:00 and coverage-watch's own Monday 08:00, so both have already landed any spec-drift/gap PRs this run would otherwise race
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+env:
+  TRACKING_ISSUE_LABEL: docs-coverage-drift
+
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out ubiquex-docs
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Deno (gen_provider_docs.py's own TypeScript block runs deno fmt)
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Check out ubiquex (to build ubx from source and get the real central provider config)
+        run: |
+          set -euo pipefail
+          git clone --depth=1 --recurse-submodules \
+            "https://github.com/Ubiquex/ubiquex.git" \
+            "${{ runner.temp }}/ubiquex-src"
+          git clone --depth=1 \
+            "https://github.com/Ubiquex/ubx-provider-dynamic.git" \
+            "${{ runner.temp }}/ubx-provider-dynamic-src"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ runner.temp }}/ubiquex-src/go.mod
+
+      - name: Build ubx
+        run: |
+          set -euo pipefail
+          go build -C "${{ runner.temp }}/ubiquex-src" -o "${{ runner.temp }}/ubx" ./cmd/ubx
+          "${{ runner.temp }}/ubx" version
+
+      - name: Dump the current schema and generate fresh local bindings, one provider at a time
+        id: gen
+        env:
+          UBX_PROVIDER_DYNAMIC_REPO: ${{ runner.temp }}/ubx-provider-dynamic-src
+        run: |
+          set -euo pipefail
+          dump_root="${{ runner.temp }}/regen-dump"
+          local_sdk_root="${{ runner.temp }}/regen-local-sdk"
+          mkdir -p "$dump_root" "$local_sdk_root"
+          # Same six real providers, same per-provider loop (never one
+          # bulk call) as golden-page-gate.yml/coverage-watch.yml --
+          # UBI-175/UBI-204's own real finding that a single bulk
+          # --dump-ir call never completed in CI, and azure specifically
+          # needed UBI-204's compact-JSON fix to fit this runner's 16GB.
+          # ubx itself namespaces --out by provider name, so one shared
+          # local_sdk_root is safe across the whole loop (confirmed live
+          # against a real kubernetes dump/gen this ticket's own session
+          # already ran locally). Update this list if a new provider is
+          # onboarded (UBI-216's own runbook).
+          for name in aws azure datadog github google kubernetes; do
+            ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
+              "${{ runner.temp }}/ubx" sdk gen --only "$name" --dump-ir "$dump_root" --out "${{ runner.temp }}/ubx-gen-unused" && \
+              "${{ runner.temp }}/ubx" sdk gen --only "$name" --lang go --out "$local_sdk_root" && \
+              "${{ runner.temp }}/ubx" sdk gen --only "$name" --lang py --out "$local_sdk_root" && \
+              "${{ runner.temp }}/ubx" sdk gen --only "$name" --lang ts --out "$local_sdk_root" )
+          done
+          echo "dump_root=$dump_root" >> "$GITHUB_OUTPUT"
+          echo "local_sdk_root=$local_sdk_root" >> "$GITHUB_OUTPUT"
+
+      - name: Regenerate every provider, staging gap-free pages only
+        id: regen
+        run: |
+          set +e
+          python3 scripts/resource-reference-gen/regen_all.py \
+            --dump-root "${{ steps.gen.outputs.dump_root }}" \
+            --local-sdk-root "${{ steps.gen.outputs.local_sdk_root }}" \
+            --docs-root "$(pwd)" \
+            > "${{ runner.temp }}/regen-report.json" 2> "${{ runner.temp }}/regen-log.txt"
+          code=$?
+          set -e
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          cat "${{ runner.temp }}/regen-log.txt"
+
+      - name: Check whether anything was actually staged
+        id: diff
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "staged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "staged=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build the step summary and any PR body
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ -f "${{ runner.temp }}/regen-report.json" ]; then
+            python3 scripts/resource-reference-gen/report_regen_summary.py \
+              --report "${{ runner.temp }}/regen-report.json" \
+              --step-summary-out "${{ runner.temp }}/step-summary.md" \
+              --pr-body-out "${{ runner.temp }}/pr-body.md" \
+              --staged "${{ steps.diff.outputs.staged }}"
+            cat "${{ runner.temp }}/step-summary.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Resource Reference regeneration"
+              echo
+              echo "regen_all.py did not complete -- no report was produced. See the previous step's log."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Commit, push, open a PR (real changes only, never auto-merged)
+        if: steps.regen.outputs.exit_code == '0' && steps.diff.outputs.staged == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "ubx-bot"
+          git config user.email "actions@users.noreply.github.com"
+          branch="resource-reference-regen/$(date -u +%Y%m%d-%H%M%S)"
+          git checkout -b "$branch"
+          git add -A
+          git commit -m "resource-reference: automated regeneration (UBI-137)"
+          git push -u origin "$branch"
+          gh pr create \
+            --title "Resource Reference: automated regeneration" \
+            --body-file "${{ runner.temp }}/pr-body.md" \
+            --head "$branch" \
+            --base main
+
+      - name: Update the standing coverage-drift issue (nothing eligible this run)
+        if: steps.regen.outputs.exit_code == '0' && steps.diff.outputs.staged == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          number="$(gh issue list --label "$TRACKING_ISSUE_LABEL" --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$number" ]; then
+            run_url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            gh issue comment "$number" --body "Resource Reference regen attempt at $(date -u +%Y-%m-%dT%H:%M:%SZ) found nothing eligible to regenerate. Full run: $run_url"
+          fi
+
+      - name: Fail loudly on a genuine tooling failure
+        if: always()
+        run: |
+          if [ "${{ steps.regen.outputs.exit_code }}" != "0" ]; then
+            echo "regen_all.py exited ${{ steps.regen.outputs.exit_code || 'unknown (did not complete)' }} -- a real tooling failure, not a coverage gap (gaps are excluded and reported, not fatal). See the regen step's own log above."
+            exit 1
+          fi
