@@ -56,6 +56,7 @@ from build_regen_schema import gcp_corrected_key, gcp_corrected_local, azure_cor
 DUMP_DIR = {
     "aws": "aws", "azure": "azure", "gcp": "google",
     "kubernetes": "kubernetes", "github": "github", "datadog": "datadog",
+    "digitalocean": "digitalocean",
 }
 ALL_PROVIDERS = list(DUMP_DIR.keys())
 
