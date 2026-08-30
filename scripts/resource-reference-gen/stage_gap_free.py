@@ -33,10 +33,24 @@ stdout ({"provider": ..., "excluded_resources": [...],
 workflow uses to build both `git add` and its own step-summary/PR-body
 text, so nothing has to re-derive this by parsing print() output.
 
+rebuild_provider_index/rebuild_provider_nav (imported from
+gen_provider_docs.py) print their own real progress lines -- fine for
+their other caller, regen_pages.py, which has no stdout contract, but
+this script's own stdout contract is pure JSON, one caller-visible
+value. Everything before the final print() has to run under
+redirect_stdout(sys.stderr) so a caller doing json.loads(stdout) isn't
+handed those log lines ahead of the JSON blob and fail to parse them
+as one value -- a real, found-live bug: every prior manual run of this
+script LOOKED fine (the JSON was there, just preceded by real log
+text a human skims past), and it was never actually fed through
+json.loads by anything until regen_all.py's own real orchestration
+run did exactly that and failed immediately.
+
 Usage:
   python3 stage_gap_free.py <provider> [--scratch-dir /tmp/regen-scratch] [--docs-root PATH]
 """
 import argparse
+import contextlib
 import json
 import os
 import sys
@@ -111,49 +125,55 @@ def main():
     excluded_resources = sorted(gapped_wires(resource_manifest.get("coverage_result")))
     excluded_data_sources = sorted(gapped_wires(ds_manifest.get("coverage_result")))
 
-    deleted_paths = []
-    for wire in excluded_resources:
-        rel = resource_wire_to_page.get(wire)
-        if rel is None:
-            continue
-        full = os.path.join(args.docs_root, rel)
-        if os.path.exists(full):
-            os.remove(full)
-            deleted_paths.append(rel)
+    # This script's own stdout contract is pure JSON (see the module doc
+    # comment) -- rebuild_provider_index/rebuild_provider_nav below print
+    # their own real progress lines, so everything through the docs.json
+    # write runs with stdout redirected to stderr, and only the final
+    # summary print (outside this block) reaches real stdout.
+    with contextlib.redirect_stdout(sys.stderr):
+        deleted_paths = []
+        for wire in excluded_resources:
+            rel = resource_wire_to_page.get(wire)
+            if rel is None:
+                continue
+            full = os.path.join(args.docs_root, rel)
+            if os.path.exists(full):
+                os.remove(full)
+                deleted_paths.append(rel)
 
-    docs_json_path = os.path.join(args.docs_root, "docs.json")
-    doc = None
-    for wire in excluded_data_sources:
-        rel = ds_wire_to_page.get(wire)
-        if rel is None:
-            continue
-        full = os.path.join(args.docs_root, rel)
-        if os.path.exists(full):
-            os.remove(full)
-            deleted_paths.append(rel)
-        if doc is None:
-            with open(docs_json_path) as f:
-                doc = json.load(f)
-        remove_data_source_page(doc, args.provider, rel)
+        docs_json_path = os.path.join(args.docs_root, "docs.json")
+        doc = None
+        for wire in excluded_data_sources:
+            rel = ds_wire_to_page.get(wire)
+            if rel is None:
+                continue
+            full = os.path.join(args.docs_root, rel)
+            if os.path.exists(full):
+                os.remove(full)
+                deleted_paths.append(rel)
+            if doc is None:
+                with open(docs_json_path) as f:
+                    doc = json.load(f)
+            remove_data_source_page(doc, args.provider, rel)
 
-    # Correct index.mdx and docs.json's own resource nav against the
-    # real, post-exclusion tree -- only meaningful (and only possible:
-    # provider_display is required) if this run touched resource pages
-    # at all. A data-source-only run's own nav is already correct as
-    # written, minus whatever this script just surgically removed above.
-    if resource_wire_to_page:
-        if not args.provider_display:
-            sys.exit(f"stage_gap_free: {args.provider} has a resource manifest but no --provider-display given")
-        rebuild_provider_index(docs_root=args.docs_root, provider=args.provider, provider_display=args.provider_display)
-        if doc is None:
-            with open(docs_json_path) as f:
-                doc = json.load(f)
-        rebuild_provider_nav(docs_root=args.docs_root, doc=doc, provider=args.provider, provider_display=args.provider_display)
+        # Correct index.mdx and docs.json's own resource nav against the
+        # real, post-exclusion tree -- only meaningful (and only possible:
+        # provider_display is required) if this run touched resource pages
+        # at all. A data-source-only run's own nav is already correct as
+        # written, minus whatever this script just surgically removed above.
+        if resource_wire_to_page:
+            if not args.provider_display:
+                sys.exit(f"stage_gap_free: {args.provider} has a resource manifest but no --provider-display given")
+            rebuild_provider_index(docs_root=args.docs_root, provider=args.provider, provider_display=args.provider_display)
+            if doc is None:
+                with open(docs_json_path) as f:
+                    doc = json.load(f)
+            rebuild_provider_nav(docs_root=args.docs_root, doc=doc, provider=args.provider, provider_display=args.provider_display)
 
-    if doc is not None:
-        with open(docs_json_path, "w") as f:
-            json.dump(doc, f, indent=2)
-            f.write("\n")
+        if doc is not None:
+            with open(docs_json_path, "w") as f:
+                json.dump(doc, f, indent=2)
+                f.write("\n")
 
     kept_paths = sorted(set(resource_wire_to_page.values()) | set(ds_wire_to_page.values()))
     kept_paths = [p for p in kept_paths if p not in deleted_paths]
