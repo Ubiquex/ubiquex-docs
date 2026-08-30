@@ -1,0 +1,129 @@
+---
+title: "digitalocean_action"
+description: "`digitalocean_action` looks up a real, already-recorded action -- the async operation record DigitalOcean's own API returns for every long-running..."
+---
+
+`digitalocean_action` looks up a real, already-recorded action -- the async operation record DigitalOcean's own API returns for every long-running change (a Droplet resize, a snapshot, a power cycle) so a caller can poll its own real, current status rather than assume completion the moment the triggering request returns.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    // ubx sdk gen --only digitalocean --lang go --out ./local-sdk
+    // go.mod: replace github.com/ubiquex/ubx-sdk-digitalocean/sdk/go => ./local-sdk/digitalocean/sdk/go
+    package main
+
+    import (
+    	actions "github.com/ubiquex/ubx-sdk-digitalocean/sdk/go/digitalocean/actions"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own action"})
+
+    		ubx.Resource(actions.Action, "example", actions.ActionConfig{
+    			ActionId: "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    // ubx sdk gen --only digitalocean --lang ts --out ./local-sdk
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Action } from "./local-sdk/digitalocean/sdk/typescript/digitalocean/actions/action.ts";
+
+    export default stack("example", () => {
+      intent({ summary: "example own action" });
+
+      resource(Action, "example", {
+        actionId: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # ubx sdk gen --only digitalocean --lang py --out ./local-sdk
+    # export PYTHONPATH=./local-sdk/digitalocean/sdk/python:$PYTHONPATH
+    import ubx_sdk as ubx
+    from ubx.digitalocean.actions import Action, ActionConfig
+
+    def describe():
+        ubx.intent("example own action")
+
+        ubx.resource(Action, "example", ActionConfig(
+            action_id="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create digitalocean_action, with action id example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="action_id" type="string" required>
+  path parameter, not part of the API's own resource representation Required.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="action" type="object">
+  The action's own real, current representation. Computed by DigitalOcean after `ship`. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="completed_at" type="string">
+      A time value given in ISO8601 combined date and time format that represents when the action was completed. Optional.
+    </ResponseField>
+    <ResponseField name="id" type="number">
+      A unique numeric ID that can be used to identify and reference an action. Optional.
+    </ResponseField>
+    <ResponseField name="region" type="object">
+      Optional.
+      <Expandable title="properties">
+        <ResponseField name="available" type="bool" required>
+          This is a boolean value that represents whether new Droplets can be created in this region. Required.
+        </ResponseField>
+        <ResponseField name="features" type="list(string)" required>
+          This attribute is set to an array which contains features available in this region Required.
+        </ResponseField>
+        <ResponseField name="name" type="string" required>
+          The display name of the region. This will be a full name that is used in the control panel and other interfaces. Required.
+        </ResponseField>
+        <ResponseField name="sizes" type="list(string)" required>
+          This attribute is set to an array which contains the identifying slugs for the sizes available in this region. sizes:read is required to view. Required.
+        </ResponseField>
+        <ResponseField name="slug" type="string" required>
+          A human-readable string that is used as a unique identifier for each region. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="region_slug" type="string">
+      A human-readable string that is used as a unique identifier for each region. Optional.
+    </ResponseField>
+    <ResponseField name="resource_id" type="number">
+      A unique identifier for the resource that the action is associated with. Optional.
+    </ResponseField>
+    <ResponseField name="resource_type" type="string">
+      The type of resource that the action is associated with. Optional.
+    </ResponseField>
+    <ResponseField name="started_at" type="string">
+      A time value given in ISO8601 combined date and time format that represents when the action was initiated. Optional.
+    </ResponseField>
+    <ResponseField name="status" type="string">
+      The current status of the action. This can be "in-progress", "completed", or "errored". Optional.
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      This is the type of action that the object represents. For example, this could be "transfer" to represent the state of an image transfer action. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
