@@ -1,0 +1,155 @@
+---
+title: "aws_s3_object_lambda_access_point"
+description: "`aws_s3_object_lambda_access_point` creates a real access point in front of an existing `aws_s3_access_point` that runs a Lambda function against each..."
+---
+
+`aws_s3_object_lambda_access_point` creates a real access point in front of an existing `aws_s3_access_point` that runs a Lambda function against each GET response before it reaches the caller, letting data be transformed, redacted, or enriched on the fly without a separate copy of the object.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	s3objectlambda "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/s3objectlambda"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own access point"})
+
+    		ubx.Resource(s3objectlambda.AccessPoint, "example", s3objectlambda.AccessPointConfig{
+    			ObjectLambdaConfiguration: map[string]any{"supporting_access_point": "example", "transformation_configurations": []map[string]any{{"actions": []string{"example"}}}},
+    			Name:                      "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { AccessPoint } from "@ubx/sdk-aws/aws/s3objectlambda/access_point";
+
+    export default stack("example", () => {
+      intent({ summary: "example own access point" });
+
+      resource(AccessPoint, "example", {
+        objectLambdaConfiguration: {
+          supportingAccessPoint: "example",
+          transformationConfigurations: [{ actions: ["example"] }],
+        },
+        name: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.s3objectlambda import AccessPoint, AccessPointConfig
+    from ubx.aws.s3objectlambda.access_point import AccessPoint_ObjectLambdaConfiguration, AccessPoint_ObjectLambdaConfiguration_TransformationConfigurations
+
+    def describe():
+        ubx.intent("example own access point")
+
+        ubx.resource(AccessPoint, "example", AccessPointConfig(
+            object_lambda_configuration=AccessPoint_ObjectLambdaConfiguration(supporting_access_point="example", transformation_configurations=[AccessPoint_ObjectLambdaConfiguration_TransformationConfigurations(actions=["example"])]),
+            name="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_s3_object_lambda_access_point called "example", with
+    object lambda configuration a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="name" type="string">
+  The name you want to assign to this Object lambda Access Point. Optional.
+</ResponseField>
+
+<ResponseField name="object_lambda_configuration" type="object" required>
+  Configuration to be applied to this Object lambda Access Point. It specifies Supporting Access Point, Transformation Configurations. Customers can also set if they like to enable Cloudwatch metrics for accesses to this Object lambda Access Point. Default setting for Cloudwatch metrics is disable. Required.
+  <Expandable title="properties">
+    <ResponseField name="allowed_features" type="list(string)">
+      Specifies the list of S3 GET/HEAD object request features (e.g., GetObject-Range, GetObject-PartNumber, HeadObject-Range, HeadObject-PartNumber) that the Object Lambda Access Point is allowed to forward to the Lambda function for processing. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="cloud_watch_metrics_enabled" type="bool">
+      Whether CloudWatch metrics are enabled for the Object Lambda Access Point, allowing request and processing metrics to be published to CloudWatch. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="supporting_access_point" type="string" required>
+      The ARN of the standard S3 access point that this Object Lambda access point uses to access the underlying S3 bucket. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="transformation_configurations" type="list(object)" required>
+      Specifies the list of transformation configurations for the Object Lambda Access Point, where each entry defines the S3 actions (such as GetObject) to intercept and the AWS Lambda function invocation that transforms the requested object. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="actions" type="list(string)">
+          Specifies the list of S3 API operations (such as GetObject and HeadObject) for which the transformation configuration applies. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="content_transformation" type="any">
+          Defines the content transformation for an Object Lambda Access Point, specifying the AWS Lambda function (through its ARN) that processes the object for the associated action such as GetObject. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="alias" type="object">
+  The alias is a read-only, generated unique name for the Object Lambda Access Point, which can be used interchangeably with the access point name when making S3 requests. Computed by AWS after `ship`. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="status" type="string">
+      The status of the Object Lambda alias. Optional.
+    </ResponseField>
+    <ResponseField name="value" type="string" required>
+      The value of the Object Lambda alias. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the S3 Object Lambda access point, uniquely identifying it within AWS. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="creation_date" type="string">
+  The date and time when the Object lambda Access Point was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="policy_status" type="object">
+  Contains the read-only policy status of the Object Lambda Access Point, including whether the access point's resource policy is publicly accessible (IsPublic). Computed by AWS after `ship`. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="is_public" type="bool">
+      Specifies whether the Object lambda Access Point Policy is Public or not. Object lambda Access Points are private by default. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="public_access_block_configuration" type="object">
+  The Public Access Block Configuration is used to block policies that would allow public access to this Object lambda Access Point. All public access to Object lambda Access Points are blocked by default, and any policy that would give public access to them will be also blocked. This behavior cannot be changed for Object lambda Access Points. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="block_public_acls" type="bool">
+      Specifies whether Amazon S3 should block public access control lists (ACLs) to this object lambda access point. Setting this element to TRUE causes the following behavior: - PUT Bucket acl and PUT Object acl calls fail if the specified ACL is public. - PUT Object calls fail if the request includes a public ACL. . - PUT Bucket calls fail if the request includes a public ACL. Enabling this setting doesn't affect existing policies or ACLs. Optional.
+    </ResponseField>
+    <ResponseField name="block_public_policy" type="bool">
+      Specifies whether Amazon S3 should block public bucket policies for buckets in this account. Setting this element to TRUE causes Amazon S3 to reject calls to PUT Bucket policy if the specified bucket policy allows public access. Enabling this setting doesn't affect existing bucket policies. Optional.
+    </ResponseField>
+    <ResponseField name="ignore_public_acls" type="bool">
+      Specifies whether Amazon S3 should ignore public ACLs for buckets in this account. Setting this element to TRUE causes Amazon S3 to ignore all public ACLs on buckets in this account and any objects that they contain. Enabling this setting doesn't affect the persistence of any existing ACLs and doesn't prevent new public ACLs from being set. Optional.
+    </ResponseField>
+    <ResponseField name="restrict_public_buckets" type="bool">
+      Specifies whether Amazon S3 should restrict public bucket policies for this bucket. Setting this element to TRUE restricts access to this bucket to only AWS services and authorized users within this account if the bucket has a public policy. Enabling this setting doesn't affect previously stored bucket policies, except that public and cross-account access within any public bucket policy, including non-public delegation to specific accounts, is blocked. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>

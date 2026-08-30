@@ -1,0 +1,177 @@
+---
+title: "aws_code_commit_repository"
+description: "`aws_code_commit_repository` creates a private, fully managed Git repository in AWS CodeCommit, encrypted at rest and in transit..."
+---
+
+`aws_code_commit_repository` creates a private, fully managed Git repository in AWS CodeCommit, encrypted at rest and in transit, supporting standard Git commands and tools. AWS CodeCommit stopped onboarding new customers on July 25, 2024; existing customers with a repository can continue creating additional ones and using the service as normal.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	codecommit "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/codecommit"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own repository"})
+
+    		ubx.Resource(codecommit.Repository, "example", codecommit.RepositoryConfig{
+    			RepositoryName:        "example-repository-name",
+    			Code:                  map[string]any{"s3": map[string]any{"bucket": "example", "key": "example"}},
+    			KmsKeyId:              "example",
+    			RepositoryDescription: "example",
+    			Tags:                  []map[string]any{{"key": "example"}},
+    			Triggers:              []map[string]any{{"name": "example-name"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Repository } from "@ubx/sdk-aws/aws/codecommit/repository";
+
+    export default stack("example", () => {
+      intent({ summary: "example own repository" });
+
+      resource(Repository, "example", {
+        repositoryName: "example-repository-name",
+        code: { s3: { bucket: "example", key: "example" } },
+        kmsKeyId: "example",
+        repositoryDescription: "example",
+        tags: [{ key: "example" }],
+        triggers: [{ name: "example-name" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.codecommit import Repository, RepositoryConfig
+    from ubx.aws.codecommit.repository import Repository_Code, Repository_Code_S3, Repository_Tags, Repository_Triggers
+
+    def describe():
+        ubx.intent("example own repository")
+
+        ubx.resource(Repository, "example", RepositoryConfig(
+            repository_name="example-repository-name",
+            code=Repository_Code(s3=Repository_Code_S3(bucket="example", key="example")),
+            kms_key_id="example",
+            repository_description="example",
+            tags=[Repository_Tags(key="example")],
+            triggers=[Repository_Triggers(name="example-name")],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_code_commit_repository, with repository name
+    example-repository-name, code a set value, kms key id example,
+    repository description example, tags a set value, triggers a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="code" type="object">
+  Information about code to be committed to a repository after it is created in an AWS CloudFormation stack. Information about code is only used in resource creation. Updates to a stack will not reflect changes made to code properties after initial resource creation. Optional.
+  <Expandable title="properties">
+    <ResponseField name="branch_name" type="string">
+      Optional. Specifies a branch name to be used as the default branch when importing code into a repository on initial creation. If this property is not set, the name main will be used for the default branch for the repository. Changes to this property are ignored after initial resource creation. We recommend using this parameter to set the name to main to align with the default behavior of CodeCommit unless another name is needed. Optional.
+    </ResponseField>
+    <ResponseField name="s3" type="object" required>
+      Information about the Amazon S3 bucket that contains a ZIP file of code to be committed to the repository. Changes to this property are ignored after initial resource creation. Required.
+      <Expandable title="properties">
+        <ResponseField name="bucket" type="string" required>
+          The name of the Amazon S3 bucket that contains the ZIP file with the content that will be committed to the new repository. This can be specified using the name of the bucket in the AWS account. Changes to this property are ignored after initial resource creation. Required.
+        </ResponseField>
+        <ResponseField name="key" type="string" required>
+          The key to use for accessing the Amazon S3 bucket. Changes to this property are ignored after initial resource creation. Required.
+        </ResponseField>
+        <ResponseField name="object_version" type="string">
+          The object version of the ZIP file, if versioning is enabled for the Amazon S3 bucket. Changes to this property are ignored after initial resource creation. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="kms_key_id" type="string">
+  The ID of the AWS Key Management Service encryption key used to encrypt and decrypt the repository. Optional.
+</ResponseField>
+
+<ResponseField name="repository_description" type="string">
+  A comment or description about the new repository. Optional.
+</ResponseField>
+
+<ResponseField name="repository_name" type="string" required>
+  The name of the new repository to be created. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  One or more tag key-value pairs to use when tagging this repository. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag to associate with the AWS CodeCommit repository, used for identifying and organizing the repository. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag assigned to the AWS CodeCommit repository, used to store metadata associated with the corresponding tag key. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="triggers" type="list(object)">
+  Information about a trigger for a repository. Optional.
+  <Expandable title="properties">
+    <ResponseField name="branches" type="list(string)">
+      Specifies the list of branches in the repository for which the trigger's events (such as create, update, or delete) should trigger the associated action (e.g., an SNS notification); if the list is empty, the trigger applies to all branches. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="custom_data" type="string">
+      The custom_data field of a trigger is an optional string that AWS CodeCommit includes in the SNS notification payload delivered to the trigger's destination ARN, allowing you to pass arbitrary metadata to downstream consumers. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="destination_arn" type="string">
+      The ARN of the SNS topic that receives push notifications from this CodeCommit repository when the trigger condition is met. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="events" type="list(string)">
+      Lists the CodeCommit repository events (for example, push, createBranch, deleteBranch, createTag, deleteTag, or updateReference) that activate the trigger. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      The name of an AWS CodeCommit repository trigger, which must be unique within the repository and is used to identify the trigger when configuring and managing repository events. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the repository. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="clone_url_http" type="string">
+  The URL to use for cloning the repository over HTTPS. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="clone_url_ssh" type="string">
+  The URL to use for cloning the repository over SSH. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The repository's name. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="repository_id" type="string">
+  The ID of the repository. Computed by AWS after `ship`.
+</ResponseField>
