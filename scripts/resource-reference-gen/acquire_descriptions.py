@@ -107,8 +107,9 @@ def acquire_descriptions(provider, version, cache_root=None):
     return dest_dir
 
 
-def resolve_descriptions_path(provider_key, docs_root):
-    """UBI-102: a pinned corpus (env UBX_DESCRIPTIONS_PIN_<PROVIDER>=<version>)
+def resolve_descriptions_path(provider_key, docs_root, release_name=None):
+    """UBI-102: a pinned corpus (env UBX_DESCRIPTIONS_PIN_<PROVIDER>=<version>,
+    keyed by this repo's own docs-internal provider_key, e.g. "gcp")
     takes priority over this repo's own local artifacts/<provider>/
     descriptions.json -- the migration path off the two
     independently-maintained copies, provider by provider, without
@@ -117,11 +118,24 @@ def resolve_descriptions_path(provider_key, docs_root):
     by both regen_pages.py (resource pages) and
     gen_all_data_source_pages.py (data source pages, all six providers)
     so the two real docs-generation pipelines can never resolve a given
-    provider's pin differently."""
+    provider's pin differently.
+
+    release_name is the real published SDK repo's own short name
+    (ubiquex's own sdk/providers/.ubx/config "NAMING" rule -- the
+    [dynamic_providers.<name>] table key IS github.com/ubiquex/ubx-sdk-
+    <name>), used for the release tag and the file the acquired archive
+    is expected to contain. It differs from provider_key exactly once,
+    for GCP: docs' own internal key is "gcp" (its artifacts/ directory,
+    its own PROVIDERS dict), but the real published repo, and so
+    provider.AcquireDescriptions's own tag on the Go side, is "google"
+    (ubiquex/sdk/providers/.ubx/config's own real, live-repo-name
+    precedent). Defaults to provider_key for the five providers where
+    the two names are already identical."""
+    release_name = release_name or provider_key
     pin_version = os.environ.get(f"UBX_DESCRIPTIONS_PIN_{provider_key.upper()}")
     if pin_version:
-        pinned_dir = acquire_descriptions(provider_key, pin_version)
-        return os.path.join(pinned_dir, f"{provider_key}.json")
+        pinned_dir = acquire_descriptions(release_name, pin_version)
+        return os.path.join(pinned_dir, f"{release_name}.json")
     return os.path.join(docs_root, "artifacts", provider_key, "descriptions.json")
 
 

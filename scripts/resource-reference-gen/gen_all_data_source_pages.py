@@ -42,8 +42,8 @@ from acquire_descriptions import resolve_descriptions_path as _resolve_descripti
 DOCS_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def resolve_descriptions_path(provider_key):
-    return _resolve_descriptions_path(provider_key, DOCS_ROOT)
+def resolve_descriptions_path(provider_key, release_name=None):
+    return _resolve_descriptions_path(provider_key, DOCS_ROOT, release_name)
 
 # UBI-199: dump_dir/go_root deliberately do NOT live here. They used to
 # (hardcoded /tmp/reconcile2-<provider> scratch paths, decoupled from
@@ -332,7 +332,7 @@ def main():
     # adding new, separate content.
     intros_path = os.path.join(DOCS_ROOT, "artifacts", provider_key, "intros.json")
     intros = json.load(open(intros_path)) if os.path.exists(intros_path) else {}
-    desc_path = resolve_descriptions_path(provider_key)
+    desc_path = resolve_descriptions_path(provider_key, cfg["sdk_repo_id"])
     desc_raw = json.load(open(desc_path)) if os.path.exists(desc_path) else {}
     desc_by_key = {k: v for k, v in desc_raw.items() if k.startswith("data_")}
 
