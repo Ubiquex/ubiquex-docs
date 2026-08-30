@@ -73,7 +73,20 @@ jobs:
           mkdir -p "${{ runner.temp }}/pack"
           cp "descriptions-raw/${{ inputs.provider }}.json" "${{ runner.temp }}/pack/${{ inputs.provider }}.json"
           tar czf "${{ runner.temp }}/snapshot.tar.gz" -C "${{ runner.temp }}/pack" "${{ inputs.provider }}.json"
-          sha256sum "${{ runner.temp }}/snapshot.tar.gz" > "${{ runner.temp }}/SHA256SUMS"
+          # UBI-222: sha256sum records whatever path string it's given
+          # verbatim -- running it against the full runner.temp path
+          # embedded that path into SHA256SUMS instead of the bare
+          # "snapshot.tar.gz" provider.AcquireDescriptions (ubiquex)
+          # expects (an exact string match, no path-basename fallback).
+          # A real archive downloaded against that SHA256SUMS failed
+          # every real verification with "provider archive not listed
+          # in SHA256SUMS: snapshot.tar.gz" -- found live, the first
+          # time this exact workflow (not a manual publish) ever
+          # actually ran, cutting the real kubernetes/github v1.0.1
+          # releases. cd into runner.temp first so sha256sum records
+          # the same bare, relative filename the schema repos' own
+          # working publish.yml already uses.
+          ( cd "${{ runner.temp }}" && sha256sum snapshot.tar.gz > SHA256SUMS )
 
       - name: Summarize the real corpus -- counts only
         id: summary
