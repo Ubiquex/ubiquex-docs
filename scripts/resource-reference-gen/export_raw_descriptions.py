@@ -35,9 +35,30 @@ Two real, baked-in transforms get reversed here, neither a guess:
    already makes unconditionally, so storing the raw form here changes
    nothing for docs, and fixes it for code comments.
 
-`vendor-spec` entries are never exported -- that text already lives
-natively in the schema dump itself (the real provider's own wire
-response), re-exporting it would be redundant, never a real gap to fill.
+`vendor-spec` entries are excluded by default -- that text is assumed
+to already live natively in the schema dump itself (the real provider's
+own wire response), so re-exporting it would ordinarily be redundant.
+Confirmed true for datadog/github (byte-identical output with or
+without them, since ubx-provider-dynamic's own schema translation
+already supplies the same text natively, and --descriptions-dir only
+ever fills a field the schema left undescribed).
+
+AWS is a real, confirmed exception (UBI-102): a direct --dump-ir check
+with --descriptions-dir disabled entirely showed 11,954 of AWS's own
+vendor-spec-labeled fields (e.g. aws_dms_replication_instance.kms_key_id)
+come back with DescriptionSource "" -- ubx-provider-dynamic's own
+cloudformation/smithy translation does not natively carry this text the
+way docs' own separate schema dump does. These are not a real gap in
+docs (the exact same text is already there, labeled vendor-spec, and
+already rendering correctly on pages, since SKIP_INJECTION_SOURCE
+already skips injecting it a second time) -- but excluding them from
+the raw export would silently regress `ubx sdk gen`'s own generated
+code comments the moment sdk/providers/descriptions/aws.json is
+retired, from a real, accurate (AI-inferred-labeled) comment down to no
+comment at all. --include-vendor-spec keeps them in the raw export for
+exactly this reason: harmless where the schema already covers a field
+natively (descriptions-dir never overrides a real source), load-bearing
+where it doesn't.
 
 Output shape: {key: {"source": ..., "text": <raw, qualifier-free,
 unescaped>}} -- same flat key shape (resource.field.path for a
@@ -87,14 +108,14 @@ def to_raw(text, qualifiers):
     return unescape_entities(strip_qualifier(text, qualifiers)).strip()
 
 
-def export_raw_descriptions(provider, provider_display):
+def export_raw_descriptions(provider, provider_display, include_vendor_spec=False):
     desc_path = os.path.join(DOCS_ROOT, "artifacts", provider, "descriptions.json")
     desc_raw = json.load(open(desc_path, encoding="utf-8"))
     qualifiers = qualifiers_for(provider_display)
 
     out = {}
     for key, entry in desc_raw.items():
-        if entry.get("source") == "vendor-spec":
+        if entry.get("source") == "vendor-spec" and not include_vendor_spec:
             continue
         out[key] = {"source": entry["source"], "text": to_raw(entry["text"], qualifiers)}
     return out
@@ -105,9 +126,14 @@ def main():
     ap.add_argument("provider")
     ap.add_argument("provider_display")
     ap.add_argument("--out", default=None, help="output path, default stdout")
+    ap.add_argument(
+        "--include-vendor-spec",
+        action="store_true",
+        help="keep vendor-spec-sourced entries in the export instead of excluding them as redundant with the schema dump -- pass this only when confirmed the target's own ubx-provider-dynamic schema translation does NOT already carry this text natively (AWS, UBI-102)",
+    )
     args = ap.parse_args()
 
-    raw = export_raw_descriptions(args.provider, args.provider_display)
+    raw = export_raw_descriptions(args.provider, args.provider_display, args.include_vendor_spec)
     by_prefix = {"resource": 0, "data_source": 0}
     for k in raw:
         by_prefix["data_source" if k.startswith("data_") else "resource"] += 1
