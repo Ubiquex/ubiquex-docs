@@ -9,14 +9,15 @@ already does, in the identical directory shape, so this script's own
 job is orchestrating the generators against that already-prepared
 input, not preparing it itself.
 
-Four providers (aws, azure, gcp, kubernetes) get real resource-page
-regeneration via regen_pages.py. github/datadog do not yet -- their own
-ongoing regen uses a different, less mature mechanism (gen_complete_pages.py's
-own generate_one, which splices onto an already-generated page rather
-than a real full-corpus rescan) this automation does not cover. A real,
+Most providers get real resource-page regeneration via regen_pages.py --
+real membership lives in providers.py's own shared registry (Tier 2),
+not this comment. github/datadog do not yet -- their own ongoing regen
+uses a different, less mature mechanism (gen_complete_pages.py's own
+generate_one, which splices onto an already-generated page rather than
+a real full-corpus rescan) this automation does not cover. A real,
 named gap, reported in every run's own summary, not a silent omission.
 
-All six providers get data-source page regeneration via
+Every real provider gets data-source page regeneration via
 gen_all_data_source_pages.py, which only needs an already-existing
 resource nav group to nest under, never this run's own resource regen.
 
@@ -31,20 +32,32 @@ one-off experiment, never for this script, which excludes gapped
 resources instead of ever needing to override the gate at all.
 
 Today's real, confirmed config (sdk/providers/.ubx/config in ubiquex)
-carries exactly one [dynamic_providers.<name>] entry per provider for
-all six -- no per-family entries exist for gcp/azure anymore (that was
-an earlier config shape regen_pages.py's own doc comment still
-describes historically). families_file is therefore always a single
-line naming that one family, identical to the provider's own
---dump-root/--local-sdk-root directory name -- this script writes it
-itself rather than taking it as an external input, since there is
-nothing left to enumerate.
+carries exactly one [dynamic_providers.<name>] entry per real provider
+-- no per-family entries exist for gcp/azure anymore (that was an
+earlier config shape regen_pages.py's own doc comment still describes
+historically). families_file is therefore always a single line naming
+that one family, identical to the provider's own --dump-root/
+--local-sdk-root directory name -- this script writes it itself rather
+than taking it as an external input, since there is nothing left to
+enumerate.
 
 Usage:
   python3 regen_all.py --dump-root DIR --local-sdk-root DIR \\
-      --docs-root DIR [--only aws,kubernetes]
+      --docs-root DIR --json-out FILE [--only aws,kubernetes]
+      [--ubiquex-config PATH]
 
-Emits one real, structured JSON report to stdout:
+Writes one real, structured JSON report to --json-out, never to
+stdout -- UBI-222: a run's own real per-provider narration (regen_
+pages.py's/gen_all_data_source_pages.py's own uncaptured stdout, which
+this script never redirects, deliberately, since a human running this
+by hand wants to see it live) used to share stdout with this exact
+report, which broke the first real caller that tried to parse it as
+JSON (report_regen_summary.py) -- a live reproduction of TRAPS.md's
+own documented "a script's stdout looking right to a human is not the
+same as its being parseable" pitfall, confirmed twice in CI before
+being fixed here rather than left as a red workflow everyone learns to
+ignore.
+
   {"results": [{"provider": ..., "status": "ok"|"error", "resource_regen":
   {"exit_code": ...}|null, "datasource_regen": {...}|null, "stage":
   {"excluded_resources": [...], "excluded_data_sources": [...],
@@ -149,6 +162,7 @@ def main():
     p.add_argument("--docs-root", required=True)
     p.add_argument("--only", default=None, help="comma-separated provider subset, default: every real provider")
     p.add_argument("--ubiquex-config", help="path to a real ubiquex checkout's sdk/providers/.ubx/config -- when given, --only omitted means the real, live provider set (Tier 1), not this file's own Tier-2-only fallback, and a provider missing its own providers.py REGISTRY entry fails loudly rather than silently. Every CI caller of this script already has a real ubiquex checkout and should always pass this.")
+    p.add_argument("--json-out", required=True, help="path to write the real, structured JSON report to -- never stdout, which this run's own per-provider narration (regen_pages.py's/gen_all_data_source_pages.py's own uncaptured stdout) also shares, and previously broke any real caller that tried to parse it as JSON (UBI-222)")
     args = p.parse_args()
 
     if os.environ.get("UBX_DOCS_ALLOW_COVERAGE_GAPS"):
@@ -164,7 +178,11 @@ def main():
 
     results = [regen_provider(provider, args) for provider in providers]
 
-    print(json.dumps({"results": results, "not_covered": DATA_SOURCE_ONLY_PROVIDERS}, indent=2))
+    report = {"results": results, "not_covered": DATA_SOURCE_ONLY_PROVIDERS}
+    with open(args.json_out, "w") as f:
+        json.dump(report, f, indent=2)
+        f.write("\n")
+    print(f"real report written to {args.json_out}", file=sys.stderr)
 
     if any(r["status"] == "error" for r in results):
         sys.exit(1)
