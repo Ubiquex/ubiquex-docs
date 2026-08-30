@@ -87,7 +87,7 @@ from build_regen_schema import (
 )
 from extract_idents import scan_go, scan_py, scan_ts
 import gen_provider_docs
-from gen_provider_docs import generate_richer_provider, rebuild_provider_index
+from gen_provider_docs import generate_richer_provider, rebuild_provider_index, rebuild_provider_nav
 from coverage_check import schema_entries_from_corrected, check_gaps, gap_count, print_report
 from provenance_check import check_provenance, collect_provenance, schema_provenance_of, write_provenance_record
 from corpus_index import scan_provider_corpus
@@ -434,6 +434,23 @@ def main():
     # can never discard a family this run didn't touch.
     rebuild_provider_index(docs_root=DOCS_ROOT, provider=provider, provider_display=PROVIDER_DISPLAY[provider])
 
+    # UBI-137: same real-file-tree philosophy, for docs.json's own
+    # resource-page nav groups -- see rebuild_provider_nav's own doc
+    # comment for why nothing did this before. Runs unconditionally,
+    # before the coverage gate below: correct and useful on its own for
+    # a clean run or a manual/interactive one; an automated caller that
+    # goes on to exclude gapped pages afterward (deleting their files)
+    # re-runs this same function once more against the corrected tree,
+    # which is exactly why this function reads reality instead of
+    # trusting its own most recent call.
+    docs_json_path = os.path.join(DOCS_ROOT, "docs.json")
+    with open(docs_json_path) as f:
+        doc = json.load(f)
+    rebuild_provider_nav(docs_root=DOCS_ROOT, doc=doc, provider=provider, provider_display=PROVIDER_DISPLAY[provider])
+    with open(docs_json_path, "w") as f:
+        json.dump(doc, f, indent=2)
+        f.write("\n")
+
     # UBI-187: refuse to let this run silently ship a page with no real
     # intro, no category, or a depth-0 field with no description --
     # exactly the "template text and blank fields" failure mode the
@@ -444,10 +461,32 @@ def main():
     # check_disk=False because a page this run just wrote is trivially
     # "on disk" -- that check exists for the standalone corpus-wide
     # sweep, not a freshly-generated batch.
+    coverage_result = None
+    coverage_gaps = 0
     if all_corrected:
         coverage_entries = schema_entries_from_corrected(all_corrected)
         coverage_result = check_gaps(provider, coverage_entries, repo_root=DOCS_ROOT, check_disk=False)
         coverage_gaps = gap_count(coverage_result)
+
+    # UBI-137: the manifest is written BEFORE the refusal below can
+    # exit, not after -- real, found-in-review bug in the first version
+    # of this fix: sys.exit(1) firing on a real gap meant this file
+    # never got written at all on exactly the run a downstream staging
+    # step most needs to read it (a clean run never needed the
+    # exclusion list in the first place). coverage_result here is what
+    # lets that step exclude the right files without recomputing the
+    # same check this run already did.
+    json.dump(
+        {
+            "wire_to_page": wire_to_page, "per_family_counts": per_family_counts,
+            "skipped": skipped_no_sdk, "renamed_wires": renamed_wires,
+            "coverage_result": coverage_result,
+        },
+        open(os.path.join(SCRATCH_DIR, f"{provider}_regen_result.json"), "w"),
+        indent=2,
+    )
+
+    if all_corrected:
         if coverage_gaps:
             print(f"\n{provider}: UBI-187 coverage check found {coverage_gaps} gap(s) in this run's own batch:")
             print_report(coverage_result, quiet=False)
@@ -457,15 +496,6 @@ def main():
                 sys.exit(1)
         else:
             print(f"{provider}: UBI-187 coverage check clean for this run's {len(all_corrected)} regenerated wire(s)")
-
-    json.dump(
-        {
-            "wire_to_page": wire_to_page, "per_family_counts": per_family_counts,
-            "skipped": skipped_no_sdk, "renamed_wires": renamed_wires,
-        },
-        open(os.path.join(SCRATCH_DIR, f"{provider}_regen_result.json"), "w"),
-        indent=2,
-    )
 
     if total_resources:
         prov_path = write_provenance_record(

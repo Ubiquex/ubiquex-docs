@@ -44,6 +44,8 @@ call's own partial schema.
 """
 import glob, json, os
 
+from corpus_index import provider_group, set_resource_pages
+
 KIND_INVALID, KIND_SCALAR, KIND_LIST, KIND_SET, KIND_MAP, KIND_OBJECT = 0, 1, 2, 3, 4, 5
 SCALAR_INVALID, SCALAR_STRING, SCALAR_NUMBER, SCALAR_BOOL, SCALAR_DYNAMIC = 0, 1, 2, 3, 4
 
@@ -2017,3 +2019,114 @@ the real provider schema, not hand-authored.
     print(f"rebuild_provider_index: {provider}: {len(card_entries)} services, {total_resources} resource types, "
           f"provider index.mdx rebuilt from the real file tree (no per-service index.mdx touched, UBI-207)")
     return len(card_entries), total_resources
+
+
+def rebuild_provider_nav(docs_root, doc, provider, provider_display):
+    """UBI-137: docs.json's own resource-page nav groups have no real
+    rebuild path today. generate_richer_provider writes a real,
+    complete nav shape into a scratch {provider}_nav_fragment.json on
+    every call, but nothing has ever read it (confirmed live: zero
+    consumers anywhere in this directory) -- and reading it as-is would
+    be wrong besides, since each call covers exactly one family, so a
+    multi-family provider's own fragment file is silently overwritten
+    down to just the LAST family processed by every subsequent call.
+    That is the identical clobbering shape UBI-207 already found and
+    fixed for resource-reference/<provider>/index.mdx, just never
+    noticed here because nothing was reading this file to notice.
+
+    Mirrors rebuild_provider_index's own real fix instead of inventing
+    a different one: read the REAL, CURRENT file tree, never any one
+    call's own partial view. This also means UBI-137's own gap-based
+    exclusion needs no separate list here at all -- a resource this
+    run deliberately excluded (its own page file deleted before this
+    ever runs) simply is not present on disk to be found, so it is
+    never added to the nav in the first place, the same way a
+    genuinely un-generated resource never was.
+
+    doc is docs.json's own already-loaded dict, mutated in place (the
+    same real object regen_pages.py/gen_all_data_source_pages.py's own
+    callers already hold) -- this function does not read or write the
+    file itself, matching provider_group's own real contract."""
+    out_root = os.path.join(docs_root, "resource-reference", provider)
+    if not os.path.isdir(out_root):
+        raise SystemExit(f"rebuild_provider_nav: {out_root!r} does not exist -- nothing to rebuild")
+
+    top_pages = provider_group(doc, provider)
+
+    # Real, found-in-review bug: matching an existing subgroup by its
+    # own "group" title against service.title() looked right but isn't
+    # -- confirmed live against the real, currently-committed docs.json
+    # (Kubernetes' own "API Extensions"/"Admission Registration" are
+    # hand-curated, spaced titles; service.title() on the real directory
+    # name alone produces "Apiextensions"/"Admissionregistration"). A
+    # title-keyed lookup would never find the real, existing group for
+    # any service whose curated title diverges from a bare
+    # capitalize-the-directory-name derivation, so it would APPEND a
+    # second, duplicate subgroup instead of updating the real one.
+    # Matched by the real, stable thing instead: the service-directory
+    # segment already embedded in any one of a subgroup's own existing
+    # page paths (resource-reference/<provider>/<service>/<slug>),
+    # never the display title a human may have since hand-edited.
+    def service_dir_of(subgroup):
+        for page in subgroup.get("pages", []):
+            if isinstance(page, str):
+                parts = page.split("/")
+            elif isinstance(page, dict):
+                sub_pages = page.get("pages", [])
+                parts = sub_pages[0].split("/") if sub_pages else []
+            else:
+                parts = []
+            if len(parts) >= 3 and parts[0] == "resource-reference" and parts[1] == provider:
+                return parts[2]
+        return None
+
+    by_service_dir = {}
+    for g in top_pages:
+        if not isinstance(g, dict):
+            continue
+        sd = service_dir_of(g)
+        if sd:
+            by_service_dir[sd] = g
+
+    services_seen = 0
+    for service_dir in sorted(glob.glob(os.path.join(out_root, "*"))):
+        if not os.path.isdir(service_dir):
+            continue
+        service = os.path.basename(service_dir)
+        # "data" is its own real, separate namespace (UBI-178 piece 4),
+        # matching rebuild_provider_index's own identical skip.
+        if service == "data":
+            continue
+
+        resource_paths = sorted(
+            p for p in glob.glob(os.path.join(service_dir, "*.mdx"))
+            if not _is_landing_page(p)
+        )
+        if not resource_paths:
+            continue
+
+        slugs = sorted(os.path.splitext(os.path.basename(p))[0] for p in resource_paths)
+        page_paths = [f"resource-reference/{provider}/{service}/{s}" for s in slugs]
+        services_seen += 1
+
+        subgroup = by_service_dir.get(service)
+        if subgroup is None:
+            # A genuinely new service this run introduced -- no
+            # existing subgroup's own pages reference this directory
+            # at all, under any title. service.title() is a real,
+            # honest best-effort default for a title nobody has hand-
+            # curated yet (matching rebuild_provider_index's own
+            # identical derivation for index.mdx's cards), not a claim
+            # it will match an eventual hand-curated one. No "root" key
+            # -- checked the real, live docs.json directly: not a
+            # single existing subgroup, across every provider, carries
+            # one today, contrary to what generate_richer_provider's
+            # own never-consumed nav_groups shape would produce.
+            subgroup = {"group": service.title(), "expanded": False, "pages": list(page_paths)}
+            top_pages.append(subgroup)
+            by_service_dir[service] = subgroup
+        else:
+            set_resource_pages(subgroup, page_paths)
+
+    print(f"rebuild_provider_nav: {provider}: {services_seen} service group(s) reconciled against the real file tree")
+    return services_seen
