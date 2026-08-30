@@ -100,6 +100,11 @@ SCRATCH_DIR = "/tmp/regen-scratch"
 
 PROVIDER_DISPLAY = {"gcp": "Google Cloud", "azure": "Microsoft Azure", "aws": "AWS", "kubernetes": "Kubernetes"}
 
+# The real published SDK repo's own short name (sdk/providers/.ubx/config's
+# own "NAMING" rule) -- differs from this docs repo's own internal
+# provider key exactly once, for GCP ("gcp" here, "google" the real repo).
+SDK_REPO_ID = {"gcp": "google", "azure": "azure", "aws": "aws", "kubernetes": "kubernetes"}
+
 # The "already baked directly into the raw IR dump, do not re-inject"
 # source tag is "vendor-spec" for every provider as of the docs-vendor/cfn
 # rename below -- GCP/Azure/Kubernetes' artifacts used to write
@@ -135,7 +140,7 @@ def main():
     print(f"{provider}: indexed {len(wire_index)} real, currently-committed page(s) by wire identity")
 
     here = os.path.dirname(os.path.abspath(__file__))
-    desc_path = resolve_descriptions_path(provider, DOCS_ROOT)
+    desc_path = resolve_descriptions_path(provider, DOCS_ROOT, SDK_REPO_ID[provider])
     desc_raw = json.load(open(desc_path))
     skip_source = SKIP_INJECTION_SOURCE[provider]
     desc_by_key = {k: v for k, v in desc_raw.items() if v.get("source") != skip_source}
