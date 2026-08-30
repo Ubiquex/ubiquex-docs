@@ -107,18 +107,51 @@ def acquire_descriptions(provider, version, cache_root=None):
     return dest_dir
 
 
+def has_published_pin(release_name):
+    """UBI-222: real, live check against the GitHub API for whether
+    ANY descriptions-<release_name>-v* release has ever been published
+    -- the signal resolve_descriptions_path uses to decide whether the
+    local artifacts/<provider>/descriptions.json fallback is still
+    honest to take. A provider with zero real releases has never been
+    migrated; falling back for it is the same, correct, unchanged
+    behavior this function has always had. A provider with at least
+    one real release has its real, richer content living ONLY in that
+    release -- silently falling back to the local file for it is
+    exactly the invisible gap UBI-222 found: 401 real, previously-
+    published resource pages dropped from a real regeneration run
+    because nothing in CI ever set the env var pinning them, and the
+    fallback made that look like a clean run instead of a missing
+    wire-up."""
+    url = f"{GITHUB_API_BASE}/repos/{NAMESPACE}/{REPO}/releases?per_page=100"
+    try:
+        data = json.loads(http_get_bytes(url))
+    except Exception as e:
+        raise RuntimeError(
+            f"could not check {NAMESPACE}/{REPO}'s own published releases to decide "
+            f"whether {release_name!r} has a real descriptions pin: {e}"
+        ) from e
+    prefix = f"descriptions-{release_name}-v"
+    return any(r.get("tag_name", "").startswith(prefix) for r in data)
+
+
 def resolve_descriptions_path(provider_key, docs_root, release_name=None):
     """UBI-102: a pinned corpus (env UBX_DESCRIPTIONS_PIN_<PROVIDER>=<version>,
     keyed by this repo's own docs-internal provider_key, e.g. "gcp")
     takes priority over this repo's own local artifacts/<provider>/
-    descriptions.json -- the migration path off the two
-    independently-maintained copies, provider by provider, without
-    breaking the providers not yet migrated (unset env var, unchanged
-    behavior, the exact local file this function always read). Shared
-    by both regen_pages.py (resource pages) and
-    gen_all_data_source_pages.py (data source pages, all six providers)
-    so the two real docs-generation pipelines can never resolve a given
-    provider's pin differently.
+    descriptions.json. Shared by both regen_pages.py (resource pages)
+    and gen_all_data_source_pages.py (data source pages, all six
+    providers) so the two real docs-generation pipelines can never
+    resolve a given provider's pin differently.
+
+    UBI-222: an unset env var is ONLY ever treated as "not migrated
+    yet" -- checked live via has_published_pin, never assumed from the
+    env var's absence alone. A provider with a real, published pin and
+    no env var set is a caller bug (CI never wired it up), and this
+    function now refuses to paper over it with a stale local file --
+    the exact silent fallback that let a real CI gap regenerate 401
+    previously-published pages as "missing," deleting them, without a
+    single loud failure anywhere. The prior version of this function
+    treated an unset env var as unconditionally safe; it wasn't.
 
     release_name is the real published SDK repo's own short name
     (ubiquex's own sdk/providers/.ubx/config "NAMING" rule -- the
@@ -136,6 +169,16 @@ def resolve_descriptions_path(provider_key, docs_root, release_name=None):
     if pin_version:
         pinned_dir = acquire_descriptions(release_name, pin_version)
         return os.path.join(pinned_dir, f"{release_name}.json")
+    if has_published_pin(release_name):
+        raise RuntimeError(
+            f"{provider_key}: a real, published descriptions-{release_name}-v* "
+            f"release exists, but UBX_DESCRIPTIONS_PIN_{provider_key.upper()} is "
+            f"not set -- refusing to silently fall back to the stale local "
+            f"artifacts/{provider_key}/descriptions.json (UBI-222: this exact "
+            f"fallback is what let 401 real, previously-published pages get "
+            f"dropped from a real regeneration run without a single loud "
+            f"failure). Set the env var to the version this run should pin."
+        )
     return os.path.join(docs_root, "artifacts", provider_key, "descriptions.json")
 
 

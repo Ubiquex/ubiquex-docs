@@ -12,8 +12,16 @@ Per provider, reports:
     falling to default derivation
   - depth-0 fields with no description from any source (either baked
     into the raw schema dump, or artifacts/<p>/descriptions.json) --
-    depth-0 ONLY, matching the scoping decision already made (nothing
-    deeper renders without a click)
+    reported at depth-0 ONLY, matching the scoping decision already
+    made (nothing deeper renders without a click). UBI-222: a depth-0
+    field with no dedicated text of its own is exempt from this,
+    though, when it is a pure object-typed wrapper and every one of
+    its own real children is itself covered (recursively, at whatever
+    depth they live) -- see field_is_covered's own doc comment for the
+    precise rule. A wrapper whose real content already lives, fully
+    described, on its children needs no separate text to be honest; a
+    wrapper with even one undescribed descendant, or a plain scalar
+    field, is still reported exactly as before.
   - pages on disk with no corresponding schema entry (the reverse case
     -- a page orphaned by upstream schema shrinkage or a rename)
   - schema entries with no page at all
@@ -47,6 +55,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(HERE))
 
 sys.path.insert(0, HERE)
 from build_regen_schema import gcp_corrected_key, gcp_corrected_local, azure_corrected_wire, azure_corrected_local
+from gen_provider_docs import is_object_ish, object_fields_of
 import providers as providers_registry
 
 # dump_dir differs from the artifacts/resource-reference key only for
@@ -123,6 +132,45 @@ def scan_disk_pages(provider, repo_root=REPO_ROOT):
 
 def depth0_fields(rec):
     return rec.get("ir", {}).get("Fields", []) or []
+
+
+def field_is_covered(f, pw, path, descriptions):
+    """UBI-222: a field counts as covered by its own, dedicated
+    description (native to the schema, or a real descriptions.json
+    entry under its own exact dotted path -- checked at whatever depth
+    it actually lives at, the same convention inject_description()
+    itself already uses) OR, for a pure object-typed wrapper with
+    neither, by every one of its own real children being covered under
+    this same rule, recursively.
+
+    Precise on purpose, per the founder's own correction: a wrapper
+    described in its first child's own words is wrong, not merely
+    thin -- rebuilding that borrowing was rejected. This only ever
+    exempts a wrapper that has genuinely NOTHING of its own to say
+    because its real content already lives, fully described, on its
+    children -- never a substitute for real text the wrapper itself
+    should carry. A wrapper with even one undescribed descendant
+    (scalar or object) is still a real, reportable gap. A scalar field
+    is only ever covered by its own text -- it has no children to
+    borrow coverage from. An object field with zero real children
+    (a genuinely empty type) is treated the same as an undescribed
+    scalar: nothing here describes it, so it isn't covered."""
+    if f.get("Description"):
+        return True
+    entry = descriptions.get(f"{pw}.{path}")
+    text = entry.get("text") if isinstance(entry, dict) else entry
+    if text:
+        return True
+    t = f.get("Type") or {}
+    if not is_object_ish(t):
+        return False
+    children = object_fields_of(t)
+    if not children:
+        return False
+    return all(
+        field_is_covered(c, pw, f"{path}.{c['WireName']}", descriptions)
+        for c in children
+    )
 
 
 def load_artifacts(provider, repo_root=REPO_ROOT):
@@ -234,16 +282,11 @@ def check_gaps(provider, schema_entries, repo_root=REPO_ROOT, check_disk=True):
             continue
         for f in depth0_fields(rec):
             total_depth0_fields += 1
-            if f.get("Description"):
-                continue
-            found = False
-            for pw in page_wire_candidates:
-                entry = descriptions.get(f"{pw}.{f['WireName']}")
-                text = entry.get("text") if isinstance(entry, dict) else entry
-                if text:
-                    found = True
-                    break
-            if not found:
+            covered = any(
+                field_is_covered(f, pw, f["WireName"], descriptions)
+                for pw in page_wire_candidates
+            )
+            if not covered:
                 missing_field_desc.append(f"{display_page_wire}.{f['WireName']}")
 
     schema_no_page = []

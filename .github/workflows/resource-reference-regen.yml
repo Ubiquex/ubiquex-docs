@@ -118,6 +118,24 @@ jobs:
 
       - name: Regenerate every provider, staging gap-free pages only
         id: regen
+        env:
+          # UBI-222: resolve_descriptions_path() now refuses to silently
+          # fall back to the stale local artifacts/<provider>/
+          # descriptions.json for any provider with a real, published
+          # descriptions-<name>-v* release -- these six env vars are
+          # what keeps that refusal from firing on every real run.
+          # Missing this wiring is exactly what let 401 real,
+          # previously-published pages get dropped as "missing" without
+          # a single loud failure. Versions must match the real,
+          # currently-published descriptions-<name>-v* release (`gh
+          # release list --repo Ubiquex/ubiquex-docs`) -- bump the same
+          # turn a new one is cut, never left to drift from it.
+          UBX_DESCRIPTIONS_PIN_KUBERNETES: "1.0.1"
+          UBX_DESCRIPTIONS_PIN_GITHUB: "1.0.1"
+          UBX_DESCRIPTIONS_PIN_DATADOG: "1.0.0"
+          UBX_DESCRIPTIONS_PIN_AWS: "1.0.0"
+          UBX_DESCRIPTIONS_PIN_AZURE: "1.0.0"
+          UBX_DESCRIPTIONS_PIN_GCP: "1.0.1"
         run: |
           set +e
           python3 scripts/resource-reference-gen/regen_all.py \
