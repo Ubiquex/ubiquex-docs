@@ -73,6 +73,8 @@ import argparse
 import json
 import os
 
+from build_regen_schema import azure_corrected_wire
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 DOCS_ROOT = os.path.dirname(os.path.dirname(HERE))
 
@@ -108,16 +110,38 @@ def to_raw(text, qualifiers):
     return unescape_entities(strip_qualifier(text, qualifiers)).strip()
 
 
+def azure_corrected_key(key):
+    """Azure's own artifacts/azure/descriptions.json was authored
+    directly against the RAW (doubled) wire (regen_pages.py's own doc
+    comment) -- "azure_advisor_advisor_..." where the real, corrected
+    resource type is "azure_advisor_...". sdk/providers/descriptions/
+    azure.json's own keys are already the corrected form (confirmed:
+    all 851 of its real fields matched a corrected-key lookup here,
+    zero left over). ubx sdk gen's own generated code is keyed by the
+    corrected wire too, so the raw export has to apply the same
+    correction docs' own regen_pages.py already applies at render time
+    (via inject_description's raw_wire aliasing) -- otherwise the pin
+    would carry 90k+ real entries that never match anything ubx sdk gen
+    actually generates."""
+    prefix = "data_" if key.startswith("data_") else ""
+    rest = key[len(prefix):]
+    res, _, field = rest.partition(".")
+    corrected_res, _ = azure_corrected_wire(res)
+    corrected_rest = f"{corrected_res}.{field}" if field else corrected_res
+    return prefix + corrected_rest
+
+
 def export_raw_descriptions(provider, provider_display, include_vendor_spec=False):
     desc_path = os.path.join(DOCS_ROOT, "artifacts", provider, "descriptions.json")
     desc_raw = json.load(open(desc_path, encoding="utf-8"))
     qualifiers = qualifiers_for(provider_display)
+    correct_key = azure_corrected_key if provider == "azure" else (lambda k: k)
 
     out = {}
     for key, entry in desc_raw.items():
         if entry.get("source") == "vendor-spec" and not include_vendor_spec:
             continue
-        out[key] = {"source": entry["source"], "text": to_raw(entry["text"], qualifiers)}
+        out[correct_key(key)] = {"source": entry["source"], "text": to_raw(entry["text"], qualifiers)}
     return out
 
 
