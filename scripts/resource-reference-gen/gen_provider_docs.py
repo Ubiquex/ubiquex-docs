@@ -2052,7 +2052,41 @@ def rebuild_provider_nav(docs_root, doc, provider, provider_display):
         raise SystemExit(f"rebuild_provider_nav: {out_root!r} does not exist -- nothing to rebuild")
 
     top_pages = provider_group(doc, provider)
-    by_group_title = {g.get("group"): g for g in top_pages if isinstance(g, dict)}
+
+    # Real, found-in-review bug: matching an existing subgroup by its
+    # own "group" title against service.title() looked right but isn't
+    # -- confirmed live against the real, currently-committed docs.json
+    # (Kubernetes' own "API Extensions"/"Admission Registration" are
+    # hand-curated, spaced titles; service.title() on the real directory
+    # name alone produces "Apiextensions"/"Admissionregistration"). A
+    # title-keyed lookup would never find the real, existing group for
+    # any service whose curated title diverges from a bare
+    # capitalize-the-directory-name derivation, so it would APPEND a
+    # second, duplicate subgroup instead of updating the real one.
+    # Matched by the real, stable thing instead: the service-directory
+    # segment already embedded in any one of a subgroup's own existing
+    # page paths (resource-reference/<provider>/<service>/<slug>),
+    # never the display title a human may have since hand-edited.
+    def service_dir_of(subgroup):
+        for page in subgroup.get("pages", []):
+            if isinstance(page, str):
+                parts = page.split("/")
+            elif isinstance(page, dict):
+                sub_pages = page.get("pages", [])
+                parts = sub_pages[0].split("/") if sub_pages else []
+            else:
+                parts = []
+            if len(parts) >= 3 and parts[0] == "resource-reference" and parts[1] == provider:
+                return parts[2]
+        return None
+
+    by_service_dir = {}
+    for g in top_pages:
+        if not isinstance(g, dict):
+            continue
+        sd = service_dir_of(g)
+        if sd:
+            by_service_dir[sd] = g
 
     services_seen = 0
     for service_dir in sorted(glob.glob(os.path.join(out_root, "*"))):
@@ -2073,22 +2107,25 @@ def rebuild_provider_nav(docs_root, doc, provider, provider_display):
 
         slugs = sorted(os.path.splitext(os.path.basename(p))[0] for p in resource_paths)
         page_paths = [f"resource-reference/{provider}/{service}/{s}" for s in slugs]
-        title = service.title()
         services_seen += 1
 
-        subgroup = by_group_title.get(title)
+        subgroup = by_service_dir.get(service)
         if subgroup is None:
-            # A genuinely new service this run introduced -- real,
-            # matches generate_richer_provider's own nav_groups shape
-            # for either the 1-resource or N-resource case (both set
-            # "pages" to the real, full page-path list; "root" is what
-            # a single-resource service's own click target actually
-            # differs on, not the pages list's own shape).
-            subgroup = {"group": title, "root": page_paths[0], "expanded": False, "pages": list(page_paths)}
+            # A genuinely new service this run introduced -- no
+            # existing subgroup's own pages reference this directory
+            # at all, under any title. service.title() is a real,
+            # honest best-effort default for a title nobody has hand-
+            # curated yet (matching rebuild_provider_index's own
+            # identical derivation for index.mdx's cards), not a claim
+            # it will match an eventual hand-curated one. No "root" key
+            # -- checked the real, live docs.json directly: not a
+            # single existing subgroup, across every provider, carries
+            # one today, contrary to what generate_richer_provider's
+            # own never-consumed nav_groups shape would produce.
+            subgroup = {"group": service.title(), "expanded": False, "pages": list(page_paths)}
             top_pages.append(subgroup)
-            by_group_title[title] = subgroup
+            by_service_dir[service] = subgroup
         else:
-            subgroup["root"] = page_paths[0]
             set_resource_pages(subgroup, page_paths)
 
     print(f"rebuild_provider_nav: {provider}: {services_seen} service group(s) reconciled against the real file tree")
