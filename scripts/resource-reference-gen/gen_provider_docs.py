@@ -172,18 +172,27 @@ def normalize_schema_description(desc):
     )
 
 
-def field_desc(f, provider_display):
+def qualifier_for(f, provider_display):
+    """The real, schema-derived qualifier sentence field_desc appends at
+    render time -- pulled out as its own function (UBI-222) so
+    export_raw_descriptions.py's own strip_qualifier can verify a
+    candidate suffix is genuinely THIS field's own real, current
+    qualifier before treating it as a safe-to-strip render-time
+    duplicate, rather than guessing from the string alone."""
     req, eff_opt, eff_comp = eff_flags(f)
     if req:
-        qualifier = "Required."
+        return "Required."
     elif eff_opt and eff_comp:
-        qualifier = f"Optional; if omitted, computed by {provider_display}."
+        return f"Optional; if omitted, computed by {provider_display}."
     elif eff_opt:
-        qualifier = "Optional."
+        return "Optional."
     elif eff_comp:
-        qualifier = f"Computed by {provider_display} after `ship`."
-    else:
-        qualifier = "Optional."
+        return f"Computed by {provider_display} after `ship`."
+    return "Optional."
+
+
+def field_desc(f, provider_display):
+    qualifier = qualifier_for(f, provider_display)
 
     # UBI-152: real, schema-sourced prose (f["Description"], threaded
     # through from the real provider's own wire response -- provider/
