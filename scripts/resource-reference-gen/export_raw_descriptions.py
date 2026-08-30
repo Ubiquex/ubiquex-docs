@@ -66,14 +66,50 @@ resource, data_resource.field.path for a data source) this repo's own
 descriptions.json already uses, so both consumers change only WHERE
 they read from, never the shape they parse.
 
+UBI-222: strip_qualifier's own real bug, found live against a real
+published corpus, not in review -- a blind trailing-string match has no
+way to tell a genuine render-time-duplicate suffix (safe to strip) from
+a field's own real content that simply happens to END in one of the
+same four exact phrases (never a redundant qualifier at all -- real
+prose, coincidentally). Confirmed live: DigitalOcean's own real "IQN
+(iSCSI Qualified Name) of the iSCSI target. Required." lost "Required."
+this way, even though the field is genuinely Optional+Computed, not
+Required, per its own real, current schema -- the AI's own generated
+text just happened to end in that exact word. A full cross-provider
+recount (STATE.md's own entry has the real numbers) found 9 further
+real, confirmed cases the same way, across kubernetes/github/gcp.
+AWS/Azure were never at risk -- their own corpora came from a
+different, non-MDX-scraping source that never had a render-time
+qualifier baked in to begin with.
+
+Fixed by requiring a real, fresh --dump-root (a `ubx sdk gen --dump-ir`
+directory for this exact provider) and only stripping a candidate
+suffix when it matches that SAME field's own real, current,
+schema-derived qualifier -- computed via gen_provider_docs.py's own
+qualifier_for, the exact function field_desc() itself calls at render
+time, imported directly rather than reimplemented, so the two can never
+drift apart again. A field not found in the fresh dump (renamed/removed
+since the corpus text was written) is left completely untouched --
+refusing to guess, matching this script's own existing discipline
+everywhere else.
+
 Usage:
-  python3 export_raw_descriptions.py <provider> <provider-display> [--out PATH]
+  python3 export_raw_descriptions.py <provider> <provider-display> --dump-root <dir> [--out PATH]
+
+  <dir> is the real, current generated-resource directory for THIS
+  provider specifically (e.g. `ubx sdk gen --only google --dump-ir
+  /tmp/dump`'s own `/tmp/dump/google`, not `/tmp/dump` itself) -- the
+  caller resolves which real release name a provider's own docs key
+  maps to (gcp -> google is the one real mismatch in this org), the
+  same way `provider`/`provider_display` are already explicit,
+  un-mapped CLI args rather than baked-in lookups.
 """
 import argparse
 import json
 import os
 
 from build_regen_schema import azure_corrected_wire
+from gen_provider_docs import qualifier_for
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DOCS_ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -98,16 +134,63 @@ def unescape_entities(text):
     )
 
 
-def strip_qualifier(text, qualifiers):
+def strip_qualifier(text, qualifiers, real_qualifier):
+    """Strips a trailing qualifier suffix ONLY when it's genuinely THIS
+    field's own real, current, schema-derived qualifier (UBI-222) --
+    real_qualifier is None when the field wasn't found at all in the
+    fresh dump (renamed/removed since this text was written), in which
+    case nothing is ever stripped, matching this module's own doc
+    comment. A text ending in one of the four exact phrases as real,
+    coincidental content (not a captured render-time duplicate) never
+    matches its own field's real qualifier by construction -- schema-
+    derived requiredness is real and specific, an AI's own word choice
+    is not -- so this is a real distinguishing check, not a coin flip."""
+    if real_qualifier is None:
+        return text
     for q in qualifiers:
         suffix = " " + q
-        if text.endswith(suffix):
+        if text.endswith(suffix) and q == real_qualifier:
             return text[: -len(suffix)]
     return text
 
 
-def to_raw(text, qualifiers):
-    return unescape_entities(strip_qualifier(text, qualifiers)).strip()
+def to_raw(text, qualifiers, real_qualifier):
+    return unescape_entities(strip_qualifier(text, qualifiers, real_qualifier)).strip()
+
+
+def build_field_index(dump_root):
+    """Walks every real, freshly generated <wire>.json in dump_root (a
+    `ubx sdk gen --dump-ir` directory for one specific provider) into a
+    flat {"<wire>.<dotted.path>": field} map -- the identical real walk
+    build_regen_schema.py's own inject_description already does (depth-
+    first through Type.Object/Type.Element.Object), so a lookup here
+    means exactly what it means there. Used to answer "what is this
+    field's own real, current, schema-derived qualifier" -- never to
+    guess at content."""
+    field_by_key = {}
+    for fn in os.listdir(dump_root):
+        if not fn.endswith(".json") or fn == "PROVENANCE.json":
+            continue
+        wire = fn[:-5]
+        fields = json.load(open(os.path.join(dump_root, fn), encoding="utf-8"))
+        if not isinstance(fields, list):
+            continue
+
+        def walk(flist, prefix):
+            for f in flist:
+                if "WireName" not in f:
+                    continue
+                path = f"{prefix}{f['WireName']}"
+                field_by_key[f"{wire}.{path}"] = f
+                t = f.get("Type") or {}
+                obj = t.get("Object")
+                if not obj and t.get("Element"):
+                    obj = t["Element"].get("Object")
+                if obj:
+                    walk(obj, path + ".")
+
+        walk(fields, "")
+    return field_by_key
 
 
 def azure_corrected_key(key):
@@ -131,17 +214,26 @@ def azure_corrected_key(key):
     return prefix + corrected_rest
 
 
-def export_raw_descriptions(provider, provider_display, include_vendor_spec=False):
+def export_raw_descriptions(provider, provider_display, dump_root, include_vendor_spec=False):
     desc_path = os.path.join(DOCS_ROOT, "artifacts", provider, "descriptions.json")
     desc_raw = json.load(open(desc_path, encoding="utf-8"))
     qualifiers = qualifiers_for(provider_display)
     correct_key = azure_corrected_key if provider == "azure" else (lambda k: k)
+    field_by_key = build_field_index(dump_root)
 
     out = {}
+    not_found = 0
     for key, entry in desc_raw.items():
         if entry.get("source") == "vendor-spec" and not include_vendor_spec:
             continue
-        out[correct_key(key)] = {"source": entry["source"], "text": to_raw(entry["text"], qualifiers)}
+        lookup_key = correct_key(key)
+        field = field_by_key.get(lookup_key)
+        if field is None:
+            not_found += 1
+        real_qualifier = qualifier_for(field, provider_display) if field is not None else None
+        out[lookup_key] = {"source": entry["source"], "text": to_raw(entry["text"], qualifiers, real_qualifier)}
+    if not_found:
+        print(f"{provider}: {not_found} real entries had no matching field in --dump-root (renamed/removed since written) -- left completely unstripped")
     return out
 
 
@@ -149,6 +241,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("provider")
     ap.add_argument("provider_display")
+    ap.add_argument("--dump-root", required=True, help="a real, fresh `ubx sdk gen --dump-ir` directory for THIS provider specifically (e.g. .../google, not the parent dump-ir root) -- required so a stripped qualifier can be verified against this same field's own real, current, schema-derived qualifier before being removed (UBI-222)")
     ap.add_argument("--out", default=None, help="output path, default stdout")
     ap.add_argument(
         "--include-vendor-spec",
@@ -157,7 +250,7 @@ def main():
     )
     args = ap.parse_args()
 
-    raw = export_raw_descriptions(args.provider, args.provider_display, args.include_vendor_spec)
+    raw = export_raw_descriptions(args.provider, args.provider_display, args.dump_root, args.include_vendor_spec)
     by_prefix = {"resource": 0, "data_source": 0}
     for k in raw:
         by_prefix["data_source" if k.startswith("data_") else "resource"] += 1
