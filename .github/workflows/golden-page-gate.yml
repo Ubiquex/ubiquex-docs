@@ -102,7 +102,14 @@ jobs:
           # json.Marshal -- indentation was the dominant memory cost, not
           # the data itself) measured Azure's own real peak at 3.09GB
           # against this runner's 16GB, real margin -- re-included here.
-          for name in aws azure datadog github google kubernetes; do
+          # This loop's own provider list is NOT "every real provider"
+          # (see providers.py for that) -- it is exactly the providers
+          # golden/manifest.json's own real candidates cover, a
+          # deliberately curated, separate, smaller set (a new provider
+          # existing does not mean it has a golden reference page yet).
+          # Read live from that file, never hardcoded here, so a real
+          # new candidate's own schema_name is picked up automatically.
+          for name in $(python3 -c "import json; c=json.load(open('scripts/resource-reference-gen/golden/manifest.json'))['candidates']; print(' '.join(dict.fromkeys(x['schema_name'] for x in c)))"); do
             ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
               "${{ runner.temp }}/ubx" sdk gen --only "$name" --dump-ir "$dump_root" --out "${{ runner.temp }}/ubx-gen-unused" )
           done
@@ -116,11 +123,11 @@ jobs:
           set -euo pipefail
           idents_dir="${{ runner.temp }}/golden-idents"
           mkdir -p "$idents_dir"
-          # schema_name (ubx sdk gen --only value), matching
-          # golden/manifest.json's own real candidates exactly -- update
-          # this list if a candidate is added for a new provider. azure
-          # re-included -- UBI-204's real fix, see the dump step above.
-          for name in aws azure datadog github google kubernetes; do
+          # schema_name (ubx sdk gen --only value), read live from
+          # golden/manifest.json's own real candidates -- see the dump
+          # step above for why this is that file's own list, not every
+          # real provider. azure re-included -- UBI-204's real fix.
+          for name in $(python3 -c "import json; c=json.load(open('scripts/resource-reference-gen/golden/manifest.json'))['candidates']; print(' '.join(dict.fromkeys(x['schema_name'] for x in c)))"); do
             local_sdk="${{ runner.temp }}/golden-local-sdk-$name"
             mkdir -p "$local_sdk"
             ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
@@ -135,9 +142,12 @@ jobs:
 
       - name: Verify every golden candidate against its committed reference page
         run: |
-          # azure re-included -- UBI-204, see the dump step above.
+          # azure re-included -- UBI-204, see the dump step above. --only
+          # here is golden/manifest.json's own real candidates' docs
+          # keys (its own "provider" field, not "schema_name" -- differs
+          # for gcp/google), read live, not hardcoded.
           python3 scripts/resource-reference-gen/verify_against_golden.py \
             --schema-dir "${{ steps.dump.outputs.dump_root }}" \
             --idents-dir "${{ steps.idents.outputs.idents_dir }}" \
             --artifacts-root artifacts \
-            --only aws,azure,datadog,github,gcp,kubernetes
+            --only "$(python3 -c "import json; c=json.load(open('scripts/resource-reference-gen/golden/manifest.json'))['candidates']; print(','.join(dict.fromkeys(x['provider'] for x in c)))")"

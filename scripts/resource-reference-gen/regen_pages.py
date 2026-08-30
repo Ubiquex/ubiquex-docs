@@ -102,17 +102,21 @@ from provenance_check import check_provenance, collect_provenance, schema_proven
 from corpus_index import scan_provider_corpus
 from reconcile_stale_paths import apply_reconciliation
 from acquire_descriptions import resolve_descriptions_path
+import providers as providers_registry
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DOCS_ROOT = REPO_ROOT
 SCRATCH_DIR = "/tmp/regen-scratch"
 
-PROVIDER_DISPLAY = {"gcp": "Google Cloud", "azure": "Microsoft Azure", "aws": "AWS", "kubernetes": "Kubernetes", "digitalocean": "DigitalOcean"}
+# Read from providers.py's own shared registry (Tier 2) -- only the
+# providers this file's own resource-page regen actually covers
+# (RESOURCE_REGEN_PROVIDERS' own real membership), not every provider.
+PROVIDER_DISPLAY = {k: providers_registry.provider_display(k) for k in providers_registry.resource_regen_docs_keys()}
 
 # The real published SDK repo's own short name (sdk/providers/.ubx/config's
 # own "NAMING" rule) -- differs from this docs repo's own internal
 # provider key exactly once, for GCP ("gcp" here, "google" the real repo).
-SDK_REPO_ID = {"gcp": "google", "azure": "azure", "aws": "aws", "kubernetes": "kubernetes", "digitalocean": "digitalocean"}
+SDK_REPO_ID = {k: providers_registry.schema_name_of(k) for k in providers_registry.resource_regen_docs_keys()}
 
 # The "already baked directly into the raw IR dump, do not re-inject"
 # source tag is "vendor-spec" for every provider as of the docs-vendor/cfn
@@ -132,7 +136,7 @@ SDK_REPO_ID = {"gcp": "google", "azure": "azure", "aws": "aws", "kubernetes": "k
 # the 21 resources recovered by the alpha/beta version-collision fix
 # needed 0/122 fields individually described -- all already
 # "vendor-spec", confirmed live against the real dump-ir output).
-SKIP_INJECTION_SOURCE = {"gcp": "vendor-spec", "azure": "vendor-spec", "aws": "vendor-spec", "kubernetes": "vendor-spec", "digitalocean": "vendor-spec"}
+SKIP_INJECTION_SOURCE = {k: providers_registry.skip_injection_source(k) for k in providers_registry.resource_regen_docs_keys()}
 
 
 def main():
@@ -222,7 +226,7 @@ def main():
     # that ubx-sdk-google/-azure actually contain this family today (the
     # published-repo overlap check earlier this session found most of
     # them don't).
-    sdk_repo_id = {"gcp": "google", "azure": "azure", "aws": "aws", "kubernetes": "kubernetes", "digitalocean": "digitalocean"}[provider]
+    sdk_repo_id = SDK_REPO_ID[provider]
     # Real, confirmed live (UBI-189 follow-up): families_file's own Azure
     # entries carry the identical doubling azure_corrected_wire already
     # collapses for wire types (e.g. "azure_advisor_advisor", never a

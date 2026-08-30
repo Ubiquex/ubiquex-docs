@@ -35,6 +35,8 @@ schema dump):
 import os
 import re
 
+import providers as providers_registry
+
 TITLE_RE = re.compile(r'title:\s*"([^"]+)"')
 
 # UBI-214: real, found-in-review bug in this file's own first version --
@@ -167,14 +169,13 @@ def all_titles_with_paths(docs_root, provider):
 # can share the identical docs.json lookup rather than a second,
 # possibly-diverging copy -- gen_provider_docs.py is itself imported BY
 # gen_all_data_source_pages.py, so the shared home has to be a module
-# neither one imports the other through. corpus_index.py already has no
-# imports beyond the standard library and is already the "real, current
-# tree" ground-truth module both resource and nav rebuilding need.
-PROVIDER_TAB_NAMES = {
-    "aws": "AWS", "azure": "Azure", "gcp": "GCP",
-    "kubernetes": "Kubernetes", "github": "GitHub", "datadog": "Datadog",
-    "digitalocean": "DigitalOcean",
-}
+# neither one imports the other through. corpus_index.py is already the
+# "real, current tree" ground-truth module both resource and nav
+# rebuilding need; providers.py is the equivalent ground truth for
+# which providers exist at all, so importing it here has no
+# circularity risk either. Read from providers.py's own shared
+# registry (Tier 2), not a separately-maintained copy.
+PROVIDER_TAB_NAMES = {k: providers_registry.tab_name(k) for k in providers_registry.all_docs_keys()}
 
 
 def provider_group(doc, provider_key):

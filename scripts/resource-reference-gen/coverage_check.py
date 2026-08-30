@@ -47,17 +47,14 @@ REPO_ROOT = os.path.dirname(os.path.dirname(HERE))
 
 sys.path.insert(0, HERE)
 from build_regen_schema import gcp_corrected_key, gcp_corrected_local, azure_corrected_wire, azure_corrected_local
+import providers as providers_registry
 
 # dump_dir differs from the artifacts/resource-reference key only for
-# gcp -- mirrors gen_all_data_source_pages.py's own real PROVIDERS
-# dict exactly, not a second, independently-maintained copy of this
-# mapping (that div would silently drift the two apart the same way
-# the incidents UBI-190 fixed did).
-DUMP_DIR = {
-    "aws": "aws", "azure": "azure", "gcp": "google",
-    "kubernetes": "kubernetes", "github": "github", "datadog": "datadog",
-    "digitalocean": "digitalocean",
-}
+# gcp -- read from providers.py's own shared registry (Tier 2), the
+# single place this mapping now lives, not a separately-maintained
+# copy (that drift is exactly what let DigitalOcean's own onboarding
+# silently miss this file for a real turn -- UBI-222).
+DUMP_DIR = {k: providers_registry.schema_name_of(k) for k in providers_registry.all_docs_keys()}
 ALL_PROVIDERS = list(DUMP_DIR.keys())
 
 
@@ -343,15 +340,17 @@ def print_report(result, quiet):
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--dump-root", default="/tmp/docs-dump", help="directory holding <dump_dir>/schema.json per provider (ubx sdk gen --dump-ir's own output root)")
-    p.add_argument("--only", help="comma-separated provider list to restrict to (default: all six)")
+    p.add_argument("--only", help="comma-separated provider list to restrict to (default: every real provider)")
+    p.add_argument("--ubiquex-config", help="path to a real ubiquex checkout's sdk/providers/.ubx/config -- when given, --only omitted means the real, live provider set (Tier 1), not this file's own Tier-2-only default, and a provider missing its own REGISTRY entry fails loudly rather than silently")
     p.add_argument("--json", help="also write the full, machine-readable report to this path")
     p.add_argument("--quiet", action="store_true", help="only print per-provider summary lines when clean; still prints full detail for any provider with gaps")
     args = p.parse_args()
 
-    providers = args.only.split(",") if args.only else ALL_PROVIDERS
+    all_providers = providers_registry.all_docs_keys(args.ubiquex_config) if args.ubiquex_config else ALL_PROVIDERS
+    providers = args.only.split(",") if args.only else all_providers
     for p_name in providers:
         if p_name not in DUMP_DIR:
-            print(f"unknown provider {p_name!r} -- one of {ALL_PROVIDERS}", file=sys.stderr)
+            print(f"unknown provider {p_name!r} -- one of {all_providers}", file=sys.stderr)
             sys.exit(2)
 
     results = [check_provider(p_name, args.dump_root) for p_name in providers]

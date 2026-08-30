@@ -39,6 +39,7 @@ from provenance_check import check_provenance, collect_provenance, schema_proven
 from extract_idents import scan_py_data
 from acquire_descriptions import resolve_descriptions_path as _resolve_descriptions_path
 from corpus_index import provider_group, resource_pages_of
+import providers as providers_registry
 
 DOCS_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SCRATCH_DIR = "/tmp/regen-scratch"  # UBI-137: same directory regen_pages.py's own manifest lives in
@@ -58,15 +59,20 @@ def resolve_descriptions_path(provider_key, release_name=None):
 # unless that directory's own PROVENANCE.json confirms the schema was
 # genuinely pinned, not just that the ubx-provider-dynamic tool was
 # clean. go_dir/schema_name/provider_display/sdk_repo_id are real,
-# stable identity, not paths -- unaffected, stay here.
+# stable identity, not paths -- unaffected, stay here. Built from
+# providers.py's own shared registry (Tier 2) -- go_dir/schema_name/
+# sdk_repo_id are always identical to the real schema name for every
+# provider today (confirmed across all seven), so all three are
+# derived from the one real value rather than kept as three
+# independently-maintained copies.
 PROVIDERS = {
-    "aws": dict(go_dir="aws", schema_name="aws", provider_display="AWS", sdk_repo_id="aws"),
-    "azure": dict(go_dir="azure", schema_name="azure", provider_display="Microsoft Azure", sdk_repo_id="azure"),
-    "gcp": dict(go_dir="google", schema_name="google", provider_display="Google Cloud", sdk_repo_id="google"),
-    "kubernetes": dict(go_dir="kubernetes", schema_name="kubernetes", provider_display="Kubernetes", sdk_repo_id="kubernetes"),
-    "github": dict(go_dir="github", schema_name="github", provider_display="GitHub", sdk_repo_id="github"),
-    "datadog": dict(go_dir="datadog", schema_name="datadog", provider_display="Datadog", sdk_repo_id="datadog"),
-    "digitalocean": dict(go_dir="digitalocean", schema_name="digitalocean", provider_display="DigitalOcean", sdk_repo_id="digitalocean"),
+    key: dict(
+        go_dir=providers_registry.schema_name_of(key),
+        schema_name=providers_registry.schema_name_of(key),
+        provider_display=providers_registry.provider_display(key),
+        sdk_repo_id=providers_registry.schema_name_of(key),
+    )
+    for key in providers_registry.all_docs_keys()
 }
 
 

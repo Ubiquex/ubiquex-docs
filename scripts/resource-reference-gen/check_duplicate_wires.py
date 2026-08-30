@@ -26,11 +26,12 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from corpus_index import all_titles_with_paths
+import providers as providers_registry
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DOCS_ROOT = REPO_ROOT
 
-ALL_PROVIDERS = ["aws", "azure", "gcp", "kubernetes", "github", "datadog", "digitalocean"]
+ALL_PROVIDERS = providers_registry.all_docs_keys()
 
 
 def check_provider(docs_root, provider):

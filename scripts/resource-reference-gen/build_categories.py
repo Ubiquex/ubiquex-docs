@@ -34,6 +34,8 @@ current category and type name (not re-derived, not assumed).
 import json
 import re
 
+import providers as providers_registry
+
 DOCS_JSON = json.load(open('docs.json'))
 
 
@@ -238,9 +240,7 @@ def build_for_provider(provider_label, provider_key):
     return {"service_map": service_map, "overrides": overrides}
 
 
-PROVIDERS = [("AWS", "aws"), ("Azure", "azure"), ("GCP", "gcp"),
-             ("Datadog", "datadog"), ("GitHub", "github"), ("Kubernetes", "kubernetes"),
-             ("DigitalOcean", "digitalocean")]
+PROVIDERS = [(providers_registry.tab_name(k), k) for k in providers_registry.all_docs_keys()]
 
 if __name__ == "__main__":
     for label, key in PROVIDERS:

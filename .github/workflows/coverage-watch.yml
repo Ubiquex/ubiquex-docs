@@ -90,17 +90,17 @@ jobs:
           # was excluded from this loop while UBI-204 was open.
           # coverage_check.py's own --dump-root already expects exactly
           # this per-provider <dump_dir>/schema.json shape either way --
-          # no change needed downstream. This trades the old genericity
-          # (every declared provider, no hardcoded list) for reliability
-          # -- if a new provider is added to sdk/providers/.ubx/config,
-          # it needs adding to the loop below too, matching
-          # golden-page-gate.yml's own identical list and maintenance
-          # note.
+          # no change needed downstream.
           # UBI-204's real fix (cli/sdk.go's combined schema.json dump-ir
           # write switched from json.MarshalIndent to compact
           # json.Marshal) measured Azure's own real peak at 3.09GB
           # against this runner's 16GB -- azure re-included below.
-          for name in aws azure datadog github google kubernetes; do
+          # The provider list itself is read live from ubiquex's own
+          # real config (providers.py's own Tier 1), never hardcoded
+          # here -- restores the genericity the comment above used to
+          # say this loop traded away, without giving up the real,
+          # separate per-provider-call fix UBI-175/UBI-204 needed.
+          for name in $(python3 scripts/resource-reference-gen/providers.py --list-schema-names --config "${{ runner.temp }}/ubiquex-src/sdk/providers/.ubx/config"); do
             ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
               "${{ runner.temp }}/ubx" sdk gen --only "$name" --dump-ir "$dump_root" --out "${{ runner.temp }}/ubx-gen-unused" )
           done
@@ -110,10 +110,16 @@ jobs:
         id: check
         run: |
           set +e
-          # azure re-included -- UBI-204, see the dump step above.
+          # azure re-included -- UBI-204, see the dump step above. No
+          # --only here at all: coverage_check.py's own default, with
+          # --ubiquex-config given, is every real provider read live
+          # from ubiquex's own config -- the same Tier 1 source the
+          # dump loop above already uses, so the two can never drift
+          # apart the way the old, separately-hardcoded --only list
+          # and dump loop did.
           python3 scripts/resource-reference-gen/coverage_check.py \
             --dump-root "${{ steps.dump.outputs.dump_root }}" \
-            --only aws,azure,datadog,github,gcp,kubernetes \
+            --ubiquex-config "${{ runner.temp }}/ubiquex-src/sdk/providers/.ubx/config" \
             --json "${{ runner.temp }}/coverage-report.json" \
             > "${{ runner.temp }}/coverage-report.txt" 2>&1
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"

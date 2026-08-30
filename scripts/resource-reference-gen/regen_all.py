@@ -58,6 +58,8 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import providers as providers_registry
 
 # Hardcoded, not a CLI flag -- regen_pages.py and gen_all_data_source_pages.py
 # both hardcode this same path internally with no override, so a
@@ -66,24 +68,21 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SCRATCH_DIR = "/tmp/regen-scratch"
 
 # provider -> real, human display name (rebuild_provider_index/
-# rebuild_provider_nav's own required arg) -- only for the five
-# providers regen_pages.py covers; the other two run data-source-only.
-RESOURCE_REGEN_PROVIDERS = {
-    "aws": "AWS",
-    "azure": "Microsoft Azure",
-    "gcp": "Google Cloud",
-    "kubernetes": "Kubernetes",
-    "digitalocean": "DigitalOcean",
-}
-DATA_SOURCE_ONLY_PROVIDERS = ["github", "datadog"]
-ALL_PROVIDERS = ["aws", "azure", "gcp", "kubernetes", "github", "datadog", "digitalocean"]
+# rebuild_provider_nav's own required arg) -- only for the providers
+# regen_pages.py covers; the rest run data-source-only. Read from
+# providers.py's own shared registry (Tier 2), not a separately-
+# maintained copy -- see providers.py's own doc comment for why this
+# consolidation exists.
+RESOURCE_REGEN_PROVIDERS = {k: providers_registry.provider_display(k) for k in providers_registry.resource_regen_docs_keys()}
+DATA_SOURCE_ONLY_PROVIDERS = providers_registry.data_source_only_docs_keys()
 
 # gcp's own docs-internal key differs from the real published SDK repo's
 # own short name ("google") that --dump-root/--local-sdk-root are
 # actually keyed by (sdk/providers/.ubx/config's own real naming rule,
 # UBI-102's own confirmed precedent) -- every other provider's two names
-# already match.
-SCHEMA_NAME = {"gcp": "google"}
+# already match. Read from providers.py's own registry rather than a
+# second, independently-maintained copy of the same one real exception.
+SCHEMA_NAME = {k: providers_registry.schema_name_of(k) for k in providers_registry.all_docs_keys() if providers_registry.schema_name_of(k) != k}
 
 
 def run(cmd, **kw):
@@ -148,7 +147,8 @@ def main():
     p.add_argument("--dump-root", required=True, help="root of a real --dump-ir run, <root>/<schema-name>/schema.json per provider")
     p.add_argument("--local-sdk-root", required=True, help="root of a real --lang go/py/ts run, <root>/<schema-name>/sdk/{go,python,typescript}")
     p.add_argument("--docs-root", required=True)
-    p.add_argument("--only", default=None, help="comma-separated provider subset, default: all six")
+    p.add_argument("--only", default=None, help="comma-separated provider subset, default: every real provider")
+    p.add_argument("--ubiquex-config", help="path to a real ubiquex checkout's sdk/providers/.ubx/config -- when given, --only omitted means the real, live provider set (Tier 1), not this file's own Tier-2-only fallback, and a provider missing its own providers.py REGISTRY entry fails loudly rather than silently. Every CI caller of this script already has a real ubiquex checkout and should always pass this.")
     args = p.parse_args()
 
     if os.environ.get("UBX_DOCS_ALLOW_COVERAGE_GAPS"):
@@ -159,7 +159,8 @@ def main():
             "overriding the gate, exactly so nothing here ever needs it."
         )
 
-    providers = args.only.split(",") if args.only else ALL_PROVIDERS
+    all_providers = providers_registry.all_docs_keys(args.ubiquex_config)
+    providers = args.only.split(",") if args.only else all_providers
 
     results = [regen_provider(provider, args) for provider in providers]
 

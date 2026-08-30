@@ -14,12 +14,14 @@ name: resource-reference-regen
 # setting it would silently reintroduce exactly the gap-shipping this
 # mechanism exists to prevent.
 #
-# Four providers (aws, azure, gcp, kubernetes) get real resource-page
-# regeneration via regen_pages.py. github/datadog do not yet -- their
-# own ongoing regen uses a different, less mature mechanism with no
-# coverage-gap staging path. A real, named gap: reported in every run's
-# own step summary (regen_all.py's own "not_covered" field), never
-# silently scoped out. Data-source pages ARE covered for all six.
+# Most providers get real resource-page regeneration via regen_pages.py
+# -- github/datadog do not yet, their own ongoing regen uses a
+# different, less mature mechanism with no coverage-gap staging path.
+# Real membership lives in providers.py's own shared registry (Tier 2),
+# not this comment -- see that file for the current, authoritative
+# list. A real, named gap: reported in every run's own step summary
+# (regen_all.py's own "not_covered" field), never silently scoped out.
+# Data-source pages ARE covered for every real provider.
 #
 # This run's own per-provider outcome is always written to the step
 # summary, whether or not anything was eligible -- a run that only
@@ -90,17 +92,21 @@ jobs:
           dump_root="${{ runner.temp }}/regen-dump"
           local_sdk_root="${{ runner.temp }}/regen-local-sdk"
           mkdir -p "$dump_root" "$local_sdk_root"
-          # Same six real providers, same per-provider loop (never one
-          # bulk call) as golden-page-gate.yml/coverage-watch.yml --
+          # Same real providers, same per-provider loop (never one bulk
+          # call) as golden-page-gate.yml/coverage-watch.yml --
           # UBI-175/UBI-204's own real finding that a single bulk
           # --dump-ir call never completed in CI, and azure specifically
           # needed UBI-204's compact-JSON fix to fit this runner's 16GB.
           # ubx itself namespaces --out by provider name, so one shared
           # local_sdk_root is safe across the whole loop (confirmed live
           # against a real kubernetes dump/gen this ticket's own session
-          # already ran locally). Update this list if a new provider is
-          # onboarded (UBI-216's own runbook).
-          for name in aws azure datadog github google kubernetes; do
+          # already ran locally). The provider list itself is read live
+          # from ubiquex's own real config (providers.py's own Tier 1),
+          # never hardcoded here -- this exact hardcoded list, unchanged
+          # since before DigitalOcean's own onboarding, is why this
+          # workflow never actually regenerated DigitalOcean on PR #59's
+          # own merge despite every Python-level fix already landing.
+          for name in $(python3 scripts/resource-reference-gen/providers.py --list-schema-names --config "${{ runner.temp }}/ubiquex-src/sdk/providers/.ubx/config"); do
             ( cd "${{ runner.temp }}/ubiquex-src/sdk/providers" && \
               "${{ runner.temp }}/ubx" sdk gen --only "$name" --dump-ir "$dump_root" --out "${{ runner.temp }}/ubx-gen-unused" && \
               "${{ runner.temp }}/ubx" sdk gen --only "$name" --lang go --out "$local_sdk_root" && \
@@ -118,6 +124,7 @@ jobs:
             --dump-root "${{ steps.gen.outputs.dump_root }}" \
             --local-sdk-root "${{ steps.gen.outputs.local_sdk_root }}" \
             --docs-root "$(pwd)" \
+            --ubiquex-config "${{ runner.temp }}/ubiquex-src/sdk/providers/.ubx/config" \
             > "${{ runner.temp }}/regen-report.json" 2> "${{ runner.temp }}/regen-log.txt"
           code=$?
           set -e
