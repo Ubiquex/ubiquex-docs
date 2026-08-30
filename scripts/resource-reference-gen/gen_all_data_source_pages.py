@@ -423,10 +423,26 @@ def main():
     # resource-only -- data sources always fall to default derivation
     # by design, never a real gap).
     coverage_result = None
+    coverage_gaps = 0
     if written_records:
         coverage_entries = schema_entries_from_corrected(written_records, is_ds=True)
         coverage_result = check_gaps(provider_key, coverage_entries, repo_root=DOCS_ROOT, check_disk=False)
         coverage_gaps = gap_count(coverage_result)
+
+    # UBI-137: mirrors regen_pages.py's own {provider}_regen_result.json,
+    # and its own identical real fix -- written BEFORE the refusal below
+    # can exit, not after. The first version of this got the ordering
+    # backwards (sys.exit(1) before the dump), which meant this file
+    # never got written on exactly the run a downstream staging step
+    # most needs to read it.
+    os.makedirs(SCRATCH_DIR, exist_ok=True)
+    json.dump(
+        {"wire_to_page": wire_to_page, "coverage_result": coverage_result},
+        open(os.path.join(SCRATCH_DIR, f"{provider_key}_datasource_regen_result.json"), "w"),
+        indent=2,
+    )
+
+    if written_records:
         if coverage_gaps:
             print(f"\n{provider_key}: UBI-187 coverage check found {coverage_gaps} gap(s) in this run's own batch:")
             print_report(coverage_result, quiet=False)
@@ -436,19 +452,6 @@ def main():
                 sys.exit(1)
         else:
             print(f"{provider_key}: UBI-187 coverage check clean for this run's {len(written_records)} data source(s)")
-
-    # UBI-137: mirrors regen_pages.py's own {provider}_regen_result.json --
-    # wire_to_page plus this run's own coverage_result, written even when
-    # the coverage gate above already exited nonzero (Python only reaches
-    # this line if it didn't), so a genuinely clean run still leaves a
-    # real manifest a downstream staging step can read without having to
-    # recompute the same check a second time.
-    os.makedirs(SCRATCH_DIR, exist_ok=True)
-    json.dump(
-        {"wire_to_page": wire_to_page, "coverage_result": coverage_result},
-        open(os.path.join(SCRATCH_DIR, f"{provider_key}_datasource_regen_result.json"), "w"),
-        indent=2,
-    )
 
     if written:
         prov_path = write_provenance_record(

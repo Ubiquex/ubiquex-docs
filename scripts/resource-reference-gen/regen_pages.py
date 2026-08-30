@@ -462,25 +462,20 @@ def main():
     # "on disk" -- that check exists for the standalone corpus-wide
     # sweep, not a freshly-generated batch.
     coverage_result = None
+    coverage_gaps = 0
     if all_corrected:
         coverage_entries = schema_entries_from_corrected(all_corrected)
         coverage_result = check_gaps(provider, coverage_entries, repo_root=DOCS_ROOT, check_disk=False)
         coverage_gaps = gap_count(coverage_result)
-        if coverage_gaps:
-            print(f"\n{provider}: UBI-187 coverage check found {coverage_gaps} gap(s) in this run's own batch:")
-            print_report(coverage_result, quiet=False)
-            if not os.environ.get("UBX_DOCS_ALLOW_COVERAGE_GAPS"):
-                print(f"\n{provider}: refusing to finish with an uncovered page in this batch "
-                      f"(set UBX_DOCS_ALLOW_COVERAGE_GAPS=1 to override and report only)")
-                sys.exit(1)
-        else:
-            print(f"{provider}: UBI-187 coverage check clean for this run's {len(all_corrected)} regenerated wire(s)")
 
-    # UBI-137: coverage_result added alongside wire_to_page -- a
-    # downstream staging step needs the exact gapped-wire list to
-    # exclude the right files, without recomputing the same check this
-    # run already did (and reached this line only because it didn't
-    # already exit nonzero above).
+    # UBI-137: the manifest is written BEFORE the refusal below can
+    # exit, not after -- real, found-in-review bug in the first version
+    # of this fix: sys.exit(1) firing on a real gap meant this file
+    # never got written at all on exactly the run a downstream staging
+    # step most needs to read it (a clean run never needed the
+    # exclusion list in the first place). coverage_result here is what
+    # lets that step exclude the right files without recomputing the
+    # same check this run already did.
     json.dump(
         {
             "wire_to_page": wire_to_page, "per_family_counts": per_family_counts,
@@ -490,6 +485,17 @@ def main():
         open(os.path.join(SCRATCH_DIR, f"{provider}_regen_result.json"), "w"),
         indent=2,
     )
+
+    if all_corrected:
+        if coverage_gaps:
+            print(f"\n{provider}: UBI-187 coverage check found {coverage_gaps} gap(s) in this run's own batch:")
+            print_report(coverage_result, quiet=False)
+            if not os.environ.get("UBX_DOCS_ALLOW_COVERAGE_GAPS"):
+                print(f"\n{provider}: refusing to finish with an uncovered page in this batch "
+                      f"(set UBX_DOCS_ALLOW_COVERAGE_GAPS=1 to override and report only)")
+                sys.exit(1)
+        else:
+            print(f"{provider}: UBI-187 coverage check clean for this run's {len(all_corrected)} regenerated wire(s)")
 
     if total_resources:
         prov_path = write_provenance_record(
