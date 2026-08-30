@@ -1,0 +1,121 @@
+name: publish-descriptions
+
+# Manual-trigger only, matching every ubx-schema-*/ubx-sdk-* repo's own
+# publish.yml convention. Cuts a real GitHub Release for ONE provider's
+# own raw description corpus (UBI-102) -- the pinnable artifact
+# `provider.AcquireDescriptions` (ubiquex's own provider package) and
+# this repo's own regeneration scripts both resolve, replacing the two
+# independently-maintained copies (sdk/providers/descriptions/<provider>.json
+# in ubiquex, this repo's own artifacts/<provider>/descriptions.json)
+# that caused UBI-102's own real 49,479-description gap.
+#
+# Real, deliberate difference from the schema repos' own publish.yml:
+# no upstream to drift against, so there is no matching hash-watch.yml
+# here. A new version is cut when a real authoring session adds or
+# improves content (UBI-216's own "Claude Code writes them in batches
+# with a manifest" runbook), never on a schedule -- see this repo's own
+# CLAUDE.md for the real reasoning against mixing a hand-authored
+# corpus with mechanically-regenerated automation.
+#
+# Tag is namespaced per provider (descriptions-<provider>-vX.Y.Z), since
+# this ONE repo hosts every provider's own corpus, unlike a schema
+# repo's own bare vX.Y.Z (one repo per provider already gives that
+# separation for free). Exactly two release assets, matching the schema
+# repos' own real shape: snapshot.tar.gz (one file,
+# descriptions-raw/<provider>.json) and SHA256SUMS.
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "Provider to publish (e.g. datadog)"
+        required: true
+        type: string
+      version:
+        description: "Version to publish (e.g. 1.0.0) -- must match descriptions-raw/<provider>.json's own real content at this commit"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out ubiquex-docs
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Confirm the real corpus file exists for this provider
+        run: |
+          set -euo pipefail
+          test -f "descriptions-raw/${{ inputs.provider }}.json" || {
+            echo "descriptions-raw/${{ inputs.provider }}.json does not exist -- run export_raw_descriptions.py first" >&2
+            exit 1
+          }
+
+      - name: Refuse to republish an existing release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="descriptions-${{ inputs.provider }}-v${{ inputs.version }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "$tag is already released -- nothing to do" >&2
+            exit 1
+          fi
+
+      - name: Pack the real corpus into one archive
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/pack"
+          cp "descriptions-raw/${{ inputs.provider }}.json" "${{ runner.temp }}/pack/${{ inputs.provider }}.json"
+          tar czf "${{ runner.temp }}/snapshot.tar.gz" -C "${{ runner.temp }}/pack" "${{ inputs.provider }}.json"
+          sha256sum "${{ runner.temp }}/snapshot.tar.gz" > "${{ runner.temp }}/SHA256SUMS"
+
+      - name: Summarize the real corpus -- counts only
+        id: summary
+        run: |
+          set -euo pipefail
+          python3 -c "
+          import json
+          d = json.load(open('descriptions-raw/${{ inputs.provider }}.json'))
+          resources = sum(1 for k in d if not k.startswith('data_'))
+          data_sources = sum(1 for k in d if k.startswith('data_'))
+          print(f'resources={resources}')
+          print(f'data_sources={data_sources}')
+          " >> "$GITHUB_OUTPUT"
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="descriptions-${{ inputs.provider }}-v${{ inputs.version }}"
+          gh release create "$tag" "${{ runner.temp }}/snapshot.tar.gz" "${{ runner.temp }}/SHA256SUMS" \
+            --title "$tag" \
+            --notes "${{ inputs.provider }} raw description corpus v${{ inputs.version }} (${{ steps.summary.outputs.resources }} real resource entries, ${{ steps.summary.outputs.data_sources }} real data source entries, qualifier-free).
+
+          Pin in ubiquex's sdk/providers/.ubx/config:
+
+          \`\`\`toml
+          [dynamic_providers.${{ inputs.provider }}.descriptions]
+          source  = \"ubiquex-docs\"
+          version = \"${{ inputs.version }}\"
+          \`\`\`"
+
+      - name: Verify the release is real and carries exactly the two expected assets, queried independently
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="descriptions-${{ inputs.provider }}-v${{ inputs.version }}"
+          gh release view "$tag" --json assets --jq '.assets[].name' | sort > "${{ runner.temp }}/got-assets"
+          printf '%s\n' "SHA256SUMS" "snapshot.tar.gz" | sort > "${{ runner.temp }}/want-assets"
+          if ! diff -u "${{ runner.temp }}/want-assets" "${{ runner.temp }}/got-assets"; then
+            echo "$tag does not have exactly the two expected assets" >&2
+            exit 1
+          fi
+          echo "$tag published with exactly the two expected assets."
