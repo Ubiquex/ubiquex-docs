@@ -160,3 +160,57 @@ def all_titles_with_paths(docs_root, provider):
             wire = real_wire_of(rel, m.group(1))
             by_title.setdefault(wire, []).append(rel)
     return by_title
+
+
+# UBI-137: moved here from gen_all_data_source_pages.py (its original,
+# still-real caller) so gen_provider_docs.py's own rebuild_provider_nav
+# can share the identical docs.json lookup rather than a second,
+# possibly-diverging copy -- gen_provider_docs.py is itself imported BY
+# gen_all_data_source_pages.py, so the shared home has to be a module
+# neither one imports the other through. corpus_index.py already has no
+# imports beyond the standard library and is already the "real, current
+# tree" ground-truth module both resource and nav rebuilding need.
+PROVIDER_TAB_NAMES = {
+    "aws": "AWS", "azure": "Azure", "gcp": "GCP",
+    "kubernetes": "Kubernetes", "github": "GitHub", "datadog": "Datadog",
+}
+
+
+def provider_group(doc, provider_key):
+    target_tab = PROVIDER_TAB_NAMES[provider_key]
+    for t in doc["navigation"]["tabs"]:
+        if t.get("tab") != "SDK Reference":
+            continue
+        for g in t["groups"]:
+            if g.get("group") == target_tab:
+                return g["pages"]
+    raise RuntimeError(f"no {target_tab!r} group found in docs.json")
+
+
+def resource_pages_of(subgroup):
+    """A subgroup's own real, flat resource page list -- whether it's
+    still a plain {"group": X, "pages": [str, ...]} (never touched by
+    this nesting pattern) or already {"group": X, "pages":
+    [{"group": "Resources", ...}, {"group": "Data sources", ...}]} (a
+    re-run)."""
+    pages = subgroup.get("pages", [])
+    if pages and isinstance(pages[0], dict):
+        resources_sub = next((p for p in pages if p.get("group") == "Resources"), None)
+        return resources_sub["pages"] if resources_sub else []
+    return pages
+
+
+def set_resource_pages(subgroup, new_pages):
+    """resource_pages_of's own write-side mirror (UBI-137) -- updates
+    ONLY the resource half of subgroup["pages"] in place, leaving an
+    already-present "Data sources" sub-list (gen_all_data_source_pages.py's
+    own real write shape) untouched either way."""
+    pages = subgroup.get("pages", [])
+    if pages and isinstance(pages[0], dict):
+        resources_sub = next((p for p in pages if p.get("group") == "Resources"), None)
+        if resources_sub is not None:
+            resources_sub["pages"] = new_pages
+        else:
+            pages.insert(0, {"group": "Resources", "pages": new_pages})
+    else:
+        subgroup["pages"] = new_pages

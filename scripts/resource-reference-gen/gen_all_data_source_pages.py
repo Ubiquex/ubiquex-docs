@@ -38,8 +38,10 @@ from coverage_check import schema_entries_from_corrected, check_gaps, gap_count,
 from provenance_check import check_provenance, collect_provenance, schema_provenance_of, write_provenance_record
 from extract_idents import scan_py_data
 from acquire_descriptions import resolve_descriptions_path as _resolve_descriptions_path
+from corpus_index import provider_group, resource_pages_of
 
 DOCS_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+SCRATCH_DIR = "/tmp/regen-scratch"  # UBI-137: same directory regen_pages.py's own manifest lives in
 
 
 def resolve_descriptions_path(provider_key, release_name=None):
@@ -164,32 +166,9 @@ def idents_for(local_slug, service_dir, binding, config, nested_fields=None, py_
     return go, ts, py
 
 
-def provider_group(doc, provider_key):
-    tab_names = {
-        "aws": "AWS", "azure": "Azure", "gcp": "GCP",
-        "kubernetes": "Kubernetes", "github": "GitHub", "datadog": "Datadog",
-    }
-    target_tab = tab_names[provider_key]
-    for t in doc["navigation"]["tabs"]:
-        if t.get("tab") != "SDK Reference":
-            continue
-        for g in t["groups"]:
-            if g.get("group") == target_tab:
-                return g["pages"]
-    raise RuntimeError(f"no {target_tab!r} group found in docs.json")
-
-
-def resource_pages_of(subgroup):
-    """A subgroup's own real, flat resource page list -- whether it's
-    still a plain {"group": X, "pages": [str, ...]} (never touched by
-    this nesting pattern) or already {"group": X, "pages":
-    [{"group": "Resources", ...}, {"group": "Data sources", ...}]} (a
-    re-run)."""
-    pages = subgroup.get("pages", [])
-    if pages and isinstance(pages[0], dict):
-        resources_sub = next((p for p in pages if p.get("group") == "Resources"), None)
-        return resources_sub["pages"] if resources_sub else []
-    return pages
+# UBI-137: provider_group/resource_pages_of moved to corpus_index.py so
+# gen_provider_docs.py's own rebuild_provider_nav can share them without
+# a circular import (this module already imports FROM gen_provider_docs.py).
 
 
 def _norm(s):
@@ -350,6 +329,7 @@ def main():
     skipped_no_group = []
     new_pages_by_group = {}
     written_records = {}  # UBI-187: wire -> meta for every page actually written this run
+    wire_to_page = {}  # UBI-137: data_<wire> -> real page path, mirrors regen_pages.py's own manifest
 
     for wire, ident in sorted(go_idents.items()):
         meta = by_wire.get(wire)
@@ -395,6 +375,7 @@ def main():
             f.write(page)
         written += 1
         written_records[wire] = meta
+        wire_to_page[data_key] = os.path.relpath(out_path, DOCS_ROOT)
 
         # Orphans (no sibling Resources group to nest under) were
         # already placed into docs.json on their own, standalone group
@@ -441,6 +422,7 @@ def main():
     # check_gaps skip it, matching that categories.json is
     # resource-only -- data sources always fall to default derivation
     # by design, never a real gap).
+    coverage_result = None
     if written_records:
         coverage_entries = schema_entries_from_corrected(written_records, is_ds=True)
         coverage_result = check_gaps(provider_key, coverage_entries, repo_root=DOCS_ROOT, check_disk=False)
@@ -454,6 +436,19 @@ def main():
                 sys.exit(1)
         else:
             print(f"{provider_key}: UBI-187 coverage check clean for this run's {len(written_records)} data source(s)")
+
+    # UBI-137: mirrors regen_pages.py's own {provider}_regen_result.json --
+    # wire_to_page plus this run's own coverage_result, written even when
+    # the coverage gate above already exited nonzero (Python only reaches
+    # this line if it didn't), so a genuinely clean run still leaves a
+    # real manifest a downstream staging step can read without having to
+    # recompute the same check a second time.
+    os.makedirs(SCRATCH_DIR, exist_ok=True)
+    json.dump(
+        {"wire_to_page": wire_to_page, "coverage_result": coverage_result},
+        open(os.path.join(SCRATCH_DIR, f"{provider_key}_datasource_regen_result.json"), "w"),
+        indent=2,
+    )
 
     if written:
         prov_path = write_provenance_record(
