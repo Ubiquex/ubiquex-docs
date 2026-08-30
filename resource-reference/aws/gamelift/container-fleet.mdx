@@ -1,0 +1,338 @@
+---
+title: "aws_game_lift_container_fleet"
+description: "`aws_game_lift_container_fleet` runs real, containerized game server applications, defined by an `aws_game_lift_container_group_definition`..."
+---
+
+`aws_game_lift_container_fleet` runs real, containerized game server applications, defined by an `aws_game_lift_container_group_definition`, on managed EC2 instances, GameLift's container-native alternative to `aws_game_lift_fleet`'s own executable-based deployment model.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	gamelift "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/gamelift"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own container fleet"})
+
+    		ubx.Resource(gamelift.ContainerFleet, "example", gamelift.ContainerFleetConfig{
+    			FleetRoleArn:                           "arn:aws:iam::123456789012:policy/example",
+    			BillingType:                            "example",
+    			DeploymentConfiguration:                map[string]any{"impairment_strategy": "example"},
+    			Description:                            "Managed by ubx.",
+    			GameServerContainerGroupDefinitionName: "example-game-server-container-group-definition-name",
+    			GameServerContainerGroupsPerInstance:   1,
+    			GameSessionCreationLimitPolicy:         map[string]any{"new_game_sessions_per_creator": 1},
+    			InstanceConnectionPortRange:            map[string]any{"from_port": 1, "to_port": 1},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ContainerFleet } from "@ubx/sdk-aws/aws/gamelift/container_fleet";
+
+    export default stack("example", () => {
+      intent({ summary: "example own container fleet" });
+
+      resource(ContainerFleet, "example", {
+        fleetRoleArn: "arn:aws:iam::123456789012:policy/example",
+        billingType: "example",
+        deploymentConfiguration: { impairmentStrategy: "example" },
+        description: "Managed by ubx.",
+        gameServerContainerGroupDefinitionName:
+          "example-game-server-container-group-definition-name",
+        gameServerContainerGroupsPerInstance: 1,
+        gameSessionCreationLimitPolicy: { newGameSessionsPerCreator: 1 },
+        instanceConnectionPortRange: { fromPort: 1, toPort: 1 },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.gamelift import ContainerFleet, ContainerFleetConfig
+    from ubx.aws.gamelift.container_fleet import ContainerFleet_DeploymentConfiguration, ContainerFleet_GameSessionCreationLimitPolicy, ContainerFleet_InstanceConnectionPortRange
+
+    def describe():
+        ubx.intent("example own container fleet")
+
+        ubx.resource(ContainerFleet, "example", ContainerFleetConfig(
+            fleet_role_arn="arn:aws:iam::123456789012:policy/example",
+            billing_type="example",
+            deployment_configuration=ContainerFleet_DeploymentConfiguration(impairment_strategy="example"),
+            description="Managed by ubx.",
+            game_server_container_group_definition_name="example-game-server-container-group-definition-name",
+            game_server_container_groups_per_instance=1,
+            game_session_creation_limit_policy=ContainerFleet_GameSessionCreationLimitPolicy(new_game_sessions_per_creator=1),
+            instance_connection_port_range=ContainerFleet_InstanceConnectionPortRange(from_port=1, to_port=1),
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_game_lift_container_fleet, with fleet role arn
+    arn:aws:iam::123456789012:policy/example, billing type example,
+    deployment configuration a set value, description Managed by
+    ubx., game server container group definition name
+    example-game-server-container-group-definition-name, game server
+    container groups per instance 1, game session creation limit
+    policy a set value, instance connection port range a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="billing_type" type="string">
+  Indicates whether to use On-Demand instances or Spot instances for this fleet. If empty, the default is ON_DEMAND. Both categories of instances use identical hardware and configurations based on the instance type selected for this fleet. Optional.
+</ResponseField>
+
+<ResponseField name="deployment_configuration" type="object">
+  Provides details about how to drain old tasks and replace them with new updated tasks. Optional.
+  <Expandable title="properties">
+    <ResponseField name="impairment_strategy" type="string">
+      The strategy to apply in case of impairment; defaults to MAINTAIN. Optional.
+    </ResponseField>
+    <ResponseField name="minimum_healthy_percentage" type="number">
+      The minimum percentage of healthy required; defaults to 75. Optional.
+    </ResponseField>
+    <ResponseField name="protection_strategy" type="string">
+      The protection strategy for deployment on the container fleet; defaults to WITH_PROTECTION. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  A human-readable description of a fleet. Optional.
+</ResponseField>
+
+<ResponseField name="fleet_role_arn" type="string" required>
+  A unique identifier for an AWS IAM role that manages access to your AWS services. Create a role or look up a role's ARN from the IAM dashboard in the AWS Management Console. Required.
+</ResponseField>
+
+<ResponseField name="game_server_container_group_definition_name" type="string">
+  The name of the container group definition that will be created per game server. You must specify GAME_SERVER container group. You have the option to also specify one PER_INSTANCE container group. Optional.
+</ResponseField>
+
+<ResponseField name="game_server_container_groups_per_instance" type="number">
+  The number of desired game server container groups per instance, a number between 1-5000. Optional.
+</ResponseField>
+
+<ResponseField name="game_session_creation_limit_policy" type="object">
+  A policy that limits the number of game sessions a player can create on the same fleet. This optional policy gives game owners control over how players can consume available game server resources. A resource creation policy makes the following statement: "An individual player can create a maximum number of new game sessions within a specified time period". The policy is evaluated when a player tries to create a new game session. For example, assume you have a policy of 10 new game sessions and a time period of 60 minutes. On receiving a CreateGameSession request, Amazon GameLift checks that the player (identified by CreatorId) has created fewer than 10 game sessions in the past 60 minutes. Optional.
+  <Expandable title="properties">
+    <ResponseField name="new_game_sessions_per_creator" type="number">
+      The maximum number of game sessions that an individual can create during the policy period. Optional.
+    </ResponseField>
+    <ResponseField name="policy_period_in_minutes" type="number">
+      The time span used in evaluating the resource creation limit policy. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="instance_connection_port_range" type="object">
+  Defines the range of ports on the instance that allow inbound traffic to connect with containers in a fleet. Optional.
+  <Expandable title="properties">
+    <ResponseField name="from_port" type="number" required>
+      A starting value for a range of allowed port numbers. Required.
+    </ResponseField>
+    <ResponseField name="to_port" type="number" required>
+      An ending value for a range of allowed port numbers. Port numbers are end-inclusive. This value must be higher than FromPort. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="instance_inbound_permissions" type="list(object)">
+  A range of IP addresses and port settings that allow inbound traffic to connect to server processes on an Amazon GameLift server. Optional.
+  <Expandable title="properties">
+    <ResponseField name="from_port" type="number">
+      Specifies the starting port number of the range of inbound ports that are allowed on the container fleet's instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="ip_range" type="string">
+      Specifies the CIDR IP address range allowed to connect to the container fleet's game server ports. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="protocol" type="string">
+      Specifies the IP protocol (TCP or UDP) for the inbound traffic that is allowed to reach the container fleet's instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="to_port" type="number">
+      The upper bound of the port range that is allowed for inbound traffic to the container fleet's instances, used together with the from_port value to define a contiguous range. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="instance_type" type="string">
+  The name of an EC2 instance type that is supported in Amazon GameLift. A fleet instance type determines the computing resources of each instance in the fleet, including CPU, memory, storage, and networking capacity. Amazon GameLift supports the following EC2 instance types. See Amazon EC2 Instance Types for detailed descriptions. Optional.
+</ResponseField>
+
+<ResponseField name="log_configuration" type="object">
+  A policy the location and provider of logs from the fleet. Optional.
+  <Expandable title="properties">
+    <ResponseField name="log_destination" type="string">
+      Configures the service that provides logs. Optional.
+    </ResponseField>
+    <ResponseField name="log_group_arn" type="string">
+      If log destination is CLOUDWATCH, logs are sent to the specified log group in Amazon CloudWatch. Optional.
+    </ResponseField>
+    <ResponseField name="s3_bucket_name" type="string">
+      The name of the S3 bucket to pull logs from if S3 is the LogDestination Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="metric_groups" type="list(string)">
+  The name of an Amazon CloudWatch metric group. A metric group aggregates the metrics for all fleets in the group. Specify a string containing the metric group name. You can use an existing name or use a new name to create a new metric group. Currently, this parameter can have only one string. Optional.
+</ResponseField>
+
+<ResponseField name="new_game_session_protection_policy" type="string">
+  A game session protection policy to apply to all game sessions hosted on instances in this fleet. When protected, active game sessions cannot be terminated during a scale-down event. If this parameter is not set, instances in this fleet default to no protection. You can change a fleet's protection policy to affect future game sessions on the fleet. You can also set protection for individual game sessions. Optional.
+</ResponseField>
+
+<ResponseField name="per_instance_container_group_definition_name" type="string">
+  The name of the container group definition that will be created per instance. This field is optional if you specify GameServerContainerGroupDefinitionName. Optional.
+</ResponseField>
+
+<ResponseField name="player_gateway_mode" type="string">
+  The player gateway mode for the container fleet. Optional.
+</ResponseField>
+
+<ResponseField name="scaling_policies" type="list(object)">
+  A list of rules that control how a fleet is scaled. Optional.
+  <Expandable title="properties">
+    <ResponseField name="comparison_operator" type="string">
+      The comparison operator used to evaluate the scaling metric against the threshold in the container fleet scaling policy, such as GreaterThanOrEqualToThreshold or LessThanThreshold. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="evaluation_periods" type="number">
+      The number of consecutive 1-minute evaluation periods that the fleet's metric must breach the policy's threshold before the target tracking scaling policy triggers an adjustment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="metric_name" type="string">
+      The name of the CloudWatch metric (e.g., CPUUtilization, PlayerCount) that this scaling policy watches to determine when to trigger scaling actions for the container fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      The name string that uniquely identifies this scaling policy within the container fleet, used to reference the policy in metrics and API calls. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="policy_type" type="string">
+      The type of scaling policy for the container fleet, either 'TargetTracking' to adjust capacity based on a target metric value or 'RuleBased' to scale based on custom conditions. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="scaling_adjustment" type="number">
+      The number of instances by which the GameLift Container Fleet's desired capacity is increased or decreased when a CHANGE_IN_CAPACITY scaling policy is triggered. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="scaling_adjustment_type" type="string">
+      Specifies whether the scaling adjustment is an absolute change in capacity, an exact capacity value, or a percentage change in capacity (ChangeInCapacity, ExactCapacity, or PercentChangeInCapacity). Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="target_configuration" type="object">
+      The target tracking configuration for a scaling policy, specifying the metric and target value (e.g., a target fleet utilization or instance count) that the GameLift container fleet automatically adjusts capacity to maintain. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="target_value" type="number">
+          The target value for the metric used by the target-based scaling policy; GameLift adjusts the fleet's desired capacity to keep the metric near this value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="threshold" type="number">
+      The target value of the specified metric that, when crossed, triggers the scaling adjustment for the container fleet's autoscaling policy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The case-sensitive key of a tag attached to the Amazon GameLift container fleet, which serves as the tag's identifier for categorization and cost tracking. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value part of a key-value tag attached to the GameLift container fleet, used for resource organization, cost allocation, and access control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="creation_time" type="string">
+  A time stamp indicating when this data object was created. Format is a number expressed in Unix time as milliseconds (for example "1469498468.057"). Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="deployment_details" type="object">
+  Provides information about the last deployment ID and its status. Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="latest_deployment_id" type="string">
+      The ID of the last deployment on the container fleet. This field will be empty if the container fleet does not have a ContainerGroupDefinition attached. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="fleet_arn" type="string">
+  The Amazon Resource Name (ARN) that is assigned to a Amazon GameLift container fleet resource and uniquely identifies it across all AWS Regions. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="fleet_id" type="string">
+  Unique fleet ID Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="game_server_container_group_definition_arn" type="string">
+  The Amazon Resource Name (ARN) of the game server container group definition. This field will be empty if GameServerContainerGroupDefinitionName is not specified. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="locations" type="list(object)">
+  A list of objects, each representing a GameLift location (AWS Region) where the container fleet has active instances, including the location name and its operational status and capacity, as computed and returned by the service. Computed by AWS after `ship`. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="location" type="string">
+      The name of an AWS Region or Local Zone location to add to the container fleet's set of enabled locations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="location_capacity" type="object">
+      Specifies the scaling limits for the number of EC2 instances hosting container groups in the corresponding location, including desired, minimum, and maximum counts. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="desired_ec2_instances" type="number">
+          Sets the desired number of EC2 instances to run in this location for the container fleet, used by GameLift to scale capacity toward that target. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="managed_capacity_configuration" type="object">
+          Specifies the managed capacity configuration for the container fleet at this location, defining settings like the desired number of instances for that location. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="scale_in_after_inactivity_minutes" type="number">
+              Determines the number of minutes of idle time (no active game sessions) that must elapse before Amazon GameLift scales in (removes) an instance in the container fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="zero_capacity_strategy" type="string">
+              Controls whether the managed container fleet maintains a warm pool of instances or scales to zero when there are no active game sessions in that location. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="max_size" type="number">
+          The `max_size` property under a location's `location_capacity` specifies the upper bound of container instances that can run in that location for this GameLift container fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="min_size" type="number">
+          The minimum number of container instances that GameLift maintains in the corresponding fleet location, defining the lower bound for auto scaling capacity for that location. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="player_gateway_status" type="string">
+      Indicates the current operational status of the player gateway in the fleet's location, such as ACTIVE or ERROR. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="stopped_actions" type="list(string)">
+      Specifies the fleet actions to stop in a particular location (e.g., AUTO_SCALING, CUSTOM_GAME_SERVER_ACTIONS, or CUSTOM_GAME_SERVER_SHUTDOWN) to prevent them from running there for the container fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="maximum_game_server_container_groups_per_instance" type="number">
+  The maximum number of game server container groups per instance, a number between 1-5000. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="per_instance_container_group_definition_arn" type="string">
+  The Amazon Resource Name (ARN) of the per instance container group definition. This field will be empty if PerInstanceContainerGroupDefinitionName is not specified. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The current status of the container fleet. Computed by AWS after `ship`.
+</ResponseField>
