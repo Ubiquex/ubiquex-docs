@@ -239,7 +239,8 @@ def build_for_provider(provider_label, provider_key):
 
 
 PROVIDERS = [("AWS", "aws"), ("Azure", "azure"), ("GCP", "gcp"),
-             ("Datadog", "datadog"), ("GitHub", "github"), ("Kubernetes", "kubernetes")]
+             ("Datadog", "datadog"), ("GitHub", "github"), ("Kubernetes", "kubernetes"),
+             ("DigitalOcean", "digitalocean")]
 
 if __name__ == "__main__":
     for label, key in PROVIDERS:

@@ -30,7 +30,7 @@ from corpus_index import all_titles_with_paths
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DOCS_ROOT = REPO_ROOT
 
-ALL_PROVIDERS = ["aws", "azure", "gcp", "kubernetes", "github", "datadog"]
+ALL_PROVIDERS = ["aws", "azure", "gcp", "kubernetes", "github", "datadog", "digitalocean"]
 
 
 def check_provider(docs_root, provider):
