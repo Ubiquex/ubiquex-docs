@@ -1,0 +1,106 @@
+---
+title: "aws_ssmgui_connect_preferences"
+description: "`aws_ssmgui_connect_preferences` configures real, account-level session recording preferences, which S3 bucket recordings are stored in..."
+---
+
+`aws_ssmgui_connect_preferences` configures real, account-level session recording preferences, which S3 bucket recordings are stored in, for AWS Systems Manager GUI Connect, the Fleet Manager feature that lets administrators reach Windows Server EC2 instances over RDP directly from the Systems Manager console. This is a comparatively recent capability, so behavior here is verified live rather than assumed from general knowledge.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	ssmguiconnect "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/ssmguiconnect"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own preferences"})
+
+    		ubx.Resource(ssmguiconnect.Preferences, "example", ssmguiconnect.PreferencesConfig{
+    			ConnectionRecordingPreferences: map[string]any{"kmskey_arn": "example", "recording_destinations": map[string]any{"s3_buckets": []map[string]any{{"bucket_name": "example-bucket-name"}}}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Preferences } from "@ubx/sdk-aws/aws/ssmguiconnect/preferences";
+
+    export default stack("example", () => {
+      intent({ summary: "example own preferences" });
+
+      resource(Preferences, "example", {
+        connectionRecordingPreferences: {
+          kmskeyArn: "example",
+          recordingDestinations: {
+            s3Buckets: [{ bucketName: "example-bucket-name" }],
+          },
+        },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.ssmguiconnect import Preferences, PreferencesConfig
+    from ubx.aws.ssmguiconnect.preferences import Preferences_ConnectionRecordingPreferences, Preferences_ConnectionRecordingPreferences_RecordingDestinations, Preferences_ConnectionRecordingPreferences_RecordingDestinations_S3Buckets
+
+    def describe():
+        ubx.intent("example own preferences")
+
+        ubx.resource(Preferences, "example", PreferencesConfig(
+            connection_recording_preferences=Preferences_ConnectionRecordingPreferences(kmskey_arn="example", recording_destinations=Preferences_ConnectionRecordingPreferences_RecordingDestinations(s3_buckets=[Preferences_ConnectionRecordingPreferences_RecordingDestinations_S3Buckets(bucket_name="example-bucket-name")])),
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ssmgui_connect_preferences, with connection recording
+    preferences a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="connection_recording_preferences" type="object">
+  The set of preferences used for recording RDP connections in the requesting AWS account and AWS Region. This includes details such as which S3 bucket recordings are stored in. Optional.
+  <Expandable title="properties">
+    <ResponseField name="kmskey_arn" type="string" required>
+      The ARN of a AWS KMS key that is used to encrypt data while it is being processed by the service. This key must exist in the same AWS Region as the node you start an RDP connection to. Required.
+    </ResponseField>
+    <ResponseField name="recording_destinations" type="object" required>
+      Determines where recordings of RDP connections are stored. Required.
+      <Expandable title="properties">
+        <ResponseField name="s3_buckets" type="list(object)" required>
+          The S3 bucket where RDP connection recordings are stored. Required.
+          <Expandable title="properties">
+            <ResponseField name="bucket_name" type="string">
+              The name of the S3 bucket used as a destination where connection recording sessions are stored. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="bucket_owner" type="string">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="account_id" type="string">
+  The AWS Account Id that the preference is associated with, used as the unique identifier for this resource. Computed by AWS after `ship`.
+</ResponseField>

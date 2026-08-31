@@ -1,0 +1,217 @@
+---
+title: "aws_observability_admin_organization_centralization_rule"
+description: "`aws_observability_admin_organization_centralization_rule` defines a real, organization-wide rule that routes telemetry, logs by source and type..."
+---
+
+`aws_observability_admin_organization_centralization_rule` defines a real, organization-wide rule that routes telemetry, logs by source and type, from member accounts to a chosen central destination account, with granular control over which data centralizes versus stays local.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	observabilityadmin "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/observabilityadmin"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own organization centralization rule"})
+
+    		ubx.Resource(observabilityadmin.OrganizationCentralizationRule, "example", observabilityadmin.OrganizationCentralizationRuleConfig{
+    			Rule:     map[string]any{"destination": map[string]any{"region": "example"}, "source": map[string]any{"regions": []string{"example"}}},
+    			RuleName: "example-rule-name",
+    			Tags:     []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { OrganizationCentralizationRule } from "@ubx/sdk-aws/aws/observabilityadmin/organization_centralization_rule";
+
+    export default stack("example", () => {
+      intent({ summary: "example own organization centralization rule" });
+
+      resource(OrganizationCentralizationRule, "example", {
+        rule: {
+          destination: { region: "example" },
+          source: { regions: ["example"] },
+        },
+        ruleName: "example-rule-name",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.observabilityadmin import OrganizationCentralizationRule, OrganizationCentralizationRuleConfig
+    from ubx.aws.observabilityadmin.organization_centralization_rule import OrganizationCentralizationRule_Rule, OrganizationCentralizationRule_Rule_Destination, OrganizationCentralizationRule_Rule_Source, OrganizationCentralizationRule_Tags
+
+    def describe():
+        ubx.intent("example own organization centralization rule")
+
+        ubx.resource(OrganizationCentralizationRule, "example", OrganizationCentralizationRuleConfig(
+            rule=OrganizationCentralizationRule_Rule(destination=OrganizationCentralizationRule_Rule_Destination(region="example"), source=OrganizationCentralizationRule_Rule_Source(regions=["example"])),
+            rule_name="example-rule-name",
+            tags=[OrganizationCentralizationRule_Tags(key="example")],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_observability_admin_organization_centralization_rule,
+    with rule a set value, rule name example-rule-name, tags a set
+    value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="rule" type="object" required>
+  The rule configuration that defines how observability data is centralized across the organization, including the type of data to centralize and the target accounts or organizational units. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="destination" type="object" required>
+      Configures the destination AWS account (and region) that serves as the central monitoring account for receiving observability data from member accounts according to this rule. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="account" type="string">
+          The AWS account ID of the destination account that receives centralized observability data (logs, metrics, and traces) when the rule's destination type is set to 'ACCOUNT'. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="destination_logs_configuration" type="object">
+          Optional.
+          <Expandable title="properties">
+            <ResponseField name="backup_configuration" type="object">
+              Optional.
+              <Expandable title="properties">
+                <ResponseField name="kms_key_arn" type="string">
+                  The ARN of the AWS KMS key used to encrypt the backup data for the centralized logging destination, enabling customer-managed encryption of backup copies. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="region" type="string" required>
+                  The AWS Region code (e.g., 'us-east-1') where the backup destination for the centralized logs is provisioned, providing a redundant copy for high availability. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="log_group_name_configuration" type="object">
+              Specifies an optional prefix and suffix that are added to the original CloudWatch log group names when logs are centralized to the destination account, controlling how the centralized log groups are named. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="log_group_name_pattern" type="string" required>
+                  Specifies the pattern (e.g., a wildcard or regex) used to match CloudWatch log group names from member accounts that are selected for centralization to the destination defined by this rule. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="logs_encryption_configuration" type="object">
+              Configures the encryption settings (such as the AWS KMS key ARN) used to encrypt the logs that are delivered to the centralized destination, ensuring the destination logs are encrypted with the specified key. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="encryption_conflict_resolution_strategy" type="string">
+                  Specifies the strategy to resolve encryption key conflicts when centralizing logs, determining whether the organization's central encryption configuration overrides member accounts' existing log encryption settings or preserves them. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="encryption_scope" type="string">
+                  Optional.
+                </ResponseField>
+                <ResponseField name="encryption_strategy" type="string" required>
+                  Defines the encryption strategy for logs delivered to the centralized destination, using 'SSE_S3' for AWS-managed encryption or 'SSE_KMS' for customer-managed KMS key encryption. Required. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="kms_key_arn" type="string">
+                  The ARN of the AWS KMS key used to encrypt logs delivered to the centralization rule's destination, enabling customer-managed key encryption for centralized log data. Optional. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="tag_propagation_configuration" type="object">
+              Optional.
+              <Expandable title="properties">
+                <ResponseField name="destination_role_arn" type="string" required>
+                  The ARN of the destination account IAM role used for tag propagation. Required.
+                </ResponseField>
+                <ResponseField name="tag_conflict_resolution_strategy" type="string">
+                  The strategy to resolve tag conflicts during propagation. Optional.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="destination_metrics_configuration" type="object">
+          Optional.
+          <Expandable title="properties">
+            <ResponseField name="backup_configuration" type="object">
+              Optional.
+              <Expandable title="properties">
+                <ResponseField name="region" type="string" required>
+                  Specifies the AWS Region of the backup destination for metrics when the primary destination is unavailable. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="region" type="string" required>
+          The AWS region of the destination where the organization's observability data is centralized by this rule. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="source" type="object" required>
+      Defines the source accounts or organizational units whose observability data (such as CloudWatch logs) is aggregated into the delegated administrator account by this organization centralization rule. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="regions" type="list(string)" required>
+          Specifies the AWS regions (e.g., us-east-1) whose telemetry from the source accounts is included in the centralized observability rule, limiting the rule's scope to those regions. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="scope" type="string">
+          Optional.
+        </ResponseField>
+        <ResponseField name="source_logs_configuration" type="object">
+          Optional.
+          <Expandable title="properties">
+            <ResponseField name="data_source_selection_criteria" type="string">
+              Optional.
+            </ResponseField>
+            <ResponseField name="encrypted_log_group_strategy" type="string" required>
+              Specifies the strategy to apply to CloudWatch log groups that are encrypted with AWS KMS keys when collecting source logs for the organization's centralization rule. Required. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="log_group_selection_criteria" type="string">
+              The log_group_selection_criteria field specifies the selection mechanism used to choose which log groups from the source logs configuration are centralized by the rule, such as indicating whether all log groups or only those matching a defined pattern should be included. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="source_metrics_configuration" type="object">
+          Determines the metrics to centralize for the given source, enabling the administrator to specify whether to centralize all or a selected set of metrics as part of the observability centralization rule. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="metrics_selection_criteria" type="string">
+              Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="rule_name" type="string" required>
+  A user-defined name for the organization centralization rule, required to uniquely identify and manage the rule within AWS Observability Admin. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="rule_arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies this centralization rule in AWS Observability Admin. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

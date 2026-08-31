@@ -1,0 +1,323 @@
+---
+title: "aws_kafka_connect_connector"
+description: "`aws_kafka_connect_connector` runs a real, managed Kafka Connect connector, MSK Connect provisioning and scaling the underlying compute..."
+---
+
+`aws_kafka_connect_connector` runs a real, managed Kafka Connect connector, MSK Connect provisioning and scaling the underlying compute, moving data between an Apache Kafka or Amazon MSK cluster and an external system without a caller operating their own Kafka Connect worker cluster.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	kafkaconnect "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/kafkaconnect"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own connector"})
+
+    		ubx.Resource(kafkaconnect.Connector, "example", kafkaconnect.ConnectorConfig{
+    			Capacity:                         map[string]any{"auto_scaling": map[string]any{"max_worker_count": 1, "mcu_count": 1, "min_worker_count": 1, "scale_in_policy": map[string]any{"cpu_utilization_percentage": 1}, "scale_out_policy": map[string]any{"cpu_utilization_percentage": 1}}},
+    			ConnectorConfiguration:           "example",
+    			ConnectorName:                    "example-connector-name",
+    			KafkaCluster:                     map[string]any{"apache_kafka_cluster": map[string]any{"bootstrap_servers": "example", "vpc": map[string]any{"security_groups": []string{"example"}, "subnets": []string{"example"}}}},
+    			KafkaClusterClientAuthentication: map[string]any{"authentication_type": "example"},
+    			KafkaClusterEncryptionInTransit:  map[string]any{"encryption_type": "example"},
+    			KafkaConnectVersion:              "example",
+    			Plugins:                          []map[string]any{{"custom_plugin": map[string]any{"custom_plugin_arn": "example"}}},
+    			ServiceExecutionRoleArn:          "arn:aws:iam::123456789012:policy/example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Connector } from "@ubx/sdk-aws/aws/kafkaconnect/connector";
+
+    export default stack("example", () => {
+      intent({ summary: "example own connector" });
+
+      resource(Connector, "example", {
+        capacity: {
+          autoScaling: {
+            maxWorkerCount: 1,
+            mcuCount: 1,
+            minWorkerCount: 1,
+            scaleInPolicy: { cpuUtilizationPercentage: 1 },
+            scaleOutPolicy: { cpuUtilizationPercentage: 1 },
+          },
+        },
+        connectorConfiguration: "example",
+        connectorName: "example-connector-name",
+        kafkaCluster: {
+          apacheKafkaCluster: {
+            bootstrapServers: "example",
+            vpc: { securityGroups: ["example"], subnets: ["example"] },
+          },
+        },
+        kafkaClusterClientAuthentication: { authenticationType: "example" },
+        kafkaClusterEncryptionInTransit: { encryptionType: "example" },
+        kafkaConnectVersion: "example",
+        plugins: [{ customPlugin: { customPluginArn: "example" } }],
+        serviceExecutionRoleArn: "arn:aws:iam::123456789012:policy/example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.kafkaconnect import Connector, ConnectorConfig
+    from ubx.aws.kafkaconnect.connector import Connector_Capacity, Connector_Capacity_AutoScaling, Connector_Capacity_AutoScaling_ScaleInPolicy, Connector_KafkaCluster, Connector_KafkaCluster_ApacheKafkaCluster, Connector_KafkaCluster_ApacheKafkaCluster_Vpc, Connector_KafkaClusterClientAuthentication, Connector_KafkaClusterEncryptionInTransit, Connector_Plugins, Connector_Plugins_CustomPlugin
+
+    def describe():
+        ubx.intent("example own connector")
+
+        ubx.resource(Connector, "example", ConnectorConfig(
+            capacity=Connector_Capacity(auto_scaling=Connector_Capacity_AutoScaling(max_worker_count=1, mcu_count=1, min_worker_count=1, scale_in_policy=Connector_Capacity_AutoScaling_ScaleInPolicy(cpu_utilization_percentage=1), scale_out_policy=Connector_Capacity_AutoScaling_ScaleInPolicy(cpu_utilization_percentage=1))),
+            connector_configuration="example",
+            connector_name="example-connector-name",
+            kafka_cluster=Connector_KafkaCluster(apache_kafka_cluster=Connector_KafkaCluster_ApacheKafkaCluster(bootstrap_servers="example", vpc=Connector_KafkaCluster_ApacheKafkaCluster_Vpc(security_groups=["example"], subnets=["example"]))),
+            kafka_cluster_client_authentication=Connector_KafkaClusterClientAuthentication(authentication_type="example"),
+            kafka_cluster_encryption_in_transit=Connector_KafkaClusterEncryptionInTransit(encryption_type="example"),
+            kafka_connect_version="example",
+            plugins=[Connector_Plugins(custom_plugin=Connector_Plugins_CustomPlugin(custom_plugin_arn="example"))],
+            service_execution_role_arn="arn:aws:iam::123456789012:policy/example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_kafka_connect_connector, with capacity a set value,
+    connector configuration example, connector name
+    example-connector-name, kafka cluster a set value, kafka cluster
+    client authentication a set value, kafka cluster encryption in
+    transit a set value, kafka connect version example, plugins a set
+    value, service execution role arn
+    arn:aws:iam::123456789012:policy/example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="capacity" type="object" required>
+  Information about the capacity allocated to the connector. Required.
+  <Expandable title="properties">
+    <ResponseField name="auto_scaling" type="object">
+      Details about auto scaling of a connector. Optional.
+      <Expandable title="properties">
+        <ResponseField name="max_autoscaling_task_count" type="number">
+          The maximum number of tasks allocated to the connector during autoscaling operations. Optional.
+        </ResponseField>
+        <ResponseField name="max_worker_count" type="number" required>
+          The maximum number of workers for a connector. Required.
+        </ResponseField>
+        <ResponseField name="mcu_count" type="number" required>
+          Specifies how many MSK Connect Units (MCU) as the minimum scaling unit. Required.
+        </ResponseField>
+        <ResponseField name="min_worker_count" type="number" required>
+          The minimum number of workers for a connector. Required.
+        </ResponseField>
+        <ResponseField name="scale_in_policy" type="object" required>
+          Information about the scale in policy of the connector. Required.
+          <Expandable title="properties">
+            <ResponseField name="cpu_utilization_percentage" type="number" required>
+              Specifies the CPU utilization percentage threshold at which connector scale in should trigger. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="scale_out_policy" type="object" required>
+          Information about the scale out policy of the connector. Required.
+          <Expandable title="properties">
+            <ResponseField name="cpu_utilization_percentage" type="number" required>
+              Specifies the CPU utilization percentage threshold at which connector scale out should trigger. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="provisioned_capacity" type="object">
+      Details about a fixed capacity allocated to a connector. Optional.
+      <Expandable title="properties">
+        <ResponseField name="mcu_count" type="number" required>
+          Specifies how many MSK Connect Units (MCU) are allocated to the connector. Required.
+        </ResponseField>
+        <ResponseField name="worker_count" type="number" required>
+          Number of workers for a connector. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="connector_configuration" type="any" required>
+  The configuration for the connector. Required.
+</ResponseField>
+
+<ResponseField name="connector_description" type="string">
+  A summary description of the connector. Optional.
+</ResponseField>
+
+<ResponseField name="connector_name" type="string" required>
+  The name of the connector. Required.
+</ResponseField>
+
+<ResponseField name="kafka_cluster" type="object" required>
+  Details of how to connect to the Kafka cluster. Required.
+  <Expandable title="properties">
+    <ResponseField name="apache_kafka_cluster" type="object" required>
+      Details of how to connect to an Apache Kafka cluster. Required.
+      <Expandable title="properties">
+        <ResponseField name="bootstrap_servers" type="string" required>
+          The bootstrap servers string of the Apache Kafka cluster. Required.
+        </ResponseField>
+        <ResponseField name="vpc" type="object" required>
+          Information about a VPC used with the connector. Required.
+          <Expandable title="properties">
+            <ResponseField name="security_groups" type="list(string)" required>
+              The AWS security groups to associate with the elastic network interfaces in order to specify what the connector has access to. Required.
+            </ResponseField>
+            <ResponseField name="subnets" type="list(string)" required>
+              The list of subnets to connect to in the virtual private cloud (VPC). AWS creates elastic network interfaces inside these subnets. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="kafka_cluster_client_authentication" type="object" required>
+  Details of the client authentication used by the Kafka cluster. Required.
+  <Expandable title="properties">
+    <ResponseField name="authentication_type" type="string" required>
+      The type of client authentication used to connect to the Kafka cluster. Value NONE means that no client authentication is used. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="kafka_cluster_encryption_in_transit" type="object" required>
+  Details of encryption in transit to the Kafka cluster. Required.
+  <Expandable title="properties">
+    <ResponseField name="encryption_type" type="string" required>
+      The type of encryption in transit to the Kafka cluster. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="kafka_connect_version" type="string" required>
+  The version of Kafka Connect. It has to be compatible with both the Kafka cluster's version and the plugins. Required.
+</ResponseField>
+
+<ResponseField name="log_delivery" type="object">
+  Details of what logs are delivered and where they are delivered. Optional.
+  <Expandable title="properties">
+    <ResponseField name="worker_log_delivery" type="object" required>
+      Specifies where worker logs are delivered. Required.
+      <Expandable title="properties">
+        <ResponseField name="cloud_watch_logs" type="object">
+          Details about delivering logs to Amazon CloudWatch Logs. Optional.
+          <Expandable title="properties">
+            <ResponseField name="enabled" type="bool" required>
+              Specifies whether the logs get sent to the specified CloudWatch Logs destination. Required.
+            </ResponseField>
+            <ResponseField name="log_group" type="string">
+              The CloudWatch log group that is the destination for log delivery. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="firehose" type="object">
+          Details about delivering logs to Amazon Kinesis Data Firehose. Optional.
+          <Expandable title="properties">
+            <ResponseField name="delivery_stream" type="string">
+              The Kinesis Data Firehose delivery stream that is the destination for log delivery. Optional.
+            </ResponseField>
+            <ResponseField name="enabled" type="bool" required>
+              Specifies whether the logs get sent to the specified Kinesis Data Firehose delivery stream. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="s3" type="object">
+          Details about delivering logs to Amazon S3. Optional.
+          <Expandable title="properties">
+            <ResponseField name="bucket" type="string">
+              The name of the S3 bucket that is the destination for log delivery. Optional.
+            </ResponseField>
+            <ResponseField name="enabled" type="bool" required>
+              Specifies whether the logs get sent to the specified Amazon S3 destination. Required.
+            </ResponseField>
+            <ResponseField name="prefix" type="string">
+              The S3 prefix that is the destination for log delivery. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="network_type" type="string">
+  The network type of the Connector. Optional.
+</ResponseField>
+
+<ResponseField name="plugins" type="list(object)" required>
+  List of plugins to use with the connector. Required.
+  <Expandable title="properties">
+    <ResponseField name="custom_plugin" type="object">
+      For each plugin in the connector's plugin list, this object specifies the custom plugin's ARN and revision, which the connector uses to run the plugin's worker code. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="custom_plugin_arn" type="string">
+          Specifies the Amazon Resource Name (ARN) of the AWS Kafka Connect custom plugin to associate with this connector's plugin configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="revision" type="number">
+          The revision of the custom plugin, which combined with the plugin ARN identifies a specific version of the plugin to use for the connector. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="service_execution_role_arn" type="string" required>
+  The Amazon Resource Name (ARN) of the IAM role used by the connector to access Amazon S3 objects and other external resources. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  A collection of tags associated with a resource Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag assigned to the MSK Connect connector, used to identify, organize, and manage the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value for a tag key attached to the AWS Kafka Connect connector, used to manage, identify, and organize the connector resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="worker_configuration" type="object">
+  Specifies the worker configuration to use with the connector. Optional.
+  <Expandable title="properties">
+    <ResponseField name="revision" type="number" required>
+      The revision of the worker configuration to use. Required.
+    </ResponseField>
+    <ResponseField name="worker_configuration_arn" type="string" required>
+      The Amazon Resource Name (ARN) of the worker configuration to use. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="connector_arn" type="string">
+  Amazon Resource Name for the created Connector. Computed by AWS after `ship`.
+</ResponseField>

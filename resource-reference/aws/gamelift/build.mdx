@@ -1,0 +1,142 @@
+---
+title: "aws_game_lift_build"
+description: "`aws_game_lift_build` uploads a real, packaged game server executable and its dependencies to GameLift..."
+---
+
+`aws_game_lift_build` uploads a real, packaged game server executable and its dependencies to GameLift, the actual software an `aws_game_lift_fleet`'s EC2 instances run to host game sessions.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	gamelift "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/gamelift"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own build"})
+
+    		ubx.Resource(gamelift.Build, "example", gamelift.BuildConfig{
+    			Name:             "example",
+    			OperatingSystem:  "example",
+    			ServerSdkVersion: "example",
+    			StorageLocation:  map[string]any{"bucket": "example", "key": "example", "role_arn": "example"},
+    			Tags:             []map[string]any{{"key": "example"}},
+    			Version:          "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Build } from "@ubx/sdk-aws/aws/gamelift/build";
+
+    export default stack("example", () => {
+      intent({ summary: "example own build" });
+
+      resource(Build, "example", {
+        name: "example",
+        operatingSystem: "example",
+        serverSdkVersion: "example",
+        storageLocation: { bucket: "example", key: "example", roleArn: "example" },
+        tags: [{ key: "example" }],
+        version: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.gamelift import Build, BuildConfig
+    from ubx.aws.gamelift.build import Build_StorageLocation, Build_Tags
+
+    def describe():
+        ubx.intent("example own build")
+
+        ubx.resource(Build, "example", BuildConfig(
+            name="example",
+            operating_system="example",
+            server_sdk_version="example",
+            storage_location=Build_StorageLocation(bucket="example", key="example", role_arn="example"),
+            tags=[Build_Tags(key="example")],
+            version="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_game_lift_build called "example", with operating
+    system example, server sdk version example, storage location a
+    set value, tags a set value, version example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="name" type="string">
+  A descriptive label that is associated with a build. Build names do not need to be unique. Optional.
+</ResponseField>
+
+<ResponseField name="operating_system" type="string">
+  The operating system that the game server binaries are built to run on. This value determines the type of fleet resources that you can use for this build. If your game build contains multiple executables, they all must run on the same operating system. If an operating system is not specified when creating a build, Amazon GameLift uses the default value (WINDOWS_2012). This value cannot be changed later. Optional.
+</ResponseField>
+
+<ResponseField name="server_sdk_version" type="string">
+  A server SDK version you used when integrating your game server build with Amazon GameLift. By default Amazon GameLift sets this value to 4.0.2. Optional.
+</ResponseField>
+
+<ResponseField name="storage_location" type="object">
+  The S3 bucket and object key where the build's game build files are stored, along with the IAM role ARN that GameLift assumes to access the files. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="bucket" type="string" required>
+      An Amazon S3 bucket identifier. This is the name of the S3 bucket. Required.
+    </ResponseField>
+    <ResponseField name="key" type="string" required>
+      The name of the zip file that contains the build files or script files. Required.
+    </ResponseField>
+    <ResponseField name="object_version" type="string">
+      The version of the file, if object versioning is turned on for the bucket. Amazon GameLift uses this information when retrieving files from your S3 bucket. To retrieve a specific version of the file, provide an object version. To retrieve the latest version of the file, do not set this parameter. Optional.
+    </ResponseField>
+    <ResponseField name="role_arn" type="string" required>
+      The Amazon Resource Name (ARN) for an IAM role that allows Amazon GameLift to access the S3 bucket. Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs to apply to this resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="version" type="string">
+  Version information that is associated with this build. Version strings do not need to be unique. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="build_arn" type="string">
+  The Amazon Resource Name (ARN) that is assigned to a Amazon GameLift build resource and uniquely identifies it. ARNs are unique across all Regions. In a GameLift build ARN, the resource ID matches the BuildId value. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="build_id" type="string">
+  A unique identifier for a build to be deployed on the new fleet. If you are deploying the fleet with a custom game build, you must specify this property. The build must have been successfully uploaded to Amazon GameLift and be in a READY status. This fleet setting cannot be changed once the fleet is created. Computed by AWS after `ship`.
+</ResponseField>

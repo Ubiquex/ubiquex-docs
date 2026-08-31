@@ -3,10 +3,6 @@ title: "google_compute_alpha_autoscaler"
 description: "`google_compute_alpha_autoscaler` adjusts a zonal managed instance group's own size automatically based on real load -- CPU utilization..."
 ---
 
-<Warning>
-  This is Google Cloud Compute's own **alpha** release channel -- earlier and less stable than beta. Google may change or remove alpha endpoints at any time, with no deprecation notice -- confirm this endpoint is still live before depending on it in anything long-lived. The stable, generally-available equivalent is `google_compute_autoscaler`.
-</Warning>
-
 `google_compute_alpha_autoscaler` adjusts a zonal managed instance group's own size automatically based on real load -- CPU utilization, a custom metric, load balancing capacity -- adding instances under pressure and removing them once it passes.
 
 ## Example
@@ -49,7 +45,7 @@ description: "`google_compute_alpha_autoscaler` adjusts a zonal managed instance
   <Tab title="Python">
     ```python
     import ubx_sdk as ubx
-    from ubx.google.compute.alpha_autoscaler import AlphaAutoscaler, AlphaAutoscalerConfig
+    from ubx.google.compute import AlphaAutoscaler, AlphaAutoscalerConfig
 
     def describe():
         ubx.intent("example own alpha autoscaler")
@@ -82,6 +78,45 @@ description: "`google_compute_alpha_autoscaler` adjusts a zonal managed instance
       <Expandable title="properties">
         <ResponseField name="predictive_method" type="string">
           Indicates whether predictive autoscaling based on CPU metric is enabled. Valid values are: * NONE (default). No predictive method is used. The autoscaler scales the group to meet current demand based on real-time metrics. * OPTIMIZE_AVAILABILITY. Predictive autoscaling improves availability by monitoring daily and weekly load patterns and scaling out ahead of anticipated demand. Optional.
+        </ResponseField>
+        <ResponseField name="signal_aggregation" type="object">
+          Defines how scaling signal is aggregated in a group. Operates on the results of the `TimeAggregation`, reducing the per-instance values down to a single aggregate value across the entire instance group. Optional.
+          <Expandable title="properties">
+            <ResponseField name="percentile" type="number">
+              If statistic is PERCENTILE, percentile must be defined. This value is used only when statistic is PERCENTILE. Optional.
+            </ResponseField>
+            <ResponseField name="statistic" type="string">
+              Required. The aggregator used to aggregate signal samples across the entire instance group. This field is required. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="time_aggregation" type="object">
+          Defines how scaling signal is aggregated over a time window. Operates on all signal samples produced over the `time_window_sec`, reducing them to exactly one value. Optional.
+          <Expandable title="properties">
+            <ResponseField name="percentile" type="number">
+              If statistic is PERCENTILE, percentile must be defined. This value is used only when statistic is PERCENTILE. Optional.
+            </ResponseField>
+            <ResponseField name="statistic" type="string">
+              Required. The aggregator used to aggregate signal samples over the `time_window_sec`. This field is required. Optional.
+            </ResponseField>
+            <ResponseField name="time_window_sec" type="number">
+              Required. The duration of the time window over which the signal samples are aggregated. This field is required. Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="utilization_range" type="object">
+          Represents a range of acceptable utilization values. This message is used to configure range-based scaling policies, allowing Autoscaler to maintain utilization within a specified range instead of aiming for a single target point. Optional.
+          <Expandable title="properties">
+            <ResponseField name="max_utilization" type="number">
+              Required. The upper bound of the utilization range. Must be greater or equal to min_utilization. This value is required when using range-based scaling. Scaling out is triggered if the utilization exceeds this value. Optional.
+            </ResponseField>
+            <ResponseField name="min_utilization" type="number">
+              Required. The lower bound of the utilization range. Must be smaller or equal to max_utilization. This value is required when using range-based scaling. Scaling in is considered only if the utilization drops below this value. Optional.
+            </ResponseField>
+            <ResponseField name="utilization_target" type="number">
+              The target utilization that the autoscaler aims to achieve when scaling is triggered. This value must be within the range [min_utilization, max_utilization]. If not specified, this will default to the average of max_utilization and min_utilization. Optional.
+            </ResponseField>
+          </Expandable>
         </ResponseField>
         <ResponseField name="utilization_target" type="number">
           The target CPU utilization that the autoscaler maintains. Must be a float value in the range (0, 1]. If not specified, the default is0.6. If the CPU level is below the target utilization, the autoscaler scales in the number of instances until it reaches the minimum number of instances you specified or until the average CPU of your instances reaches the target utilization. If the average CPU is above the target utilization, the autoscaler scales out until it reaches the maximum number of instances you specified or until the average utilization reaches the target utilization. Optional.

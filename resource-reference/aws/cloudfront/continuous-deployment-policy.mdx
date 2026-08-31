@@ -1,0 +1,166 @@
+---
+title: "aws_cloud_front_continuous_deployment_policy"
+description: "`aws_cloud_front_continuous_deployment_policy` routes a real, configurable percentage of an `aws_cloud_front_distribution`'s production traffic to..."
+---
+
+`aws_cloud_front_continuous_deployment_policy` routes a real, configurable percentage of an `aws_cloud_front_distribution`'s production traffic to a staging distribution, letting a configuration change be tested against live traffic and incrementally rolled out before it fully replaces the primary distribution's own configuration.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	cloudfront "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/cloudfront"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own continuous deployment policy"})
+
+    		ubx.Resource(cloudfront.ContinuousDeploymentPolicy, "example", cloudfront.ContinuousDeploymentPolicyConfig{
+    			ContinuousDeploymentPolicyConfig: map[string]any{"enabled": true, "staging_distribution_dns_names": []string{"example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ContinuousDeploymentPolicy } from "@ubx/sdk-aws/aws/cloudfront/continuous_deployment_policy";
+
+    export default stack("example", () => {
+      intent({ summary: "example own continuous deployment policy" });
+
+      resource(ContinuousDeploymentPolicy, "example", {
+        continuousDeploymentPolicyConfig: {
+          enabled: true,
+          stagingDistributionDnsNames: ["example"],
+        },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.cloudfront import ContinuousDeploymentPolicy, ContinuousDeploymentPolicyConfig
+    from ubx.aws.cloudfront.continuous_deployment_policy import ContinuousDeploymentPolicy_ContinuousDeploymentPolicyConfig
+
+    def describe():
+        ubx.intent("example own continuous deployment policy")
+
+        ubx.resource(ContinuousDeploymentPolicy, "example", ContinuousDeploymentPolicyConfig(
+            continuous_deployment_policy_config=ContinuousDeploymentPolicy_ContinuousDeploymentPolicyConfig(enabled=True, staging_distribution_dns_names=["example"]),
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_cloud_front_continuous_deployment_policy, with
+    continuous deployment policy config a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="continuous_deployment_policy_config" type="object" required>
+  Contains the configuration for a continuous deployment policy. Required.
+  <Expandable title="properties">
+    <ResponseField name="enabled" type="bool" required>
+      A Boolean that indicates whether this continuous deployment policy is enabled (in effect). When this value is ``true``, this policy is enabled and in effect. When this value is ``false``, this policy is not enabled and has no effect. Required.
+    </ResponseField>
+    <ResponseField name="single_header_policy_config" type="object">
+      This configuration determines which HTTP requests are sent to the staging distribution. If the HTTP request contains a header and value that matches what you specify here, the request is sent to the staging distribution. Otherwise the request is sent to the primary distribution. Optional.
+      <Expandable title="properties">
+        <ResponseField name="header" type="string" required>
+          The HTTP header name that CloudFront inspects to route requests to the staging distribution in this continuous deployment policy. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value" type="string" required>
+          The header value that CloudFront uses to route requests to the staging distribution in the continuous deployment policy. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="single_weight_policy_config" type="object">
+      This configuration determines the percentage of HTTP requests that are sent to the staging distribution. Optional.
+      <Expandable title="properties">
+        <ResponseField name="session_stickiness_config" type="object">
+          Session stickiness provides the ability to define multiple requests from a single viewer as a single session. This prevents the potentially inconsistent experience of sending some of a given user's requests to your staging distribution, while others are sent to your primary distribution. Define the session duration using TTL values. Optional.
+          <Expandable title="properties">
+            <ResponseField name="idle_ttl" type="number" required>
+              The amount of time after which you want sessions to cease if no requests are received. Allowed values are 300 -- 3600 seconds (5 -- 60 minutes). Required.
+            </ResponseField>
+            <ResponseField name="maximum_ttl" type="number" required>
+              The maximum amount of time to consider requests from the viewer as being part of the same session. Allowed values are 300 -- 3600 seconds (5 -- 60 minutes). Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="weight" type="number" required>
+          Specifies the percentage of traffic to route to the staging distribution, with a value between 0 and 100, where 100 sends all traffic to the staging distribution. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="staging_distribution_dns_names" type="list(string)" required>
+      The CloudFront domain name of the staging distribution. For example: ``d111111abcdef8.cloudfront.net``. Required.
+    </ResponseField>
+    <ResponseField name="traffic_config" type="object">
+      The traffic configuration of your continuous deployment. Optional.
+      <Expandable title="properties">
+        <ResponseField name="single_header_config" type="object">
+          Determines which HTTP requests are sent to the staging distribution. Optional.
+          <Expandable title="properties">
+            <ResponseField name="header" type="string" required>
+              The request header name that you want CloudFront to send to your staging distribution. The header must contain the prefix ``aws-cf-cd-``. Required.
+            </ResponseField>
+            <ResponseField name="value" type="string" required>
+              The request header value. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="single_weight_config" type="object">
+          This configuration determines the percentage of HTTP requests that are sent to the staging distribution. Optional.
+          <Expandable title="properties">
+            <ResponseField name="session_stickiness_config" type="object">
+              Session stickiness provides the ability to define multiple requests from a single viewer as a single session. This prevents the potentially inconsistent experience of sending some of a given user's requests to your staging distribution, while others are sent to your primary distribution. Define the session duration using TTL values. Optional.
+              <Expandable title="properties">
+                <ResponseField name="idle_ttl" type="number" required>
+                  The amount of time after which you want sessions to cease if no requests are received. Allowed values are 300 -- 3600 seconds (5 -- 60 minutes). Required.
+                </ResponseField>
+                <ResponseField name="maximum_ttl" type="number" required>
+                  The maximum amount of time to consider requests from the viewer as being part of the same session. Allowed values are 300 -- 3600 seconds (5 -- 60 minutes). Required.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="weight" type="number" required>
+              The percentage of traffic to send to a staging distribution, expressed as a decimal number between 0 and 0.15. For example, a value of 0.10 means 10% of traffic is sent to the staging distribution. Required.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="type" type="string" required>
+          The type of traffic configuration. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      The type of traffic configuration. Optional.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  The unique identifier that CloudFront assigns to the continuous deployment policy when it is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="last_modified_time" type="string">
+  The date and time when the continuous deployment policy was last modified, returned as a string in ISO 8601 format. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
