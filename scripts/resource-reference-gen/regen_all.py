@@ -9,13 +9,18 @@ already does, in the identical directory shape, so this script's own
 job is orchestrating the generators against that already-prepared
 input, not preparing it itself.
 
-Most providers get real resource-page regeneration via regen_pages.py --
-real membership lives in providers.py's own shared registry (Tier 2),
-not this comment. github/datadog do not yet -- their own ongoing regen
-uses a different, less mature mechanism (gen_complete_pages.py's own
-generate_one, which splices onto an already-generated page rather than
-a real full-corpus rescan) this automation does not cover. A real,
-named gap, reported in every run's own summary, not a silent omission.
+Every real provider gets resource-page regeneration via regen_pages.py
+as of UBI-219 -- real membership lives in providers.py's own shared
+registry (Tier 2), not this comment. github/datadog were held back
+until then even though their config shape and their real per-wire
+artifacts matched every other provider already covered: they were
+onboarded once, by hand, via gen_new_provider_pages.py's own real,
+one-time use of the identical generate_richer_provider path this
+file's own ongoing regen uses, and simply never handed to the ongoing
+chain afterward. gen_complete_pages.py's own generate_one (splices
+onto an already-generated page rather than a real full-corpus rescan)
+remains available for a narrowly-scoped, human-run touch-up, but is no
+longer this automation's own mechanism for either provider.
 
 Every real provider gets data-source page regeneration via
 gen_all_data_source_pages.py, which only needs an already-existing
