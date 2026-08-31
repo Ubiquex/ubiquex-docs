@@ -545,7 +545,7 @@ def main():
     coverage_result = None
     coverage_gaps = 0
     if all_corrected:
-        coverage_entries = schema_entries_from_corrected(all_corrected)
+        coverage_entries = schema_entries_from_corrected(provider, all_corrected)
         coverage_result = check_gaps(provider, coverage_entries, repo_root=DOCS_ROOT, check_disk=False)
         coverage_gaps = gap_count(coverage_result)
 
