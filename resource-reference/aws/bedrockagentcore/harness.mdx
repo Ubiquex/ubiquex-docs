@@ -1,0 +1,729 @@
+---
+title: "aws_bedrock_agent_core_harness"
+description: "`aws_bedrock_agent_core_harness` defines an agent with a single CreateHarness call and runs it with a single InvokeHarness call..."
+---
+
+`aws_bedrock_agent_core_harness` defines an agent with a single CreateHarness call and runs it with a single InvokeHarness call, AgentCore's fastest path from an agent definition to a running one, without separately wiring runtime, gateway, and memory resources by hand.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	bedrockagentcore "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/bedrockagentcore"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own harness"})
+
+    		ubx.Resource(bedrockagentcore.Harness, "example", bedrockagentcore.HarnessConfig{
+    			ExecutionRoleArn:        "arn:aws:iam::123456789012:policy/example",
+    			HarnessName:             "example-harness-name",
+    			Model:                   map[string]any{"bedrock_model_config": map[string]any{"model_id": "example"}},
+    			AllowedTools:            []string{"example"},
+    			AuthorizerConfiguration: map[string]any{"custom_jwtauthorizer": map[string]any{"discovery_url": "example"}},
+    			EnvironmentArtifact:     map[string]any{"container_configuration": map[string]any{"container_uri": "example"}},
+    			EnvironmentVariables:    "example",
+    			MaxIterations:           1,
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Harness } from "@ubx/sdk-aws/aws/bedrockagentcore/harness";
+
+    export default stack("example", () => {
+      intent({ summary: "example own harness" });
+
+      resource(Harness, "example", {
+        executionRoleArn: "arn:aws:iam::123456789012:policy/example",
+        harnessName: "example-harness-name",
+        model: { bedrockModelConfig: { modelId: "example" } },
+        allowedTools: ["example"],
+        authorizerConfiguration: {
+          customJwtauthorizer: { discoveryUrl: "example" },
+        },
+        environmentArtifact: {
+          containerConfiguration: { containerUri: "example" },
+        },
+        environmentVariables: "example",
+        maxIterations: 1,
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.bedrockagentcore import Harness, HarnessConfig
+    from ubx.aws.bedrockagentcore.harness import Harness_Model, Harness_Model_BedrockModelConfig, Harness_AuthorizerConfiguration, Harness_AuthorizerConfiguration_CustomJwtauthorizer, Harness_EnvironmentArtifact, Harness_EnvironmentArtifact_ContainerConfiguration
+
+    def describe():
+        ubx.intent("example own harness")
+
+        ubx.resource(Harness, "example", HarnessConfig(
+            execution_role_arn="arn:aws:iam::123456789012:policy/example",
+            harness_name="example-harness-name",
+            model=Harness_Model(bedrock_model_config=Harness_Model_BedrockModelConfig(model_id="example")),
+            allowed_tools=["example"],
+            authorizer_configuration=Harness_AuthorizerConfiguration(custom_jwtauthorizer=Harness_AuthorizerConfiguration_CustomJwtauthorizer(discovery_url="example")),
+            environment_artifact=Harness_EnvironmentArtifact(container_configuration=Harness_EnvironmentArtifact_ContainerConfiguration(container_uri="example")),
+            environment_variables="example",
+            max_iterations=1,
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_bedrock_agent_core_harness, with execution role arn
+    arn:aws:iam::123456789012:policy/example, harness name
+    example-harness-name, model a set value, allowed tools a set
+    value, authorizer configuration a set value, environment artifact
+    a set value, environment variables example, max iterations 1.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="allowed_tools" type="list(string)">
+  The tools that the agent is allowed to use. Optional.
+</ResponseField>
+
+<ResponseField name="authorizer_configuration" type="object">
+  Optional.
+  <Expandable title="properties">
+    <ResponseField name="custom_jwtauthorizer" type="object">
+      Optional.
+      <Expandable title="properties">
+        <ResponseField name="allowed_audience" type="list(string)">
+          This is the list of allowed audiences (the `aud` claim) for the JWT token, and the token must contain one of these values in its audience claim to be accepted by the custom JWT authorizer. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="allowed_clients" type="list(string)">
+          Specifies the list of client IDs that are permitted to access the API through this custom JWT authorizer, restricting authorization to known OAuth2 clients. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="allowed_scopes" type="list(string)">
+          Lists the OAuth 2.0 scopes that must be present in the JWT token for the custom JWT authorizer to allow the request, restricting access to tokens with the required scope claims. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="custom_claims" type="list(object)">
+          Optional.
+          <Expandable title="properties">
+            <ResponseField name="authorizing_claim_match_value" type="object">
+              Specifies the expected value or match condition for a custom claim when using a custom JWT authorizer, allowing the agent to authorize requests based on token claims. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="claim_match_operator" type="string">
+                  Specifies the comparison operator used to evaluate whether the value of a custom claim in the JWT matches the configured authorizing claim match value. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="claim_match_value" type="object">
+                  Specifies the expected claim value that must be matched for the custom JWT authorizer to authorize requests to the Bedrock agent core harness. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="match_value_string" type="string">
+                      Specifies the exact string value that a custom claim in the JWT token must match for the authorizer to grant access. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="match_value_string_list" type="list(string)">
+                      This list defines the set of allowed string values that the corresponding JWT claim must contain (when the claim is a string list) for the request to be authorized by the custom JWT authorizer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="inbound_token_claim_name" type="string">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+            <ResponseField name="inbound_token_claim_value_type" type="string">
+              Specifies the expected data type (e.g., string, number, boolean) for the value of an inbound JWT claim, enabling the custom JWT authorizer to correctly parse and validate that claim during request authorization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="discovery_url" type="string" required>
+          The discovery URL that the custom JWT authorizer calls to obtain the OpenID Connect configuration and JSON Web Key Set (JWKS) used for verifying JWT tokens. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="private_endpoint" type="object">
+          Private endpoint configuration for connecting to the OpenID Connect discovery endpoint over a private network. Optional.
+          <Expandable title="properties">
+            <ResponseField name="managed_vpc_resource" type="object">
+              Configuration for a service-managed VPC endpoint. Optional.
+              <Expandable title="properties">
+                <ResponseField name="endpoint_ip_address_type" type="string" required>
+                  Determines the IP address version (IPv4 or IPv6) assigned to the private endpoint of the managed VPC resource used by the custom JWT authorizer to access the agent core harness. Required. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="routing_domain" type="string">
+                  Specifies the domain name used for routing traffic to the custom JWT authorizer's private endpoint inside the managed VPC. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="security_group_ids" type="list(string)">
+                  The security group IDs to attach to the managed VPC that backs the private endpoint for the custom JWT authorizer. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="subnet_ids" type="list(string)" required>
+                  Specifies the subnet IDs inside the managed VPC where the private endpoint for the custom JWT authorizer is deployed, allowing the endpoint to be attached to those subnets. Required. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="tags" type="any">
+                  The tags to assign to the AWS-managed VPC resource that hosts the private endpoint for the custom JWT authorizer, enabling resource identification and cost tracking. Optional. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="vpc_identifier" type="string" required>
+                  The ID of the VPC in which the managed VPC resource for the private endpoint is provisioned, enabling network isolation for the custom JWT authorizer. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="self_managed_lattice_resource" type="object">
+              Configuration for connecting to a private resource using a self-managed VPC Lattice resource configuration. Optional.
+              <Expandable title="properties">
+                <ResponseField name="resource_configuration_identifier" type="string" required>
+                  The identifier of the VPC Lattice resource configuration that defines the self-managed lattice resource used as the private endpoint for the custom JWT authorizer. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="private_endpoint_overrides" type="list(object)">
+          Specifies a list of private endpoint overrides that tell the custom JWT authorizer how to reach a JWT issuer or JWKS endpoint through private network routes (such as VPC endpoints) instead of the public internet, so token validation can occur within a private environment. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="domain" type="string">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+            <ResponseField name="private_endpoint" type="object">
+              Optional; if omitted, computed by AWS.
+              <Expandable title="properties">
+                <ResponseField name="managed_vpc_resource" type="object">
+                  Optional; if omitted, computed by AWS.
+                  <Expandable title="properties">
+                    <ResponseField name="endpoint_ip_address_type" type="string">
+                      Specifies the IP address type (ipv4, ipv6, or dualstack) used by the managed VPC resource's private endpoint that connects to the custom JWT authorizer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="routing_domain" type="string">
+                      Specifies the routing domain name used for the private endpoint within the managed VPC to direct requests to the custom JWT authorizer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="security_group_ids" type="list(string)">
+                      Specifies the list of security group IDs for the managed VPC resource that backs the private endpoint override used by the custom JWT authorizer configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="subnet_ids" type="list(string)">
+                      The subnet IDs within the managed VPC where the private endpoint for the custom JWT authorizer is deployed, ensuring the endpoint is accessible from those subnets. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="tags" type="any">
+                      Tags to assign to the managed VPC resource that provides the private endpoint override for the custom JWT authorizer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="vpc_identifier" type="string">
+                      The ID of the VPC in which the managed VPC resource for the custom JWT authorizer's private endpoint is provisioned. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="self_managed_lattice_resource" type="object">
+                  Optional; if omitted, computed by AWS.
+                  <Expandable title="properties">
+                    <ResponseField name="resource_configuration_identifier" type="string">
+                      The unique identifier (such as an ARN) of the VPC Lattice resource configuration that exposes the self-managed private endpoint used by the custom JWT authorizer for private API access. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="environment_artifact" type="object">
+  Optional.
+  <Expandable title="properties">
+    <ResponseField name="container_configuration" type="object">
+      Optional.
+      <Expandable title="properties">
+        <ResponseField name="container_uri" type="string" required>
+          The ECR URI of the container. Required.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="environment_variables" type="any">
+  Environment variables to set in the harness runtime environment. Optional.
+</ResponseField>
+
+<ResponseField name="execution_role_arn" type="string" required>
+  The ARN of the IAM role that the harness assumes when running. Required.
+</ResponseField>
+
+<ResponseField name="harness_name" type="string" required>
+  The name of the harness. Required.
+</ResponseField>
+
+<ResponseField name="max_iterations" type="number">
+  The maximum number of iterations the agent loop can execute per invocation. Optional.
+</ResponseField>
+
+<ResponseField name="max_tokens" type="number">
+  The maximum number of tokens the agent can generate per iteration. Optional.
+</ResponseField>
+
+<ResponseField name="model" type="object" required>
+  Specifies the foundation model configuration (e.g., model ID or inference profile) that the Bedrock agent uses to process prompts and generate responses. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="bedrock_model_config" type="object">
+      Specifies the Amazon Bedrock model configuration for the core harness, including the model ARN and inference settings, to define the model used to test the agent. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="additional_params" type="any">
+          Provider-specific parameters passed through to the model provider unchanged. Optional.
+        </ResponseField>
+        <ResponseField name="api_format" type="string">
+          Specifies the API format (e.g., `INVOKE_MODEL` or `CONVERSE`) used to invoke the underlying foundation model in the agent's bedrock model configuration. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="max_tokens" type="number">
+          Configures the maximum number of tokens the Bedrock model is allowed to generate in a single response, effectively capping the output length. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="model_id" type="string" required>
+          The identifier of the Amazon Bedrock foundation model (e.g., anthropic.claude-v2) that the agent core harness uses to generate responses. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="temperature" type="number">
+          Sets the sampling temperature for the Bedrock foundation model in the agent's model configuration, where lower values produce more deterministic and focused responses and higher values increase randomness and creativity. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="top_p" type="number">
+          In the Bedrock model configuration for the agent's core harness, `top_p` sets the nucleus sampling probability threshold (0 to 1) controlling how many top tokens accumulate to that probability mass during response generation. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="gemini_model_config" type="object">
+      Specifies the Gemini-specific inference configuration (e.g., temperature, topP, and token limits) for the foundation model used by the agent core harness. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="api_key_arn" type="string" required>
+          The ARN of the AWS Secrets Manager secret that stores the API key used to authenticate calls to the Gemini model configured for this agent. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="max_tokens" type="number">
+          The maximum number of tokens the Gemini model can generate in a single response when used by the Bedrock agent core harness. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="model_id" type="string" required>
+          Specifies the identifier of the Google Gemini foundation model that the Bedrock agent core harness uses for generation. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="temperature" type="number">
+          Specifies the sampling temperature to apply to the Gemini model, controlling the degree of randomness in generated responses. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="top_k" type="number">
+          Sets the top-k sampling parameter for Gemini model inference, which limits the model to consider only the k most likely tokens at each generation step. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="top_p" type="number">
+          Specifies the top_p (nucleus sampling) parameter for the Gemini model configuration within the agent core harness, controlling the cumulative probability threshold for token selection during text generation. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="lite_llm_model_config" type="object">
+      Optional.
+      <Expandable title="properties">
+        <ResponseField name="additional_params" type="any">
+          Provider-specific parameters passed through to LiteLLM unchanged. Optional.
+        </ResponseField>
+        <ResponseField name="api_base" type="string">
+          Optional.
+        </ResponseField>
+        <ResponseField name="api_key_arn" type="string">
+          The ARN of the AWS Secrets Manager secret that stores the API key required to authenticate with the LiteLLM model endpoint. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="max_tokens" type="number">
+          The maximum number of tokens the LiteLLM model is allowed to generate in a single response. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="model_id" type="string" required>
+          The model identifier string required by LiteLLM to route requests to the underlying provider, typically formatted as 'provider/model-name' (e.g., 'openai/gpt-4'). Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="temperature" type="number">
+          The temperature parameter controls the randomness of the model's generated responses, with lower values making the output more deterministic and focused, and higher values increasing creativity and variability. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="top_p" type="number">
+          Specifies the top-p (nucleus sampling) value for the LiteLLM model configuration, determining the cumulative probability cutoff for token selection during generation. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="open_ai_model_config" type="object">
+      Optional.
+      <Expandable title="properties">
+        <ResponseField name="additional_params" type="any">
+          Provider-specific parameters passed through to the model provider unchanged. Optional.
+        </ResponseField>
+        <ResponseField name="api_format" type="string">
+          Specifies the OpenAI API format (e.g., 'chat' or 'responses') the agent uses when invoking this model via the OpenAI-compatible model configuration. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="api_key_arn" type="string" required>
+          The ARN of the AWS Secrets Manager secret that stores the OpenAI API key used to authenticate requests for the OpenAI model configured in this core harness agent. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="max_tokens" type="number">
+          Specifies the maximum number of tokens the OpenAI-compatible model can generate in a single response for the Bedrock agent core harness, controlling output length. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="model_id" type="string" required>
+          The unique identifier of the OpenAI-compatible model to use in the core harness's OpenAI model configuration, such as a model name or endpoint ID. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="temperature" type="number">
+          Sets the sampling temperature for the OpenAI model used by the agent core harness, controlling the randomness of generated responses (lower values are more deterministic, higher values are more creative). Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="top_p" type="number">
+          Sets the top_p nucleus sampling parameter for the OpenAI model, controlling output diversity by capping the cumulative token probability mass considered during generation. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="skills" type="list(object)">
+  The skills available to the agent. Optional.
+  <Expandable title="properties">
+    <ResponseField name="aws_skills" type="object">
+      Optional; if omitted, computed by AWS.
+      <Expandable title="properties">
+        <ResponseField name="paths" type="list(string)">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="git" type="object">
+      Defines the Git-based source repository that provides the skill's implementation, allowing the harness to pull the skill code from version control. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="auth" type="object">
+          Specifies the authentication credentials (such as a username, password, or personal access token) used to access the private Git repository that contains the skill's source code. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="credential_arn" type="string">
+              This field specifies the Amazon Resource Name (ARN) of a secret in AWS Secrets Manager that holds the authentication credentials for accessing the Git repository defined for the skill. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="username" type="string">
+              The username used for Git authentication when the agent's skill fetches its source from a Git repository. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="path" type="string">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+        <ResponseField name="url" type="string">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="path" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="s3" type="object">
+      Optional; if omitted, computed by AWS.
+      <Expandable title="properties">
+        <ResponseField name="uri" type="string">
+          Optional; if omitted, computed by AWS.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="system_prompt" type="list(object)">
+  The system prompt that defines the agent's behavior. Optional.
+  <Expandable title="properties">
+    <ResponseField name="text" type="string">
+      The text of the system prompt that defines the agent's behavior and instructions for the AWS Bedrock agent core harness. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Tags to apply to the harness resource. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a tag (key-value pair) attached to the AWS Bedrock Agent Core Harness, used to categorize or identify the resource within AWS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="timeout_seconds" type="number">
+  The maximum duration in seconds for the agent loop execution per invocation. Optional.
+</ResponseField>
+
+<ResponseField name="tools" type="list(object)">
+  The tools available to the agent. Optional.
+  <Expandable title="properties">
+    <ResponseField name="config" type="object">
+      Optional; if omitted, computed by AWS.
+      <Expandable title="properties">
+        <ResponseField name="agent_core_browser" type="object">
+          Optional; if omitted, computed by AWS.
+          <Expandable title="properties">
+            <ResponseField name="browser_arn" type="string">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="agent_core_code_interpreter" type="object">
+          Optional; if omitted, computed by AWS.
+          <Expandable title="properties">
+            <ResponseField name="code_interpreter_arn" type="string">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="agent_core_gateway" type="object">
+          Optional; if omitted, computed by AWS.
+          <Expandable title="properties">
+            <ResponseField name="gateway_arn" type="string">
+              Optional; if omitted, computed by AWS.
+            </ResponseField>
+            <ResponseField name="outbound_auth" type="object">
+              Defines the authentication settings that the agent core gateway uses when making outbound calls to external tools or APIs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="aws_iam" type="any">
+                  Specifies the AWS IAM configuration used to authenticate outbound requests from the agent core gateway to external tool endpoints, typically including an IAM role ARN for signing and authorizing API calls. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="none" type="any">
+                  When set, the `none` field under outbound_auth selects the 'no authentication' scheme, meaning outbound requests from the agent core gateway are sent without any authentication credentials. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="oauth" type="object">
+                  The `oauth` object under `outbound_auth` specifies the OAuth 2.0 configuration (such as client credentials and token endpoint) used by the agent core gateway to authenticate outgoing requests. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="custom_parameters" type="any">
+                      Specifies additional key-value pairs to be included in the OAuth 2.0 token request for outbound authentication of the agent core gateway. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="default_return_url" type="string">
+                      Specifies the default redirect URI that the OAuth authorization server will call back to after successful authentication, used as the return location when the agent core gateway requests OAuth tokens for outbound API access. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="grant_type" type="string">
+                      Specifies the OAuth 2.0 grant type used by the agent core to authenticate outbound requests through the agent core gateway. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="provider_arn" type="string">
+                      Optional; if omitted, computed by AWS.
+                    </ResponseField>
+                    <ResponseField name="scopes" type="list(string)">
+                      Specifies the list of OAuth 2.0 scopes to request from the authorization server for the Agent Core gateway's outbound authentication, controlling the permissions granted when invoking the configured tool. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="inline_function" type="object">
+          Optional; if omitted, computed by AWS.
+          <Expandable title="properties">
+            <ResponseField name="description" type="string">
+              Specifies a description of the inline function, which the agent uses to understand when and how to invoke the tool. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="input_schema" type="any">
+              Defines the JSON Schema that declares the input parameters an inline function tool expects, used for tool invocation validation in the Bedrock agent core harness. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="remote_mcp" type="object">
+          Contains the endpoint URI and optional HTTP headers for connecting the tool to a remote Model Context Protocol (MCP) server. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="headers" type="any">
+              Specifies the HTTP headers, such as authorization or accept headers, to include when connecting to the remote Model Context Protocol (MCP) server defined in this tool configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="url" type="string">
+              Specifies the URL endpoint of a remote Model Context Protocol (MCP) server, which the agent's tool configuration connects to in order to discover and invoke the tools exposed by that server. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      Specifies the type of a tool in the agent's tools list, such as ACTION_GROUP, KNOWLEDGE_BASE, or FUNCTION, which determines how the agent invokes the tool. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="truncation" type="object">
+  Optional.
+  <Expandable title="properties">
+    <ResponseField name="config" type="object">
+      Optional.
+      <Expandable title="properties">
+        <ResponseField name="sliding_window" type="object">
+          Optional.
+          <Expandable title="properties">
+            <ResponseField name="messages_count" type="number">
+              The maximum number of recent conversation messages to retain when the sliding window truncation strategy is applied. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="summarization" type="object">
+          Optional.
+          <Expandable title="properties">
+            <ResponseField name="preserve_recent_messages" type="number">
+              The number of most recent conversation messages to preserve in their original form (i.e., exclude from summarization) when the agent core harness truncates conversation history via summarization. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="summarization_system_prompt" type="string">
+              Specifies the system prompt the agent uses to generate a summary of past conversation turns when the chat history exceeds the configured truncation limit. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="summary_ratio" type="number">
+              Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="strategy" type="string" required>
+      Required.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) of the harness. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  The timestamp when the harness was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="environment" type="object">
+  Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="agent_core_runtime_environment" type="object">
+      Optional.
+      <Expandable title="properties">
+        <ResponseField name="agent_runtime_arn" type="string">
+          The ARN of the underlying AgentCore Runtime. Optional.
+        </ResponseField>
+        <ResponseField name="agent_runtime_id" type="string">
+          The ID of the underlying AgentCore Runtime. Optional.
+        </ResponseField>
+        <ResponseField name="agent_runtime_name" type="string">
+          The name of the underlying AgentCore Runtime. Optional.
+        </ResponseField>
+        <ResponseField name="filesystem_configurations" type="list(object)">
+          Optional.
+          <Expandable title="properties">
+            <ResponseField name="efs_access_point" type="object">
+              Optional; if omitted, computed by AWS.
+              <Expandable title="properties">
+                <ResponseField name="access_point_arn" type="string">
+                  The Amazon Resource Name (ARN) of the Elastic File System (EFS) access point used by the Bedrock agent core harness to mount the filesystem in the agent's runtime environment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="mount_path" type="string">
+                  Defines the absolute directory path within the agent's runtime container where the specified Amazon EFS access point filesystem is mounted, making the filesystem available at that location for the agent to read from or write to. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="s3_files_access_point" type="object">
+              Defines the S3 access point configuration for a file system mount, specifying the access point ARN (and optionally a mount path) through which the Bedrock agent accesses files stored in S3. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="access_point_arn" type="string">
+                  The Amazon Resource Name (ARN) of the S3 access point that the agent's core runtime environment uses to access files in the configured S3 filesystem. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="mount_path" type="string">
+                  Optional; if omitted, computed by AWS.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="session_storage" type="object">
+              Specifies the directory or mount point within the attached filesystem where the agent core's session data is stored and persisted across operations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="mount_path" type="string">
+                  The absolute filesystem path inside the agent runtime environment where the session storage volume is mounted, determining where session state and temporary data are persisted across invocations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="lifecycle_configuration" type="object">
+          Optional.
+          <Expandable title="properties">
+            <ResponseField name="idle_runtime_session_timeout" type="number">
+              Specifies the maximum duration, in seconds, that an idle agent runtime session can remain open before the agent core environment automatically terminates it to free up resources. Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="max_lifetime" type="number">
+              Optional.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="network_configuration" type="object">
+          Optional.
+          <Expandable title="properties">
+            <ResponseField name="network_mode" type="string" required>
+              Required.
+            </ResponseField>
+            <ResponseField name="network_mode_config" type="object">
+              Optional.
+              <Expandable title="properties">
+                <ResponseField name="security_groups" type="list(string)" required>
+                  Required.
+                </ResponseField>
+                <ResponseField name="subnets" type="list(string)" required>
+                  The list of VPC subnet IDs in which the agent core runtime environment is deployed, defining the network subnets for the harness when configured for VPC-based networking. Required. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="harness_id" type="string">
+  The unique identifier of the harness. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="memory" type="object">
+  Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="agent_core_memory_configuration" type="object">
+      Configures the agent's core memory behavior in the harness, including enabling or disabling memory and specifying the memory type (such as session summary) used by the agent. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="actor_id" type="string">
+          Optional.
+        </ResponseField>
+        <ResponseField name="arn" type="string" required>
+          The Amazon Resource Name (ARN) of the memory resource that the agent core uses to store and recall session context, required when configuring agent core memory. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="messages_count" type="number">
+          Optional.
+        </ResponseField>
+        <ResponseField name="retrieval_config" type="any">
+          Defines the retrieval configuration for the agent's core memory, such as the retrieval type (SEMANTIC or HYBRID) and the number of results to return when the agent recalls past interactions. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="disabled" type="any">
+      Explicitly opt out of memory. Optional.
+    </ResponseField>
+    <ResponseField name="managed_memory_configuration" type="object">
+      Configuration for managed memory. The harness creates and manages a memory resource in the customer's account. Optional.
+      <Expandable title="properties">
+        <ResponseField name="arn" type="string">
+          The ARN of the managed memory resource. Read-only, populated by the service. Optional.
+        </ResponseField>
+        <ResponseField name="encryption_key_arn" type="string">
+          Customer-managed KMS key ARN. Defaults to AWS-owned key. Not updatable after creation. Optional.
+        </ResponseField>
+        <ResponseField name="event_expiry_duration" type="number">
+          Event retention in days. Defaults to 30. Optional.
+        </ResponseField>
+        <ResponseField name="strategies" type="list(string)">
+          Strategy types to enable. Defaults to [SEMANTIC, SUMMARIZATION]. Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  The timestamp when the harness was last updated. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="version" type="string">
+  The version of the harness. Incremented on every successful update. Computed by AWS after `ship`.
+</ResponseField>

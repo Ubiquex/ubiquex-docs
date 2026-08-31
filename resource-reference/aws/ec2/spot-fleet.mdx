@@ -1,0 +1,785 @@
+---
+title: "aws_ec2_spot_fleet"
+description: "`aws_ec2_spot_fleet` launches and maintains a real target amount of Spot Instance capacity across multiple instance types and Availability Zones..."
+---
+
+`aws_ec2_spot_fleet` launches and maintains a real target amount of Spot Instance capacity across multiple instance types and Availability Zones, automatically requesting replacement capacity if Spot Instances are interrupted, the Spot-focused predecessor to the more general `aws_ec2_fleet`.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	ec2 "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/ec2"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own spot fleet"})
+
+    		ubx.Resource(ec2.SpotFleet, "example", ec2.SpotFleetConfig{
+    			SpotFleetRequestConfigData: map[string]any{"iam_fleet_role": "example", "target_capacity": 1},
+    			Tags:                       []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { SpotFleet } from "@ubx/sdk-aws/aws/ec2/spot_fleet";
+
+    export default stack("example", () => {
+      intent({ summary: "example own spot fleet" });
+
+      resource(SpotFleet, "example", {
+        spotFleetRequestConfigData: { iamFleetRole: "example", targetCapacity: 1 },
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.ec2 import SpotFleet, SpotFleetConfig
+    from ubx.aws.ec2.spot_fleet import SpotFleet_SpotFleetRequestConfigData, SpotFleet_SpotFleetRequestConfigData_LaunchSpecifications_TagSpecifications_Tags
+
+    def describe():
+        ubx.intent("example own spot fleet")
+
+        ubx.resource(SpotFleet, "example", SpotFleetConfig(
+            spot_fleet_request_config_data=SpotFleet_SpotFleetRequestConfigData(iam_fleet_role="example", target_capacity=1),
+            tags=[SpotFleet_SpotFleetRequestConfigData_LaunchSpecifications_TagSpecifications_Tags(key="example")],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ec2_spot_fleet, with spot fleet request config data a
+    set value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="spot_fleet_request_config_data" type="object" required>
+  This object defines the configuration for the Spot Fleet request, including the IAM fleet role, target capacity, launch specifications for instances, and allocation strategy. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="allocation_strategy" type="string">
+      Determines how Spot Fleet selects and launches Spot Instances to meet the target capacity, such as lowestPrice for the cheapest pools, diversified across many pools, or capacityOptimized for the pools with optimal capacity. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="context" type="string">
+      A user-specified context string for the Spot Fleet request, reserved for future use and currently has no effect on the service. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="excess_capacity_termination_policy" type="string">
+      Determines the policy for terminating instances when the Spot Fleet has excess capacity beyond its target, where 'Default' terminates the excess instances and 'NoTermination' leaves them running. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="iam_fleet_role" type="string" required>
+      The ARN of an IAM role that grants Amazon EC2 Spot Fleet permission to launch, manage, and terminate instances on your behalf. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="instance_interruption_behavior" type="string">
+      Specifies whether interrupted Spot Instances in the fleet are terminated, stopped, or hibernated when capacity is no longer available at the requested price. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="instance_pools_to_use_count" type="number">
+      The number of Spot capacity pools (each defined by instance type and Availability Zone) across which the Spot Fleet distributes its target capacity, allowing the fleet to diversify and reduce the risk of losing all capacity if one pool is interrupted. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="launch_specifications" type="list(object)">
+      A list of launch specifications that define the EC2 instances to be launched in the Spot Fleet, including instance type, AMI ID, security groups, IAM instance profile, and other instance configuration settings. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="block_device_mappings" type="list(object)">
+          Specifies the block device mappings, such as EBS volumes and instance store volumes, to be attached to the instances created from this launch specification in the Spot Fleet request. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="device_name" type="string">
+              The device name (e.g., /dev/sdh) exposed to the operating system for the block device, as defined in the Spot Fleet launch specification's block device mapping to attach an EBS volume or instance store volume. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="ebs" type="object">
+              Specifies the Amazon EBS volume configuration (including volume size, type, snapshot, encryption, and delete-on-termination settings) for the corresponding block device in the Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="delete_on_termination" type="bool">
+                  Specifies whether the attached EBS volume should be automatically deleted when the Spot Instance launched from this launch specification terminates. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="encrypted" type="bool">
+                  Indicates whether the EBS volume created by this block device mapping should be encrypted. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="iops" type="number">
+                  Specifies the number of provisioned I/O operations per second (IOPS) for the EBS volume, used when the volume type is io1 or io2. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="snapshot_id" type="string">
+                  The ID of the snapshot to use when creating the Amazon EBS volume for the block device mapping in the Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="volume_size" type="number">
+                  Specifies the size of the EBS volume, in GiB, for the block device attached to each instance launched from this launch specification within the Spot Fleet request. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="volume_type" type="string">
+                  Specifies the EBS volume type (e.g., gp2, gp3, io1, io2, sc1, st1, or standard) for the block device attached to the spot fleet instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="no_device" type="string">
+              Indicates whether to suppress (omit) the specified device from the block device mapping for the Spot Fleet launch specification, overriding any device that would otherwise be inherited from the AMI's block device mapping. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="virtual_name" type="string">
+              Specifies the virtual device name (e.g., 'ephemeral0') for an instance store volume in the block device mapping of a Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="ebs_optimized" type="bool">
+          Specifies whether instances launched from this launch specification are EBS-optimized, providing dedicated network and storage throughput to Amazon EBS. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="iam_instance_profile" type="object">
+          The IAM instance profile to associate with the instances launched from this launch specification, specified by its Amazon Resource Name (ARN) or name. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="arn" type="string">
+              The ARN of the IAM instance profile that is associated with the instances launched for this Spot Fleet launch specification, granting them permissions to access AWS services and resources. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="image_id" type="string">
+          The ID of the Amazon Machine Image (AMI) used to launch instances for this spot fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="instance_requirements" type="object">
+          Defines the minimum and maximum CPU, memory, and other instance attribute requirements that Spot Fleet uses to select compatible instance types for the launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="accelerator_count" type="object">
+              Specifies the minimum and maximum number of accelerators (for example, GPUs) that an instance must have to match the instance requirements for the Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  The maximum number of accelerators (e.g., GPUs) that an instance must have, used as an upper bound when filtering instance types for the Spot Fleet's launch specifications. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  Specifies the minimum number of accelerators (for example, GPUs) that an instance type must have to be considered for the Spot Fleet, as part of the instance requirements in the launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="accelerator_manufacturers" type="list(string)">
+              Restricts eligible Spot Fleet instance types to those whose accelerators (GPUs) are produced by the specified manufacturers, such as amazon-web-services, amd, nvidia, or xilinx. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="accelerator_names" type="list(string)">
+              Specifies the names of GPU accelerators (e.g., 'a100', 'v100', 't4') that instance types must have, filtering the eligible instance types for the Spot Fleet launch specifications to only those with matching accelerator names. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="accelerator_total_memory_mi_b" type="object">
+              Specifies the minimum and maximum total accelerator (for example, GPU) memory, in MiB, that the instance types in the Spot Fleet must satisfy. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  The maximum total memory, in MiB, that the accelerator(s) must have, used to filter which instance types are eligible for the Spot Fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  The minimum total accelerator memory in MiB required for the instance type, used to filter eligible EC2 instance types for the Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="accelerator_types" type="list(string)">
+              Specifies the required types of hardware accelerators (e.g., gpu, fpga, inference) that each instance launched as part of the Spot Fleet must include, if any are configured in the instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="allowed_instance_types" type="list(string)">
+              Lists the specific EC2 instance types that are permitted for the Spot Fleet's launch specifications, so EC2 only selects from these types when fulfilling the fleet's capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="bare_metal" type="string">
+              Specifies whether the instance type must be a bare metal instance, with valid values of included, excluded, or required. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="baseline_ebs_bandwidth_mbps" type="object">
+              Specifies the minimum and maximum baseline EBS bandwidth (in Mbps) that an instance type must satisfy to be considered for the Spot Fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  The maximum baseline EBS bandwidth (in Mbps) that an instance type must meet to be considered for the Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  The minimum baseline EBS bandwidth (in Mbps) that an instance type must offer to be eligible for the Spot Fleet's instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="baseline_performance_factors" type="object">
+              Defines the baseline CPU and memory performance factors (e.g., CPU architecture, manufacturer, memory clock speed) used to filter eligible instance types for the Spot Fleet's instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="cpu" type="object">
+                  Specifies the CPU baseline performance requirements (e.g., baseline vCPU count and supported instance types) that an instance type must meet to be selected by the Spot Fleet's instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="references" type="list(object)">
+                      Defines the list of CPU baseline performance references, each specifying an instance family and a minimum CPU speed (in GHz) that instance types must meet or exceed for the Spot Fleet's instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="instance_family" type="string">
+                          Specifies the EC2 instance family name (e.g., c6i) that serves as the CPU performance baseline against which other instance types are compared when the Spot Fleet launch specification's instance requirements include baseline performance factors. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="burstable_performance" type="string">
+              Specifies whether the Spot Fleet's instance requirements include or exclude instance types with burstable performance (such as T2 and T3 instances), with valid values of 'include' or 'exclude'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="cpu_manufacturers" type="list(string)">
+              The list of CPU manufacturers (such as amazon-web-services, amd, or intel) that the instance types must have in order to be considered for the Spot Fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="excluded_instance_types" type="list(string)">
+              Specifies the list of EC2 instance types that the Spot Fleet will not consider when fulfilling the capacity from the launch specification's instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="instance_generations" type="list(string)">
+              Specifies the acceptable instance generations (e.g., 'current' or 'previous') that the Spot Fleet can use when selecting instance types for the launch specification, filtering out unsupported generations. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="local_storage" type="string">
+              Defines the local storage (instance store) requirement for instances in the Spot Fleet launch specification, using one of 'included' (instances may have local storage), 'required' (instances must have local storage), or 'excluded' (instances must not have local storage). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="local_storage_types" type="list(string)">
+              The local storage type (hdd or ssd) that instances must support for their instance store volumes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="max_spot_price_as_percentage_of_optimal_on_demand_price" type="number">
+              Maximum spot price as a percentage of the optimal On-Demand price that you are willing to pay for a Spot Instance, used to filter candidate instance types in the Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="memory_gi_bper_vcpu" type="object">
+              Defines the minimum and maximum amount of memory (in GiB) per vCPU that an instance type must have to be eligible for the Spot Fleet, specified as an object with Min and Max numeric properties. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  The maximum amount of memory (in GiB) per virtual CPU (vCPU) that an instance type must have to be eligible for the Spot Fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  The minimum amount of memory (in GiB) per vCPU that an instance type must provide to be considered for the Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="memory_mi_b" type="object">
+              Defines the minimum and maximum memory (in MiB) an instance must have to be eligible for the Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  The maximum amount of memory, in MiB, that an instance type must have to meet the Spot Fleet's instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  The minimum amount of memory, in MiB, that an instance type must have to be considered for the Spot Fleet's launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="network_bandwidth_gbps" type="object">
+              Defines the minimum and maximum network bandwidth (in Gbps) that an instance type must support for the launch specification's instance requirements in a Spot Fleet request. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  The maximum network bandwidth in Gbps that an instance type must meet for the Spot Fleet to consider it, as specified in the instance requirements of the launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  The minimum network bandwidth in Gigabits per second that an instance type must provide to be considered for the Spot Fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="network_interface_count" type="object">
+              Specifies the minimum and maximum number of network interfaces that instance types must support to be considered for the Spot Fleet, used to filter candidate instances by network interface count. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  The maximum number of network interfaces that a candidate instance type must have to satisfy the instance requirements of a Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  The minimum number of network interfaces that an instance type must have to be considered for the Spot Fleet's launch specification, filtering out instances with fewer interfaces. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="on_demand_max_price_percentage_over_lowest_price" type="number">
+              Specifies the maximum on-demand price per hour that you are willing to pay, expressed as a percentage of the lowest-priced on-demand instance type, to filter which instance types are used for the Spot Fleet's launch specifications. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="require_encryption_in_transit" type="bool">
+              When enabled, restricts the Spot Fleet to instance types that support encryption of data in transit, such as those offering ENA Express or similar network encryption features. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="require_hibernate_support" type="bool">
+              Determines whether Spot Fleet only launches instances that support hibernation, requiring the instance type to be capable of hibernation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="spot_max_price_percentage_over_lowest_price" type="number">
+              Specifies the maximum price you are willing to pay for a Spot Instance, expressed as a percentage over the lowest Spot price for the instance types that match the requirements, allowing you to bid above the lowest price to increase your chances of obtaining capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="total_local_storage_gb" type="object">
+              Configures the minimum and maximum total local storage (in GB) required for the instance types, as part of the instance requirements for the Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  Specifies the maximum total local storage (in GB) that an instance type must have, used as a filter in the instance requirements for selecting eligible instance types in the Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  The minimum amount of local storage, in GB, that an instance must have to match the Spot Fleet's instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="vcpu_count" type="object">
+              Defines the minimum and maximum number of vCPUs an instance type must offer to be considered eligible for the Spot Fleet, filtering instance types based on their vCPU count. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="max" type="number">
+                  The maximum number of vCPUs that an instance type must have to be eligible for the Spot Fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="min" type="number">
+                  The minimum number of vCPUs that an instance type must have to satisfy the instance requirements for the Spot Fleet's launch specifications. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="instance_type" type="string">
+          The EC2 instance type (e.g., t2.micro, m5.large) that the Spot Fleet uses when launching instances from this launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="kernel_id" type="string">
+          The ID of the kernel to select for instances launched with this launch specification, overriding the default kernel from the AMI. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="key_name" type="string">
+          The name of the EC2 key pair used for SSH access to the instances launched by the Spot Fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="monitoring" type="object">
+          Configures whether detailed monitoring (1-minute CloudWatch metrics) is enabled for instances launched from this spot fleet launch specification, via an 'Enabled' subfield. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="enabled" type="bool">
+              Indicates whether detailed monitoring is enabled for the instances launched by the Spot Fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="network_interfaces" type="list(object)">
+          Specifies one or more network interfaces to attach to the Spot Fleet instances launched from this launch specification, including settings such as device index, subnet, and public IP assignment. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="associate_public_ip_address" type="bool">
+              When true, automatically assigns a public IPv4 address to the network interface for instances launched from this Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="delete_on_termination" type="bool">
+              Controls whether the network interface is deleted when the Spot Instance terminates, as part of each network interface definition in the Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="description" type="string">
+              The description of the network interface, providing a human-readable label for the ENI in the EC2 console and APIs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="device_index" type="number">
+              The device index for the network interface, where 0 denotes the primary network interface (eth0) and higher values attach additional interfaces to the spot instance. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="groups" type="list(string)">
+              Specifies the security group IDs to attach to the network interface when the Spot Fleet launches instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="ipv6_address_count" type="number">
+              Specifies the number of IPv6 addresses to assign to the network interface in the launch specification for instances in the Spot Fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="ipv6_addresses" type="list(object)">
+              The list of IPv6 addresses to assign to the network interface of the Spot Fleet instance launched from this launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="ipv6_address" type="string">
+                  Specifies an IPv6 address to assign to the network interface of the Spot Fleet instance. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="network_interface_id" type="string">
+              The ID of an existing EC2 network interface to attach to instances launched from this launch specification, instead of creating a new one. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="private_ip_addresses" type="list(object)">
+              Defines the private IP addresses (with a Primary flag for each) to assign to the network interface in the Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="primary" type="bool">
+                  Specifies whether the private IP address is the primary private IP address of the network interface in the Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="private_ip_address" type="string">
+                  Specifies the private IPv4 address to assign to a network interface on a Spot Fleet instance, used when configuring multiple private IP addresses for an interface in a launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="secondary_private_ip_address_count" type="number">
+              Specifies the number of secondary private IP addresses to assign to the network interface in the Spot Fleet launch specification, in addition to the primary private IP address. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="subnet_id" type="string">
+              The ID of the subnet in which to place the network interface for instances launched from this launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="placement" type="object">
+          Specifies the placement preferences for instances launched from this launch specification, including the Availability Zone, placement group name, and tenancy that determine where the Spot Fleet places its instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="availability_zone" type="string">
+              The Availability Zone in which the Spot Fleet launches instances for this launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="availability_zone_id" type="string">
+              The stable, provider-specific identifier of the Availability Zone (such as use1-az1) in which the Spot Fleet launches the instances for this launch specification, independent of the zone's name. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="group_name" type="string">
+              The name of the placement group in which to launch the instances for this Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="tenancy" type="string">
+              Specifies the tenancy model (e.g., default, dedicated, or host) for instances launched from this Spot Fleet launch specification, determining whether they run on shared or single-tenant hardware. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="ramdisk_id" type="string">
+          The ID of the RAM disk to select for the instance, typically used with instance store-backed AMIs to specify a particular kernel RAM disk image. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="security_groups" type="list(object)">
+          Specifies the security groups to associate with the instances launched from this launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="group_id" type="string">
+              The ID of the security group to associate with each instance launched from this Spot Fleet launch specification, controlling network access to the instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="spot_price" type="string">
+          The maximum Spot price per instance hour for instances launched using this launch specification, which overrides the Spot Fleet's default spot price if specified. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="subnet_id" type="string">
+          The ID of the subnet in which the Spot Fleet launches instances for this launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="tag_specifications" type="list(object)">
+          Defines the tags to apply to the EC2 instances and volumes created from the associated launch specification in the Spot Fleet request. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="resource_type" type="string">
+              The AWS resource type (e.g., 'instance' or 'volume') to which the tags in this tag specification apply for the EC2 instances launched by the Spot Fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="tags" type="list(object)">
+              The key-value pairs that define the tags to apply to the resource type (such as instance or volume) specified in the parent tag specification for the Spot Fleet launch specifications. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="key" type="string">
+                  The key of a tag to apply to the resources (e.g., instances or volumes) launched by the Spot Fleet via this launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="value" type="string">
+                  Specifies the value for a tag key applied to a resource type (e.g., instance or volume) created by this Spot Fleet launch specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="user_data" type="string">
+          The base64-encoded user data script or configuration that is injected into instances launched from this launch specification, enabling initialization tasks like bootstrapping or cloud-init directives. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="weighted_capacity" type="number">
+          Defines the relative weight (capacity units) for this launch specification when the Spot Fleet calculates its total capacity against the target capacity, letting a mix of instance types of differing sizes contribute to fleet capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="launch_template_configs" type="list(object)">
+      Specifies one or more launch template configurations that the Spot Fleet uses to launch spot instances, including the launch template to use and any overrides for instance types, Availability Zones, subnet IDs, and weighted capacity. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="launch_template_specification" type="object">
+          Identifies the EC2 launch template to use for the Spot Fleet's launch configuration, including the launch template ID or name, and optionally the version. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="launch_template_id" type="string">
+              Specifies the unique ID of the Amazon EC2 launch template that the Spot Fleet uses to launch instances for this launch template configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="launch_template_name" type="string">
+              The name of the EC2 launch template that the Spot Fleet uses to launch instances for this launch template configuration, as specified in the launch template specification. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="version" type="string">
+              Specifies the version of the launch template to use when launching instances for the Spot Fleet (for example, a specific version number or '$Latest'). Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="overrides" type="list(object)">
+          Specifies a list of overrides that define instance types and subnets (with optional capacity and priority) to apply to the launch template when the Spot Fleet places instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="availability_zone" type="string">
+              Overrides the Availability Zone in which Spot Instances are launched for this launch template configuration, allowing the Spot Fleet to distribute instances across specific AZs. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="availability_zone_id" type="string">
+              Defines the Availability Zone ID (e.g., use1-az1) for the Spot Fleet's launch template override, directing the fleet to launch instances in that specific Availability Zone instead of using the zone name. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="instance_requirements" type="object">
+              Specifies the instance attribute requirements (e.g., minimum and maximum vCPUs, memory, and storage) that the Spot Fleet uses to filter and select eligible instance types for this launch template override. Optional; if omitted, computed by AWS. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="accelerator_count" type="object">
+                  Specifies the minimum and maximum number of GPU accelerators (e.g., GPUs) required for instance types to match the Spot Fleet's launch template overrides. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="max" type="number">
+                      The maximum number of accelerators (e.g., GPUs) that an instance must have to be considered matching the Spot Fleet's instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="min" type="number">
+                      The minimum number of accelerators (e.g., GPUs) that an instance type must have to satisfy the instance requirements for the Spot Fleet launch template override. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="accelerator_manufacturers" type="list(string)">
+                  Specifies the acceptable manufacturers of accelerators (such as NVIDIA, AMD, or Xilinx) for instances that meet the stated requirements, filtering to instances with accelerators from the listed manufacturers in the Spot Fleet's instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="accelerator_names" type="list(string)">
+                  Specifies a list of accelerator names (e.g., 'a100', 'v100', 't4') that instance types in the Spot Fleet launch template overrides must have, acting as a filter within the instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="accelerator_total_memory_mi_b" type="object">
+                  Specifies the minimum and maximum total accelerator memory in MiB that an instance must have to match the instance requirements for the Spot Fleet's launch template overrides. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="max" type="number">
+                      Maximum total accelerator memory (in MiB) that an instance type must have to be considered for the Spot Fleet, used to filter instance types based on the total memory of all accelerators (e.g., GPUs, FPGAs) on the instance. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="min" type="number">
+                      The minimum total accelerator memory in MiB that an instance type must have to be considered for the Spot Fleet's launch template overrides. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="accelerator_types" type="list(string)">
+                  Specifies the accelerator hardware types (e.g., 'gpu', 'fpga', 'inference') that the instance must include to match the spot fleet's instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="allowed_instance_types" type="list(string)">
+                  Defines the list of EC2 instance types that the Spot Fleet may select from when launching instances, filtering the available instance types based on the other instance requirements such as vCPU and memory. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="bare_metal" type="string">
+                  Determines whether the instance must be a bare metal instance (e.g., i3.metal), with allowed values of 'included', 'excluded', or 'required'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="baseline_ebs_bandwidth_mbps" type="object">
+                  Specifies the minimum and maximum baseline EBS bandwidth (in Mbps) that an instance type must meet for the Spot Fleet to consider it. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="max" type="number">
+                      The maximum baseline EBS bandwidth, in Mbps, that an instance must have to be selected for the Spot Fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="min" type="number">
+                      Specifies the minimum baseline EBS bandwidth in Mbps that an instance type must provide to match the Spot Fleet's instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="baseline_performance_factors" type="object">
+                  Specifies the baseline CPU and memory performance requirements (low, medium, or high) that EC2 instance types must satisfy to be considered for the Spot Fleet's launch template override. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="cpu" type="object">
+                      Provides the CPU baseline performance requirements (such as baseline cores and baseline speed) that an instance type must meet to be considered for the Spot Fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                      <Expandable title="properties">
+                        <ResponseField name="references" type="list(object)">
+                          References to CPU performance baselines (e.g., specific CPU names or manufacturers) that filter instances according to their baseline CPU performance for the Spot Fleet's instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                          <Expandable title="properties">
+                            <ResponseField name="instance_family" type="string">
+                              The name of an EC2 instance family (e.g., c6i or m5) used as a reference to define the CPU baseline performance factor in the instance requirements for the Spot Fleet's launch template overrides. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                            </ResponseField>
+                          </Expandable>
+                        </ResponseField>
+                      </Expandable>
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="burstable_performance" type="string">
+                  Specifies whether the Spot Fleet should include, exclude, or require burstable performance instance types (such as T3, T3a, T2) when matching instance requirements, with allowed values 'included', 'excluded', or 'required'. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="cpu_manufacturers" type="list(string)">
+                  Specifies the allowed CPU manufacturers (e.g., amazon-web-services, intel, amd) for instance requirements, filtering eligible instance types by CPU vendor. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="excluded_instance_types" type="list(string)">
+                  Specifies instance types that should not be used when fulfilling the Spot Fleet request, excluding them from consideration based on your instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="instance_generations" type="list(string)">
+                  Specifies the instance generations (e.g., current or previous) that the Spot Fleet can consider when selecting instance types from the launch template overrides, filtering out instance families that are not from the chosen generation(s). Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="local_storage" type="string">
+                  Specifies whether instance types that have local (instance store) storage are included, required, or excluded from the Spot Fleet's instance type selection. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="local_storage_types" type="list(string)">
+                  Specifies the type of local storage (hdd or ssd) that instances must have, restricting launch to instance types with the specified local storage types. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="max_spot_price_as_percentage_of_optimal_on_demand_price" type="number">
+                  The maximum spot price you are willing to pay, expressed as a percentage of the optimal On-Demand price for the instance type, used to filter instance types for the Spot Fleet. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="memory_gi_bper_vcpu" type="object">
+                  Defines the minimum and maximum memory per vCPU (in GiB) required for instances to be selected in the Spot Fleet's launch template overrides, used to filter instance types based on their memory-to-vCPU ratio. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="max" type="number">
+                      The maximum amount of memory (in GiB) per vCPU that an instance must have to match the instance requirements for a Spot Fleet launch template override. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="min" type="number">
+                      The minimum memory per vCPU (in GiB) that an instance type must meet for the Spot Fleet to select it. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="memory_mi_b" type="object">
+                  Defines the minimum and maximum memory (in MiB) that an instance type must provide to be considered by this Spot Fleet override, specified as an object with Min and Max integer fields. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="max" type="number">
+                      Specifies the maximum amount of memory, in MiB, that an instance type must have to be included in the Spot Fleet's instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="min" type="number">
+                      The minimum amount of memory, in MiB, that an instance type must offer to meet the Spot Fleet's instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="network_bandwidth_gbps" type="object">
+                  Specifies the minimum and maximum network bandwidth in Gbps that an instance type must support to be eligible for inclusion in the Spot Fleet, based on the launch template overrides' instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="max" type="number">
+                      The maximum network bandwidth in gigabits per second that an instance must meet or not exceed to qualify for the Spot Fleet's launch template override. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="min" type="number">
+                      Minimum network bandwidth (in Gbps) that an instance type must meet to be considered for the Spot Fleet, filtering out instance types with lower network performance. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="network_interface_count" type="object">
+                  Specifies the minimum and maximum number of network interfaces that an instance type must have, used to filter eligible instance types for the Spot Fleet overrides. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="max" type="number">
+                      The maximum number of network interfaces that an instance type must have to be considered for the Spot Fleet launch template overrides. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="min" type="number">
+                      The minimum number of network interfaces that an instance type must have for the Spot Fleet to consider it for the override. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="on_demand_max_price_percentage_over_lowest_price" type="number">
+                  Sets the price protection threshold for On-Demand Instances in the selected instance types, expressed as a percentage above the lowest price; for example, a value of 200 allows paying up to 200% of the lowest On-Demand price. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="require_encryption_in_transit" type="bool">
+                  Indicates whether the instance types in this launch template override must support encryption in transit, which requires the use of the NVMe block device interface for encrypted data transfer. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="require_hibernate_support" type="bool">
+                  Indicates whether the Spot Fleet must select only instance types that support hibernation, enabling instances to be stopped and resumed with preserved memory. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="spot_max_price_percentage_over_lowest_price" type="number">
+                  Specifies the maximum price you are willing to pay for a Spot Instance as a percentage of the lowest price for that instance type, allowing Spot Fleet to exceed the lowest price when launching instances based on these instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+                <ResponseField name="total_local_storage_gb" type="object">
+                  Defines the minimum and maximum amount of local storage (in GB) that an instance must offer, used to filter instance types when Spot Fleet selects instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="max" type="number">
+                      The maximum total local storage in GB that an instance type must have to meet the instance requirements for this Spot Fleet launch template override. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="min" type="number">
+                      The minimum amount of local storage, in GB, that an instance type must provide in order to match the Spot Fleet's instance requirements. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="vcpu_count" type="object">
+                  Specifies the minimum and maximum number of vCPUs that candidate instances must have to match the instance requirements of a Spot Fleet launch template override. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="max" type="number">
+                      The maximum number of vCPUs that an instance type may have to be eligible for the Spot Fleet, used to filter instance types in the launch template override. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="min" type="number">
+                      Specifies the minimum number of vCPUs that an instance type must have to match the instance requirements for this Spot Fleet launch template override. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="instance_type" type="string">
+              The EC2 instance type to use for this override, replacing the instance type defined in the associated launch template. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="priority" type="number">
+              The priority for this launch template override, where lower numeric values indicate higher priority, determining the order in which Amazon EC2 Spot Fleet attempts to provision capacity from the specified instance types. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="spot_price" type="string">
+              Specifies the maximum price you are willing to pay per unit hour for a Spot Instance in this override, which overrides the Spot Fleet request's default price for the associated launch template configuration. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="subnet_id" type="string">
+              The subnet ID in which the Spot Fleet launches instances for this launch template override, allowing you to control or diversify the Availability Zone placement of the instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="weighted_capacity" type="number">
+              Defines the relative weight for the instance type in a launch template override, determining how much capacity this instance contributes toward the Spot Fleet's target capacity. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="load_balancers_config" type="object">
+      Defines the Classic Load Balancers and target groups to attach to the Spot Fleet, enabling load balancing of incoming traffic across instances in the fleet. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="classic_load_balancers_config" type="object">
+          Specifies the Classic Load Balancers to attach to the Spot Fleet, each defined by its name. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="classic_load_balancers" type="list(object)" required>
+              Specifies the list of Classic Load Balancers to attach to the Spot Fleet, where each item identifies a Classic Load Balancer by its name. Required. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="name" type="string">
+                  The name of the Classic Load Balancer that the Spot Fleet will register instances with. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="target_groups_config" type="object">
+          Defines the list of target groups for the Spot Fleet's load balancer configuration, allowing the fleet to register its instances with those target groups so incoming traffic can be distributed across them. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="target_groups" type="list(object)" required>
+              Specifies the list of target groups (each with an ARN and optional weight) to which the Spot Fleet will register its instances for load balancing. Required. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="arn" type="string">
+                  The Amazon Resource Name (ARN) of a target group to associate with the Spot Fleet for distributing incoming traffic to its instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="on_demand_allocation_strategy" type="string">
+      Specifies how On-Demand Instances are allocated across Spot Fleet pools, either using the lowest-priced pool ('lowest-price') or following a prioritized list of launch template overrides ('prioritized'). Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="on_demand_max_total_price" type="string">
+      Specifies the maximum total price per hour that you are willing to pay for On-Demand Instances in the Spot Fleet, used to cap the On-Demand portion of the fleet's spending. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="on_demand_target_capacity" type="number">
+      The number of On-Demand units (instances or capacity units) that the Spot Fleet request targets for launching On-Demand instances, used to maintain a minimum On-Demand capacity in the fleet. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="replace_unhealthy_instances" type="bool">
+      Indicates whether Spot Fleet should automatically replace instances that become unhealthy (as determined by the attached load balancer health checks) with new instances. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="spot_maintenance_strategies" type="object">
+      Specifies the maintenance strategies for the Spot Fleet, including the capacity rebalance strategy that determines how Spot Fleet handles Spot Instances at risk of interruption by automatically replacing them when a replacement strategy is configured. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="capacity_rebalance" type="object">
+          Specifies the capacity rebalance strategy for the Spot Fleet, which configures how the fleet proactively replaces Spot Instances that are at an elevated risk of interruption to maintain target capacity. Optional. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="replacement_strategy" type="string">
+              Determines whether EC2 Spot Fleet launches a replacement instance immediately when a Spot Instance in a capacity-rebalanced fleet is at risk of interruption ('launch') or launches a replacement and then waits a specified termination delay before terminating the old instance ('launch-before-terminate'). Optional. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="termination_delay" type="number">
+              The number of seconds that Amazon EC2 Spot Fleet waits after sending a rebalance notification before terminating the Spot Instance, allowing time for graceful shutdown. Optional. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="spot_max_total_price" type="string">
+      Specifies the maximum total price per hour that you are willing to pay for all instances in the Spot Fleet, as a string representing a numeric value. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="spot_price" type="string">
+      The maximum price per unit (hour) that you are willing to pay for a Spot Instance in the fleet; if omitted, Spot Fleet uses the On-Demand price for the instance type as the maximum price. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="tag_specifications" type="list(object)">
+      Specifies the tags to apply to the Spot Fleet request and to the instances launched by the fleet. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="resource_type" type="string">
+          The type of resource the tag specifications apply to, such as 'instance', 'volume', or 'spot-fleet-request', controlling which Spot Fleet component (instances, volumes, or the fleet request itself) receives the associated tags. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="tags" type="list(object)">
+          Specifies the tag key-value pairs to apply to the Spot Fleet resource type indicated by the parent tag specification, such as the fleet itself or the launched instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="key" type="string">
+              The key of a tag to apply to the Spot Fleet resource type specified in the tag specification, such as the fleet request or the launched instances. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="value" type="string">
+              The value portion of a tag key-value pair assigned to the EC2 Spot Fleet request, used to categorize or identify the fleet for management and cost allocation. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="target_capacity" type="number" required>
+      The number of units to request for the Spot Fleet, representing the target capacity in either instances or a custom unit (e.g., vCPUs, memory) that you want to maintain. Required. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="target_capacity_unit_type" type="string">
+      Specifies the unit type for the target capacity of the Spot Fleet, either 'vcpu', 'memory-mib', or 'units' (instance counts), allowing the fleet to scale based on vCPUs or memory rather than instance count. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="terminate_instances_with_expiration" type="bool">
+      When set to true, the Spot Fleet terminates the instances it launched when the spot fleet request expires; when false, the instances continue to run independently after expiration. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      The type of Spot Fleet request, indicating whether it is a one-time request (request) or a persistent request that maintains a target capacity over time (maintain). Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="valid_from" type="string">
+      Determines the earliest date/time (in ISO 8601 format) at which the Spot Fleet request becomes active, so the fleet only begins launching instances at or after this timestamp. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="valid_until" type="string">
+      Specifies the date and time at which the Spot Fleet request expires, after which no new Spot Instances will be requested to fulfill the target capacity. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags to specify in SpotFleetRequestConfigData Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key of a key-value tag applied to the EC2 Spot Fleet request, used to organize, identify, and manage the fleet resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a key-value tag applied to the EC2 Spot Fleet request, used for resource identification, management, and cost tracking. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>

@@ -1,0 +1,168 @@
+---
+title: "aws_billing_view"
+description: "`aws_billing_view` defines a segment of AWS cost and usage data, either the account's own default primary view or a custom..."
+---
+
+`aws_billing_view` defines a segment of AWS cost and usage data, either the account's own default primary view or a custom, filtered view built and shared, via AWS Resource Access Manager, with other accounts so they see only the cost data the view's filter actually exposes.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	billing "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/billing"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own view"})
+
+    		ubx.Resource(billing.View, "example", billing.ViewConfig{
+    			Name:                 "example",
+    			SourceViews:          []string{"example"},
+    			DataFilterExpression: map[string]any{"dimensions": map[string]any{"key": "example"}},
+    			Description:          "Managed by ubx.",
+    			Tags:                 []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { View } from "@ubx/sdk-aws/aws/billing/view";
+
+    export default stack("example", () => {
+      intent({ summary: "example own view" });
+
+      resource(View, "example", {
+        name: "example",
+        sourceViews: ["example"],
+        dataFilterExpression: { dimensions: { key: "example" } },
+        description: "Managed by ubx.",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.billing import View, ViewConfig
+    from ubx.aws.billing.view import View_DataFilterExpression, View_DataFilterExpression_Dimensions, View_Tags
+
+    def describe():
+        ubx.intent("example own view")
+
+        ubx.resource(View, "example", ViewConfig(
+            name="example",
+            source_views=["example"],
+            data_filter_expression=View_DataFilterExpression(dimensions=View_DataFilterExpression_Dimensions(key="example")),
+            description="Managed by ubx.",
+            tags=[View_Tags(key="example")],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_billing_view called "example", with source views a set
+    value, data filter expression a set value, description Managed by
+    ubx., tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="data_filter_expression" type="object">
+  DataFilterExpression selects which cost and usage records are included in the billing view by specifying dimension filters such as service, region, record type, or linked account. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="dimensions" type="object">
+      The dimensions property of the data filter expression specifies dimension filters (such as service or region) that restrict the billing view to only include matching billing data. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          The name of the billing dimension to filter on (for example, 'SERVICE' or 'REGION'), which along with the dimension values determines which data is included in the billing view. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="values" type="list(string)">
+          Specifies a list of dimension values (such as AWS service names or linked account IDs) that the billing view's data filter expression will match against when selecting which cost and usage data to include in the view. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="tags" type="object">
+      Specifies tag key-value pairs used by the data filter expression to include only resources that have those tags in the billing view. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="key" type="string">
+          The tag key used by the billing view's data filter expression to match cost items associated with resources that have a tag with this key. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="values" type="list(string)">
+          Defines the list of tag values that the billing view's data filter expression uses to match resources with a specific tag key, thereby including only matching cost and usage data in the view. Optional. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="time_range" type="object">
+      Optional.
+      <Expandable title="properties">
+        <ResponseField name="begin_date_inclusive" type="string">
+          The time in ISO 8601 format, UTC time (YYYY-MM-DDTHH:MM:SSZ). Optional.
+        </ResponseField>
+        <ResponseField name="end_date_inclusive" type="string">
+          The time in ISO 8601 format, UTC time (YYYY-MM-DDTHH:MM:SSZ). Optional.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  An optional user-provided text that gives a human-readable explanation or context for the billing view, helping to distinguish it from other views. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  The name of the AWS Billing view, which is required to uniquely identify the view within your account. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="source_views" type="list(string)" required>
+  An array of strings that define the billing view's source. Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  An array of key-value pairs associated to the billing view being created. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      The key (name) of a tag attached to this billing view, used for cost allocation and management in AWS Billing. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies this AWS Billing billing view. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="billing_view_type" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="created_at" type="number">
+  The time when the billing view was created. Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="owner_account_id" type="string">
+  The AWS account ID of the account that owns the billing view, which is set automatically at creation and cannot be modified. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="updated_at" type="number">
+  The time when the billing view was last updated. Computed by AWS after `ship`.
+</ResponseField>

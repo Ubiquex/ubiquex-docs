@@ -1,0 +1,180 @@
+---
+title: "aws_mpa_approval_team"
+description: "`aws_mpa_approval_team` creates a real, named group of approvers under AWS Multi-party approval..."
+---
+
+`aws_mpa_approval_team` creates a real, named group of approvers under AWS Multi-party approval, so that specific sensitive actions elsewhere in AWS require multiple people from this team to approve before they take effect. A team created this way starts in a pending-activation state; if an invited approver declines or the 24-hour response window expires, activation fails and the stack rolls back, deleting the team. Multi-party approval is a comparatively new AWS service, so behavior here is verified live rather than assumed from general knowledge.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	mpa "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/mpa"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own approval team"})
+
+    		ubx.Resource(mpa.ApprovalTeam, "example", mpa.ApprovalTeamConfig{
+    			ApprovalStrategy: map[string]any{"mof_n": map[string]any{"min_approvals_required": 1}},
+    			Description:      "Managed by ubx.",
+    			Name:             "example",
+    			Policies:         []any{"example"},
+    			Tags:             []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ApprovalTeam } from "@ubx/sdk-aws/aws/mpa/approval_team";
+
+    export default stack("example", () => {
+      intent({ summary: "example own approval team" });
+
+      resource(ApprovalTeam, "example", {
+        approvalStrategy: { mofN: { minApprovalsRequired: 1 } },
+        description: "Managed by ubx.",
+        name: "example",
+        policies: ["example"],
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.mpa import ApprovalTeam, ApprovalTeamConfig
+    from ubx.aws.mpa.approval_team import ApprovalTeam_ApprovalStrategy, ApprovalTeam_ApprovalStrategy_MofN, ApprovalTeam_Tags
+
+    def describe():
+        ubx.intent("example own approval team")
+
+        ubx.resource(ApprovalTeam, "example", ApprovalTeamConfig(
+            approval_strategy=ApprovalTeam_ApprovalStrategy(mof_n=ApprovalTeam_ApprovalStrategy_MofN(min_approvals_required=1)),
+            description="Managed by ubx.",
+            name="example",
+            policies=["example"],
+            tags=[ApprovalTeam_Tags(key="example")],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_mpa_approval_team called "example", with approval
+    strategy a set value, description Managed by ubx., policies a set
+    value, tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="approval_strategy" type="object" required>
+  Required.
+  <Expandable title="properties">
+    <ResponseField name="mof_n" type="object" required>
+      Required.
+      <Expandable title="properties">
+        <ResponseField name="min_approvals_required" type="number" required>
+          In the M-of-N approval scheme (indicated by the path element 'mof_n'), specifies the minimum number of approvals (the 'm' value) that must be granted by the approval team for the strategy to be satisfied. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="description" type="string" required>
+  Required.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Required.
+</ResponseField>
+
+<ResponseField name="policies" type="list(any)" required>
+  Required.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="approvers" type="list(object)">
+  Computed by AWS after `ship`.
+  <Expandable title="properties">
+    <ResponseField name="approver_id" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="primary_identity_id" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="primary_identity_source_arn" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="primary_identity_status" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="response_time" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) uniquely identifying the approval team, used as a durable reference in IAM policies and AWS Marketplace APIs. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="creation_time" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="last_update_time" type="string">
+  A read-only string field that records the time when the approval team was last updated, managed automatically by AWS. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="number_of_approvers" type="number">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status_code" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="status_message" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="update_session_arn" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
+
+<ResponseField name="version_id" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>

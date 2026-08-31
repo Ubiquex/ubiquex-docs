@@ -1,0 +1,113 @@
+---
+title: "aws_deadline_limit"
+description: "`aws_deadline_limit` caps real, concurrent consumption of a constrained resource, a software license seat, a database connection..."
+---
+
+`aws_deadline_limit` caps real, concurrent consumption of a constrained resource, a software license seat, a database connection, across every job in an `aws_deadline_farm` that needs it, so jobs are scheduled only when the actual limited resource is available rather than starting and then failing partway through.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	deadline "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/deadline"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own limit"})
+
+    		ubx.Resource(deadline.Limit, "example", deadline.LimitConfig{
+    			AmountRequirementName: "example-amount-requirement-name",
+    			DisplayName:           "example-display-name",
+    			FarmId:                "example",
+    			MaxCount:              1,
+    			Description:           "Managed by ubx.",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Limit } from "@ubx/sdk-aws/aws/deadline/limit";
+
+    export default stack("example", () => {
+      intent({ summary: "example own limit" });
+
+      resource(Limit, "example", {
+        amountRequirementName: "example-amount-requirement-name",
+        displayName: "example-display-name",
+        farmId: "example",
+        maxCount: 1,
+        description: "Managed by ubx.",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.deadline import Limit, LimitConfig
+
+    def describe():
+        ubx.intent("example own limit")
+
+        ubx.resource(Limit, "example", LimitConfig(
+            amount_requirement_name="example-amount-requirement-name",
+            display_name="example-display-name",
+            farm_id="example",
+            max_count=1,
+            description="Managed by ubx.",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_deadline_limit, with amount requirement name
+    example-amount-requirement-name, display name
+    example-display-name, farm id example, max count 1, description
+    Managed by ubx..
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="amount_requirement_name" type="string" required>
+  Required.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Provides an optional human-readable description for the AWS Deadline Cloud limit, clarifying the limit's purpose or scope. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="display_name" type="string" required>
+  A human-readable name for the limit, used to identify and display the limit in the AWS Deadline Cloud console and API. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="farm_id" type="string" required>
+  The unique identifier of the AWS Deadline Cloud farm to which this limit belongs. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="max_count" type="number" required>
+  The maximum number of resources that the limit permits to be used simultaneously, enforcing a cap on concurrent usage in the Deadline Cloud farm. Required. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="current_count" type="number">
+  The current number of resources that are using this limit, as tracked by AWS Deadline Cloud and updated automatically as usage changes. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="limit_id" type="string">
+  The unique identifier assigned by AWS Deadline Cloud to this limit resource when it is created, used to refer to the limit in other resources. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

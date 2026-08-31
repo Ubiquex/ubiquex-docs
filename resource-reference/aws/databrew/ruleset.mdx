@@ -1,0 +1,158 @@
+---
+title: "aws_data_brew_ruleset"
+description: "`aws_data_brew_ruleset` defines real data-quality rules, checks for nulls, valid ranges, expected formats..."
+---
+
+`aws_data_brew_ruleset` defines real data-quality rules, checks for nulls, valid ranges, expected formats, that get validated against an `aws_data_brew_dataset`, catching bad data before it flows further downstream rather than only after a job has already run.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	databrew "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/databrew"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own ruleset"})
+
+    		ubx.Resource(databrew.Ruleset, "example", databrew.RulesetConfig{
+    			Name:        "example",
+    			Rules:       []map[string]any{{"name": "example-name"}},
+    			TargetArn:   "arn:aws:iam::123456789012:policy/example",
+    			Description: "Managed by ubx.",
+    			Tags:        []map[string]any{{"key": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Ruleset } from "@ubx/sdk-aws/aws/databrew/ruleset";
+
+    export default stack("example", () => {
+      intent({ summary: "example own ruleset" });
+
+      resource(Ruleset, "example", {
+        name: "example",
+        rules: [{ name: "example-name" }],
+        targetArn: "arn:aws:iam::123456789012:policy/example",
+        description: "Managed by ubx.",
+        tags: [{ key: "example" }],
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.databrew import Ruleset, RulesetConfig
+    from ubx.aws.databrew.ruleset import Ruleset_Rules, Ruleset_Tags
+
+    def describe():
+        ubx.intent("example own ruleset")
+
+        ubx.resource(Ruleset, "example", RulesetConfig(
+            name="example",
+            rules=[Ruleset_Rules(name="example-name")],
+            target_arn="arn:aws:iam::123456789012:policy/example",
+            description="Managed by ubx.",
+            tags=[Ruleset_Tags(key="example")],
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_data_brew_ruleset called "example", with rules a set
+    value, target arn arn:aws:iam::123456789012:policy/example,
+    description Managed by ubx., tags a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Properties
+
+<ResponseField name="description" type="string">
+  Description of the Ruleset Optional.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Name of the Ruleset Required.
+</ResponseField>
+
+<ResponseField name="rules" type="list(object)" required>
+  List of the data quality rules in the ruleset Required.
+  <Expandable title="properties">
+    <ResponseField name="check_expression" type="string">
+      Defines the data quality check expression, a condition that DataBrew evaluates per row to flag records that violate the rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="column_selectors" type="list(object)">
+      Specifies the column selectors for a rule, defining which columns (by exact name or regex pattern) the rule evaluates in an AWS Glue DataBrew ruleset. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="name" type="string">
+          The name of the specific column that this column selector targets for the DataBrew rule. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="regex" type="string">
+          A regular expression pattern used to match column names for the selector, so the rule applies to all columns whose names match this pattern. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="disabled" type="bool">
+      A boolean flag that indicates whether this rule is disabled and thus not evaluated when the DataBrew ruleset is applied. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      The name of an individual rule within the DataBrew ruleset, used to uniquely identify and reference that rule in the ruleset definition. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="substitution_map" type="list(object)">
+      Maps placeholder variable names to column references or dataset parameters that are substituted into the rule's check expression when the ruleset is evaluated. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="value" type="string">
+          The value to substitute for the associated variable key when evaluating the rule's check expression, replacing references to that variable with this string. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value_reference" type="string">
+          In an AWS DataBrew Ruleset, this is the substitution variable reference (e.g., `$&#123;column_name&#125;`) that appears in a rule's check expression and is replaced with the actual value from the `Value` property of this substitution map entry. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="threshold" type="object">
+      Defines the threshold condition for the rule's check result, specifying a comparison type (such as GREATER_THAN or LESS_THAN) and a numeric value that determines whether the rule passes. Optional; if omitted, computed by AWS. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="type" type="string">
+          The comparison operator (e.g., GREATER_THAN, LESS_THAN, EQUAL) used to evaluate the threshold value against the metric calculated for a rule in an AWS Glue DataBrew ruleset. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="unit" type="string">
+          Defines the unit of measurement (COUNT or PERCENTAGE) for the threshold value used in evaluating a rule's condition within the DataBrew ruleset. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="value" type="number">
+          The numeric value used as the threshold to compare against the rule's check expression result. Optional; if omitted, computed by AWS. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value for a tag key on the AWS Glue DataBrew ruleset, used to assign metadata such as environment or cost center to the resource for management and cost tracking. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="target_arn" type="string" required>
+  Arn of the target resource (dataset) to apply the ruleset to Required.
+</ResponseField>

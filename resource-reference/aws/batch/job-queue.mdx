@@ -1,0 +1,166 @@
+---
+title: "aws_batch_job_queue"
+description: "`aws_batch_job_queue` holds submitted jobs until an `aws_batch_compute_environment` has capacity to run them..."
+---
+
+`aws_batch_job_queue` holds submitted jobs until an `aws_batch_compute_environment` has capacity to run them, ordered either FIFO by default or by an attached `aws_batch_scheduling_policy`'s fair-share rules across multiple users or workloads.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	batch "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/batch"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own job queue"})
+
+    		ubx.Resource(batch.JobQueue, "example", batch.JobQueueConfig{
+    			Priority:                 1,
+    			ComputeEnvironmentOrder:  []map[string]any{{"compute_environment": "example"}},
+    			JobQueueName:             "example-job-queue-name",
+    			JobQueueType:             "example",
+    			JobStateTimeLimitActions: []map[string]any{{"action": "example"}},
+    			SchedulingPolicyArn:      "arn:aws:iam::123456789012:policy/example",
+    			ServiceEnvironmentOrder:  []map[string]any{{"order": 1}},
+    			State:                    "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { JobQueue } from "@ubx/sdk-aws/aws/batch/job_queue";
+
+    export default stack("example", () => {
+      intent({ summary: "example own job queue" });
+
+      resource(JobQueue, "example", {
+        priority: 1,
+        computeEnvironmentOrder: [{ computeEnvironment: "example" }],
+        jobQueueName: "example-job-queue-name",
+        jobQueueType: "example",
+        jobStateTimeLimitActions: [{ action: "example" }],
+        schedulingPolicyArn: "arn:aws:iam::123456789012:policy/example",
+        serviceEnvironmentOrder: [{ order: 1 }],
+        state: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.batch import JobQueue, JobQueueConfig
+    from ubx.aws.batch.job_queue import JobQueue_ComputeEnvironmentOrder, JobQueue_JobStateTimeLimitActions, JobQueue_ServiceEnvironmentOrder
+
+    def describe():
+        ubx.intent("example own job queue")
+
+        ubx.resource(JobQueue, "example", JobQueueConfig(
+            priority=1,
+            compute_environment_order=[JobQueue_ComputeEnvironmentOrder(compute_environment="example")],
+            job_queue_name="example-job-queue-name",
+            job_queue_type="example",
+            job_state_time_limit_actions=[JobQueue_JobStateTimeLimitActions(action="example")],
+            scheduling_policy_arn="arn:aws:iam::123456789012:policy/example",
+            service_environment_order=[JobQueue_ServiceEnvironmentOrder(order=1)],
+            state="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_batch_job_queue, with priority 1, compute environment
+    order a set value, job queue name example-job-queue-name, job
+    queue type example, job state time limit actions a set value,
+    scheduling policy arn arn:aws:iam::123456789012:policy/example,
+    service environment order a set value, state example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="compute_environment_order" type="list(object)">
+  Defines the ordered list of compute environments for the job queue, where each entry assigns a priority (order) to a compute environment and AWS Batch schedules jobs to the first available environment in that order. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="compute_environment" type="string">
+      The Amazon Resource Name (ARN) of the compute environment that is associated with this entry in the job queue's compute environment order. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="order" type="number">
+      Integer that determines the relative priority of the compute environment within the job queue, where lower values are attempted first. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="job_queue_name" type="string">
+  Specifies the name of the job queue, which must be unique within the AWS account and Region; if not provided, CloudFormation generates a unique name. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="job_queue_type" type="string">
+  Specifies the type of the job queue, either 'COMPUTE' (the default) for running jobs or 'PLAYBACK' for replaying jobs from another queue for testing/debugging. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="job_state_time_limit_actions" type="list(object)">
+  List of actions that automatically cancel jobs stuck in a specified state (e.g., RUNNABLE) for a configurable maximum time before they are deemed too old. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="action" type="string">
+      The action to take when a job in the specified state exceeds the time limit, such as CANCEL or CANCEL_AND_RESTART. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="max_time_seconds" type="number">
+      Specifies the maximum time in seconds that a job can remain in a given state before the associated action (such as CANCEL) is triggered for that job. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="reason" type="string">
+      The reason to record for the job when this state time limit action is triggered, providing context for why the action (such as cancellation) was taken after the job exceeded the maximum time in the specified state. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="state" type="string">
+      Specifies the job state (only RUNNABLE is valid) that triggers the time limit action when a job remains in that state longer than max_time_seconds. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="priority" type="number" required>
+  The priority of this job queue relative to other job queues in the same account and region, where higher values cause the queue to be considered earlier when scheduling jobs. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="scheduling_policy_arn" type="string">
+  The Amazon Resource Name (ARN) of the scheduling policy that controls the prioritization and placement of jobs in the AWS Batch job queue. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="service_environment_order" type="list(object)">
+  Optional.
+  <Expandable title="properties">
+    <ResponseField name="order" type="number">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+    <ResponseField name="service_environment" type="string">
+      Optional; if omitted, computed by AWS.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Specifies whether the job queue is enabled to accept new jobs (ENABLED) or disabled (DISABLED), with the default being ENABLED. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="any">
+  A key-value pair to associate with a resource. Optional.
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="job_queue_arn" type="string">
+  The Amazon Resource Name (ARN) of the AWS Batch job queue, assigned by AWS when the queue is created. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

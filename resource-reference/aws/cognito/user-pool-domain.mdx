@@ -1,0 +1,135 @@
+---
+title: "aws_cognito_user_pool_domain"
+description: "`aws_cognito_user_pool_domain` hosts an `aws_cognito_user_pool`'s real managed login pages, either a Cognito-provided prefix domain or a custom domain..."
+---
+
+`aws_cognito_user_pool_domain` hosts an `aws_cognito_user_pool`'s real managed login pages, either a Cognito-provided prefix domain or a custom domain, the authorization and web server that federated and local sign-in actually happens through.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	cognito "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/cognito"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own user pool domain"})
+
+    		ubx.Resource(cognito.UserPoolDomain, "example", cognito.UserPoolDomainConfig{
+    			Domain:              "example",
+    			UserPoolId:          "example",
+    			CustomDomainConfig:  map[string]any{"certificate_arn": "example"},
+    			ManagedLoginVersion: 1,
+    			Routing:             map[string]any{"failover": map[string]any{"primary_route53_health_check_id": "example", "secondary_region": "example"}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { UserPoolDomain } from "@ubx/sdk-aws/aws/cognito/user_pool_domain";
+
+    export default stack("example", () => {
+      intent({ summary: "example own user pool domain" });
+
+      resource(UserPoolDomain, "example", {
+        domain: "example",
+        userPoolId: "example",
+        customDomainConfig: { certificateArn: "example" },
+        managedLoginVersion: 1,
+        routing: {
+          failover: {
+            primaryRoute53HealthCheckId: "example",
+            secondaryRegion: "example",
+          },
+        },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.cognito import UserPoolDomain, UserPoolDomainConfig
+    from ubx.aws.cognito.user_pool_domain import UserPoolDomain_CustomDomainConfig, UserPoolDomain_Routing, UserPoolDomain_Routing_Failover
+
+    def describe():
+        ubx.intent("example own user pool domain")
+
+        ubx.resource(UserPoolDomain, "example", UserPoolDomainConfig(
+            domain="example",
+            user_pool_id="example",
+            custom_domain_config=UserPoolDomain_CustomDomainConfig(certificate_arn="example"),
+            managed_login_version=1,
+            routing=UserPoolDomain_Routing(failover=UserPoolDomain_Routing_Failover(primary_route53_health_check_id="example", secondary_region="example")),
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_cognito_user_pool_domain, with domain example, user
+    pool id example, custom domain config a set value, managed login
+    version 1, routing a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="custom_domain_config" type="object">
+  Specifies the configuration for a custom domain, including the ARN of the ACM certificate to use for HTTPS. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="certificate_arn" type="string">
+      The Amazon Resource Name (ARN) of an AWS Certificate Manager (ACM) certificate used for the custom domain of the Cognito user pool domain. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="security_policy" type="string">
+      Sets the TLS security policy for the CloudFront distribution backing the custom domain, determining the minimum TLS version (e.g., TLS_1_0, TLS_1_2) required for HTTPS connections to the user pool domain. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="domain" type="string" required>
+  The domain (either a custom domain or a prefix) that will be assigned to the user pool to serve the hosted UI, API, and authentication endpoints. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="managed_login_version" type="number">
+  Specify the version of the managed login experience for the user pool domain, with 1 representing the original hosted UI and 2 representing the new managed login experience. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="routing" type="object">
+  Optional.
+  <Expandable title="properties">
+    <ResponseField name="failover" type="object">
+      Optional.
+      <Expandable title="properties">
+        <ResponseField name="primary_route53_health_check_id" type="string" required>
+          Required.
+        </ResponseField>
+        <ResponseField name="secondary_region" type="string" required>
+          Specifies the secondary AWS region to which the user pool domain routes traffic during failover, ensuring availability if the primary region fails. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="user_pool_id" type="string" required>
+  The ID of the Amazon Cognito user pool to associate with the custom domain or Amazon Cognito-hosted domain. Required. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="cloud_front_distribution" type="string">
+  The Amazon CloudFront distribution associated with the user pool domain, used to serve traffic for the custom domain. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>

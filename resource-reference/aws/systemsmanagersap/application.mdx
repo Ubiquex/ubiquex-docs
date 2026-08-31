@@ -1,0 +1,166 @@
+---
+title: "aws_systems_manager_sap_application"
+description: "`aws_systems_manager_sap_application` registers a real SAP application, its hosts, database, and credentials, with AWS Systems Manager for SAP..."
+---
+
+`aws_systems_manager_sap_application` registers a real SAP application, its hosts, database, and credentials, with AWS Systems Manager for SAP, so its own patching, backup, and monitoring operations can be automated the way EC2 instances already are, without SAP-specific tooling built by hand.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	systemsmanagersap "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/systemsmanagersap"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own application"})
+
+    		ubx.Resource(systemsmanagersap.Application, "example", systemsmanagersap.ApplicationConfig{
+    			ApplicationId:     "example",
+    			ApplicationType:   "example",
+    			ComponentsInfo:    []map[string]any{{"component_type": "example"}},
+    			Credentials:       []map[string]any{{"credential_type": "example"}},
+    			DatabaseArn:       "arn:aws:iam::123456789012:policy/example",
+    			Instances:         []string{"example"},
+    			SapInstanceNumber: "example",
+    			Sid:               "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { Application } from "@ubx/sdk-aws/aws/systemsmanagersap/application";
+
+    export default stack("example", () => {
+      intent({ summary: "example own application" });
+
+      resource(Application, "example", {
+        applicationId: "example",
+        applicationType: "example",
+        componentsInfo: [{ componentType: "example" }],
+        credentials: [{ credentialType: "example" }],
+        databaseArn: "arn:aws:iam::123456789012:policy/example",
+        instances: ["example"],
+        sapInstanceNumber: "example",
+        sid: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.systemsmanagersap import Application, ApplicationConfig
+    from ubx.aws.systemsmanagersap.application import Application_ComponentsInfo, Application_Credentials
+
+    def describe():
+        ubx.intent("example own application")
+
+        ubx.resource(Application, "example", ApplicationConfig(
+            application_id="example",
+            application_type="example",
+            components_info=[Application_ComponentsInfo(component_type="example")],
+            credentials=[Application_Credentials(credential_type="example")],
+            database_arn="arn:aws:iam::123456789012:policy/example",
+            instances=["example"],
+            sap_instance_number="example",
+            sid="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_systems_manager_sap_application, with application id
+    example, application type example, components info a set value,
+    credentials a set value, database arn
+    arn:aws:iam::123456789012:policy/example, instances a set value,
+    sap instance number example, sid example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="application_id" type="string" required>
+  The unique identifier of the SAP application to register with AWS Systems Manager for SAP. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="application_type" type="string" required>
+  The type of the SAP application being registered under Systems Manager for SAP (e.g., ABAP, JAVA, or HANA), which determines how the resource is managed and which components are applicable. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="components_info" type="list(object)">
+  This is an optional parameter for component details to which the SAP ABAP application is attached, such as Web Dispatcher. Optional.
+  <Expandable title="properties">
+    <ResponseField name="component_type" type="string">
+      Specifies the type of the SAP component (e.g., HANA or NetWeaver) that this component info entry describes for the AWS Systems Manager for SAP application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="ec2_instance_id" type="string">
+      The ID of the EC2 instance that hosts this SAP application component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="sid" type="string">
+      This field specifies the SAP System Identifier (SID) for an SAP component associated with the application, which AWS Systems Manager for SAP uses to identify and manage the component. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="credentials" type="list(object)">
+  A list of credential objects specifying the authentication details (credential type, secret ID, and optional database name) used by the SAP application to connect to SAP systems. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="credential_type" type="string">
+      Specifies whether the credential is for administrative access (ADMIN) or system-level access (SYSTEM) to the SAP application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="database_name" type="string">
+      The name of the SAP database (e.g., an SAP HANA database) that this credential is used to access for the registered SAP application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="secret_id" type="string">
+      The secret ID of the AWS Secrets Manager secret that stores the database credentials for this SAP application. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="database_arn" type="string">
+  The ARN of the SAP HANA database Optional.
+</ResponseField>
+
+<ResponseField name="instances" type="list(string)">
+  The instances field lists the EC2 instance IDs that host the SAP application components that are registered and managed by this Systems Manager for SAP application. Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="sap_instance_number" type="string">
+  Optional.
+</ResponseField>
+
+<ResponseField name="sid" type="string">
+  Specifies the SAP System Identifier (SID) for the SAP system associated with this application, a three-character code that uniquely identifies the SAP system (e.g., `H20`). Optional. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  The tags of a SystemsManagerSAP application. Optional.
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      A user-defined key within a tag assigned to the SAP application, used to categorize and filter the resource in AWS Systems Manager. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag assigned to the AWS Systems Manager for SAP application, enabling custom metadata for organization, cost tracking, and resource management. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The ARN of the SSM-SAP application Computed by AWS after `ship`.
+</ResponseField>

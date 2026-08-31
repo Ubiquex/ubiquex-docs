@@ -1,0 +1,176 @@
+---
+title: "aws_ground_station_mission_profile"
+description: "`aws_ground_station_mission_profile` combines one or more `aws_ground_station_config`s into a real, reusable, complete contact plan, antenna, tracking..."
+---
+
+`aws_ground_station_mission_profile` combines one or more `aws_ground_station_config`s into a real, reusable, complete contact plan, antenna, tracking, and dataflow settings together, that a caller schedules an actual satellite contact against.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	groundstation "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/groundstation"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own mission profile"})
+
+    		ubx.Resource(groundstation.MissionProfile, "example", groundstation.MissionProfileConfig{
+    			DataflowEdges:                       []map[string]any{{"destination": "example"}},
+    			MinimumViableContactDurationSeconds: 7200,
+    			Name:                                "example",
+    			TrackingConfigArn:                   "arn:aws:iam::123456789012:policy/example",
+    			ContactPostPassDurationSeconds:      7200,
+    			ContactPrePassDurationSeconds:       7200,
+    			StreamsKmsKey:                       map[string]any{"kms_alias_arn": "example"},
+    			StreamsKmsRole:                      "example",
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { MissionProfile } from "@ubx/sdk-aws/aws/groundstation/mission_profile";
+
+    export default stack("example", () => {
+      intent({ summary: "example own mission profile" });
+
+      resource(MissionProfile, "example", {
+        dataflowEdges: [{ destination: "example" }],
+        minimumViableContactDurationSeconds: 7200,
+        name: "example",
+        trackingConfigArn: "arn:aws:iam::123456789012:policy/example",
+        contactPostPassDurationSeconds: 7200,
+        contactPrePassDurationSeconds: 7200,
+        streamsKmsKey: { kmsAliasArn: "example" },
+        streamsKmsRole: "example",
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.groundstation import MissionProfile, MissionProfileConfig
+    from ubx.aws.groundstation.mission_profile import MissionProfile_DataflowEdges, MissionProfile_StreamsKmsKey
+
+    def describe():
+        ubx.intent("example own mission profile")
+
+        ubx.resource(MissionProfile, "example", MissionProfileConfig(
+            dataflow_edges=[MissionProfile_DataflowEdges(destination="example")],
+            minimum_viable_contact_duration_seconds=7200,
+            name="example",
+            tracking_config_arn="arn:aws:iam::123456789012:policy/example",
+            contact_post_pass_duration_seconds=7200,
+            contact_pre_pass_duration_seconds=7200,
+            streams_kms_key=MissionProfile_StreamsKmsKey(kms_alias_arn="example"),
+            streams_kms_role="example",
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_ground_station_mission_profile called "example", with
+    dataflow edges a set value, minimum viable contact duration
+    seconds 7200, tracking config arn
+    arn:aws:iam::123456789012:policy/example, contact post pass
+    duration seconds 7200, contact pre pass duration seconds 7200,
+    streams kms key a set value, streams kms role example.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="contact_post_pass_duration_seconds" type="number">
+  Post-pass time needed after the contact. Optional.
+</ResponseField>
+
+<ResponseField name="contact_pre_pass_duration_seconds" type="number">
+  Pre-pass time needed before the contact. Optional.
+</ResponseField>
+
+<ResponseField name="dataflow_edges" type="list(object)" required>
+  Specifies the list of dataflow edges that define how data moves between satellite and ground station endpoints, with each edge containing source and destination configuration references. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="destination" type="string">
+      The destination is the ARN or ID of the Ground Station config that receives data from the source in this dataflow edge, defining the next step in the mission profile's dataflow path. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="source" type="string">
+      Specifies the source config for a dataflow edge in the mission profile, identifying where the data stream originates before flowing to the destination config. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="minimum_viable_contact_duration_seconds" type="number" required>
+  Visibilities with shorter duration than the specified minimum viable contact duration will be ignored when searching for available contacts. Required.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  A name used to identify a mission profile. Required.
+</ResponseField>
+
+<ResponseField name="streams_kms_key" type="object">
+  The AWS KMS key (specified as an ARN or alias) used to encrypt data streams produced by this mission profile, enabling customer-controlled encryption of downlinked satellite data. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="kms_alias_arn" type="string">
+      The alias ARN of the AWS KMS key used to encrypt the mission profile's data streams, as an alternative to specifying the KMS key ARN directly. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="kms_alias_name" type="string">
+      Specifies the alias name of the AWS KMS key used to encrypt the data streams (uplink and downlink) associated with this Ground Station mission profile. Optional. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="kms_key_arn" type="string">
+      The Amazon Resource Name (ARN) of the AWS KMS key used to encrypt the satellite data streams processed by the mission profile. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="streams_kms_role" type="string">
+  The ARN of the KMS Key or Alias Key role used to define permissions on KMS Key usage. Optional.
+</ResponseField>
+
+<ResponseField name="tags" type="list(object)">
+  Assigns a list of tag objects (key-value pairs) to the AWS Ground Station mission profile, which can be used for cost allocation and resource management. Optional. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="key" type="string">
+      Specifies the key (name) of a tag attached to the AWS Ground Station mission profile, used for resource identification and organization. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      The value of a tag attached to the AWS Ground Station mission profile, used for identifying and organizing the resource. Optional; if omitted, computed by AWS. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="telemetry_sink_config_arn" type="string">
+  ARN of a Config resource of type TelemetrySinkConfig used for telemetry data sink configuration. Optional.
+</ResponseField>
+
+<ResponseField name="tracking_config_arn" type="string" required>
+  ARN of the tracking config resource that defines how the ground station antenna tracks the satellite during the mission profile. Required. **(AI-inferred)**
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="arn" type="string">
+  The Amazon Resource Name (ARN) that uniquely identifies this AWS Ground Station mission profile. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The AWS-assigned unique identifier for this Ground Station mission profile, which is exposed as the 'Id' attribute and used to reference the mission profile in Ground Station APIs. Computed by AWS after `ship`. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="region" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
