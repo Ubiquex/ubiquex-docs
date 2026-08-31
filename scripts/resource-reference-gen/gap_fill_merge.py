@@ -2,10 +2,20 @@
 """Merges gap_fill_apply.py's own batch output (or a hand-authored
 individual batch, {key: {source: "ai-individual"|"ai-dictionary", text}})
 into a provider's real artifacts/<provider>/descriptions.json, preserving
-its existing format (indent=1, sort_keys=True, one trailing newline).
-Skips (never overwrites) any key that already exists -- Phase B only ever
-fills a real, confirmed gap, never touches vendor-spec or previously
-authored ai/ai-individual/ai-dictionary content.
+its existing format (indent=1, one trailing newline) AND its existing
+key order. Skips (never overwrites) any key that already exists -- Phase
+B only ever fills a real, confirmed gap, never touches vendor-spec or
+previously authored ai/ai-individual/ai-dictionary content.
+
+UBI-231: this used to re-save with sort_keys=True, on the assumption
+every real descriptions.json was already lexicographically sorted. Not
+true for every provider -- gcp's own real file groups resource entries
+before data-source entries, not a flat alphabetical sort, so a
+sort_keys=True resave silently reordered nearly every existing key,
+turning an 82-entry addition into a 47000-line diff with the real
+change buried inside it. New keys are appended in whatever order the
+batch file(s) give them; every pre-existing key keeps its own real
+position, so a clean batch's own diff is additions only.
 
 Usage:
   python3 gap_fill_merge.py artifacts/gcp/descriptions.json batches_gcp/*.json
@@ -32,7 +42,7 @@ for path in batch_paths:
         added += 1
 
 with open(desc_path, "w") as f:
-    json.dump(desc, f, indent=1, sort_keys=True)
+    json.dump(desc, f, indent=1)
     f.write("\n")
 
 print(f"before={before} added={added} skipped(already present)={skipped} after={len(desc)}")
