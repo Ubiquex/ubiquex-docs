@@ -35,6 +35,9 @@ def format_provider(r):
     stage = r.get("stage") or {}
     excluded_resources = stage.get("excluded_resources", [])
     excluded_data_sources = stage.get("excluded_data_sources", [])
+    restored = stage.get("restored_paths", [])
+    removal_new = stage.get("removal_candidates_new", [])
+    removal_confirmed = stage.get("removal_candidates_confirmed", [])
     kept = stage.get("kept_paths", [])
     lines = [f"### {provider}"]
     lines.append(f"- pages kept this run: {len(kept)}")
@@ -44,6 +47,23 @@ def format_provider(r):
         lines.append(f"- **blocked** on {len(excluded_data_sources)} data source(s) missing an intro/category/field description: {', '.join(excluded_data_sources)}")
     if not excluded_resources and not excluded_data_sources:
         lines.append("- clean: no coverage gaps in this run's own batch")
+    if restored:
+        lines.append(
+            f"- **{len(restored)} already-published page(s) kept as-is, not this run's own draft** "
+            f"(UBI-234: an artifact-coverage miss never deletes a real, previously-published page, "
+            f"it only withholds this run's own fresh content for it): {', '.join(restored)}"
+        )
+    if removal_confirmed:
+        lines.append(
+            f"- **{len(removal_confirmed)} page(s) confirmed orphaned across two separate runs, "
+            f"ready for a human to actually remove** (no matching schema entry either time, never "
+            f"auto-deleted): {', '.join(removal_confirmed)}"
+        )
+    if removal_new:
+        lines.append(
+            f"- {len(removal_new)} page(s) newly look orphaned this run, not yet confirmed "
+            f"(need to show up again on a separate run first): {', '.join(removal_new)}"
+        )
     return lines
 
 
@@ -56,6 +76,12 @@ def main():
                    help="whether `git status --porcelain` found real changes after this run -- "
                         "the real signal for whether a PR is being opened, not the JSON report "
                         "alone (a clean run can still touch nothing on disk).")
+    p.add_argument("--confirmed-removals-out", default=None,
+                   help="UBI-234: writes 'true'/'false' here -- whether any provider this run "
+                        "has a page confirmed orphaned across two separate runs. The workflow "
+                        "reads this to decide whether to comment on the standing tracking issue "
+                        "even on a run that staged nothing else, since a confirmed removal "
+                        "candidate is real, human-actionable news on its own.")
     args = p.parse_args()
 
     with open(args.report) as f:
@@ -82,6 +108,11 @@ def main():
         )
     with open(args.step_summary_out, "w") as f:
         f.write("\n".join(summary) + "\n")
+
+    if args.confirmed_removals_out:
+        any_confirmed = any((r.get("stage") or {}).get("removal_candidates_confirmed") for r in results)
+        with open(args.confirmed_removals_out, "w") as f:
+            f.write("true" if any_confirmed else "false")
 
     if args.staged == "true":
         pr_body = ["Automated Resource Reference regeneration (UBI-137)."]

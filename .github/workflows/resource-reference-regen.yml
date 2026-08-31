@@ -194,6 +194,7 @@ jobs:
           fi
 
       - name: Build the step summary and any PR body
+        id: summary
         if: always()
         run: |
           set -euo pipefail
@@ -202,14 +203,17 @@ jobs:
               --report "${{ runner.temp }}/regen-report.json" \
               --step-summary-out "${{ runner.temp }}/step-summary.md" \
               --pr-body-out "${{ runner.temp }}/pr-body.md" \
-              --staged "${{ steps.diff.outputs.staged }}"
+              --staged "${{ steps.diff.outputs.staged }}" \
+              --confirmed-removals-out "${{ runner.temp }}/confirmed-removals.txt"
             cat "${{ runner.temp }}/step-summary.md" >> "$GITHUB_STEP_SUMMARY"
+            echo "confirmed_removals=$(cat "${{ runner.temp }}/confirmed-removals.txt")" >> "$GITHUB_OUTPUT"
           else
             {
               echo "## Resource Reference regeneration"
               echo
               echo "regen_all.py did not complete -- no report was produced. See the previous step's log."
             } >> "$GITHUB_STEP_SUMMARY"
+            echo "confirmed_removals=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Commit, push, open a PR (real changes only, never auto-merged)
@@ -231,15 +235,27 @@ jobs:
             --head "$branch" \
             --base main
 
-      - name: Update the standing coverage-drift issue (nothing eligible this run)
-        if: steps.regen.outputs.exit_code == '0' && steps.diff.outputs.staged == 'false'
+      - name: Update the standing coverage-drift issue (nothing eligible, or a removal now needs a human)
+        if: steps.regen.outputs.exit_code == '0' && (steps.diff.outputs.staged == 'false' || steps.summary.outputs.confirmed_removals == 'true')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           number="$(gh issue list --label "$TRACKING_ISSUE_LABEL" --state open --json number --jq '.[0].number // empty')"
-          if [ -n "$number" ]; then
-            run_url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ -z "$number" ]; then
+            exit 0
+          fi
+          run_url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ "${{ steps.summary.outputs.confirmed_removals }}" = "true" ]; then
+            # UBI-234: a page confirmed orphaned (no matching schema
+            # entry) across two separate runs, never auto-deleted --
+            # see this run's own step summary for exactly which
+            # wire(s). Commented here too, not only in the step
+            # summary/PR body, since this is the one durable place a
+            # human checking "is there anything waiting on me" would
+            # look regardless of whether this run also opened a PR.
+            gh issue comment "$number" --body "Resource Reference regen at $(date -u +%Y-%m-%dT%H:%M:%SZ) confirmed at least one page orphaned across two separate runs (no matching schema entry either time) -- ready for a human to actually remove, never auto-deleted. See this run's own step summary for which wire(s) and provider(s). Full run: $run_url"
+          elif [ "${{ steps.diff.outputs.staged }}" = "false" ]; then
             gh issue comment "$number" --body "Resource Reference regen attempt at $(date -u +%Y-%m-%dT%H:%M:%SZ) found nothing eligible to regenerate. Full run: $run_url"
           fi
 
