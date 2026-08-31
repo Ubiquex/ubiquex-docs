@@ -190,56 +190,83 @@ def load_artifacts(provider, repo_root=REPO_ROOT):
     return intros, overrides, descriptions, skip_descriptions, skip_page
 
 
+def _widen_candidates(provider, wire, rec):
+    """UBI-236: the one real place a wire's real candidate identities
+    get computed, shared by both callers below instead of being kept
+    in step by hand. GCP/Azure have a real, known doubling pathology
+    in RAW dump-ir wire keys (build_regen_schema.py's own
+    gcp_corrected_key/azure_corrected_wire, applied by regen_pages.py
+    before a page is ever written). A schema entry's real, correct
+    identity is therefore sometimes the raw wire and sometimes the
+    corrected one -- confirmed live, both directions: google_dlp_dlp_job's
+    real, published page is filed under the CORRECTED google_dlp_job
+    (the raw form is a genuine synthesis bug, already fixed upstream),
+    but google_dns_dns_key's real, published page is filed under the
+    RAW, UNCORRECTED wire -- "DnsKey" is Cloud DNS's own real resource
+    name, not a doubling artifact, and gcp_corrected_key's mechanical
+    token-repeat heuristic cannot tell the two cases apart from the
+    string alone. Rather than trust the corrector's own output as the
+    one truth (it is real, but not infallible, and the already-
+    published corpus is a genuine historical mix of both forms), every
+    lookup tries BOTH the raw and the corrected wire and treats a
+    match on EITHER as covered -- a real gap is only ever a wire that
+    matches under neither form.
+
+    Idempotent, so this is safe to call whether `wire` is genuinely
+    raw or was already corrected by the caller: applying
+    gcp_corrected_key/azure_corrected_wire to a wire that is already
+    in corrected form finds no doubling left to collapse and returns
+    the same string unchanged, contributing no spurious second
+    candidate. AWS/Kubernetes/GitHub/Datadog have no such step
+    (regen_pages.py's own explicit comment: no doubling exists for
+    any of them) -- raw is the only candidate there."""
+    candidates = {wire}
+    if provider == "gcp":
+        candidates.add(gcp_corrected_key(wire, rec.get("service", "")))
+    elif provider == "azure":
+        corrected, _ = azure_corrected_wire(wire)
+        candidates.add(corrected)
+    return candidates
+
+
 def build_schema_entries(provider, schema):
     """Turns a raw --dump-ir schema.json dict ({wire: {service,
     localName, namespace, ir}}) into {(raw_wire, is_ds): (candidates,
-    rec)}, widening each key to also try its doubling-corrected form.
-
-    GCP/Azure have a real, known doubling pathology in RAW dump-ir
-    wire keys (build_regen_schema.py's own gcp_corrected_key/
-    azure_corrected_wire, applied by regen_pages.py before a page is
-    ever written). A schema entry's real, correct identity is
-    therefore sometimes the raw wire and sometimes the corrected one
-    -- confirmed live, both directions, while building this check:
-    google_dlp_dlp_job's real, published page is filed under the
-    CORRECTED google_dlp_job (the raw form is a genuine synthesis
-    bug, already fixed upstream), but google_dns_dns_key's real,
-    published page is filed under the RAW, UNCORRECTED wire --
-    "DnsKey" is Cloud DNS's own real resource name, not a doubling
-    artifact, and gcp_corrected_key's mechanical token-repeat
-    heuristic cannot tell the two cases apart from the string alone.
-    Rather than trust the corrector's own output as the one truth (it
-    is real, but not infallible, and the already-published corpus is
-    a genuine historical mix of both forms), every lookup below tries
-    BOTH the raw and the corrected wire and treats a match on EITHER
-    as covered -- a real gap is only ever a wire that matches under
-    neither form. AWS/Kubernetes/GitHub/Datadog have no such step
-    (regen_pages.py's own explicit comment: no doubling exists for
-    any of them) -- raw is the only candidate there."""
+    rec)}, widening each key via _widen_candidates to also try its
+    doubling-corrected form. See _widen_candidates's own doc comment
+    for why both forms are tried."""
     schema_entries = {}
     for key, rec in schema.items():
         is_ds = rec.get("namespace") == "data" or key.startswith("data_")
         raw = key[len("data_"):] if is_ds and key.startswith("data_") else key
-        candidates = {raw}
-        if provider == "gcp":
-            candidates.add(gcp_corrected_key(raw, rec.get("service", "")))
-        elif provider == "azure":
-            corrected, _ = azure_corrected_wire(raw)
-            candidates.add(corrected)
-        schema_entries[(raw, is_ds)] = (candidates, rec)
+        schema_entries[(raw, is_ds)] = (_widen_candidates(provider, raw, rec), rec)
     return schema_entries
 
 
-def schema_entries_from_corrected(records, is_ds=False):
-    """For a caller (regen_pages.py, gen_new_provider_pages.py) that
-    already has a {wire: rec} dict keyed by the FINAL, already-
-    corrected wire -- e.g. regen_pages.py's own `corrected` dict, built
-    by gcp_corrected_key/azure_corrected_wire before a page is ever
-    written -- no further correction guessing is needed: a wire's only
-    real candidate is itself. Lets the same check_gaps() core run
-    against a just-generated in-memory batch, not only a --dump-ir
-    schema.json on disk."""
-    return {(wire, is_ds): ({wire}, rec) for wire, rec in records.items()}
+def schema_entries_from_corrected(provider, records, is_ds=False):
+    """UBI-236: for a caller (regen_pages.py, gen_all_data_source_pages.py)
+    that has a {wire: rec} dict built directly from a real schema dump
+    rather than the standalone CLI's own on-disk schema.json --
+    widened via the identical _widen_candidates build_schema_entries
+    uses, not a separate, narrower single-candidate assumption.
+
+    That narrower assumption used to hold here: this function's own
+    original contract was "the caller already corrected `wire`, so it
+    is the only real candidate" -- true for regen_pages.py's own
+    `all_corrected` dict (built by gcp_corrected_key/azure_corrected_wire
+    before a page is ever written), but never true for gen_all_data_
+    source_pages.py's own `written_records`, keyed by the RAW wire
+    scanned straight from generated Go source (regen_pages.py's own
+    doc comment: scan_go/py/ts output is keyed by the raw, uncorrected
+    WireType, before any GCP/Azure doubling-correction). Calling the
+    single-candidate version of this function against a raw wire meant
+    a data source's real artifact entry, filed under whichever of the
+    raw/corrected forms the corpus's own history happened to use,
+    could go unmatched -- confirmed live: this is what let the
+    google_dns_key rename orphan its own page. Now identical for both
+    callers, since _widen_candidates is safe to call regardless of
+    whether `wire` started raw or already corrected."""
+    return {(wire, is_ds): (_widen_candidates(provider, wire, rec), rec) for wire, rec in records.items()}
 
 
 def check_gaps(provider, schema_entries, repo_root=REPO_ROOT, check_disk=True):
