@@ -1,0 +1,166 @@
+---
+title: "aws_kinesis_analytics_application_reference_data_source"
+description: "`aws_kinesis_analytics_application_reference_data_source` adds a real static reference table, loaded from an S3 object..."
+---
+
+`aws_kinesis_analytics_application_reference_data_source` adds a real static reference table, loaded from an S3 object, that an `aws_kinesis_analytics_application`'s SQL can join against incoming stream records. This is scoped to the original SQL-based Kinesis Data Analytics application type, which AWS has fully discontinued: no new applications could be created after October 15, 2025, and all remaining applications were deleted and support ended on January 27, 2026, a date now in the past. The distinct, current generation is `aws_kinesis_analytics_v2_application`, built on Apache Flink.
+
+## Example
+
+<Tabs>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+    	kinesisanalytics "github.com/ubiquex/ubx-sdk-aws/sdk/go/v2/aws/kinesisanalytics"
+    	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+    )
+
+    func main() {
+    	ubx.Main(ubx.Stack("example", func() {
+    		ubx.Intent(ubx.IntentInfo{Summary: "example own application reference data source"})
+
+    		ubx.Resource(kinesisanalytics.ApplicationReferenceDataSource, "example", kinesisanalytics.ApplicationReferenceDataSourceConfig{
+    			ApplicationName:     "example-application-name",
+    			ReferenceDataSource: map[string]any{"reference_schema": map[string]any{"record_columns": []map[string]any{{"name": "example-name"}}, "record_format": map[string]any{"record_format_type": "example"}}},
+    		})
+    	}))
+    }
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { intent, resource, stack } from "@ubx/sdk";
+    import { ApplicationReferenceDataSource } from "@ubx/sdk-aws/aws/kinesisanalytics/application_reference_data_source";
+
+    export default stack("example", () => {
+      intent({ summary: "example own application reference data source" });
+
+      resource(ApplicationReferenceDataSource, "example", {
+        applicationName: "example-application-name",
+        referenceDataSource: {
+          referenceSchema: {
+            recordColumns: [{ name: "example-name" }],
+            recordFormat: { recordFormatType: "example" },
+          },
+        },
+      });
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ubx_sdk as ubx
+    from ubx.aws.kinesisanalytics import ApplicationReferenceDataSource, ApplicationReferenceDataSourceConfig
+    from ubx.aws.kinesisanalytics.application_reference_data_source import ApplicationReferenceDataSource_ReferenceDataSource, ApplicationReferenceDataSource_ReferenceDataSource_ReferenceSchema, ApplicationReferenceDataSource_ReferenceDataSource_ReferenceSchema_RecordColumns, ApplicationReferenceDataSource_ReferenceDataSource_ReferenceSchema_RecordFormat
+
+    def describe():
+        ubx.intent("example own application reference data source")
+
+        ubx.resource(ApplicationReferenceDataSource, "example", ApplicationReferenceDataSourceConfig(
+            application_name="example-application-name",
+            reference_data_source=ApplicationReferenceDataSource_ReferenceDataSource(reference_schema=ApplicationReferenceDataSource_ReferenceDataSource_ReferenceSchema(record_columns=[ApplicationReferenceDataSource_ReferenceDataSource_ReferenceSchema_RecordColumns(name="example-name")], record_format=ApplicationReferenceDataSource_ReferenceDataSource_ReferenceSchema_RecordFormat(record_format_type="example"))),
+        ))
+
+    if __name__ == "__main__":
+        ubx.run("example", describe)
+    ```
+  </Tab>
+  <Tab title="Markdown">
+    ```
+    Create aws_kinesis_analytics_application_reference_data_source,
+    with application name example-application-name, reference data
+    source a set value.
+    ```
+  </Tab>
+</Tabs>
+
+## Input properties
+
+<ResponseField name="application_name" type="string" required>
+  The name of the Kinesis Analytics application to which this reference data source is associated. Required. **(AI-inferred)**
+</ResponseField>
+
+<ResponseField name="reference_data_source" type="object" required>
+  The reference_data_source field defines the reference data source for the Kinesis Analytics application, including the table name, the S3 location of the reference data, and the reference schema that maps it to the application's input. Required. **(AI-inferred)**
+  <Expandable title="properties">
+    <ResponseField name="reference_schema" type="object" required>
+      Defines the structure (columns, data types, and encoding) of the reference data source, mapping its attributes for use in SQL queries and join operations. Required. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="record_columns" type="list(object)" required>
+          Defines the list of columns in the reference data source schema for the Kinesis Analytics application reference data source, where each column object specifies the column name, SQL type, and optional mapping. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="mapping" type="string">
+              Specifies the JSONPath expression that maps this record column to the corresponding field in the reference data source's input record. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="name" type="string">
+              The name of the column within the reference data source schema, which is used to reference that column in SQL queries against the reference data source. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+            <ResponseField name="sql_type" type="string">
+              The SQL data type of the column in the reference data source's record schema, such as VARCHAR(16) or DOUBLE, used to define how the incoming record column is parsed. Optional; if omitted, computed by AWS. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        <ResponseField name="record_encoding" type="string">
+          Defines the character encoding used for the reference data records, such as 'UTF-8', so that Kinesis Data Analytics can parse the reference data correctly. Optional. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="record_format" type="object" required>
+          Defines the record format for the reference data source, specifying whether records are CSV or JSON and the corresponding mapping parameters. Required. **(AI-inferred)**
+          <Expandable title="properties">
+            <ResponseField name="mapping_parameters" type="object">
+              Specifies the CSV or JSON mapping parameters (such as the record column delimiter for CSV or the record row path for JSON) that define how reference data records are parsed and mapped to columns. Optional. **(AI-inferred)**
+              <Expandable title="properties">
+                <ResponseField name="csvmapping_parameters" type="object">
+                  Specifies the CSV-specific mapping parameters (row and column delimiters) used to parse the reference data source records when the record format is set to CSV. Optional. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="record_column_delimiter" type="string" required>
+                      The delimiter character that separates columns in CSV records of the reference data source, such as a comma. Required. **(AI-inferred)**
+                    </ResponseField>
+                    <ResponseField name="record_row_delimiter" type="string" required>
+                      The delimiter character used to separate records in the CSV reference data source, such as a newline (\n). Required. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+                <ResponseField name="jsonmapping_parameters" type="object">
+                  Specifies the JSON mapping parameters for the reference data source, including the JSON record row path that identifies the root node of the records in the JSON input. Optional. **(AI-inferred)**
+                  <Expandable title="properties">
+                    <ResponseField name="record_row_path" type="string" required>
+                      The JSONPath expression that identifies the location of the top-level JSON element containing the data records, typically '$' for the root object, used for mapping reference data source's JSON input. Required. **(AI-inferred)**
+                    </ResponseField>
+                  </Expandable>
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+            <ResponseField name="record_format_type" type="string" required>
+              Specifies the record format type for the reference data source, which must be either 'JSON' or 'CSV' and determines how the reference schema parses incoming records. Required. **(AI-inferred)**
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="s3_reference_data_source" type="object">
+      Configures the Amazon S3 bucket and file key, along with the IAM role, that provide the reference data source for the Kinesis Analytics application. Optional. **(AI-inferred)**
+      <Expandable title="properties">
+        <ResponseField name="bucket_arn" type="string" required>
+          The ARN of the S3 bucket that stores the reference data source for the Kinesis Analytics application. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="file_key" type="string" required>
+          The S3 object key (file name) of the reference data file within the S3 bucket, which is read by the Kinesis Analytics application as reference data. Required. **(AI-inferred)**
+        </ResponseField>
+        <ResponseField name="reference_role_arn" type="string" required>
+          This field specifies the ARN of the IAM role that Amazon Kinesis Analytics assumes to read the reference data from the S3 bucket defined in the S3ReferenceDataSource. Required. **(AI-inferred)**
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="table_name" type="string">
+      The name of the in-application reference table that maps to the external reference data source (e.g., an S3 bucket), which you can then reference in your Kinesis Analytics SQL queries. Optional. **(AI-inferred)**
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Output properties
+
+<ResponseField name="id" type="string">
+  Computed by AWS after `ship`.
+</ResponseField>
