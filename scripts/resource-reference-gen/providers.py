@@ -45,8 +45,26 @@ REGISTRY = {
     "azure": dict(provider_display="Microsoft Azure", tab_name="Azure", resource_regen=True),
     "google": dict(docs_key="gcp", provider_display="Google Cloud", tab_name="GCP", resource_regen=True),
     "kubernetes": dict(provider_display="Kubernetes", tab_name="Kubernetes", resource_regen=True),
-    "github": dict(provider_display="GitHub", tab_name="GitHub", resource_regen=False),
-    "datadog": dict(provider_display="Datadog", tab_name="Datadog", resource_regen=False),
+    # UBI-219: both were resource_regen=False from this REGISTRY's own
+    # introduction until now -- not a config-shape gap (their real
+    # [dynamic_providers.<name>] entries are single-entry, identical
+    # in shape to aws/kubernetes/digitalocean's own working entries)
+    # and not a technical gap (gen_new_provider_pages.py already used
+    # this exact generate_richer_provider path to onboard both, once,
+    # by hand). Their resource pages were simply never handed to the
+    # ONGOING chain regen_pages.py/regen_all.py drive for every other
+    # resource_regen provider -- confirmed live: flipping this to True
+    # and dry-running regen_pages.py against a real dump-ir/local-sdk
+    # pass found real, wanted drift (duplicate Input/Output property
+    # sections that should have collapsed to one, stale local-sdk
+    # import paths on already-published packages, boilerplate intros
+    # standing in for a real one already in artifacts/) and zero real
+    # content loss -- every wire UBI-234's coverage gate excluded this
+    # test run was either restored byte-identical from its real
+    # existing page or had no existing page to lose in the first
+    # place, verified directly against HEAD rather than assumed.
+    "github": dict(provider_display="GitHub", tab_name="GitHub", resource_regen=True),
+    "datadog": dict(provider_display="Datadog", tab_name="Datadog", resource_regen=True),
     "digitalocean": dict(provider_display="DigitalOcean", tab_name="DigitalOcean", resource_regen=True),
 }
 
