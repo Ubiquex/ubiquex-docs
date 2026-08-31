@@ -2097,7 +2097,20 @@ def rebuild_provider_nav(docs_root, doc, provider, provider_display):
         if sd:
             by_service_dir[sd] = g
 
-    services_seen = 0
+    # UBI-235: the real fix. The old loop only ever walked directories
+    # that still exist on disk right now, so it could add a new
+    # subgroup or update an existing one, but a service whose directory
+    # emptied out entirely (every page excluded or deleted) was simply
+    # never visited again -- its stale subgroup sat in docs.json forever,
+    # confirmed live: 21 real pages across azure/gcp/github stayed
+    # referenced in navigation for two separate incidents after their
+    # own files were gone. Walking the UNION of "directories that exist
+    # now" and "service_dirs an existing subgroup already references"
+    # means a service that just went to zero resources is visited too,
+    # not skipped, so its Resources list gets cleared (set_resource_pages
+    # handles an empty list the same as a real one) instead of left
+    # dangling.
+    disk_services = set()
     for service_dir in sorted(glob.glob(os.path.join(out_root, "*"))):
         if not os.path.isdir(service_dir):
             continue
@@ -2106,20 +2119,27 @@ def rebuild_provider_nav(docs_root, doc, provider, provider_display):
         # matching rebuild_provider_index's own identical skip.
         if service == "data":
             continue
+        disk_services.add(service)
 
+    services_seen = 0
+    for service in sorted(disk_services | set(by_service_dir.keys())):
+        service_dir = os.path.join(out_root, service)
         resource_paths = sorted(
             p for p in glob.glob(os.path.join(service_dir, "*.mdx"))
             if not _is_landing_page(p)
-        )
-        if not resource_paths:
-            continue
+        ) if os.path.isdir(service_dir) else []
 
         slugs = sorted(os.path.splitext(os.path.basename(p))[0] for p in resource_paths)
         page_paths = [f"resource-reference/{provider}/{service}/{s}" for s in slugs]
-        services_seen += 1
 
         subgroup = by_service_dir.get(service)
         if subgroup is None:
+            if not page_paths:
+                # Neither a real directory nor an existing subgroup has
+                # anything here -- can happen when by_service_dir's own
+                # union includes a service_dir_of() false match from an
+                # unrelated page path; nothing to do.
+                continue
             # A genuinely new service this run introduced -- no
             # existing subgroup's own pages reference this directory
             # at all, under any title. service.title() is a real,
@@ -2134,8 +2154,31 @@ def rebuild_provider_nav(docs_root, doc, provider, provider_display):
             subgroup = {"group": service.title(), "expanded": False, "pages": list(page_paths)}
             top_pages.append(subgroup)
             by_service_dir[service] = subgroup
+            services_seen += 1
         else:
             set_resource_pages(subgroup, page_paths)
+            if page_paths:
+                services_seen += 1
 
-    print(f"rebuild_provider_nav: {provider}: {services_seen} service group(s) reconciled against the real file tree")
+    # UBI-235: prune any subgroup that is now fully empty on both real
+    # halves (Resources and Data sources both zero) -- the direct fix
+    # for the confirmed incident, a subgroup whose own directory
+    # vanished entirely and that never carried any data-source content
+    # of its own either had nothing left to clear above, since the
+    # union loop only ever updates a subgroup's Resources half; this is
+    # the one place a subgroup actually gets removed.
+    pruned = 0
+    kept = []
+    for g in top_pages:
+        if isinstance(g, dict) and isinstance(g.get("pages"), list):
+            sub = g["pages"]
+            if sub and all(isinstance(p, dict) for p in sub):
+                if sum(len(p.get("pages", [])) for p in sub) == 0:
+                    pruned += 1
+                    continue
+        kept.append(g)
+    top_pages[:] = kept
+
+    print(f"rebuild_provider_nav: {provider}: {services_seen} service group(s) reconciled against the real file tree"
+          + (f", {pruned} now-empty group(s) pruned" if pruned else ""))
     return services_seen
