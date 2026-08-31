@@ -45,12 +45,44 @@ permissions:
 env:
   TRACKING_ISSUE_LABEL: docs-coverage-drift
 
+# UBI-234's own real incident: two artifact-touching pushes 13 seconds
+# apart each triggered their own independent run; the run that started
+# first checked out the commit that fired it and spent ~15 minutes
+# regenerating against that frozen tree, never seeing the second
+# push's own new content by the time it finished -- 209 real,
+# previously-published AWS pages got reported as coverage gaps and
+# deleted, purely because the check ran against stale reality, not
+# because the check itself was wrong. cancel-in-progress: true means a
+# later push (or the weekly schedule, or a manual dispatch) cancels
+# whatever's still running under the same group rather than letting
+# two runs complete against two different trees -- the run that
+# actually finishes is always the most recent one, checking out
+# current main fresh (see the checkout step below), so it reflects
+# every push that landed, not just the one that happened to trigger
+# it.
+concurrency:
+  group: resource-reference-regen
+  cancel-in-progress: true
+
 jobs:
   regen:
     runs-on: ubuntu-latest
     steps:
+      # UBI-234: explicit ref: main, not the default (the commit that
+      # triggered this specific run) -- a push trigger's default
+      # checkout freezes on the SHA that fired the event, and this
+      # job's own dump-ir + regen + coverage-check sequence takes on
+      # the order of 15 minutes, long enough for a same-initiative
+      # follow-up commit (exactly UBI-231's own batch-authoring shape)
+      # to land on main before this run's coverage check ever reads
+      # artifacts/. Checking out main by name instead reads whatever
+      # is actually current when this step runs, combined with
+      # concurrency's cancel-in-progress above so a run that does
+      # complete was never racing a commit still in flight.
       - name: Check out ubiquex-docs
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Set up Python
         uses: actions/setup-python@v5
