@@ -1,0 +1,109 @@
+---
+title: "Calling Blueprints with HCL"
+description: "A thin, deterministic wrapper for composing blueprint calls, comparable to Terragrunt."
+---
+
+Once a blueprint exists, calling it from a real stack means writing an
+SDK program, even when that stack is nothing but a handful of blueprint
+calls with no logic of its own. `.ubx.hcl` is for exactly that case: a
+closed, declarative grammar for composing blueprint calls, nothing
+else.
+
+## How it works
+
+One block type, `blueprint "<type>" "<name>" { ... }`, plus a required
+top-level `stack` attribute:
+
+```hcl
+stack = "platform"
+
+blueprint "postgres" "primary" {
+  source  = "../blueprints/postgres"
+  size    = "db.r6g.large"
+  storage = 100
+}
+
+blueprint "service" "api" {
+  source   = "../blueprints/service"
+  replicas = 3
+  vpc_id   = "@network.aws_vpc.main.id"
+}
+```
+
+```bash
+ubx resolve --from-code platform.ubx.hcl
+```
+
+Every attribute inside a block, other than `source`, `version`, and
+`path`, becomes one of that blueprint's own declared parameters. `size`,
+`storage`, `replicas` above are ordinary literals, strings, numbers,
+booleans, and lists all work. `vpc_id` is a cross-stack reference, the
+exact same pinned form the SDK already uses, `"@<stack>.<type>.<name>.<attribute>"`,
+a neighbor stack advancing makes this proposal stale exactly like it
+already does today.
+
+There is nothing else. No `locals`, no loops, no `when` conditions, no
+functions, no string interpolation. This isn't a smaller version of
+Terraform, it's a fixed, closed shape, the same handful of moves every
+time.
+
+## Why a plain file, not the SDK, for this
+
+A stack that only calls blueprints has no real logic to write, no
+conditionals, no loops, nothing a real programming language earns its
+keep on. Writing that as a Go, TypeScript, or Python program works, but
+it's ceremony for something genuinely declarative. `.ubx.hcl` skips the
+ceremony: the file says what gets called and with what values, nothing
+more, and a parser produces the same result every time, deterministic
+by construction, not by convention.
+
+## The one thing it can't do
+
+You can reference a sibling blueprint call's own declared output:
+
+```hcl
+database_url = blueprint.postgres.primary.connection_string
+```
+
+The parser recognizes this and refuses it, by design, with an error
+naming exactly what to do instead. A blueprint call reads its own
+parameter values for real, right then, arithmetic, iteration, and
+string building all depend on having the actual value in hand. A
+sibling call's output doesn't exist yet at that point, nothing has
+shipped, there's nothing to read. This is true for every medium that
+calls a blueprint, not something specific to HCL, the SDK hits the
+identical wall.
+
+If a stack genuinely needs this, thread a value from one blueprint's
+output into another's input, that's exactly the case the SDK is for:
+call the first blueprint, get back its output, hand-write the resource
+that needs it, or reach for a second, dependent stack. `.ubx.hcl` stays
+for pure composition, calls with no dependency on each other's outputs.
+
+## What this actually looks like
+
+The file always declares its own stack, never inherited from wherever
+it happens to live on disk:
+
+```hcl
+stack = "platform"
+```
+
+This is deliberate: the same bytes always resolve against the same
+stack, regardless of which directory the file is checked out into.
+Move it, copy it, check it into a different repo entirely, nothing
+about what it resolves to changes.
+
+## Why it matters
+
+A pattern this narrow is easy to review at a glance and impossible to
+write incorrectly in an interesting way, there's no control flow to get
+wrong. The blueprints it calls carry all the real complexity, already
+reviewed, already tested, already versioned, this file just says which
+ones and with what.
+
+## See also
+
+- [Blueprints](/concepts/blueprints)
+- [`ubx resolve`](/cli-reference/resolve)
+- [`ubx blueprint`](/cli-reference/blueprint)

@@ -1,13 +1,14 @@
 ---
 title: "ubx resolve"
-description: "Resolve a typed intent file or SDK program into a draft change proposal."
+description: "Resolve a typed intent file, SDK program, or .ubx.hcl file into a draft change proposal."
 ---
 
 `ubx resolve` is the lower-level building block underneath `ubx plan`,
 it takes an already-structured input, a hand-written `ubx:intent/v1`
-file or an SDK program, and turns it into a real draft proposal. Unlike
-`plan`, it doesn't render a receipt or save anything for you, it just
-does the resolution and prints the result.
+file, an SDK program, or a `.ubx.hcl` blueprint-calling file, and turns
+it into a real draft proposal. Unlike `plan`, it doesn't render a
+receipt or save anything for you, it just does the resolution and
+prints the result.
 
 Every intra-stack reference is checked against the ledger's own real
 dependency graph, with genuine cycle detection. A destroy is only ever
@@ -19,6 +20,7 @@ absent, and it's refused if another live resource still depends on it.
 ```bash
 ubx resolve <intent-file> [flags]
 ubx resolve --from-code <entry>.ts|.go|.py [flags]
+ubx resolve --from-code <entry>.ubx.hcl [flags]
 ```
 
 ## Examples
@@ -32,10 +34,16 @@ resolved: payments: 1 create(s), 0 change(s), 0 terminate(s)
 { "schema_version": 1, "kind": "change", "delta": { "creates": [ "..." ] } }
 ```
 
+A `.ubx.hcl` file resolves the same way, no separate flag or command:
+
+```bash
+ubx resolve --from-code platform.ubx.hcl
+```
+
 ## Flags
 
 <ResponseField name="--from-code" type="string">
-  Evaluate an SDK program instead of reading a file, dispatched by extension. Mutually exclusive with the positional argument.
+  Evaluate a TypeScript/Go/Python SDK program, or parse a `.ubx.hcl` blueprint-calling file, dispatched by extension. Mutually exclusive with the positional argument. A `.ubx.hcl` file is parsed, not evaluated, no code runs.
 </ResponseField>
 
 <ResponseField name="--ledger-dir" type="string" default=".">

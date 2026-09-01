@@ -1,0 +1,100 @@
+---
+title: "Calling blueprints with HCL, no SDK needed"
+description: "Compose blueprint calls in a plain, deterministic file, for a stack with no logic of its own."
+---
+
+Every tutorial so far called a blueprint from a real SDK program. This
+one is for the case where that's more ceremony than the stack actually
+needs, a handful of blueprint calls, nothing else.
+
+## Write the file
+
+```hcl
+stack = "platform"
+
+blueprint "postgres" "primary" {
+  source  = "../ci-platform"
+  size    = "db.r6g.large"
+  storage = 100
+}
+```
+
+`source` points at the same kind of local path, git URL, or `oci://`
+reference `ubx blueprint pull` already understands. Every other
+attribute becomes one of that blueprint's own declared parameters.
+
+## Resolve it
+
+```bash
+ubx resolve --from-code platform.ubx.hcl
+```
+
+```bash
+resolved: platform: 1 create(s), 0 change(s), 0 terminate(s)
+```
+
+No separate command, no flag beyond the one `--from-code` already
+takes for an SDK program, dispatched by the file's own `.ubx.hcl`
+extension. Nothing runs, the file is parsed directly into the same
+draft proposal an SDK program would have produced.
+
+## Call more than one, and cross-reference a neighbor stack
+
+```hcl
+stack = "platform"
+
+blueprint "postgres" "primary" {
+  source  = "../ci-platform"
+  size    = "db.r6g.large"
+  storage = 100
+}
+
+blueprint "service" "api" {
+  source   = "../service"
+  replicas = 3
+  vpc_id   = "@network.aws_vpc.main.id"
+}
+```
+
+`vpc_id` pins against `network`'s own current ledger head, exactly like
+a cross-stack reference from the SDK does, if `network` advances before
+this proposal is accepted, acceptance catches the staleness the same
+way it already does today.
+
+## What you can't do here
+
+```hcl
+database_url = blueprint.postgres.primary.connection_string
+```
+
+Try to reference one call's own output from another call in the same
+file, and resolve refuses it directly:
+
+```
+blueprint.postgres.primary.connection_string references another blueprint call's own output --
+a blueprint call cannot consume another call's output as a parameter ...
+author this stack via the SDK instead, where blueprint calls and hand-written resources already compose
+```
+
+This isn't a missing feature, a blueprint call needs its parameter
+values for real, right then, the same reason a hand-written resource's
+value can't feed into a blueprint call either
+([Mixing a blueprint call with hand-written resources](/tutorial/blueprints/mixing)
+covers the identical wall from the SDK side). A stack that needs this
+kind of threading goes to the SDK, `.ubx.hcl` stays for calls that
+don't depend on each other's outputs.
+
+## What you just did
+
+You composed one, then two, blueprint calls without writing a line of
+Go, TypeScript, or Python, in a file with no way to express a loop, a
+conditional, or a hidden side effect, only what gets called and with
+what values. When a stack outgrows that, needs a computed value, a
+loop, a hand-written resource mixed in, the SDK is exactly where it
+goes next.
+
+## See also
+
+<Card title="Calling Blueprints with HCL" icon="file-code" href="/concepts/hcl-blueprint-calling">
+  The full design: why the file declares its own stack, and why a sibling call's output is refused.
+</Card>
