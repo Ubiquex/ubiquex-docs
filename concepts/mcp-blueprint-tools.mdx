@@ -1,0 +1,110 @@
+---
+title: "AI-Assisted Blueprint Authoring"
+description: "An assistant can draft, validate, and build a blueprint. It can never publish one."
+---
+
+Authoring a blueprint by hand means writing a pre-resolved `resources:`
+document and an `Ubxfile` yourself, then running `ubx blueprint build`
+to find out if you got the shape right. An assistant that already
+understands what pattern you're describing can do that first pass for
+you, the same way it can draft any other file, but publishing a
+blueprint is a different kind of act than drafting one, and this tool
+group draws that line explicitly.
+
+## How it works
+
+Five MCP tools cover the parts of blueprint authoring that are safe to
+hand to an assistant: `draft_ubxfile`, `validate_ubxfile`,
+`build_blueprint`, `list_blueprints`, `describe_blueprint`. Each is
+independent, callable on its own, not a fixed pipeline an assistant has
+to run start to finish:
+
+```json
+{
+  "mcpServers": {
+    "ubx": { "command": "ubx", "args": ["mcp"] }
+  }
+}
+```
+
+Ask an assistant connected this way to draft a blueprint for a pattern
+you describe in plain language. It calls `draft_ubxfile`, gets back a
+real `Ubxfile` and a real `resources.json`, already self-validated, and
+shows them to you directly in the conversation.
+
+## Why `push_blueprint` isn't one of the five
+
+Publishing a blueprint is the one irreversible step in its whole
+lifecycle, a real upload to a real OCI registry that other people, and
+other stacks, then pull down and trust. That's the same kind of act
+`ubx accept` and `ubx ship` already are for a proposal, and the MCP
+server draws the identical line here: an assistant can help you get a
+blueprint's shape right, but publishing it stays something you do
+yourself, by running `ubx blueprint push` at your own terminal, on
+purpose.
+
+There's no flag or setting that unlocks it. The tool simply isn't
+registered.
+
+## Why these tools return content instead of writing it
+
+None of the five tools touch a git repository. `draft_ubxfile` hands
+back an `Ubxfile` and a `resources.json` as text, in the response
+itself, for you to read, edit, and save wherever you keep that
+blueprint's source, the same way you'd paste in code an assistant wrote
+for you in any other context.
+
+`build_blueprint` follows the same rule with no exception. It returns
+the compiled go/ts/py packages the same way, as content, and never
+writes them anywhere on its own. If you want the result on disk, save
+it yourself, or let your assistant's own file tools do it, the same way
+they'd save any other file it drafted for you.
+
+## What this actually looks like
+
+A full round trip, without ever leaving the conversation:
+
+```
+"Draft a blueprint for an ECR repository plus an IAM role that can
+push to it, parameterized by repo name."
+```
+
+The assistant calls `draft_ubxfile`, gets back a self-validated
+`Ubxfile` and `resources.json`, and shows you both. You ask it to build
+them:
+
+```
+"That looks right, build it."
+```
+
+It calls `build_blueprint`, gets back real Go, TypeScript, and Python
+packages, and shows you what got generated, `PushBlueprintSource` calls
+and all, the exact same output `ubx blueprint build` would have written
+to disk. Nothing has touched your filesystem yet. You save the files
+yourself, review them, and when you're ready, you run
+`ubx blueprint package` and `ubx blueprint push` from your own terminal.
+
+`list_blueprints` and `describe_blueprint` work the other direction,
+answering "what blueprints already exist here" and "what does this one
+actually contain" by walking a real directory or pulling a real source
+into a scratch copy, never a query against a registry, since Strata's
+own registry service doesn't exist yet, see
+[Distributing a Blueprint](/concepts/blueprint-distribution) for what
+"already know a ref" means today.
+
+## Why it matters
+
+The tedious, mechanical part of authoring a blueprint, getting the
+`Ubxfile` grammar right, making sure every `$ref` resolves, catching a
+typo'd resource type before `build` does, is exactly the part an
+assistant is good at and a human finds fastest to review rather than
+write from scratch. The one step that matters, deciding a pattern is
+ready to publish and trusting other stacks will pull it, stays a
+decision only you make, at your own terminal, every time.
+
+## See also
+
+- [MCP Server](/concepts/mcp-server)
+- [Blueprints](/concepts/blueprints)
+- [`ubx mcp`](/cli-reference/mcp)
+- [`ubx blueprint`](/cli-reference/blueprint)

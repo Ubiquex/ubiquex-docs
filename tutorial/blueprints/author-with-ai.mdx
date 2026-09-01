@@ -1,0 +1,136 @@
+---
+title: "Authoring a blueprint with an AI assistant"
+description: "Draft, validate, and build a blueprint without leaving the conversation."
+---
+
+You just built the ci-platform blueprint by hand, writing
+`resources.json` and `Ubxfile` yourself. This tutorial does the same
+thing through an assistant connected over MCP instead, and stops at the
+exact point a human takes back over.
+
+## Connect a client
+
+```json
+{
+  "mcpServers": {
+    "ubx": { "command": "ubx", "args": ["mcp"] }
+  }
+}
+```
+
+Point your client's working directory at wherever you keep blueprint
+source. See [Connect an AI assistant](/integrations/mcp) for the
+generic walkthrough if you haven't wired up a client yet.
+
+## Ask it to draft one
+
+In your assistant's own chat interface:
+
+```
+Draft a blueprint for an SQS queue, parameterized by queue name and
+retention in days.
+```
+
+The assistant calls `draft_ubxfile` and shows you back a real,
+self-validated `Ubxfile` and `resources.json`:
+
+```yaml
+lang: go
+
+params:
+  queue_name: string, required
+  retention_days: number, default 14
+
+resources: resources.json
+```
+
+```json
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "ci-platform",
+  "intent": { "summary": "SQS queue, parameterized" },
+  "resources": [
+    {
+      "type": "aws_sqs_queue",
+      "name": "pipeline-events",
+      "op": "create",
+      "config": {
+        "name": "{queue_name}",
+        "message_retention_seconds": "{retention_days * 86400}"
+      }
+    }
+  ]
+}
+```
+
+Nothing has been written to disk. This came back as text in the
+conversation, the same as any other file an assistant drafts for you.
+
+## Ask it to build
+
+```
+That looks right, build it.
+```
+
+The assistant calls `build_blueprint`, and shows you real, generated
+Go, TypeScript, and Python packages, byte-for-byte what
+`ubx blueprint build` would have written:
+
+```go
+func CiPlatform(queueName string, opts ...Option) *ubx.Computed {
+	ubx.PushBlueprintSource("ci-platform")
+	defer ubx.PopBlueprintSource()
+
+	cfg := options{retentionDays: 14}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	return ubx.Resource(Queue, "pipeline-events", QueueConfig{
+		Name:                    queueName,
+		MessageRetentionSeconds: cfg.retentionDays * 86400,
+	})
+}
+```
+
+Still nothing written anywhere, this is the same inline-response
+behavior `draft_ubxfile` had, and `build_blueprint` has no way to write
+to disk on its own. If you want the files saved, ask your assistant to
+write them with its own file tools, the same way it would save any
+other draft you accept.
+
+## Take it back over
+
+Save the `Ubxfile`, `resources.json`, and the generated packages into a
+real directory, either yourself or by asking your assistant to write
+what it already showed you, then finish the lifecycle the same way you
+would have by hand:
+
+```bash
+ubx blueprint package . -o ci-platform-v1.tar.gz
+ubx blueprint push ci-platform-v1.tar.gz \
+  --to oci://ghcr.io/acme/ci-platform:v1
+```
+
+No MCP tool does this step. `push_blueprint` isn't offered, on purpose,
+publishing a blueprint is the one irreversible act in its lifecycle,
+and it stays something you run yourself, at your own terminal.
+
+## What you just did
+
+You went from a plain-language description to real, generated code
+without writing a line of YAML or JSON by hand, reviewed every step in
+the conversation itself, and then picked the moment to make it real by
+running the one command the assistant was never given.
+
+## See also
+
+<Card title="AI-Assisted Blueprint Authoring" icon="wand-magic-sparkles" href="/concepts/mcp-blueprint-tools">
+  The full design: why draft/validate/build return content, and why push isn't a tool.
+</Card>
+
+## Next
+
+<Card title="Calling it from SDK code" icon="code" href="/tutorial/blueprints/call-sdk">
+  Import the built package and call it directly.
+</Card>
