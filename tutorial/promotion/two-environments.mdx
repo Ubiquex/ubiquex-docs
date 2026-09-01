@@ -32,11 +32,30 @@ Nothing here connects them yet.
 
 ```bash
 cd ../../dev/payments
-cat > platform.md << 'EOF'
-Provision an SQS queue called "pipeline-events" for payments,
-standard, messages retained for 3 days.
-EOF
-ubx plan --from-doc platform.md --stack payments
+```
+
+```go
+package main
+
+import (
+	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+	sqs "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/sqs"
+)
+
+func main() {
+	ubx.Main(ubx.Stack("payments", func() {
+		ubx.Intent(ubx.IntentInfo{Summary: "payments queue"})
+
+		ubx.Resource(sqs.Queue, "pipeline-events", sqs.QueueConfig{
+			Name:                    "pipeline-events",
+			MessageRetentionSeconds: 259200,
+		})
+	}))
+}
+```
+
+```bash
+ubx plan --from-code create_platform.go --stack payments
 ubx ship <hash>
 ```
 

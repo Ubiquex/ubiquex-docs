@@ -1,57 +1,56 @@
 ---
-title: "Calling it from diagram and markdown"
-description: "Prove all three mediums resolve to the identical result."
+title: "Calling it from a hand-written intent file"
+description: "Prove a blueprint_calls entry resolves to the identical result, independent of the SDK direct import."
 ---
 
-Every calling convention routes through the same real mechanism. This
-tutorial proves it, calling your blueprint from a diagram and from
-prose, comparing the resolved output to the SDK call.
+The SDK direct import you just used is one way to call a blueprint.
+There's a second, real one: a hand-written intent/v1 file's own
+`blueprint_calls` entry, expanded by the identical mechanism, whether
+you write that file by hand or a script produces it for you. This
+tutorial proves both land on the same result.
 
-## Call it from a diagram
+## Call it from a hand-written intent file
 
 ```bash
-cat > platform.d2 << 'EOF'
-platform: "ci-platform" {
-  class: ubx_blueprint
-  blueprint: "../ci-platform"
-  queue_name: "pipeline-events"
-  retention_days: "3"
+cat > platform.json << 'EOF'
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "payments",
+  "intent": { "summary": "payments queue, via blueprint" },
+  "resources": [],
+  "destroys": [],
+  "blueprint_calls": [
+    {
+      "name": "ci-platform",
+      "blueprint": "../ci-platform",
+      "args": {
+        "queue_name": "pipeline-events",
+        "retention_days": "3"
+      }
+    }
+  ]
 }
 EOF
 ```
 
 ```bash
-ubx plan --from-diagram platform.d2 --stack payments --out diagram.json
+ubx plan platform.json --out other.json
 ```
 
-## Call it from markdown
-
-```bash
-cat > platform.md << 'EOF'
-Use blueprint ../ci-platform with:
-  queue_name = "pipeline-events"
-  retention_days = 3
-EOF
-```
-
-```bash
-ubx plan --from-doc platform.md --stack payments --out md.json
-```
-
-## Compare all three
+## Compare the two
 
 ```bash
 ubx resolve --from-code create_platform.go --out sdk.json
-diff sdk.json diagram.json
-diff sdk.json md.json
+diff sdk.json other.json
 ```
 
 ```bash
 (no output)
 ```
 
-No differences. Same blueprint, same version, three different
-mediums, one identical resolved result.
+No differences. Same blueprint, same version, called two different
+ways, one identical resolved result.
 
 ## Add a cross-stack reference
 
@@ -60,6 +59,22 @@ just a literal value. Add one, a `cross_ref` param naming the VPC a
 real neighboring stack (`networking`, here) already owns, and rebuild:
 
 ```bash
+cat > ../ci-platform/resources.json << 'EOF'
+{
+  "resources": [
+    {
+      "type": "aws_sqs_queue",
+      "name": "pipeline-events",
+      "op": "create",
+      "config": {
+        "name": "{queue_name}",
+        "message_retention_seconds": "{retention_days * 86400}",
+        "tags": { "vpc_id": "{vpc_id}" }
+      }
+    }
+  ]
+}
+EOF
 cat > ../ci-platform/Ubxfile << 'EOF'
 lang: go
 
@@ -68,10 +83,7 @@ params:
   retention_days: number, default 14
   vpc_id: cross_ref, required
 
-resources: |
-  An SQS queue called "{queue_name}", standard, messages retained
-  for {retention_days * 86400} seconds, tagged with vpc_id set to
-  {vpc_id}.
+resources: ./resources.json
 EOF
 ubx blueprint build ../ci-platform
 ```
@@ -85,27 +97,39 @@ regardless of how you declared it.
 
 ## Call it with the real value
 
-Every medium takes the identical `"@<stack>.<type>.<name>.<attr>"`
+Both call paths take the identical `"@<stack>.<type>.<name>.<attr>"`
 reference, `@networking.aws_vpc.main.id`, the real VPC `networking`
-already shipped:
+already shipped. From the hand-written intent file:
 
 ```bash
-cat > platform.d2 << 'EOF'
-platform: "ci-platform" {
-  class: ubx_blueprint
-  blueprint: "../ci-platform"
-  queue_name: "pipeline-events"
-  retention_days: "3"
-  vpc_id: "@networking.aws_vpc.main.id"
+cat > platform.json << 'EOF'
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "payments",
+  "intent": { "summary": "payments queue, via blueprint" },
+  "resources": [],
+  "destroys": [],
+  "blueprint_calls": [
+    {
+      "name": "ci-platform",
+      "blueprint": "../ci-platform",
+      "args": {
+        "queue_name": "pipeline-events",
+        "retention_days": "3",
+        "vpc_id": "@networking.aws_vpc.main.id"
+      }
+    }
+  ]
 }
 EOF
-ubx plan --from-diagram platform.d2 --stack payments --out diagram.json
+ubx plan platform.json --out other.json
 ```
 
 ```bash
-Plan  payments · from platform.d2
+Plan  payments · from platform.json
 
-  + aws_sqs_queue.main-queue create
+  + aws_sqs_queue.pipeline-events create
       message_retention_seconds: 259200
       tags:
       {
@@ -118,18 +142,8 @@ delta: +1 create(s), ~0 change(s), -0 terminate(s)
 `vpc-123`, the real id resolved off `networking`'s own ledger, not a
 literal string, threaded straight into the new resource's own tags.
 
-```bash
-cat > platform.md << 'EOF'
-Use blueprint ../ci-platform with:
-  queue_name = "pipeline-events"
-  retention_days = 3
-  vpc_id = @networking.aws_vpc.main.id
-EOF
-ubx plan --from-doc platform.md --stack payments --out md.json
-```
-
-Update `create_platform.go`'s own call to pass the same reference,
-via `sdk.CrossStack`, the SDK's own real constructor for it:
+From the SDK, via `sdk.CrossStack`, the SDK's own real constructor for
+it:
 
 ```go
 ciplatform.CiPlatform(
@@ -141,15 +155,11 @@ ciplatform.CiPlatform(
 
 ```bash
 ubx resolve --from-code create_platform.go --out sdk.json
+jq '.delta.creates[0].config' sdk.json other.json
 ```
 
 ```bash
-jq '.delta.creates[0].config' sdk.json diagram.json md.json
-```
-
-```bash
 {
-  "fifo_queue": false,
   "message_retention_seconds": 259200,
   "name": "pipeline-events",
   "tags": {
@@ -157,15 +167,6 @@ jq '.delta.creates[0].config' sdk.json diagram.json md.json
   }
 }
 {
-  "fifo_queue": false,
-  "message_retention_seconds": 259200,
-  "name": "pipeline-events",
-  "tags": {
-    "vpc_id": "vpc-123"
-  }
-}
-{
-  "fifo_queue": false,
   "message_retention_seconds": 259200,
   "name": "pipeline-events",
   "tags": {
@@ -174,27 +175,39 @@ jq '.delta.creates[0].config' sdk.json diagram.json md.json
 }
 ```
 
-Same resolved config, three times over. `intent.sources` and
-`resolution.resolved_at` differ between the three full proposals,
-real provenance and a real timestamp, each medium's own, never the
-same across separate runs, so this compares the resolved delta
-directly rather than the whole file.
+Same resolved config, both ways. `intent.sources` and
+`resolution.resolved_at` differ between the two full proposals, real
+provenance and a real timestamp, never the same across separate runs,
+so this compares the resolved delta directly rather than the whole
+file.
 
 ## Refuse a malformed reference
 
 Drop the leading `@` and call it again:
 
 ```bash
-cat > platform-bad.d2 << 'EOF'
-platform: "ci-platform" {
-  class: ubx_blueprint
-  blueprint: "../ci-platform"
-  queue_name: "pipeline-events"
-  retention_days: "3"
-  vpc_id: "networking.aws_vpc.main.id"
+cat > platform-bad.json << 'EOF'
+{
+  "schema_version": 1,
+  "kind": "ubx:intent/v1",
+  "stack": "payments",
+  "intent": { "summary": "payments queue, via blueprint" },
+  "resources": [],
+  "destroys": [],
+  "blueprint_calls": [
+    {
+      "name": "ci-platform",
+      "blueprint": "../ci-platform",
+      "args": {
+        "queue_name": "pipeline-events",
+        "retention_days": "3",
+        "vpc_id": "networking.aws_vpc.main.id"
+      }
+    }
+  ]
 }
 EOF
-ubx plan --from-diagram platform-bad.d2 --stack payments
+ubx plan platform-bad.json
 ```
 
 ```bash
@@ -203,17 +216,17 @@ error: param "vpc_id": "networking.aws_vpc.main.id" must start with
 ```
 
 Refused before it ever reaches a provider. The same real check runs
-for every medium, `cross_ref` never resolves a string that isn't
-already a well-formed reference.
+regardless of which caller sent it, `cross_ref` never resolves a
+string that isn't already a well-formed reference.
 
 ## What you just did
 
-You proved directly what this whole design promises, a blueprint
-called from SDK code, a diagram node, or a sentence of prose produces
-the exact same real infrastructure, byte for byte, even when one of
-its params points at another stack's own real resource instead of a
-literal value, and confirmed a malformed reference is refused the
-same way regardless of which medium sent it.
+You proved directly what this whole design promises: a blueprint
+called from a direct SDK import or a hand-written `blueprint_calls`
+entry produces the exact same real infrastructure, byte for byte, even
+when one of its params points at another stack's own real resource
+instead of a literal value, and confirmed a malformed reference is
+refused the same way regardless of which path sent it.
 
 ## Further reading
 

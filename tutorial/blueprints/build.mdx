@@ -3,14 +3,33 @@ title: "Building your first blueprint"
 description: "Turn a real pattern into a reusable, versioned blueprint."
 ---
 
-You've shipped this queue pattern several times now, by hand, in every
-medium. This tutorial turns it into something you author once and reuse
-forever.
+You've shipped this queue pattern several times now, by hand. This
+tutorial turns it into something you author once and reuse forever.
 
 ## Write an Ubxfile
 
+`resources:` is a pre-resolved intent/v1 document -- the same shape
+`ubx resolve --from-code --out <file>` produces. Write it by hand for
+this small example, or run a real SDK program through `ubx resolve
+--from-code` to produce it for anything larger:
+
 ```bash
 mkdir ci-platform && cd ci-platform
+cat > resources.json << 'EOF'
+{
+  "resources": [
+    {
+      "type": "aws_sqs_queue",
+      "name": "pipeline-events",
+      "op": "create",
+      "config": {
+        "name": "{queue_name}",
+        "message_retention_seconds": "{retention_days * 86400}"
+      }
+    }
+  ]
+}
+EOF
 cat > Ubxfile << 'EOF'
 lang: go
 
@@ -18,9 +37,7 @@ params:
   queue_name: string, required
   retention_days: number, default 14
 
-resources: |
-  An SQS queue called "{queue_name}", standard, messages retained
-  for {retention_days * 86400} seconds.
+resources: ./resources.json
 EOF
 ```
 
@@ -31,12 +48,12 @@ ubx blueprint build .
 ```
 
 ```bash
-drafting via claude:claude-sonnet-5… ✓
 built 1 resource(s) -> . (go, ts, py: go/bindings.go, go/ciplatform.go, go/go.mod, ts/ciplatform.ts, ts/bindings.ts, py/ciplatform.py, py/bindings.py)
 ```
 
-The AI drafted this once. Every future call, in any language, involves
-zero AI from here forward.
+`build` parses `resources.json` once -- it doesn't interpret or draft
+it, nothing here calls an LLM. Every future call, in any language,
+involves zero AI, the same as building did.
 
 ## Look at what it produced
 
@@ -63,9 +80,9 @@ func CiPlatform(queueName string, opts ...Option) *ubx.Computed {
 The `PushBlueprintSource`/`PopBlueprintSource` pair is what tags every
 resource this function creates with real provenance, `ubx why` reads it
 back later to show exactly which blueprint produced a given resource.
-The `{retention_days * 86400}` in your prose also became a real
-arithmetic expression here, `cfg.retentionDays * 86400`, not a frozen
-number.
+The `{retention_days * 86400}` in your `resources.json` also became a
+real arithmetic expression here, `cfg.retentionDays * 86400`, not a
+frozen number.
 
 ## Package and share it
 
@@ -107,11 +124,11 @@ ever needed for this.
 
 ## What you just did
 
-You described a pattern once, in prose, got back a real, callable
-function in three languages, and proved it survives a real round trip
-to a registry and back, byte for byte. Nobody has to redraft this
-pattern from scratch again, and nobody has to trust that a copy of it
-arrived intact, `ubx blueprint verify` proves it.
+You described a pattern once, in a pre-resolved document, got back a
+real, callable function in three languages, and proved it survives a
+real round trip to a registry and back, byte for byte. Nobody has to
+re-author this pattern from scratch again, and nobody has to trust that
+a copy of it arrived intact, `ubx blueprint verify` proves it.
 
 This blueprint creates a fixed set of resources. If yours needs to
 create a variable number instead, one subnet per availability zone the

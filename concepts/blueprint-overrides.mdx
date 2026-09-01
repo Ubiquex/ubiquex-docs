@@ -13,34 +13,14 @@ blueprint again.
 
 ## How it works
 
-`override(address, {field: value, ...})` patches a resolved attribute by
-address, applied after a blueprint call expands, before the resolver
-runs. The same shape exists in all three calling mediums:
+`override(address, {field: value, ...})`, called from the SDK, patches a
+resolved attribute by address, applied after a blueprint call expands,
+before the resolver runs:
 
 ```go
 sdk.Override("payments.aws_sqs_queue.pipeline-events",
 	map[string]any{"message_retention_seconds": 1209600})
 ```
-
-```d2
-fix: "fix pipeline-events" {
-  class: ubx_override
-  address: "payments.aws_sqs_queue.pipeline-events"
-  message_retention_seconds: "1209600"
-}
-```
-
-```md
-Override the pipeline-events queue's message_retention_seconds to 1209600.
-```
-
-The diagram medium's own override node only ever encodes string-valued
-config, matching how every other non-reference attribute value in that
-medium already works, a number or object-valued override needs Go, TS,
-or Python instead. The markdown medium is the only call site that goes
-through AI at all, and even there it's a thin mapping, one prose
-sentence to one `overrides[]` entry, never a re-draft of any attribute
-that sentence didn't name.
 
 An override's config keys are top-level wire attribute names, replacing
 that attribute's whole value, never a deep merge into part of it, so
@@ -76,11 +56,10 @@ limitation, not a false guarantee.
 
 Writing one by hand isn't the only way to get one. `ubx render --md
 --sync-overrides` walks a stack's actual drift and generates the correct
-override statement for every drifted resource, mechanically, zero AI,
-in whichever medium the calling stack is already authored in. See
-[`ubx render`](/cli-reference/render) for the full flag reference,
-including `--from-drift` for a single address and `--write` to append
-the generated statement directly into the calling stack's own source.
+override statement for every drifted resource, mechanically, zero AI, in
+the calling stack's own SDK language. See [`ubx render`](/cli-reference/render)
+for the full flag reference, including `--from-drift` for a single
+address.
 
 ## Why it matters
 

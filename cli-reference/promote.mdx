@@ -1,11 +1,11 @@
 ---
 title: "ubx promote"
-description: "Re-resolve an accepted proposal's own document against a target environment."
+description: "Re-resolve an accepted proposal's own SDK program against a target environment."
 ---
 
 Promotion never copies a proposal's resolved values into a new
-environment. `ubx promote` reads the source proposal's own authoring
-document and resolves it fresh, against the target environment's real
+environment. `ubx promote` re-reads the source proposal's own SDK
+program and resolves it fresh, against the target environment's real
 config, real providers, real live state. What ships to prod is a genuine
 re-derivation, not a stale replay of what staging happened to compute.
 
@@ -57,20 +57,12 @@ next: ubx ship 8224643bbbc5...
   Additionally write the full resolved proposal here.
 </ResponseField>
 
-<ResponseField name="--summary" type="string">
-  `intent.summary` override, only relevant for a diagram-sourced proposal.
-</ResponseField>
-
-<ResponseField name="--neighbor-ledger" type="list(string)">
-  Cross-stack reference override, only relevant for a diagram-sourced proposal.
-</ResponseField>
-
 <ResponseField name="--known-dependent" type="list(string)">
   A neighbor stack's ledger to check for orphan references in the target's own graph.
 </ResponseField>
 
 <ResponseField name="--timeout" type="string" default="3m">
-  One shared budget for re-drafting and provider acquisition (default `3m`).
+  One shared budget for re-evaluating the SDK program and provider acquisition (default `3m`).
 </ResponseField>
 
 ## Notes
@@ -79,29 +71,23 @@ The source must be an already-*accepted* proposal, not an unaccepted
 plan draft, promotion evidence vouches for something that went through
 the normal accept ceremony.
 
-Four authoring sources are all promotable, each re-derived its own way:
+An SDK-sourced proposal (`.go`/`.ts`/`.py`) is the one real re-derivable
+case: the entry file is re-read from disk, and its `content_hash` is
+checked *first* -- an unchanged file is re-run through the real
+evaluator against the target's own real context (a program can
+legitimately read the target stack's own name and config and resolve
+differently, correctly, per target); a changed file is refused outright,
+naming both hashes, since that's new intent, not a promotion.
 
-- **Markdown/diagram** (`.md`/`.d2`): re-read from disk and re-drafted/
-  re-parsed, exactly like the original `ubx propose`/`ubx plan` did.
-- **SDK program** (`--from-code`, `.go`/`.ts`/`.py`): re-read from disk,
-  and its `content_hash` is checked *first* — an unchanged file is
-  re-run through the real evaluator against the target's own real
-  context (see [Context-Aware Drafting](/concepts/context-aware-drafting)
-  for why a re-run, not a frozen copy, is what stays correct); a changed
-  file is refused outright, naming both hashes, since that's new intent,
-  not a promotion.
-- **Chat-drafted** (`ubx chat`): the final, *converged* intent/v1 draft
-  already captured in the dialogue's own `.dlg.json` is re-resolved
-  against the target — never re-run through the model a second time.
-  The dialogue capture itself carries forward as pinned evidence in the
-  promoted proposal's own `intent.sources`, never treated as something
-  promote could re-run.
+A proposal whose only re-resolvable source is a captured `ubx chat`
+dialogue is refused outright: chat was removed as an authoring medium,
+along with the re-resolution machinery a dialogue-sourced promotion
+depended on. `ubx why` still reads and explains a dialogue captured
+before that change; `ubx promote` no longer re-resolves one.
 
-Every source is read relative to the same place its own medium already
-reads it from: `.md`/`.d2`/SDK refs resolve from the current working
-directory (same as the original `ubx propose`/`ubx plan`/`ubx resolve`
-did); a dialogue's own ref resolves relative to the *source* proposal's
-`--ledger-dir`, never the current working directory.
+An SDK ref is read relative to the current working directory, the same
+place the original `ubx resolve --from-code`/`ubx plan --from-code`
+read it from.
 
 ## Refusal cases
 
