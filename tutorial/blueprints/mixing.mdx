@@ -1,0 +1,177 @@
+---
+title: "Mixing a blueprint call with hand-written resources"
+description: "One direction works cleanly. The other doesn't, and that's worth knowing before you hit it."
+---
+
+Every real stack past a certain size is both: a blueprint call for the
+pattern you've already proven out, and hand-written resources for
+whatever that stack alone needs. This tutorial adds a declared output
+to `ci-platform` and a hand-written resource that consumes it, in the
+same stack as the SDK call you already wrote, then proves the reverse
+doesn't work.
+
+## Declare an output
+
+```bash
+cd ../ci-platform
+cat > Ubxfile << 'EOF'
+lang: go
+
+params:
+  queue_name: string, required
+  retention_days: number, default 14
+  vpc_id: cross_ref, required
+
+outputs:
+  queue_arn: pipeline-events.arn
+
+resources: ./resources.json
+EOF
+ubx blueprint build .
+```
+
+`queue_arn`'s own target, `pipeline-events.arn`, is `<resource-slug>.<attribute>`
+-- the blueprint's own internal resource name, never a full address. See
+[Blueprint Outputs](/concepts/outputs) for the full design.
+
+## Consume it from a hand-written resource
+
+Back in `call-blueprint/`, extend `create_platform.go`. The blueprint
+call now returns a real `*sdk.Computed` you wire directly into a
+hand-written resource, the exact same way you'd wire any other
+resource's own output:
+
+```go
+package main
+
+import (
+	"fmt"
+
+	ciplatform "ciplatform"
+	sdk "github.com/ubiquex/ubx-sdk-go/runtime"
+	iam "github.com/ubiquex/ubx-sdk-aws/sdk/go/aws/iam"
+)
+
+func main() {
+	sdk.Main(sdk.Stack("payments", func() {
+		sdk.Intent(sdk.IntentInfo{Summary: "payments queue via blueprint, plus a hand-written policy"})
+
+		queueArn := ciplatform.CiPlatform(
+			"pipeline-events",
+			sdk.CrossStack("networking", "networking.aws_vpc.main.id"),
+			ciplatform.WithRetentionDays(3),
+		)
+
+		sdk.Resource(iam.Policy, "ci-runner-access", iam.PolicyConfig{
+			Policy: fmt.Sprintf(`{"Statement":[{"Effect":"Allow","Action":"sqs:SendMessage","Resource":{"$ref":{"to":%q}}}]}`, queueArn.Address()),
+		})
+	}))
+}
+```
+
+`ci-runner-access` is never declared inside the blueprint at all. It's
+an ordinary resource in your own stack, wired to the blueprint's own
+output exactly the way `mirror` was wired to `primary` back in your
+first AWS resources. Nothing about consuming a blueprint's output is a
+special case.
+
+## Ship it, and watch the real ordering hold
+
+```bash
+ubx plan --from-code create_platform.go
+```
+
+```bash
+Plan  payments · from create_platform.go
+
+  + aws_sqs_queue.pipeline-events create  (blueprint: ci-platform:sha256:a1b2c3...)
+      message_retention_seconds: 259200
+      tags: { "vpc_id": "vpc-123" }
+
+  + aws_iam_policy.ci-runner-access create
+      policy: {
+        "Statement": [{
+          "Effect": "Allow",
+          "Action": "sqs:SendMessage",
+          "Resource": $ref:payments.aws_sqs_queue.pipeline-events.arn
+        }]
+      }
+
+delta: +2 create(s), ~0 change(s), -0 terminate(s)
+```
+
+```bash
+ubx ship <hash>
+```
+
+The blueprint's own resource has to ship before `ci-runner-access` can
+resolve a real ARN for it, and it does, correctly, with zero extra work
+on your part. A blueprint call is never opaque to the dependency graph.
+Once it returns, the resources it produced are ordinary graph nodes,
+addressable and referenceable exactly like anything you wrote by hand.
+
+## The reverse direction doesn't work
+
+A blueprint's own output feeds a hand-written resource cleanly. The
+other direction, a hand-written resource's own output as a blueprint
+call argument, does not work, and it's worth knowing that before you
+reach for it rather than discovering it as a compiler error mid-task:
+
+```go
+handWritten := sdk.Resource(iam.Policy, "seed", iam.PolicyConfig{Policy: "{}"})
+ciplatform.CiPlatform(handWritten.Field("arn"), sdk.CrossStack("networking", "networking.aws_vpc.main.id"))
+```
+
+```bash
+./main.go:19:25: cannot use handWritten.Field("arn") (value of type
+*sdk.Computed) as string value in argument to ciplatform.CiPlatform
+```
+
+A blueprint's own declared params only ever compile to a plain
+string/number/bool/list, or `sdk.CrossStack(...)` for a param declared
+`cross_ref`, and `cross_ref` itself only ever points at a different
+stack's own already-shipped resource, never a value from the SAME
+stack that hasn't resolved yet. There's no way to route a same-stack
+hand-written resource's own live value into a blueprint's declared
+params. If a blueprint genuinely needs something only known at your
+own call site, it has to be a real param the blueprint's own author
+declared, resolved to a literal value before the call, never a live
+reference into your own stack.
+
+## What ubx why and ubx render show
+
+```bash
+ubx why payments.aws_iam_policy.ci-runner-access
+```
+
+The hand-written resource renders with no `source:` line at all, the
+same as any other hand-written resource. Ask about the blueprint's own
+resource instead and the `source: blueprint ci-platform:sha256:...`
+line is there, same as every earlier tutorial in this track.
+
+```bash
+ubx render --stack payments
+```
+
+Only `aws_sqs_queue.pipeline-events` groups inside the dashed-border
+blueprint container. `ci-runner-access` renders as an ordinary node
+outside it, with the real dependency edge drawn between the two.
+Whether a resource carries blueprint provenance is a property of where
+it actually came from, never of which mediums happen to be visible in
+the same file.
+
+## What you just did
+
+You proved the one direction that's actually asymmetric in this whole
+design: a blueprint's own output flows into hand-written code exactly
+like any other resource reference, and a hand-written resource's own
+value cannot flow back into a blueprint call in the same stack, at
+all, not through any mechanism. `ubx why` and `ubx render` distinguish
+the two kinds of resource correctly regardless of how each one was
+actually constructed.
+
+## Next
+
+<Card title="Team Review" icon="code-pull-request" href="/tutorial/team-review">
+  Sign a proposal by merging a real, reviewed pull request.
+</Card>
