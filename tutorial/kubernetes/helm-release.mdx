@@ -20,17 +20,33 @@ EOF
 
 ## Author it
 
+```go
+package main
+
+import (
+	ubx "github.com/ubiquex/ubx-sdk-go/runtime"
+	release "github.com/ubiquex/ubx-sdk-helm/sdk/go/helm/release"
+)
+
+func main() {
+	ubx.Main(ubx.Stack("payments", func() {
+		ubx.Intent(ubx.IntentInfo{Summary: "payments migrator helm release"})
+
+		ubx.Resource(release.Release, "payments-migrator", release.ReleaseConfig{
+			Name:       "payments-migrator",
+			Repository: "acme",
+			Chart:      "migrator",
+			Namespace:  "payments",
+		})
+	}))
+}
+```
 ```bash
-cat > release.md << 'EOF'
-Deploy a Helm release called "payments-migrator" from the "acme"
-repository, chart "migrator", in the "payments" namespace, referencing
-the db-credentials secret already created.
-EOF
-ubx plan --from-doc release.md --stack payments
+ubx plan --from-code create_release.go --stack payments
 ```
 
 ```bash
-Plan  payments · from release.md
+Plan  payments · from create_release.go
 
   + helm_release.payments-migrator create  (hashicorp/helm)
       name: "payments-migrator"

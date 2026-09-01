@@ -19,17 +19,37 @@ params:
   vpc_id: string, required
   availability_zones: list(string), required
 
-resources: |
-  For each value in {availability_zones}, a subnet in {vpc_id} at that
-  availability zone, cidr block 10.0.{availability_zones_index}.0/24.
+resources: ./resources.json
 ```
 
-Inside the ONE resource that iterates, two tokens carry a real,
-per-language meaning: the bare `{availability_zones}` means the current
-loop element, and `{availability_zones_index}` means its zero-based
-position. Referencing either token on a different resource, or the bare
-list token anywhere with no iterating resource declared for it, is a
-build-time error, never a silent wrong substitution.
+```json
+// resources.json
+{
+  "resources": [
+    {
+      "type": "subnet",
+      "name": "subnet-{availability_zones}",
+      "op": "create",
+      "for_each": "availability_zones",
+      "config": {
+        "availability_zone": "{availability_zones}",
+        "cidr_block": "10.0.{availability_zones_index}.0/24",
+        "vpc_id": "{vpc_id}"
+      }
+    }
+  ]
+}
+```
+
+The `for_each` field on the ONE resource that iterates names the list
+param directly -- a real, structured field, set by whoever produced this
+document, never inferred from prose. Inside that resource's own config,
+two tokens carry a real, per-language meaning: the bare
+`{availability_zones}` means the current loop element, and
+`{availability_zones_index}` means its zero-based position. Referencing
+either token on a different resource, or the bare list token anywhere
+with no `for_each` declared for it, is a build-time error, never a
+silent wrong substitution.
 
 ```go
 func VpcSubnets(vpcId string, availabilityZones []string) []*ubx.Computed {
@@ -50,8 +70,8 @@ TypeScript and Python compile the identical loop idiomatically,
 `Array.prototype.forEach` and `enumerate()` in place of Go's `range`, the
 same two tokens resolved the same way in each. No new runtime construct
 exists in any of the three SDKs for this, real Go/TypeScript/Python
-already have a `for` loop, so the whole feature is recognizing the
-pattern in prose and emitting an ordinary one.
+already have a `for` loop, so the whole feature is compiling a
+structured `for_each` field down to an ordinary one.
 
 ## Why this isn't a new templating language
 
@@ -78,23 +98,23 @@ vpcSubnets("vpc-123", ["eu-central-1a", "eu-central-1b", "eu-central-1c"]);
 vpc_subnets("vpc-123", ["eu-central-1a", "eu-central-1b", "eu-central-1c"])
 ```
 
-A diagram or markdown call passes the same list as one comma-separated
-string, the identical `Args map[string]string` shape every scalar param
-already uses, so neither medium needed a new attribute shape:
+A hand-written intent/v1 file's own `blueprint_calls` entry passes the
+same list as one comma-separated string instead, the identical
+`args: map[string]string` shape every scalar param already uses:
 
-```d2
-platform: "vpc subnets call" {
-  class: ubx_blueprint
-  blueprint: "../vpc-subnets"
-  vpc_id: "vpc-0123456789abcdef0"
-  availability_zones: "eu-central-1a, eu-central-1b, eu-central-1c"
+```json
+{
+  "blueprint_calls": [
+    {
+      "name": "vpc subnets call",
+      "blueprint": "../vpc-subnets",
+      "args": {
+        "vpc_id": "vpc-0123456789abcdef0",
+        "availability_zones": "eu-central-1a, eu-central-1b, eu-central-1c"
+      }
+    }
+  ]
 }
-```
-
-```md
-Use blueprint `vpc-subnets` with:
-  vpc_id = vpc-0123456789abcdef0
-  availability_zones = eu-central-1a, eu-central-1b, eu-central-1c
 ```
 
 The blueprint's own already-compiled function runs the loop for real, at

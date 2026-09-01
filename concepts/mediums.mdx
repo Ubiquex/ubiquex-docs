@@ -1,54 +1,16 @@
 ---
-title: "The Four Mediums"
-description: "Four ways to author intent, one resolved output."
+title: "Authoring a Stack"
+description: "The SDK is the only way to author a stack, and why."
 ---
 
-Different people think about infrastructure differently. Some want to
-describe intent in plain English. Some want to draw a network as boxes
-and arrows. Some want the precision of real code. Forcing everyone into
-one single format means fighting the format at least as often as
-describing what you actually want.
+There is one way to describe a change to ubx: write real code, in Go,
+TypeScript, or Python. A `resource(...)` call is a deterministic
+function call. Running your program always produces the same resolved
+delta from the same input, no interpretation step in between.
 
 ## How it works
 
-Ubx supports four separate ways to describe a change, and all four
-produce the exact same kind of output underneath: a resolved delta,
-ready to review and sign.
-
-- **Markdown**: you write prose, an AI drafts a proposal from it, reading
-  the target stack's own name and config first (see
-  [Context-Aware Drafting](/concepts/context-aware-drafting)).
-- **Chat**: the same AI drafting, as a live conversation instead of a
-  static file.
-- **Diagram**: you draw real topology in D2, a structural parser reads
-  it directly, no AI involved at all.
-- **SDK**: you write real code in Go, TypeScript, or Python,
-  `ubx.Resource(...)` calls are deterministic function calls, also no
-  AI.
-
 ```bash
-ubx plan --from-doc platform.md          # markdown
-ubx chat                                  # chat
-ubx plan --from-diagram platform.d2       # diagram
-ubx plan --from-code create_platform.go   # SDK
-```
-
-## Why picking just one medium doesn't work
-
-If ubx only supported prose, someone who wants compiler-checked
-correctness for a reusable pattern would have to fight a language never
-built for that. If it only supported diagrams, describing a nuanced IAM
-policy in boxes and arrows would be awkward at best. Different parts of
-the same real infrastructure genuinely suit different mediums, and
-forcing one choice on everything creates friction nobody needs.
-
-## What this actually looks like
-
-The same underlying resource, described two different ways, resolves to
-the identical result:
-
-```bash
-ubx plan --from-doc platform.md --stack payments
 ubx plan --from-code create_platform.go
 ```
 
@@ -56,12 +18,43 @@ ubx plan --from-code create_platform.go
 resolved: payments: 1 create(s), 0 change(s), 0 terminate(s)
 ```
 
-Both commands land on the same delta shape. Everything after this point,
-review, signing, shipping, works identically no matter which medium
-produced it.
+Bare `ubx plan`, with no `--from-code` flag at all, auto-detects a lone
+SDK program in the current directory and plans it directly -- see the
+[`ubx plan` reference](/cli-reference/plan) for the exact detection
+rule.
+
+## Markdown, chat, and diagram used to exist
+
+Earlier versions of ubx also supported three other ways to author a
+stack: writing prose that an LLM drafted into a proposal, a live chat
+conversation with the same drafting behind it, and drawing topology in
+a D2 diagram that a structural parser read directly. All three are
+gone.
+
+Markdown and chat shared the same real problem: an LLM asked to draft
+the same document twice is not guaranteed to draft it the same way
+twice. That breaks the project's own first invariant -- what applies is
+exactly what was signed -- for any proposal built from a medium that
+might not produce the same signed content on a later run. The SDK has
+no interpretation step to be nondeterministic in.
+
+Diagram was never a complete medium in the first place: it could only
+ever express topology (which resources exist, how they depend on each
+other), never a resource's own configuration. A diagram-authored
+resource with any schema-required attribute had nothing that could set
+it. It stayed useful for one thing this whole time, and still is:
+[`ubx render`](/cli-reference/render) draws the current, real shape of
+a stack as a D2 diagram, generated FROM ledger state rather than
+authored INTO it. That direction never had the determinism problem
+authoring did, since it's a read of already-accepted proposals, not a
+new one being drafted, and it's unaffected by any of this.
 
 ## Why it matters
 
-You pick the medium that fits how you're already thinking about a given
-piece of infrastructure, not the one ubx happens to support best. The
-review and trust guarantees never change based on that choice.
+Every resolved delta looks the same to the rest of ubx after this
+point, regardless of what produced it: review, signing, and shipping
+work identically. What changed is only where "produced it" can mean
+now. See [The SDK](/concepts/sdk-depth) for what authoring in Go,
+TypeScript, or Python actually looks like, and
+[The Trust Boundary](/concepts/trust-boundary) for what stays
+deterministic and what a human still has to sign.

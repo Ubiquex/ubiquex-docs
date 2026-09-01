@@ -4,73 +4,14 @@ description: "Move a proven change from dev to prod, with real evidence."
 ---
 
 `ubx promote` never copies dev's resolved values into prod. It
-re-resolves the same original document, fresh, against prod's own real
-config and state.
+re-resolves the same original SDK program, fresh, against prod's own
+real config and state.
 
-## Find your dev proposal
+## Write and accept it in dev
 
 ```bash
 cd envs/dev/payments
-ubx status
 ```
-
-```bash
-payments.aws_sqs_queue.pipeline-events:
-  change a1b2c3d4... (accepted ...)
-```
-
-## Promote it
-
-```bash
-ubx promote a1b2c3d4... --to ../../prod/payments
-```
-
-```bash
-promoted a1b2c3d4... -> payments (../../prod/payments)
-Plan  payments · promoted from dev/payments/a1b2c3d4...
-
-  + aws_sqs_queue.pipeline-events create
-      message_retention_seconds: 259200
-
-plan: ../../prod/payments/.ubx/plans/8224643b....json
-ubx-proposal: 8224643bbbc5...
-next: ubx ship 8224643bbbc5...
-```
-
-Same retention as dev, in this case, because the document didn't
-express anything environment-specific. It was re-derived, not copied,
-even though the value happens to match.
-
-## Ship it in prod
-
-```bash
-cd ../../prod/payments
-ubx ship 8224643bbbc5...
-```
-
-```bash
-  ✓ aws_sqs_queue.pipeline-events : shipped
-1 resource(s), 1 shipped, 0 failed
-```
-
-## See the real lineage
-
-```bash
-ubx why payments.aws_sqs_queue.pipeline-events
-```
-
-```bash
-source: promotion
-  ref: dev/payments/a1b2c3d4...
-```
-
-Permanent, real evidence, prod's own resource genuinely traces back to
-the exact dev proposal that proved it out.
-
-## Promoting an SDK-authored change
-
-The document above happens to be markdown, but promotion works
-identically for a real SDK program. Write one in dev:
 
 ```go
 package main
@@ -146,68 +87,20 @@ describes what's actually on disk, so promoting it would silently
 claim provenance for a program it never actually ran. Draft and accept
 the new version fresh instead.
 
-## Promoting a chat-drafted change
-
-A dialogue promotes too, but differently: the model is never asked to
-draft again. `ubx promote` takes the *converged* draft the dialogue
-already produced and re-resolves that against the target.
-
-```bash
-ubx chat --stack payments
-> We need an SQS queue called pipeline-events for payments,
-  with a 3 day message retention.
-> /save
-```
-
-```bash
-captured dialogue: dialogues/7bef53d83fb5....dlg.json
-```
-
-Resolve, accept, then promote it exactly like any other source:
-
-```bash
-ubx promote e5036587bb74d1... --to ../../prod/payments-chat
-```
-
-```bash
-promoted e5036587bb74… -> payments (../../prod/payments-chat)
-Plan  payments
-
-  + aws_sqs_queue.pipeline-events create
-      message_retention_seconds: 259200
-      name: "pipeline-events"
-
-delta: +1 create(s), ~0 change(s), -0 terminate(s)
-
-AI defaults — you are signing these:
-
-◦ Converted the stated '3 day message retention' into the
-  wire attribute message_retention_seconds, expressed in
-  seconds (3 * 86400 = 259200), since SQS's API requires
-  this value in seconds.
-    affects: aws_sqs_queue.pipeline-events
-
-plan: ../../prod/payments-chat/.ubx/plans/413dcb1df3cf....json
-ubx-proposal: 413dcb1df3cf496c13801a005a2...
-next: ubx ship 413dcb1df3cf
-```
-
-The model's own original reasoning still shows up in the receipt — it
-was captured once, at drafting time, and promoted along with the
-resource it produced, never re-asked. The dialogue file itself is
-carried forward as pinned evidence in the new proposal's own
-`intent.sources`, not something `ubx promote` could re-run a second
-time.
+A proposal accepted before chat was removed as an authoring medium can
+still be explained (`ubx why` still reads a captured dialogue), but
+`ubx promote` refuses to re-resolve one outright: the re-resolution
+machinery a dialogue-sourced promotion depended on is gone along with
+chat itself. Only an SDK-sourced proposal is a real re-derivable case
+today.
 
 ## What you just did
 
-You moved three differently-authored changes from dev to prod as real
-re-derivations, never blind copies: a document re-drafted, an SDK
-program re-run against prod's own real context (and correctly refused
-once it no longer matched what was accepted), and a dialogue's own
-converged draft re-resolved without re-asking the model. Every
-promotion's own lineage is permanently recorded, not just implied by a
-commit message.
+You moved a real change from dev to prod as a genuine re-derivation,
+never a blind copy: the same SDK program, re-run against prod's own
+real context, correctly refused once it no longer matched what was
+accepted. The promotion's own lineage is permanently recorded, not just
+implied by a commit message.
 
 ## Next
 
