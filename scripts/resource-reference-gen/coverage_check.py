@@ -353,17 +353,33 @@ def check_gaps(provider, schema_entries, repo_root=REPO_ROOT, check_disk=True):
     }
 
 
-def check_provider(provider, dump_root, repo_root=REPO_ROOT):
+def check_provider(provider, dump_root, repo_root=REPO_ROOT, check_disk=True):
     """Standalone entry point: loads a real --dump-ir schema.json for
-    `provider` from dump_root and runs the full check, including both
-    on-disk reachability directions."""
-    dump_dir = DUMP_DIR[provider]
+    `provider` from dump_root and runs the full check.
+
+    UBI-240: dump_dir falls back to `provider` itself when the provider
+    is not (yet) a real key in providers.py's own registry (DUMP_DIR),
+    rather than a hard KeyError -- the registry's own real job is
+    reconciling the few genuine name mismatches this org has (gcp's own
+    docs key vs. its real "google" repo name), not gatekeeping which
+    providers this check can run against at all. A provider whose own
+    artifacts live in its own ubx-sdk-<provider> repo (repo_root
+    pointed there via --artifacts-root) has no such mismatch by
+    construction -- its own dump_dir is always its own name -- so this
+    check runs against it with zero registry entry needed, closing the
+    exact "unknown provider" failure DigitalOcean's own onboarding hit
+    here first (TRAPS.md's own "a hardcoded provider allowlist" entry).
+    check_disk defaults True (both reachability directions against the
+    real on-disk resource-reference/ page tree) but should be passed
+    False for a provider with no such tree at all -- an SDK-repo-only
+    target has no Mintlify pages to reconcile against."""
+    dump_dir = DUMP_DIR.get(provider, provider)
     schema_path = os.path.join(dump_root, dump_dir, "schema.json")
     schema = load_json(schema_path)
     if schema is None:
         return {"provider": provider, "error": f"no schema dump at {schema_path!r} -- run `ubx sdk gen --dump-ir` first"}
     schema_entries = build_schema_entries(provider, schema)
-    return check_gaps(provider, schema_entries, repo_root=repo_root, check_disk=True)
+    return check_gaps(provider, schema_entries, repo_root=repo_root, check_disk=check_disk)
 
 
 def gap_count(result):
@@ -412,18 +428,28 @@ def main():
     p.add_argument("--dump-root", default="/tmp/docs-dump", help="directory holding <dump_dir>/schema.json per provider (ubx sdk gen --dump-ir's own output root)")
     p.add_argument("--only", help="comma-separated provider list to restrict to (default: every real provider)")
     p.add_argument("--ubiquex-config", help="path to a real ubiquex checkout's sdk/providers/.ubx/config -- when given, --only omitted means the real, live provider set (Tier 1), not this file's own Tier-2-only default, and a provider missing its own REGISTRY entry fails loudly rather than silently")
+    p.add_argument("--artifacts-root", help="UBI-240: check a provider's own artifacts/<provider>/ directly in a sibling ubx-sdk-<provider> checkout instead of this repo's own artifacts/ -- for a provider whose artifacts live there, not here. Implies --skip-disk-check (an SDK-repo-only target has no resource-reference/ page tree to reconcile against) and skips the registry-membership gate below (a provider need not be a real providers.py key to be checked this way -- see check_provider's own doc comment)")
+    p.add_argument("--skip-disk-check", action="store_true", help="skip both on-disk page-reachability checks (page-with-no-schema-entry, schema-entry-with-no-page) -- only meaningful against this repo's own resource-reference/ tree; set automatically by --artifacts-root")
     p.add_argument("--json", help="also write the full, machine-readable report to this path")
     p.add_argument("--quiet", action="store_true", help="only print per-provider summary lines when clean; still prints full detail for any provider with gaps")
     args = p.parse_args()
 
+    if args.artifacts_root and not args.only:
+        print("--artifacts-root requires --only (the one real provider that root belongs to -- omitting it would silently check this repo's own default provider set against the wrong root)", file=sys.stderr)
+        sys.exit(2)
+
+    repo_root = args.artifacts_root if args.artifacts_root else REPO_ROOT
+    check_disk = not (args.skip_disk_check or args.artifacts_root)
+
     all_providers = providers_registry.all_docs_keys(args.ubiquex_config) if args.ubiquex_config else ALL_PROVIDERS
     providers = args.only.split(",") if args.only else all_providers
-    for p_name in providers:
-        if p_name not in DUMP_DIR:
-            print(f"unknown provider {p_name!r} -- one of {all_providers}", file=sys.stderr)
-            sys.exit(2)
+    if not args.artifacts_root:
+        for p_name in providers:
+            if p_name not in DUMP_DIR:
+                print(f"unknown provider {p_name!r} -- one of {all_providers}", file=sys.stderr)
+                sys.exit(2)
 
-    results = [check_provider(p_name, args.dump_root) for p_name in providers]
+    results = [check_provider(p_name, args.dump_root, repo_root=repo_root, check_disk=check_disk) for p_name in providers]
 
     for r in results:
         print_report(r, args.quiet)
